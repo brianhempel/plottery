@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "install": "jupyter nbextension install nbextension_snp --debug --overwrite --user",
-    "enable": "jupyter nbextension enable nbextension_snp/main",
-    "disable": "jupyter nbextension disable nbextension_snp/main",
+    "install-nbextension": "jupyter nbextension install src/nbextension_snp --debug --overwrite --user",
+    "enable-nbextension": "jupyter nbextension enable nbextension_snp/main",
+    "disable-nbextension": "jupyter nbextension disable nbextension_snp/main",
     "build-ts": "tsc",
-    "build": "npm run install && npm run enable && npm run build-ts"
+    "build": "npm run install-nbextension && npm run enable-nbextension && npm run build-ts"
   },
   "author": "",
   "license": "ISC",

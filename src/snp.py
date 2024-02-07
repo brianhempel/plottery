@@ -21,7 +21,6 @@ import matplotlib as mpl
 
 import shapely
 
-
 def get_trivial_names():
     """Returns stuff like __class__, __doc__, etc."""
     return set(dir(object()))
@@ -31,30 +30,49 @@ def get_trivial_names():
 file_path = "__temp.py"
 module_name = os.path.splitext(os.path.basename(file_path))[0]
 
+def import_lineset_in(code):
+    ''' Returns a set of code lines that begin with `import ` '''
+    import_lines_regex = re.compile(r'^[^#\n]*import .*', re.MULTILINE)
+    return set(import_lines_regex.findall(code))
+
+# For caching
+if "import_lineset" not in globals():
+    import_lineset = set()
+    fine_grained_build_manager = None
+    mypy_result = None # The FineGrainedBuildManager mutates this, apparently.
+    fscache = None
 
 def do_inference(code):
-    # Write out to a file
+    # For caching
+    global import_lineset
+    global fine_grained_build_manager
+    global mypy_result
+    global fscache
+
+    # Write out to a temp file
     with open(file_path, "w") as file:
         file.write(code)
 
-    sources, options = mypy.main.process_options([file_path])
+    if fine_grained_build_manager is None or import_lineset != import_lineset_in(code):
+        import_lineset = import_lineset_in(code)
+        sources, options = mypy.main.process_options([file_path])
 
-    options.incremental = True
-    options.preserve_asts = True
-    options.strict_optional = True
-    options.warn_unused_configs = True
-    options.fine_grained_incremental = True
-    options.use_fine_grained_cache = True
-    options.local_partial_types = True  # https://github.com/python/mypy/issues/4492
-    options.mypy_path = ["python-type-stubs-main/stubs"]
-    options.follow_imports = "silent"
-    options.follow_imports_for_stubs = True
-    options.export_types = True
+        options.incremental = True
+        options.preserve_asts = True
+        options.strict_optional = True
+        options.warn_unused_configs = True
+        options.fine_grained_incremental = True
+        options.use_fine_grained_cache = True
+        options.local_partial_types = True  # https://github.com/python/mypy/issues/4492
+        options.mypy_path = ["python-type-stubs-main/stubs"]
+        options.follow_imports = "silent"
+        options.follow_imports_for_stubs = True
+        options.export_types = True
 
-    fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
-    mypy_result = mypy.build.build(sources, options=options, fscache=fscache)
+        fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
+        mypy_result = mypy.build.build(sources, options=options, fscache=fscache)
 
-    fine_grained_build_manager = mypy.server.update.FineGrainedBuildManager(mypy_result)
+        fine_grained_build_manager = mypy.server.update.FineGrainedBuildManager(mypy_result)
 
     fine_grained_build_manager.update([(module_name, file_path)], [])
     fine_grained_build_manager.flush_cache()

@@ -49,15 +49,6 @@ define(["require", "base/js/namespace", "base/js/events"], function (
           )}\nnotebook_code_through_cell = ${JSON.stringify(
             notebook_code_through_cell
           )}\n${content.code}`;
-
-          // content.code =
-          //   `provenance_is_off_by_n_lines = 4\n` +
-          //   `cell_lineno = ${cell_lineno}\n` +
-          //   `cell_code = ${JSON.stringify(cell_code)}\n` +
-          //   `notebook_code_through_cell = ${JSON.stringify(
-          //     notebook_code_through_cell
-          //   )}` +
-          //   `${content.code}`;
         }
       }
     );
@@ -65,7 +56,7 @@ define(["require", "base/js/namespace", "base/js/events"], function (
 
   function load_extension() {
     // Inject css
-    var link = document.createElement("link");
+    const link = document.createElement("link");
     link.type = "text/css";
     link.rel = "stylesheet";
     link.href = requirejs.toUrl("./style.css");
