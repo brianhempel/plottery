@@ -1,0 +1,18 @@
+{
+  "name": "sketch-neo-plot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "install": "jupyter nbextension install nbextension_snp --debug --overwrite --user",
+    "enable": "jupyter nbextension enable nbextension_snp/main",
+    "disable": "jupyter nbextension disable nbextension_snp/main",
+    "build-ts": "tsc",
+    "build": "npm run install && npm run enable && npm run build-ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^5.3.3"
+  }
+}

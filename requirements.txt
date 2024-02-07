@@ -1,0 +1,6 @@
+notebook==6.2.0
+matplotlib==3.8.2
+numpy==1.26.3
+ipython==8.21.0
+mypy==1.8.0
+shapely==2.0.2
