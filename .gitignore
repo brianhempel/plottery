@@ -6,3 +6,4 @@ node_modules
 venv
 snp.js.map
 __temp.py
+python-type-stubs-main/

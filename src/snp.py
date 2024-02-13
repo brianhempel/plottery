@@ -559,8 +559,7 @@ class SNP:
 
         return f"""
             <div class="snp_outer" style="position:relative;">
-            <script>{pathlib.Path("snp.js").read_text()}</script>
-            <style>{pathlib.Path("snp.css").read_text()}</style>
+            <script>{pathlib.Path("../dist/assets/plugin.js").read_text()}</script>
             <img style="margin: 0; border: solid 1px black;" src='{data_url}'> <!-- the plot -->
             {self._repr_svg_()} <!-- hover regions -->
             <div class="stdout_stderr"></div>
