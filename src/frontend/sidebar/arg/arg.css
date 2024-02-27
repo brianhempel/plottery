@@ -1,0 +1,24 @@
+.snp-arg-str {
+  color: #BA2121;
+}
+
+.snp-arg-number {
+  color: #080;
+}
+
+.snp-arg-operator {
+  color: #AA22FF;
+}
+/* 
+.snp-arg.snp-arg-str:hover {
+  background: #ba212117;
+} */
+
+.snp-arg:focus-visible {
+  outline: none;
+}
+
+.snp-remove-arg-button {
+  content: "\00d7";
+}
+

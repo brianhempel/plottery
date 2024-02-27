@@ -1,3 +1,4 @@
+import { Widget } from "./sidebar/widgets/widget";
 import { Cell } from "./utils/types";
 
 export class AppState {
@@ -47,28 +48,65 @@ export type View = {
 };
 
 export type SidebarView = {
-  element: HTMLElement;
-  objects: ObjectView[];
+  els: SidebarViewEls;
+  artists: { [name: string]: ArtistView };
 };
 
-export type ObjectView = {
-  element: HTMLElement;
+export type SidebarViewEls = {
+  el: HTMLElement;
+  header_el: HTMLElement;
+  artists_el: HTMLElement;
+};
+
+export type ArtistView = {
+  els: ArtistViewEls;
+
   is_expanded: boolean;
 
+  calls: CallView[];
   methods: MethodView[];
 };
 
-export type MethodView = {
-  element: HTMLElement;
-  is_active: boolean; // (i.e. exists in code)
+export type ArtistViewEls = {
+  el: HTMLElement;
+  header_el: HTMLElement;
+  collapse_button_el: HTMLElement;
+  name_el: HTMLElement;
+  body_el: HTMLElement;
+  collapse_indent_el: HTMLElement;
+  calls_el: HTMLElement;
+};
+
+export type CallView = {
+  els: CallViewEls;
   is_elided: boolean; // (i.e. not collapsed args into ...)
 
   arguments: ArgView[];
 };
 
+export type CallViewEls = {
+  el: HTMLElement;
+  name_el: HTMLElement;
+  start_bracket_el: HTMLElement;
+  args_el: HTMLElement;
+  end_bracket_el: HTMLElement;
+};
+
+export type MethodView = {
+  el: HTMLElement;
+
+  arguments: ArgView[];
+};
+
 export type ArgView = {
-  element: HTMLElement;
-  is_active: boolean; // (i.e. not the default value)
+  el: HTMLElement;
+  widget: Widget;
+
+  optional: boolean;
+
+  positional: boolean;
+
+  comma_el: HTMLElement | null;
 };
 
 /* ----------------- Sidebar call types ----------------- */
@@ -110,6 +148,16 @@ export type CallInfo = MethodInfo & {
   })[];
 };
 
+export type CallWithArgs = {
+  call_info: CallInfo;
+  given_positional_args: Arg[];
+  given_keyword_args: Arg[];
+  missing_positional_args: Arg[];
+  missing_keyword_args: Arg[];
+  needed_positional_args: Arg[];
+  missing_optional_positional_args: Arg[];
+};
+
 // if (type === "builtins.str") {
 //   return ['""', type];
 // } else if (type === "builtins.float") {
@@ -141,10 +189,11 @@ export type Type =
   | AnyType
   | CallableType
   | NoneType
-  | TypeAliasType;
+  | TypeAliasType
+  | IInstanceType;
 
 export type UnionType = {
-  ".class": UnionType;
+  ".class": "UnionType";
   items: Type[];
 };
 
@@ -201,7 +250,7 @@ export type TypeAliasType = {
   type_ref: string; // "matplotlib._typing.ArrayLike"
 };
 
-export type InstanceType = {
+export type IInstanceType = {
   ".class": "Instance";
   args: Type[]; // "['matplotlib.lines.Line2D']"
   type_ref: string; // "builtins.list"

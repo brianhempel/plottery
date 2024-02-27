@@ -14,7 +14,7 @@ export function arg_defaults_from_callee_type(
   }
 ): Arg[] {
   return callee.arg_names
-    .map((arg_name: string, arg_i: string | number) => {
+    .map((arg_name: string, arg_i: number) => {
       const arg_kind = get_arg_kind_from_int(callee.arg_kinds[arg_i]);
       const arg_type = callee.arg_types[arg_i];
 
@@ -22,15 +22,18 @@ export function arg_defaults_from_callee_type(
       let arg_default_code: string;
       let arg_default_type: Type | undefined;
       if (callee.definition_arguments_default_code[arg_i]) {
-        arg_default_code = callee.definition_arguments_default_code[arg_i];
+        arg_default_code = callee.definition_arguments_default_code[
+          arg_i
+        ] as string;
         arg_default_type = undefined; // We don't know.
       } else {
         [arg_default_code, arg_default_type] =
           default_code_and_code_type_for_type(arg_type, arg_name);
       }
 
+      console.log(arg_default_type);
+
       return {
-        is_active: false,
         name: arg_name,
         kind: arg_kind,
         code: arg_default_code,
@@ -47,6 +50,7 @@ export function default_code_and_code_type_for_type(
   type: Type,
   name?: string
 ): [string, Type] {
+  // @TODO: Why is this hardcoded?
   const default_value_from_name = [
     ["width", "builtins.float", "1.0"],
     ["height", "builtins.float", "1.0"],
@@ -62,33 +66,35 @@ export function default_code_and_code_type_for_type(
   }
 
   if (type == "builtins.str") {
-    return ['""', type];
+    return ['"Bananas..."', type];
   } else if (type == "builtins.float") {
-    return ["0.0", type];
-  } else if (
-    type[".class"] == "Instance" &&
-    type["type_ref"] == "builtins.dict"
-  ) {
-    return ["{}", type];
-  } else if (type[".class"] == "UnionType") {
-    return default_code_and_code_type_for_type(
-      (type as UnionType).items[0],
-      name
-    );
-  } else if (
-    type[".class"] == "LiteralType" &&
-    type["fallback"] == "builtins.str"
-  ) {
-    const ltype = type as LiteralType;
-    return [JSON.stringify(ltype.value), ltype.fallback];
-  } else if (type["type_ref"] == "matplotlib._typing.ArrayLike") {
-    return ["[1,2,3]", type];
-  } else {
-    return ["None", { ".class": "NoneType" }];
+    return ["0.5", type];
+  } else if (typeof type == "object") {
+    if (type[".class"] == "Instance" && type["type_ref"] == "builtins.dict") {
+      return ["{}", type];
+    } else if (type[".class"] == "UnionType") {
+      return default_code_and_code_type_for_type(
+        (type as UnionType).items[0],
+        name
+      );
+    } else if (
+      type[".class"] == "LiteralType" &&
+      type["fallback"] == "builtins.str"
+    ) {
+      const ltype = type as LiteralType;
+      return [JSON.stringify(ltype.value), ltype.fallback];
+    } else if (
+      "type_ref" in type &&
+      type["type_ref"] == "matplotlib._typing.ArrayLike"
+    ) {
+      return ["[1,2,3]", type];
+    }
   }
+
+  return ["None", { ".class": "NoneType" }];
 }
 
-export function createElement(
+export function create_el(
   tag: string,
   classes: string[] | string = [],
   parent?: Element
@@ -117,4 +123,99 @@ export function item_to_start_pos(
 
 export function item_to_end_pos(item: { pos: Position }, cell_lineno: number) {
   return { line: item.pos.end_line - cell_lineno, ch: item.pos.end_column };
+}
+
+export function create_dropdown_arrow() {
+  const svgContainer = create_el("div");
+
+  const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svgEl.innerHTML = `<polygon points="5.9,88.2 50,11.8 94.1,88.2"></polygon>`;
+  svgContainer.append(svgEl);
+  svgEl.setAttribute("viewBox", "0 0 100 100");
+
+  return svgContainer;
+}
+
+export function create_chevron() {
+  const svgContainer = create_el("div");
+
+  const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svgEl.innerHTML = `<path d="M12 19a.749.749 0 0 1-.53-.22l-3.25-3.25a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215L12 17.19l2.72-2.72a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734l-3.25 3.25A.749.749 0 0 1 12 19Z"></path><path d="M12 18a.75.75 0 0 1-.75-.75v-7.5a.75.75 0 0 1 1.5 0v7.5A.75.75 0 0 1 12 18ZM2.75 6a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1A.75.75 0 0 1 2.75 6Zm4 0a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1A.75.75 0 0 1 6.75 6Zm4 0a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Zm4 0a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Zm4 0a.75.75 0 0 1 .75-.75h1a.75.75 0 0 1 0 1.5h-1a.75.75 0 0 1-.75-.75Z"></path>`;
+  svgContainer.append(svgEl);
+  svgEl.setAttribute("viewBox", "0 0 24 24");
+  svgEl.setAttribute("width", "24px");
+  svgEl.setAttribute("height", "24px");
+
+  return svgContainer;
+}
+
+export function create_dropdown_nook() {
+  const svgContainer = create_el("div");
+
+  const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+  svgEl.innerHTML = `<g clip-path="url(#clip0_29_4)">
+<path d="M0.426963 3.57302L3.82296 0.177023C3.84619 0.153742 3.87377 0.135271 3.90415 0.122667C3.93452 0.110064 3.96708 0.103577 3.99996 0.103577C4.03285 0.103577 4.06541 0.110064 4.09578 0.122667C4.12615 0.135271 4.15374 0.153742 4.17696 0.177023L7.57296 3.57302C7.60802 3.60799 7.6319 3.65257 7.64158 3.70113C7.65127 3.74968 7.64631 3.80002 7.62736 3.84576C7.6084 3.89149 7.57628 3.93057 7.53509 3.95803C7.4939 3.9855 7.44547 4.00011 7.39596 4.00002H0.603963C0.554453 4.00011 0.506031 3.9855 0.464836 3.95803C0.423642 3.93057 0.39153 3.89149 0.372571 3.84576C0.353612 3.80002 0.348661 3.74968 0.358344 3.70113C0.368027 3.65257 0.39191 3.60799 0.426963 3.57302Z" fill="black"/>
+</g>
+<defs>
+<clipPath id="clip0_29_4">
+<rect width="8" height="3" fill="white"/>
+</clipPath>
+</defs>`;
+  svgContainer.append(svgEl);
+  svgEl.setAttribute("viewBox", "0 0 8 3");
+  svgEl.setAttribute("width", "8px");
+  svgEl.setAttribute("height", "3px");
+  return svgContainer;
+}
+
+// https://stackoverflow.com/a/58550111
+export function is_numeric(num: unknown) {
+  return (
+    (typeof num === "number" ||
+      (typeof num === "string" && num.trim() !== "")) &&
+    !isNaN(num as number)
+  );
+}
+
+export function is_array_like(val: string) {
+  if (val.trim().at(0) == "[" && val.trim().at(-1) == "]") {
+    return true;
+  }
+
+  return false;
+}
+
+// @TODO: Make more robust (e.g. check f strings)
+export function is_string_like(val: string) {
+  const v = val.trim();
+  if (v.startsWith(`"`) && v.endsWith(`"`)) {
+    return true;
+  } else if (v.startsWith(`'`) && v.endsWith(`'`)) {
+    return true;
+  } else if (v.startsWith("`") && v.endsWith("`")) {
+    return true;
+  }
+
+  return false;
+}
+
+export function syntax_highlight(code: string, container: HTMLElement) {
+  const CodeMirror = window["CodeMirror"];
+  CodeMirror.runMode(
+    code,
+    {
+      name: "python",
+      version: 3,
+      singleLineStringErrors: false,
+    } as any,
+    container
+  );
+}
+
+export function insert_to_beginning_of_el(
+  parent: HTMLElement,
+  el_to_insert: HTMLElement
+) {
+  parent.insertBefore(el_to_insert, parent.firstChild);
 }

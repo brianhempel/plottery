@@ -1,6 +1,6 @@
 // These will already exist where we inject the JS in the notebook.
 declare const IPython: any;
-declare const Jupyter: Jupyter;
+declare const Jupyter: any;
 
 // Gobals
 declare var ellipses_svg_html: string;
@@ -11,174 +11,6 @@ declare var default_value_from_name: Array<[string, any, string]>;
 declare var pre_cell_execute_handlers_to_first_unbind_when_this_file_is_rerun: Function[];
 declare var select_lineno_after_execute: number | undefined;
 declare var open_artists_after_execute: string[] | undefined;
-
-/* ------------------------------------------------------ */
-/*                          Types                         */
-/* ------------------------------------------------------ */
-type Jupyter = {
-  notebook: Notebook;
-};
-
-type Notebook = {
-  get_cells: () => Cell[];
-};
-
-type Type = {
-  ".class": string;
-  fallback: string;
-  items: Array<Type | string>;
-};
-
-type Cell = {
-  metadata: {
-    trusted: boolean;
-    scrolled?: boolean;
-  };
-  cell_type: string;
-  source: string;
-  execution_count: number | null;
-  outputs: CellOutput[];
-
-  code_mirror: any;
-
-  element: Array<HTMLElement>;
-
-  get_text: () => string;
-};
-
-type CellOutput = {
-  output_type: string;
-  execution_count?: number;
-  data: {
-    "text/plain": string;
-    "text/html"?: string;
-    "image/svg+xml"?: string;
-    "image/png": string;
-    "application/json"?: {
-      cell_lineno: number;
-      provenance_is_off_by_n_lines: number;
-    };
-  };
-};
-
-type SNPState = {
-  hovered_elems: HTMLElement[];
-  canvas_selection: SelectedItem;
-  cell: Cell;
-  busy: boolean;
-  last_cell_code_executed: string;
-  cell_lineno: number;
-  provenance_is_off_by_n_lines: number;
-  snp_outer: HTMLElement;
-  img: HTMLImageElement;
-  hover_regions_svg: () => SVGSVGElement;
-
-  inspector: HTMLElement;
-  sidebar: HTMLElement;
-
-  stdout_stderr: HTMLElement;
-
-  selectable_artists: SelectableArtist[];
-
-  methods: SidebarMethod[];
-  calls: SidebarCall[];
-};
-
-type SNPOuterHTMLELement = HTMLElement & {
-  cell: Cell;
-};
-
-/* ---------------- User call info types ---------------- */
-type UserCallInfo = {
-  call: SidebarCall;
-  callee: Callee;
-  given_args: any[];
-};
-
-type SidebarCall = {
-  pos?: {
-    line: number;
-    column: number;
-    end_line: number;
-    end_column: number;
-  };
-  ".class"?: string;
-  items?: Array<ArgClass | string>;
-  partial_fallback?: ItemClass;
-  implicit?: boolean;
-  type_ref?: string;
-  args?: Array<ArgClass | string>;
-  show_on: number[];
-  name: string;
-  receiver: any;
-  max_calls: number;
-  func_code_and_num: any;
-};
-
-type ItemClass = {
-  ".class": string;
-  value?: string;
-  fallback?: string;
-  type_ref?: string;
-  args?: Array<ArgClass | string>;
-};
-
-type ArgClass = {
-  ".class": string;
-  type_of_any?: number;
-  source_any?: null;
-  missing_import_name?: null;
-  items?: Array<ItemClass | string>;
-};
-
-type Callee = {
-  ".class": string;
-  arg_types: Array<ArgClass | string>;
-  arg_kinds: number[];
-  arg_names: string[];
-  ret_type: SidebarCall | string;
-  fallback: string;
-  name: string;
-  variables: any[];
-  is_ellipsis_args: boolean;
-  implicit: boolean;
-  bound_args: any[];
-  def_extras: {
-    first_arg: any;
-  };
-  type_guard: any;
-  from_concatenate: boolean;
-  imprecise_arg_kinds: boolean;
-  unpack_kwargs: boolean;
-  arg_type_compatible_local_names: Array<string[]>;
-  pos: {
-    line: number;
-    column: number;
-    end_line: number;
-    end_column: number;
-  };
-  definition_arguments_default_code?: Array<string>;
-};
-
-/* ----------------- Sidebar stuff types ---------------- */
-type SidebarStuff = {
-  selectable_artists: SelectableArtist[];
-  methods: SidebarMethod[];
-  calls: any[];
-};
-
-type SelectableArtist = {
-  id: number;
-  names: string[];
-};
-
-type SidebarMethod = {
-  name: string;
-  receiver: number;
-  show_on: number[];
-  type: Callee;
-  max_calls: number | null;
-};
 
 ellipses_svg_html = `<svg height="14pt" viewBox="0 0 14 14" width="14pt" xmlns="http://www.w3.org/2000/svg"><path d="m14 8c0 1.65685-1.3431 3-3 3h-8c-1.65685 0-2.99999935-1.34315-2.99999959-3 .00000047-1.65685 1.34314959-3 2.99999959-3h8c1.6569 0 3 1.34315 3 3z" fill="#fff"/><g fill-rule="evenodd"><path d="m3 7c.55229 0 1 .44772 1 1s-.44771 1-1 1c-.55228 0-1-.44772-1-1s.44772-1 1-1z"/><path d="m7 7c.55229 0 1 .44772 1 1s-.44771 1-1 1c-.55228 0-1-.44772-1-1s.44772-1 1-1z"/><path d="m11 7c.5523 0 1 .44772 1 1s-.4477 1-1 1-1-.44772-1-1 .4477-1 1-1z"/></g></svg>`;
 
@@ -201,15 +33,60 @@ default_value_from_name = [
   ["height", "builtins.float", "1.0"],
 ];
 
-/* ------------------------------------------------------ */
-/*                     Array Utilities                    */
-/* ------------------------------------------------------ */
+// Keep track of event listeners so we can remove them
+// Based on Ivan Castellanos & alex, https://stackoverflow.com/a/6434924
+// Element.prototype.origAddEventListener = Element.prototype.addEventListener;
+// Element.prototype.addEventListener = function (eventName, f, opts) {
+//   this.origAddEventListener(eventName, f, opts);
+//   this.listeners = this.listeners || [];
+//   this.listeners.push({ eventName: eventName, f: f , opts: opts });
+// };
+// Element.prototype.removeEventListeners = function() {
+//   for (const { eventName, f, opts } of (this.listeners || [])) {
+//     this.removeEventListener(eventName, f, opts)
+//   }
+//   this.listeners = [];
+// };
 
-/* Partitions array into two based on predicate. */
-function partition<T>(array: Array<T>, predicate: (el: T) => boolean) {
-  const trues: T[] = [];
-  const falses: T[] = [];
-  array.forEach((x) => {
+interface Array<T> {
+  addAsSet(elem: T): Array<T>;
+  removeAsSet(elem: T): Array<T>;
+  dedup(): Array<T>;
+  partition(predicate: (elem: T) => boolean): [Array<T>, Array<T>];
+  intersperse<A>(sep: A): Array<T | A>;
+  takeWhile(predicate: (elem: T) => boolean): Array<T>;
+}
+
+Array.prototype.addAsSet = function (elem) {
+  // pretend array is a set and add something to it
+  if (!this.includes(elem)) {
+    this.push(elem);
+  }
+  // console.log(this);
+  return this;
+};
+
+Array.prototype.removeAsSet = function (elem) {
+  // https://love2dev.com/blog/javascript-remove-from-array/#remove-from-array-splice-value
+  for (var i = 0; i < this.length; i += 1) {
+    if (this[i] === elem) {
+      this.splice(i, 1);
+      i -= 1;
+    }
+  }
+  // console.log(this);
+  return this;
+};
+
+Array.prototype.dedup = function () {
+  // https://stackoverflow.com/a/9229821
+  return this.filter((item, pos) => this.indexOf(item) == pos);
+};
+
+Array.prototype.partition = function (predicate) {
+  const trues = [];
+  const falses = [];
+  this.forEach(x => {
     if (predicate(x)) {
       trues.push(x);
     } else {
@@ -217,21 +94,31 @@ function partition<T>(array: Array<T>, predicate: (el: T) => boolean) {
     }
   });
   return [trues, falses];
-}
+};
 
 // [1,2,3].intersperse("&") => [1, '&', 2, '&', 3]
-function intersperse<T>(array: Array<T>, sep: any) {
-  return array.flatMap((el, i) => (i == 0 ? [el] : [sep, el]));
-}
+Array.prototype.intersperse = function (sep) {
+  return this.flatMap((el, i) => (i == 0 ? [el] : [sep, el]));
+};
 
 // lol javascript can't compare arrays
-function equalByJSON(a: Object, b: Object) {
+function equal_by_json(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function takeWhile<T>(array: Array<T>, predicate: (el: T) => boolean) {
-  const out: T[] = [];
-  for (const x of array) {
+// Array.prototype.count = function(predicate) {
+//   let count = 0;
+//   this.forEach(x => {
+//     if (predicate(x)) {
+//       count += 1;
+//     }
+//   });
+//   return count
+// }
+
+Array.prototype.takeWhile = function (predicate) {
+  const out = [];
+  for (const x of this) {
     if (predicate(x)) {
       out.push(x);
     } else {
@@ -239,57 +126,69 @@ function takeWhile<T>(array: Array<T>, predicate: (el: T) => boolean) {
     }
   }
   return out;
-}
+};
 
-/* ------------------------------------------------------ */
-/*                      Selected Item                     */
-/* ------------------------------------------------------ */
+// Prefers first match in case of ties.
+// String.prototype.indexOfMatchClosestToIndex = function(targetStr, idealI) {
+//   let closestI = -1;
+//   let i = -1;
+//   while (true) {
+//     i = this.indexOf(targetStr, i + 1);
+//     if (i == -1) {
+//       return closestI;
+//     } else if (closestI == -1 || Math.abs(i - idealI) < Math.abs(closestI - idealI)) {
+//       closestI = i;
+//     }
+//   }
+// }
+
+// function vectorAdd({x, y}, vec2) {
+//   return { x: x + vec2.x, y: y + vec2.y };
+// }
+
+// global, for debugging only
+// window.last_selected_shape = undefined
+
 type SelectedItem =
   | { name: string }
   | { func_code: string; call_num: number }
   | undefined;
 
-function selected_shapes(snp_state: SNPState) {
+function selected_shapes(snp_state: {
+  canvas_selection: SelectedItem;
+  hover_regions_svg: () => any;
+}): any[] {
   const selected_shapes = [];
-
   if (snp_state.canvas_selection === undefined) {
-    return [];
-  }
-
-  if ("name" in snp_state.canvas_selection) {
+    return selected_shapes;
+  } else if ("name" in snp_state.canvas_selection) {
     const target_name = snp_state.canvas_selection.name;
     snp_state
       .hover_regions_svg()
       .querySelectorAll(`[data-artist-names]`)
-      .forEach((shape: { dataset: { artistNames: string } }) => {
+      .forEach(shape => {
         if (JSON.parse(shape.dataset.artistNames).includes(target_name)) {
           selected_shapes.push(shape);
         }
       });
-
-    return selected_shapes;
-  }
-
-  if ("func_code" in snp_state.canvas_selection) {
+  } else if ("func_code" in snp_state.canvas_selection) {
     const target = [
       snp_state.canvas_selection.func_code,
       snp_state.canvas_selection.call_num,
     ];
-
     snp_state
       .hover_regions_svg()
       .querySelectorAll(`[data-func-code-and-num]`)
-      .forEach((shape: { dataset: { funcCodeAndNum: string } }) => {
-        if (equalByJSON(target, JSON.parse(shape.dataset.funcCodeAndNum))) {
+      .forEach(shape => {
+        if (equal_by_json(target, JSON.parse(shape.dataset.funcCodeAndNum))) {
           selected_shapes.push(shape);
         }
       });
   }
-
   return selected_shapes;
 }
 
-function select(snp_state: SNPState, key: SelectedItem) {
+function select(snp_state, key) {
   console.log("select", key);
   snp_state.canvas_selection = key;
   if (key === undefined) {
@@ -299,7 +198,7 @@ function select(snp_state: SNPState, key: SelectedItem) {
   // window.last_selected_shape = shape
   // console.log(window.last_selected_shape)
 
-  selected_shapes(snp_state).forEach((shape) => {
+  selected_shapes(snp_state).forEach(shape => {
     const drawable = shape.querySelector("[stroke-width]");
     if (!drawable) {
       return;
@@ -308,19 +207,17 @@ function select(snp_state: SNPState, key: SelectedItem) {
     drawable.setAttribute("stroke-width", "4.0");
   });
 
-  Array.from(snp_state.sidebar.children).forEach(
-    (el) => ((el as any).open = false)
+  Array.from(snp_state.sidebar.children as any[]).forEach(
+    el => (el.open = false)
   );
   const selected_item = selected_sidebar_item(snp_state, key);
-  selected_item && ((selected_item as any).open = true);
+  selected_item && (selected_item.open = true);
 
   place_inspector(snp_state);
   // snp_state.snp_outer.querySelectorAll(".add_hint").forEach(hide)
 }
 
-function shape_selection_key(shape: {
-  dataset: { artistNames: string; funcCodeAndNum: string };
-}): SelectedItem {
+function shape_selection_key(shape): SelectedItem {
   if (
     shape.dataset.artistNames &&
     JSON.parse(shape.dataset.artistNames).length > 0
@@ -335,25 +232,22 @@ function shape_selection_key(shape: {
   return undefined;
 }
 
-function selected_sidebar_item(snp_state: SNPState, key: SelectedItem) {
+function selected_sidebar_item(snp_state, key: SelectedItem) {
   if (key === undefined) {
     return undefined;
   } else if ("name" in key) {
-    return Array.from(snp_state.sidebar.children).find(
-      (el) => (el as any).artistName === key.name
+    return Array.from(snp_state.sidebar.children as any[]).find(
+      el => el.artistName === key.name
     );
   } else if ("func_code" in key) {
     const target = [key.func_code, key.call_num];
-    return Array.from(snp_state.sidebar.children).find((el) =>
-      Array.from(el.children).some(
-        (child) =>
-          (child as any).funcCodeAndNum &&
-          equalByJSON((child as any).funcCodeAndNum, target)
+    return Array.from(snp_state.sidebar.children as any[]).find(el =>
+      Array.from(el.children as any[]).some(
+        child =>
+          child.funcCodeAndNum && equal_by_json(child.funcCodeAndNum, target)
       )
     );
   }
-
-  return undefined;
 }
 
 // function select(snp_state, selected_item) {
@@ -366,8 +260,8 @@ function selected_sidebar_item(snp_state: SNPState, key: SelectedItem) {
 //   snp_state.snp_outer.querySelectorAll(".add_hint").forEach(hide)
 // }
 
-function deselect_all(snp_state: SNPState) {
-  selected_shapes(snp_state).forEach((shape) => {
+function deselect_all(snp_state) {
+  selected_shapes(snp_state).forEach(shape => {
     const drawable = shape.querySelector("[stroke-width]");
     if (!drawable) {
       return;
@@ -382,15 +276,12 @@ function deselect_all(snp_state: SNPState) {
   snp_state.snp_outer.querySelectorAll(".add_hint").forEach(show);
 }
 
-function relativeTopLeft(el: any, container: any) {
+function relativeTopLeft(el, container) {
   const { top, left } = relativeBoundingRect(el, container);
   return [top, left];
 }
 
-function relativeBoundingRect(
-  el: { getBoundingClientRect: () => any },
-  container: SNPOuterHTMLELement
-) {
+function relativeBoundingRect(el, container) {
   const elRect = el.getBoundingClientRect();
   const refRect = container.getBoundingClientRect();
 
@@ -402,15 +293,15 @@ function relativeBoundingRect(
   });
 }
 
-function get_cells_up_through(cell: Cell) {
+function get_cells_up_through(cell) {
   const cells = Jupyter.notebook.get_cells();
   const i = cells.indexOf(cell);
   return cells.slice(0, i + 1);
 }
 
 function default_code_and_code_type_for_type(
-  type: string | Type,
-  name?: string
+  type,
+  name: string | undefined = undefined
 ): [string, any] {
   const [_, __, default_code] = default_value_from_name.find(
     ([default_name, default_type, default_code]) =>
@@ -431,7 +322,7 @@ function default_code_and_code_type_for_type(
   ) {
     return ["{}", type];
   } else if (type[".class"] === "UnionType") {
-    return default_code_and_code_type_for_type((type as Type).items[0], name);
+    return default_code_and_code_type_for_type(type.items[0], name);
   } else if (
     type[".class"] === "LiteralType" &&
     type["fallback"] == "builtins.str"
@@ -510,12 +401,12 @@ function dial_svg_html() {
 
 // Walk the widget tree and convert to code
 // If node has a to_code property, call it. Otherwise use the text of text nodes.
-function to_code(node: HTMLElement) {
+function to_code(node) {
   if (node.hasOwnProperty("to_code")) {
-    return (node as any).to_code();
+    return node.to_code();
   } else if (node.nodeType === 3) {
     // text node
-    return (node as any).data.replaceAll(
+    return node.data.replaceAll(
       "\u00A0",
       " "
     ); /* Remove non-breaking spaces...which are produced by space bar, at least when the element is ordinary content-editable (perhaps not for contenteditable="plaintext-only") */
@@ -524,14 +415,8 @@ function to_code(node: HTMLElement) {
   }
 }
 
-function make_el(
-  tag: string,
-  attrs: { [key: string]: any },
-  style: { [key: string]: string },
-  listeners: { [key: string]: EventListener },
-  children: (Element | string)[]
-) {
-  const el: HTMLElement = document.createElement(tag);
+function make_el(tag, attrs, style, listeners, children) {
+  const el = document.createElement(tag);
 
   for (const key in attrs) {
     el[key] = attrs[key];
@@ -554,38 +439,38 @@ type Dropdown = HTMLDivElement & ToCodeAble & { selected_el: HTMLElement };
 
 // options is { selected_el: el }
 function make_dropdown(
-  sync_editor_and_output: () => void,
-  els: HTMLElement[],
-  options: { selected_el: HTMLElement }
+  sync_editor_and_output,
+  els,
+  options = { selected_el: undefined }
 ) {
   let dropdown = document.createElement("div") as Dropdown;
   dropdown.style.display = "inline-block";
   dropdown.style.position = "relative"; // so we can position the open dropdown
 
-  function set_dropdown(el: HTMLElement) {
+  function set_dropdown(el) {
     dropdown.innerHTML = "";
     dropdown.selected_el = el;
     dropdown.append(dropdown.selected_el, select_button);
   }
 
-  function open_dropdown(ev: any) {
+  function open_dropdown(ev) {
     let opened_dropdown = make_el(
       "div",
       {},
       {
         position: "absolute",
-        "z-index": "10",
+        "z-index": 10,
         border: "solid 1px gray",
         boxShadow: "1px 1px 6px black",
       },
       {},
-      Array.from(els).map((el) => {
+      Array.from(els).map(el => {
         return make_el(
           "div",
           { class: "option" },
           { background: "white", cursor: "pointer" },
           {
-            click: (ev: { stopPropagation: () => void }) => {
+            click: ev => {
               ev.stopPropagation();
               opened_dropdown.remove();
               set_dropdown(el);
@@ -616,11 +501,11 @@ function make_dropdown(
 }
 
 function arg_to_widget(
-  sync_editor_and_output: any,
-  code: any,
-  arg_type: any,
-  code_type: any,
-  type_compatible_local_names: any
+  sync_editor_and_output,
+  code: string,
+  arg_type,
+  code_type,
+  type_compatible_local_names: string[]
 ) {
   const possible_widgets = arg_to_widgets(
     sync_editor_and_output,
@@ -630,7 +515,7 @@ function arg_to_widget(
   );
 
   for (const name of type_compatible_local_names) {
-    if (!possible_widgets.some((widget) => to_code(widget) === name)) {
+    if (!possible_widgets.some(widget => to_code(widget) === name)) {
       possible_widgets.push(make_el("span", {}, {}, {}, [name]));
     }
   }
@@ -639,29 +524,25 @@ function arg_to_widget(
     return possible_widgets[0];
   } else {
     return make_dropdown(sync_editor_and_output, possible_widgets, {
-      selected_el: possible_widgets.find((widget) => to_code(widget) === code),
+      selected_el: possible_widgets.find(widget => to_code(widget) === code),
     });
   }
 }
 
 function arg_to_widgets(
-  sync_editor_and_output: any,
+  sync_editor_and_output,
   code: string,
-  arg_type: string,
-  code_type: Object
-): HTMLElement[] {
+  arg_type,
+  code_type
+): Node[] {
   console.log(code, arg_type);
   if (arg_type[".class"] === "UnionType") {
     const items = arg_type["items"];
-    const literals = items.filter(
-      (type2: { [x: string]: string }) => type2[".class"] === "LiteralType"
-    );
+    const literals = items.filter(type2 => type2[".class"] === "LiteralType");
     // If all string literals...
     if (
       items.length === literals.length &&
-      items.every(
-        (type2: { [x: string]: string }) => type2["fallback"] === "builtins.str"
-      )
+      items.every(type2 => type2["fallback"] === "builtins.str")
     ) {
       // {
       //   ".class": "UnionType",
@@ -692,14 +573,14 @@ function arg_to_widgets(
       // select.addEventListener("change", ev => { sync_editor_and_output() });
       // select.to_code = function() { return this.value; };
       // return select
-      return items.map((type2: { [x: string]: any }) =>
+      return items.map(type2 =>
         make_el("span", {}, {}, {}, [JSON.stringify(type2["value"])])
       );
     } else if (
       items.length === 3 &&
       items.includes("builtins.float") &&
       literals.length === 2 &&
-      literals.every((type2: { value: any }) => typeof type2.value === "number")
+      literals.every(type2 => typeof type2.value === "number")
     ) {
       // {
       //   ".class": "UnionType",
@@ -717,20 +598,19 @@ function arg_to_widgets(
       //     }
       //   ]
       // },
-      const [lo, hi] = literals
-        .map((type2: { value: any }) => type2.value)
-        .sort();
+      const [lo, hi] = literals.map(type2 => type2.value).sort();
       const step_per_px =
         [
           10000000000, 1000000000, 100000000, 10000000, 1000000, 100000, 10000,
           1000, 100, 10, 1, 0.1, 0.01, 0.001, 0.0001, 1.0e-5, 1.0e-6, 1.0e-7,
           1.0e-8, 1.0e-9, 1.0e-10,
-        ].find((n) => (hi - lo) / n >= 30) || 0.01;
+        ].find(n => (hi - lo) / n >= 30) || 0.01;
       return [make_dial_and_num(sync_editor_and_output, code, step_per_px)];
     } else {
       let could_determine_given_code_type = false;
-      const item_widgets = items.map((item_type: Object) => {
-        if (equalByJSON(item_type, code_type)) {
+      const item_widgets = items.map(item_type => {
+        // console.log("comparing", item_type, code_type)
+        if (equal_by_json(item_type, code_type)) {
           // should do this on the Python side with is_subtype
           could_determine_given_code_type = true;
           return arg_to_widget(
@@ -742,11 +622,11 @@ function arg_to_widgets(
           );
         } else {
           const [default_code, default_code_type] =
-            default_code_and_code_type_for_type(item_type as any);
+            default_code_and_code_type_for_type(item_type);
           return arg_to_widget(
             sync_editor_and_output,
             default_code,
-            item_type as any,
+            item_type,
             default_code_type,
             []
           );
@@ -764,15 +644,11 @@ function arg_to_widgets(
   } else if (arg_type === "builtins.float") {
     return [make_dial_and_num(sync_editor_and_output, code, 0.01)];
   } else {
-    return [document.createTextNode(code) as any];
+    return [document.createTextNode(code)];
   }
 }
 
-function make_dial_and_num(
-  sync_editor_and_output: () => void,
-  code: string,
-  change_per_px: number
-) {
+function make_dial_and_num(sync_editor_and_output, code, change_per_px) {
   let decimal_places = Math.max(0, -Math.log(change_per_px));
   let dial_and_num = document.createElement("span");
   dial_and_num.innerHTML = dial_svg_html();
@@ -786,20 +662,22 @@ function make_dial_and_num(
   let r = 3;
 
   let nub = Array.from(dial.querySelectorAll("g")).find(
-    (elem) => elem.querySelector("title")?.textContent === "nub"
+    elem => elem.querySelector("title")?.textContent === "nub"
   );
-
-  dial.addEventListener("mousedown", (ev) => {
+  // console.log(nub)
+  // console.log(nub.parentElement);
+  dial.addEventListener("mousedown", ev => {
     ev.stopPropagation();
 
     let lastY = ev.screenY;
 
-    let stopDrag = (ev: any) => {
+    // console.log(ev)
+    let stopDrag = ev => {
       document.body.removeEventListener("mousemove", moveDial);
       document.body.removeEventListener("mouseup", stopDrag);
       sync_editor_and_output();
     };
-    let moveDial = (ev: { preventDefault: () => void; screenY: number }) => {
+    let moveDial = ev => {
       ev.preventDefault();
 
       const num = getNum();
@@ -817,6 +695,7 @@ function make_dial_and_num(
         "transform",
         `translate(${Math.cos(angle) * r} ${-Math.sin(angle) * r + r})`
       );
+      // console.log(nub)
       sync_editor_and_output();
     };
 
@@ -829,7 +708,7 @@ function make_dial_and_num(
   return dial_and_num;
 }
 
-function siblingsAfter(node: any) {
+function siblingsAfter(node) {
   const siblings = [];
   while ((node = node.nextSibling)) {
     siblings.push(node);
@@ -838,7 +717,7 @@ function siblingsAfter(node: any) {
 }
 
 // In right-to-left (reversed) order
-function siblingsBefore(node: any) {
+function siblingsBefore(node) {
   const siblings = [];
   while ((node = node.previousSibling)) {
     siblings.push(node);
@@ -863,17 +742,17 @@ function make_arg_el(
     remove_button.style.cursor = "pointer";
     remove_button.title = `Remove argument \`${arg.name}\``;
     remove_button.to_code = () => "";
-    remove_button.addEventListener("click", (ev) => {
+    remove_button.addEventListener("click", ev => {
       const ellipses_el = siblingsAfter(arg_el).find(
-        (node) => node.hidden_arg_els !== undefined
+        node => node.hidden_arg_els !== undefined
       );
       // Try to remove the extra comma.
       // Need to skip any ellipses elements.
       const node_before = siblingsBefore(arg_el).find(
-        (node) => to_code(node) !== "" && !node.textContent.match(/^\s*$/)
+        node => to_code(node) !== "" && !node.textContent.match(/^\s*$/)
       );
       const node_after = siblingsAfter(arg_el).find(
-        (node) => to_code(node) !== "" && !node.textContent.match(/^\s*$/)
+        node => to_code(node) !== "" && !node.textContent.match(/^\s*$/)
       );
       if (node_before?.textContent?.match(/\s*,\s*$/)) {
         node_before.textContent = node_before.textContent.replace(
@@ -886,7 +765,9 @@ function make_arg_el(
           ""
         );
       }
+      // console.log(arg_el)
       arg_el.remove();
+      // console.log(ellipses_el);
       if (ellipses_el) {
         ellipses_el.hidden_arg_els.push(arg_el);
         ellipses_el.style.display = "inline";
@@ -926,19 +807,16 @@ type ToCodeAble = { to_code: () => string };
 type EllipsesEl = HTMLSpanElement &
   ToCodeAble & { hidden_arg_els: HTMLElement[] };
 
-function make_ellipses_el(
-  sync_editor_and_output: { (): void; (): void; (): void },
-  hidden_arg_els: any[]
-) {
+function make_ellipses_el(sync_editor_and_output, hidden_arg_els) {
   const ellipses_el = document.createElement("span") as EllipsesEl;
   ellipses_el.hidden_arg_els = hidden_arg_els;
   ellipses_el.style.cursor = "pointer";
   ellipses_el.to_code = () => "";
   ellipses_el.innerHTML = " " + ellipses_svg_html;
   ellipses_el.querySelector("svg").style.verticalAlign = "middle";
-  ellipses_el.addEventListener("click", (ev) => {
+  ellipses_el.addEventListener("click", ev => {
     ev.stopPropagation();
-    ellipses_el.before(", ", ...intersperse(ellipses_el.hidden_arg_els, ", "));
+    ellipses_el.before(", ", ...ellipses_el.hidden_arg_els.intersperse(", "));
     ellipses_el.hidden_arg_els = [];
     ellipses_el.style.display = "none";
     sync_editor_and_output();
@@ -952,16 +830,7 @@ function make_ellipses_el(
 }
 
 // Sort by number of dots, then by total length.
-function compare_qualified_names(
-  name1: {
-    length: number;
-    split: (arg0: string) => { (): any; new (): any; length: number };
-  },
-  name2: {
-    length: number;
-    split: (arg0: string) => { (): any; new (): any; length: number };
-  }
-) {
+function compare_qualified_names(name1, name2) {
   return (
     name1.length +
     100 * name1.split(".").length -
@@ -969,11 +838,11 @@ function compare_qualified_names(
   );
 }
 
-function hide(elem: { classList: { add: (arg0: string) => void } }) {
+function hide(elem) {
   elem.classList.add("hidden");
 }
 
-function show(elem: { classList: { remove: (arg0: string) => void } }) {
+function show(elem) {
   elem.classList.remove("hidden");
 }
 
@@ -1015,6 +884,8 @@ function show(elem: { classList: { remove: (arg0: string) => void } }) {
 
 //   let cell_lineno = notebook_code_before_cell.split("\n").length + 1
 
+//   console.log({cell_lineno: cell_lineno})
+
 //   snp_outer.addEventListener("mouseenter", () => {
 //     snp_outer.querySelectorAll(".add_hint").forEach(show)
 //   });
@@ -1028,10 +899,15 @@ function show(elem: { classList: { remove: (arg0: string) => void } }) {
 //   let old_callback = callbacks.shell.reply;
 //   callbacks.shell.reply = (msg) => {
 //     if (msg.msg_type == "execute_reply" && msg.content.status == "ok" && msg.content.user_expressions.inferred.status == "ok") {
+//       // console.log(msg.content.user_expressions.inferred)
 //       const items = msg.content.user_expressions.inferred.data["application/json"];
 //       const cell_items = items.filter(call_info => call_info.callee.pos.line >= cell_lineno);
+//       console.log("cell items", cell_items);
+//       // console.log(JSON.stringify(cell_items));
 
 //       let loced_widgets = loced_widgets_from_code(cell_items, cell_lineno, cell.code_mirror, snp_state);
+
+//       // console.log("loced_widgets", loced_widgets)
 
 //       snp_state.hover_regions_svg().querySelectorAll('[data-loc]').forEach(hover_region => {
 //         const [lineno, col_offset, end_lineno, end_col_offset] = JSON.parse(hover_region.dataset.pos);
@@ -1040,7 +916,7 @@ function show(elem: { classList: { remove: (arg0: string) => void } }) {
 //           {line: end_lineno-1, ch: end_col_offset}
 //         ];
 
-//         const { widget } = loced_widgets.find(({ start_pos, end_pos }) => equalByJSON([start_pos, end_pos], [shape_start_pos, shape_end_pos]))
+//         const { widget } = loced_widgets.find(({ start_pos, end_pos }) => equal_by_json([start_pos, end_pos], [shape_start_pos, shape_end_pos]))
 
 //         if (widget) {
 //           hover_region.addEventListener("click", ev => {
@@ -1081,6 +957,7 @@ function show(elem: { classList: { remove: (arg0: string) => void } }) {
 //           ev.stopImmediatePropagation()
 //         });
 //         hide(hint)
+//         // console.log(hint)
 //       })
 
 //       snp_state.hover_regions_svg().querySelectorAll('[data-new-methods]').forEach(hover_region => {
@@ -1122,6 +999,7 @@ function show(elem: { classList: { remove: (arg0: string) => void } }) {
 //               let new_code_button = make_el("div", {}, {}, {
 //                 click: ev => {
 //                   const { from, to } = mark.find();
+//                   // console.log(code)
 //                   cm.replaceRange(new_code, from, to);
 //                   hard_rerun(snp_state)
 //                 }
@@ -1132,6 +1010,7 @@ function show(elem: { classList: { remove: (arg0: string) => void } }) {
 //             inspector.append(...new_code_buttons.sort((code1, code2) => compare_qualified_names(code1.innerText.match(/^[^\(]*/)[0], code2.innerText.match(/^[^\(]*/)[0])))
 //             // inspector.innerHTML = inspector_html
 //           }
+//           // console.log(hovered_elems)
 //           ev.stopPropagation();
 //         });
 //       });
@@ -1150,14 +1029,14 @@ function show(elem: { classList: { remove: (arg0: string) => void } }) {
 //   );
 // }
 
-function place_inspector(snp_state: SNPState) {
+function place_inspector(snp_state) {
   const shape = selected_shapes(snp_state).at(-1);
   const [max_width, max_height] = [
     snp_state.img.getBoundingClientRect().width,
     snp_state.img.getBoundingClientRect().height,
   ];
   const [top, left] = relativeTopLeft(shape, snp_state.snp_outer);
-  (snp_state.inspector as any).style = `
+  snp_state.inspector.style = `
                 position: absolute;
                 top: ${Math.max(0, Math.min(top, max_height))}px;
                 left: ${Math.max(
@@ -1172,31 +1051,7 @@ function place_inspector(snp_state: SNPState) {
               `.replace(/\n\s*/g, " ");
 }
 
-function place_over_shape(
-  snp_state: {
-    hovered_elems?: HTMLElement[];
-    canvas_selection?: SelectedItem;
-    cell?: Cell;
-    busy?: boolean;
-    last_cell_code_executed?: string;
-    cell_lineno?: number;
-    provenance_is_off_by_n_lines?: number;
-    snp_outer: any;
-    img: any;
-    hover_regions_svg?: () => any;
-    inspector?: HTMLElement;
-    sidebar?: HTMLElement;
-    stdout_stderr?: HTMLElement;
-    selectable_artists?: SelectableArtist[];
-    methods?: SidebarMethod[];
-    calls?: SidebarCall[];
-  },
-  shape: any,
-  el: {
-    getBoundingClientRect: () => any;
-    style: { position: string; top: string; left: string };
-  }
-) {
+function place_over_shape(snp_state, shape, el) {
   const [plot_width, plot_height] = [
     snp_state.img.getBoundingClientRect().width,
     snp_state.img.getBoundingClientRect().height,
@@ -1207,6 +1062,8 @@ function place_over_shape(
   let left = shapeRect.left + shapeRect.width / 2 - elRect.width / 2;
   top = Math.max(0, Math.min(top, plot_height - elRect.height));
   left = Math.max(0, Math.min(left, plot_width - elRect.width));
+  console.log("shapeRect", shapeRect);
+  console.log("elRect", elRect);
   el.style.position = "absolute";
   el.style.top = `${top}px`;
   el.style.left = `${left}px`;
@@ -1221,34 +1078,15 @@ interface Arg {
   type_compatible_local_names: string[];
 }
 
-function arg_defaults_from_callee_type(callee: {
-  ".class"?: string;
-  arg_types: any;
-  arg_kinds: any;
-  arg_names: any;
-  ret_type?: string | SidebarCall;
-  fallback?: string;
-  name?: string;
-  variables?: any[];
-  is_ellipsis_args?: boolean;
-  implicit?: boolean;
-  bound_args?: any[];
-  def_extras: any;
-  type_guard?: any;
-  from_concatenate?: boolean;
-  imprecise_arg_kinds?: boolean;
-  unpack_kwargs?: boolean;
-  arg_type_compatible_local_names: any;
-  pos?: { line: number; column: number; end_line: number; end_column: number };
-  definition_arguments_default_code: any;
-}): Arg[] {
+function arg_defaults_from_callee_type(callee): Arg[] {
+  // console.log(callee)
   return callee.arg_names
-    .map((arg_name: string, arg_i: string | number) => {
+    .map((arg_name, arg_i) => {
       const arg_kind = int_to_arg_kind[callee.arg_kinds[arg_i]];
       const arg_type = callee.arg_types[arg_i];
       // Since the function parameter could be a union type, we need to indicate which of the types the actual code is.
       let arg_default_code: string;
-      let arg_default_type: any;
+      let arg_default_type;
       if (callee.definition_arguments_default_code[arg_i]) {
         arg_default_code = callee.definition_arguments_default_code[arg_i];
         arg_default_type = undefined; // We don't know.
@@ -1270,36 +1108,17 @@ function arg_defaults_from_callee_type(callee: {
     .slice(callee.def_extras.first_arg !== undefined ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined
 }
 
-function catalog_open_artists(snp_state: {
-  hovered_elems?: HTMLElement[];
-  canvas_selection?: SelectedItem;
-  cell?: Cell;
-  busy?: boolean;
-  last_cell_code_executed?: string;
-  cell_lineno?: number;
-  provenance_is_off_by_n_lines?: number;
-  snp_outer?: HTMLElement;
-  img?: HTMLImageElement;
-  hover_regions_svg?: () => any;
-  inspector?: HTMLElement;
-  sidebar: any;
-  stdout_stderr?: HTMLElement;
-  selectable_artists?: SelectableArtist[];
-  methods?: SidebarMethod[];
-  calls?: SidebarCall[];
-}) {
+function catalog_open_artists(snp_state) {
   open_artists_after_execute = (Array.from(snp_state.sidebar.children) as any[])
-    .filter((el) => el.open)
-    .map((el) => el.artistName);
+    .filter(el => el.open)
+    .map(el => el.artistName);
 }
 
-function hard_rerun(snp_state: SNPState) {
+function hard_rerun(snp_state) {
   snp_state.busy = false;
-  snp_state.cell.code_mirror
-    .getAllMarks()
-    .forEach((mark: { clear: () => any }) => mark.clear());
+  snp_state.cell.code_mirror.getAllMarks().forEach(mark => mark.clear());
   catalog_open_artists(snp_state);
-  (snp_state.cell as any).execute();
+  snp_state.cell.execute();
 }
 
 function make_call_widget(
@@ -1309,7 +1128,7 @@ function make_call_widget(
   callee_code: string,
   code_mirror,
   mark,
-  snp_state: any
+  snp_state
 ) {
   const widget = document.createElement("div");
   // widget.style.display = "inline-block";
@@ -1318,19 +1137,17 @@ function make_call_widget(
   let arg_defaults = arg_defaults_from_callee_type(callee);
 
   // const missing_positional_args = []
-  const missing_positional_args = takeWhile(
-    arg_defaults.slice(given_positional_args.length),
-    (arg) => arg.kind === "ARG_POS"
-  ); // we could also look for arg.kind === "ARG_OPT" here, but optional positional args look nicer when given as keyword args
+  const missing_positional_args = arg_defaults
+    .slice(given_positional_args.length)
+    .takeWhile(arg => arg.kind === "ARG_POS"); // we could also look for arg.kind === "ARG_OPT" here, but optional positional args look nicer when given as keyword args
 
   const missing_keyword_args = arg_defaults
     .slice(given_positional_args.length)
     .slice(missing_positional_args.length)
     .filter(
-      (arg) =>
-        !given_keyword_args.some((given_arg) => given_arg.name === arg.name)
+      arg => !given_keyword_args.some(given_arg => given_arg.name === arg.name)
     )
-    .filter((arg) => arg.kind !== "ARG_STAR2"); // ignore **kwargs
+    .filter(arg => arg.kind !== "ARG_STAR2"); // ignore **kwargs
 
   let callee_el = document.createElement("span");
   callee_el.innerText = callee_code;
@@ -1339,6 +1156,7 @@ function make_call_widget(
   const sync_editor_and_output = function () {
     let { from, to } = mark.find();
     const code = to_code(widget);
+    // console.log(code)
     code_mirror.replaceRange(code, from, to);
     ({ from, to } = mark.find());
     code_mirror.setSelection(from, to);
@@ -1355,26 +1173,21 @@ function make_call_widget(
   let arg_els = [];
 
   arg_els.push(
-    ...given_positional_args.map((arg) =>
+    ...given_positional_args.map(arg =>
       make_arg_el(sync_editor_and_output, arg, { positional: true })
     )
   );
 
   // if used for a new call, required args need to be generated
-  let needed_positional_args = takeWhile(
-    missing_positional_args,
-    (arg) => arg.kind === "ARG_POS"
-  ).map((arg) =>
-    make_arg_el(sync_editor_and_output, arg, { positional: true })
-  );
+  let needed_positional_args = missing_positional_args
+    .takeWhile(arg => arg.kind === "ARG_POS")
+    .map(arg => make_arg_el(sync_editor_and_output, arg, { positional: true }));
 
   arg_els.push(...needed_positional_args);
 
   let missing_optional_positional_arg_els = missing_positional_args
     .slice(needed_positional_args.length)
-    .map((arg) =>
-      make_arg_el(sync_editor_and_output, arg, { positional: true })
-    );
+    .map(arg => make_arg_el(sync_editor_and_output, arg, { positional: true }));
 
   arg_els.push(
     make_ellipses_el(
@@ -1384,10 +1197,10 @@ function make_call_widget(
   );
 
   arg_els.push(
-    ...given_keyword_args.map((arg) => make_arg_el(sync_editor_and_output, arg))
+    ...given_keyword_args.map(arg => make_arg_el(sync_editor_and_output, arg))
   );
 
-  let missing_keyword_arg_els = missing_keyword_args.map((arg) =>
+  let missing_keyword_arg_els = missing_keyword_args.map(arg =>
     make_arg_el(sync_editor_and_output, arg)
   );
 
@@ -1405,7 +1218,7 @@ function make_call_widget(
 
   widget.append("(", args_el, ")");
 
-  widget.addEventListener("keydown", (ev) => {
+  widget.addEventListener("keydown", ev => {
     ev.stopPropagation();
     if (/*ev.ctrlKey && */ ev.code === "Enter") {
       deselect_all(snp_state);
@@ -1413,16 +1226,16 @@ function make_call_widget(
     }
   });
 
-  widget.addEventListener("keyup", (ev) => {
+  widget.addEventListener("keyup", ev => {
     ev.stopPropagation();
     sync_editor_and_output(); // Live update is one keypress behind if we attach this to keydown :/
   });
 
-  widget.addEventListener("mousedown", (ev) => {
+  widget.addEventListener("mousedown", ev => {
     ev.stopPropagation();
   });
 
-  widget.addEventListener("click", (ev) => {
+  widget.addEventListener("click", ev => {
     ev.preventDefault();
     ev.stopImmediatePropagation();
   });
@@ -1430,55 +1243,13 @@ function make_call_widget(
   return widget;
 }
 
-function loced_widget_from_code(
-  call_info: {
-    pos?: {
-      line: number;
-      column: number;
-      end_line: number;
-      end_column: number;
-    };
-    ".class"?: string;
-    items?: (string | ArgClass)[];
-    partial_fallback?: ItemClass;
-    implicit?: boolean;
-    type_ref?: string;
-    args?: (string | ArgClass)[];
-    show_on?: number[];
-    name?: string;
-    receiver?: any;
-    max_calls?: number;
-    func_code_and_num?: any;
-    call?: any;
-    callee?: any;
-    given_args?: any;
-  },
-  cell_lineno: number,
-  cm: {
-    markText: (
-      arg0: { line: number; ch: any },
-      arg1: { line: number; ch: any },
-      arg2: {
-        // replacedWith: widget,
-        inclusiveRight: boolean;
-        inclusiveLeft: boolean;
-      }
-    ) => any;
-    getRange: (
-      arg0: { line: number; ch: any },
-      arg1: { line: number; ch: any }
-    ) => any;
-  },
-  snp_state: SNPState
-) {
+function loced_widget_from_code(call_info, cell_lineno, cm, snp_state) {
   const { call, callee, given_args } = call_info;
 
-  function item_to_start_pos(item: { pos: { line: number; column: any } }) {
+  function item_to_start_pos(item) {
     return { line: item.pos.line - cell_lineno, ch: item.pos.column };
   }
-  function item_to_end_pos(item: {
-    pos: { end_line: number; end_column: any };
-  }) {
+  function item_to_end_pos(item) {
     return { line: item.pos.end_line - cell_lineno, ch: item.pos.end_column };
   }
 
@@ -1497,37 +1268,36 @@ function loced_widget_from_code(
   let callee_has_self_arg = callee.def_extras.first_arg !== undefined;
 
   let given_args2: Arg[] = [];
-  given_args.forEach(
-    (
-      given_arg: { [x: string]: any; kind: string | number; name: any },
-      arg_i: number
-    ) => {
-      const arg_kind = int_to_arg_kind[given_arg.kind];
-      const arg_i_at_func_def = given_arg["name"]
-        ? callee.arg_names.indexOf(given_arg.name)
-        : callee_has_self_arg
-        ? arg_i + 1
-        : arg_i;
-      const arg_val_code = cm.getRange(
-        item_to_start_pos(given_arg as any),
-        item_to_end_pos(given_arg as any)
-      );
-      given_args2.push({
-        name: given_arg.name,
-        kind: arg_kind,
-        code: arg_val_code,
-        type: callee.arg_types[arg_i_at_func_def],
-        code_type: undefined,
-        type_compatible_local_names:
-          callee.arg_type_compatible_local_names[arg_i_at_func_def],
-      });
-    }
+  given_args.forEach((given_arg, arg_i) => {
+    const arg_kind = int_to_arg_kind[given_arg.kind];
+    const arg_i_at_func_def = given_arg["name"]
+      ? callee.arg_names.indexOf(given_arg.name)
+      : callee_has_self_arg
+      ? arg_i + 1
+      : arg_i;
+    const arg_val_code = cm.getRange(
+      item_to_start_pos(given_arg),
+      item_to_end_pos(given_arg)
+    );
+    given_args2.push({
+      name: given_arg.name,
+      kind: arg_kind,
+      code: arg_val_code,
+      type: callee.arg_types[arg_i_at_func_def],
+      code_type: undefined,
+      type_compatible_local_names:
+        callee.arg_type_compatible_local_names[arg_i_at_func_def],
+    });
+  });
+
+  // console.log("given_args2", given_args2)
+  // console.log("callee.arg_names", callee.arg_names)
+
+  const [given_positional_args, given_keyword_args] = given_args2.partition(
+    arg => !arg.name
   );
 
-  const [given_positional_args, given_keyword_args] = partition(
-    given_args2,
-    (arg) => !arg.name
-  );
+  // console.log(arg_defaults.map(({name, code}) => `${name}=${code}`).join(", "))
 
   const widget = make_call_widget(
     callee,
@@ -1549,13 +1319,8 @@ function loced_widget_from_code(
   };
 }
 
-function loced_widgets_from_code(
-  cell_items: any[],
-  cell_lineno: any,
-  cm: any,
-  snp_state: any
-) {
-  return cell_items.map((call_info: any) =>
+function loced_widgets_from_code(cell_items, cell_lineno, cm, snp_state) {
+  return cell_items.map(call_info =>
     loced_widget_from_code(call_info, cell_lineno, cm, snp_state)
   );
 }
@@ -1582,27 +1347,7 @@ function loced_widgets_from_code(
 //   return child && el_by_path(child, path.slice(1))
 // }
 
-function replace_hover_regions(
-  snp_state: {
-    hover_regions_svg: any;
-    img: any;
-    canvas_selection: any;
-    snp_outer: any;
-    hovered_elems?: HTMLElement[];
-    cell?: Cell;
-    busy?: boolean;
-    last_cell_code_executed?: string;
-    cell_lineno?: number;
-    provenance_is_off_by_n_lines?: number;
-    inspector?: HTMLElement;
-    sidebar?: HTMLElement;
-    stdout_stderr?: HTMLElement;
-    selectable_artists?: SelectableArtist[];
-    methods?: SidebarMethod[];
-    calls?: SidebarCall[];
-  },
-  new_svg_str: string
-) {
+function replace_hover_regions(snp_state, new_svg_str) {
   let temp_el = document.createElement("div");
   temp_el.innerHTML = new_svg_str;
   snp_state.hover_regions_svg().remove();
@@ -1612,23 +1357,14 @@ function replace_hover_regions(
   //
   // Selection preservation is non-trivial when the number of items changes.
   // In Sketch-n-Sketch, we simply used the linear shape number in the output.
-  snp_state.canvas_selection &&
-    select(snp_state as any, snp_state.canvas_selection);
+  snp_state.canvas_selection && select(snp_state, snp_state.canvas_selection);
 
   snp_state.snp_outer
     .querySelectorAll(".remove_on_new_hover_regions")
-    .forEach((el: { remove: () => any }) => el.remove());
+    .forEach(el => el.remove());
 }
 
-function redraw_cell(snp_state: {
-  busy?: any;
-  last_cell_code_executed?: any;
-  stdout_stderr?: any;
-  provenance_is_off_by_n_lines?: any;
-  cell_lineno?: any;
-  cell?: any;
-  img?: any;
-}) {
+function redraw_cell(snp_state) {
   const { cell, img } = snp_state;
   const codeExecuting = cell.get_text();
   if (snp_state.busy || codeExecuting === snp_state.last_cell_code_executed) {
@@ -1637,12 +1373,11 @@ function redraw_cell(snp_state: {
   snp_state.busy = true;
   snp_state.last_cell_code_executed = codeExecuting;
   snp_state.stdout_stderr.innerHTML = "";
+  // console.log(`Executing: ${codeExecuting}`)
   // Hacktastic way to get live feedback
   const callbacks = cell.get_callbacks();
-  callbacks.iopub.output = function (msg: {
-    header: { msg_type: string };
-    content: { data: { [x: string]: any }; evalue: string; text: any };
-  }) {
+  // console.log(cell.get_callbacks())
+  callbacks.iopub.output = function (msg) {
     if (
       msg.header.msg_type === "execute_result" &&
       msg.content.data["image/png"]
@@ -1651,18 +1386,21 @@ function redraw_cell(snp_state: {
       // Replace background image
       img.src = "data:image/png;base64," + msg.content.data["image/png"]; // This also triggers img.onload which calls attach_snp and reattaches all of our events!
     } else {
+      // console.log(arguments);
       // cell.output_area.handle_output.apply(cell.output_area, [msg]);
       if (msg.header.msg_type === "error") {
         // Display the error, but adjust line number for the lines we added to the top of the cell.
         snp_state.stdout_stderr.innerText += msg.content.evalue.replaceAll(
           /\b(line +)(\d+)/gi,
-          (_: any, line_space: any, n_str: string) =>
+          (_, line_space, n_str) =>
             `${line_space}${
               parseInt(n_str) - snp_state.provenance_is_off_by_n_lines
             }`
         );
+        // console.log(msg.content.evalue)
       } else if (msg.header.msg_type === "stream") {
         snp_state.stdout_stderr.innerText += msg.content.text;
+        // console.log(msg.content.text)
       } else {
         console.log(arguments);
       }
@@ -1672,21 +1410,19 @@ function redraw_cell(snp_state: {
       redraw_cell(snp_state);
     } else {
       snp_state.busy = false;
+      // console.log(msg.content.data["image/svg+xml"])
       // Replace hover regions
       if (
         msg.header.msg_type === "execute_result" &&
         msg.content.data["image/svg+xml"] &&
         msg.content.data["application/json"]
       ) {
-        replace_hover_regions(
-          snp_state as any,
-          msg.content.data["image/svg+xml"]
-        );
+        replace_hover_regions(snp_state, msg.content.data["image/svg+xml"]);
         const json = msg.content.data["application/json"];
         snp_state.cell_lineno = json.cell_lineno;
         snp_state.provenance_is_off_by_n_lines =
           json.provenance_is_off_by_n_lines;
-        attach_events_to_hover_regions(snp_state as any);
+        attach_events_to_hover_regions(snp_state);
       }
       // infer_types_and_attach_widgets(snp_state);
     }
@@ -1704,20 +1440,27 @@ function redraw_cell(snp_state: {
 // <style onload="attach_snp(this.closest('.snp_outer'))"></style> <!-- Just a way to run this code once the elements exist. -->
 // </div>
 function attach_snp(
-  snp_outer: SNPOuterHTMLELement,
-  cell_lineno: number,
-  provenance_is_off_by_n_lines: number,
-  user_call_info: UserCallInfo,
-  sidebar_stuff: SidebarStuff
+  snp_outer,
+  cell_lineno,
+  provenance_is_off_by_n_lines,
+  user_call_info,
+  sidebar_stuff
 ) {
-  console.log(sidebar_stuff);
+  console.log(sidebar_stuff, user_call_info);
+
   const cell_el = snp_outer.closest(".code_cell");
   const cell = Jupyter.notebook
     .get_cells()
-    .filter((cell) => cell.element[0] === cell_el)[0];
+    .filter(cell => cell.element[0] === cell_el)[0];
   snp_outer.cell = cell;
 
-  const snp_state: SNPState = {
+  // console.log("reattaching")
+  // console.log(snp_outer);
+  // console.log(cell_el);
+  // console.log(cell);
+  const hovered_elems = [];
+
+  const snp_state = {
     hovered_elems: [],
     canvas_selection: undefined,
     cell: cell,
@@ -1748,12 +1491,9 @@ function attach_snp(
 
   attach_events_to_hover_regions(snp_state);
 
-  function replace_to_avoid_overlap(
-    el: { style: { top: string } },
-    avoid: any[]
-  ) {
-    const el_rect = relativeBoundingRect(el as any, snp_outer);
-    const avoid_el = avoid.find((avoid_el: any) => {
+  function replace_to_avoid_overlap(el, avoid) {
+    const el_rect = relativeBoundingRect(el, snp_outer);
+    const avoid_el = avoid.find(avoid_el => {
       const avoid_rect = relativeBoundingRect(avoid_el, snp_outer);
       return (
         el_rect.left < avoid_rect.right &&
@@ -1773,10 +1513,10 @@ function attach_snp(
     snp_state
       .hover_regions_svg()
       .querySelectorAll("[data-artist-names]") as any[]
-  ).filter((el) => JSON.parse(el.dataset.artistNames).length > 0);
+  ).filter(el => JSON.parse(el.dataset.artistNames).length > 0);
   const placed_methods = [];
-  methods_to_place_on_canvas.forEach((el) => {
-    const shape = possible_targets.find((shape) =>
+  methods_to_place_on_canvas.forEach(el => {
+    const shape = possible_targets.find(shape =>
       JSON.parse(shape.dataset.artistNames).includes(el.artistName)
     );
 
@@ -1829,41 +1569,36 @@ function attach_snp(
     open_artists_after_execute !== undefined
   ) {
     (Array.from(snp_state.sidebar.children) as any[])
-      .filter((el) => open_artists_after_execute.includes(el.artistName))
-      .forEach((el) => (el.open = true));
+      .filter(el => open_artists_after_execute.includes(el.artistName))
+      .forEach(el => (el.open = true));
     delete window.open_artists_after_execute;
   }
   if ("select_lineno_after_execute" in window) {
     snp_state
       .hover_regions_svg()
       .querySelectorAll("[data-pos][data-func-code-and-num]")
-      .forEach(
-        (hover_region: {
-          dataset: { pos: string };
-          dispatchEvent: (arg0: MouseEvent) => void;
-        }) => {
-          const [lineno, col_offset, end_lineno, end_col_offset] = JSON.parse(
-            hover_region.dataset.pos
-          );
-          if (
-            lineno - 1 - snp_state.provenance_is_off_by_n_lines ===
-            select_lineno_after_execute
-          ) {
-            hover_region.dispatchEvent(new MouseEvent("click"));
-          }
+      .forEach(hover_region => {
+        const [lineno, col_offset, end_lineno, end_col_offset] = JSON.parse(
+          hover_region.dataset.pos
+        );
+        if (
+          lineno - 1 - snp_state.provenance_is_off_by_n_lines ===
+          select_lineno_after_execute
+        ) {
+          hover_region.dispatchEvent(new MouseEvent("click"));
         }
-      );
+      });
     delete window.select_lineno_after_execute;
   }
 
   // infer_types_and_attach_widgets(snp_state)
 }
 
-function shortest_qualified_name(names: any[]) {
+function shortest_qualified_name(names) {
   return names.sort(compare_qualified_names)[0];
 }
 
-function build_sidebar(snp_state: SNPState) {
+function build_sidebar(snp_state) {
   const {
     sidebar,
     cell_lineno,
@@ -1874,20 +1609,22 @@ function build_sidebar(snp_state: SNPState) {
     calls,
   } = snp_state;
 
+  // console.log("sidebar stuff", {selectable_artists, methods, calls})
+  // console.log("sidebar stuff", JSON.stringify({selectable_artists, methods, calls}))
   let methods_to_place_on_canvas = [];
 
   selectable_artists.forEach(({ id, names }) => {
     const artist_name = shortest_qualified_name(names);
 
-    const artist_methods = methods.filter((method) =>
+    const artist_methods = methods.filter(method =>
       method.show_on.includes(id)
     );
-    const artist_calls = calls.filter((call) => call.show_on.includes(id));
+    const artist_calls = calls.filter(call => call.show_on.includes(id));
 
     const methods_called = [];
-    const call_widgets = artist_calls.map((call_info) => {
-      const { name, receiver, max_calls, func_code_and_num } = call_info;
 
+    const call_widgets = artist_calls.map(call_info => {
+      const { name, receiver, max_calls, func_code_and_num } = call_info;
       const { widget, mark } = loced_widget_from_code(
         call_info,
         cell_lineno,
@@ -1899,7 +1636,7 @@ function build_sidebar(snp_state: SNPState) {
 
       const is_single_call = max_calls === 1;
 
-      const delete_code = (ev: { stopImmediatePropagation: () => void }) => {
+      const delete_code = ev => {
         const { from, to } = mark.find();
         // console.log(mark.find())
         code_mirror.replaceRange("", from, to);
@@ -1908,7 +1645,6 @@ function build_sidebar(snp_state: SNPState) {
       };
 
       widget.style.display = "inline-block";
-
       if (is_single_call) {
         return make_el(
           "span",
@@ -1962,23 +1698,20 @@ function build_sidebar(snp_state: SNPState) {
         { line: line_count - 2, ch: 0 },
         { inclusiveRight: true, inclusiveLeft: true, clearWhenEmpty: false }
       ); // insert at end, for now...
-      let arg_defaults = arg_defaults_from_callee_type(type as any);
-      let [required_positional_arg, required_keyword_args] = partition(
-        arg_defaults.filter(
-          (arg) => arg.kind === "ARG_POS" || arg.kind === "ARG_NAMED"
-        ),
-        (arg) => arg.kind === "ARG_POS"
-      );
+      let arg_defaults = arg_defaults_from_callee_type(type);
+      let [required_positional_arg, required_keyword_args] = arg_defaults
+        .filter(arg => arg.kind === "ARG_POS" || arg.kind === "ARG_NAMED")
+        .partition(arg => arg.kind === "ARG_POS");
       let required_positional_arg_codes = required_positional_arg.map(
-        (arg) => arg.code
+        arg => arg.code
       );
       let required_keyword_arg_codes = required_keyword_args.map(
-        (arg) => `${arg.name}=${arg.code}`
+        arg => `${arg.name}=${arg.code}`
       );
       let new_code = `${receiver_name}.${name}(${required_positional_arg_codes
         .concat(required_keyword_arg_codes)
         .join(",")})\n`;
-      let add_code = (ev: any) => {
+      let add_code = ev => {
         const { from, to } = mark.find();
         // console.log(code)
         code_mirror.replaceRange(new_code, from, to);
@@ -1996,7 +1729,7 @@ function build_sidebar(snp_state: SNPState) {
       let kids = [];
       if (max_calls === 1) {
         if (
-          methods_called.some((called) => equalByJSON(called, [receiver, name]))
+          methods_called.some(called => equal_by_json(called, [receiver, name]))
         ) {
           return;
         }
@@ -2013,7 +1746,7 @@ function build_sidebar(snp_state: SNPState) {
 
       // Hide receiver and args
       let method_canvas_text = kids
-        .map((el) => el.textContent)
+        .map(el => el.textContent)
         .join("")
         .trim()
         .replace(/\([\S\s]*/, "")
@@ -2024,7 +1757,7 @@ function build_sidebar(snp_state: SNPState) {
 
       // Heuristic for now: only keep the last button with the given name
       methods_to_place_on_canvas = methods_to_place_on_canvas.filter(
-        (method) => method.innerText !== method_canvas_text
+        method => method.innerText !== method_canvas_text
       );
 
       methods_to_place_on_canvas.push(
@@ -2044,7 +1777,7 @@ function build_sidebar(snp_state: SNPState) {
         "details",
         { artistName: artist_name },
         {},
-        { toggle: (ev: any) => catalog_open_artists(snp_state) },
+        { toggle: ev => catalog_open_artists(snp_state) },
         [
           make_el("summary", {}, { display: "list-item" }, {}, [artist_name]),
           ...call_widgets,
@@ -2065,7 +1798,7 @@ function build_sidebar(snp_state: SNPState) {
   return methods_to_place_on_canvas;
 }
 
-function attach_events_to_hover_regions(snp_state: SNPState) {
+function attach_events_to_hover_regions(snp_state) {
   // const { inspector, cell_lineno, cell, snp_outer } = snp_state
   // console.log(msg.content.user_expressions.inferred)
   // const cell_items = user_call_info.filter(call_info => call_info.callee.pos.line >= cell_lineno)
@@ -2080,10 +1813,7 @@ function attach_events_to_hover_regions(snp_state: SNPState) {
     .hover_regions_svg()
     .querySelectorAll("[stroke-width]")
     .forEach(
-      (drawable: {
-        dataset: { origStrokeWidth: any };
-        getAttribute: (arg0: string) => any;
-      }) =>
+      drawable =>
         (drawable.dataset.origStrokeWidth =
           drawable.getAttribute("stroke-width"))
     );
@@ -2091,78 +1821,63 @@ function attach_events_to_hover_regions(snp_state: SNPState) {
   snp_state
     .hover_regions_svg()
     .querySelectorAll("[data-artist-names],[data-func-code-and-num]")
-    .forEach(
-      (hover_region: {
-        addEventListener: (
-          arg0: string,
-          arg1: { (ev: any): void; (ev: any): void; (ev: any): void }
-        ) => void;
-        querySelector: (arg0: string) => {
-          (): any;
-          new (): any;
-          setAttribute: { (arg0: string, arg1: string): void; new (): any };
-        };
-      }) => {
-        const selection_key = shape_selection_key(hover_region as any);
-        // console.log(selection_key)
-        const sidebar_item = selected_sidebar_item(snp_state, selection_key);
-        // console.log(sidebar_item)
-        if (sidebar_item !== undefined) {
-          hover_region.addEventListener(
-            "click",
-            (ev: { stopPropagation: () => void }) => {
-              if (selected_shapes(snp_state).includes(hover_region)) {
-                deselect_all(snp_state);
-              } else {
-                deselect_all(snp_state);
-                select(snp_state, shape_selection_key(hover_region as any));
-                // inspector.innerHTML = ""
-                // snp_outer.appendChild(inspector)
-                // inspector.appendChild(widget)
-                // const { from, to } = mark.find()
-                // cell.code_mirror.setSelection(from, to)
-              }
-              ev.stopPropagation();
-            }
+    .forEach(hover_region => {
+      const selection_key = shape_selection_key(hover_region);
+      // console.log(selection_key)
+      const sidebar_item = selected_sidebar_item(snp_state, selection_key);
+      // console.log(sidebar_item)
+      if (sidebar_item !== undefined) {
+        hover_region.addEventListener("click", ev => {
+          if (selected_shapes(snp_state).includes(hover_region)) {
+            deselect_all(snp_state);
+          } else {
+            deselect_all(snp_state);
+            select(snp_state, shape_selection_key(hover_region));
+            // inspector.innerHTML = ""
+            // snp_outer.appendChild(inspector)
+            // inspector.appendChild(widget)
+            // const { from, to } = mark.find()
+            // cell.code_mirror.setSelection(from, to)
+          }
+          ev.stopPropagation();
+        });
+
+        hover_region.addEventListener("mouseleave", ev => {
+          if (
+            snp_state.canvas_selection !== undefined &&
+            equal_by_json(
+              shape_selection_key(hover_region),
+              snp_state.canvas_selection
+            )
+          ) {
+            return;
+          }
+          const drawable = hover_region.querySelector("[stroke-width]");
+          if (!drawable) {
+            return;
+          }
+          drawable.setAttribute(
+            "stroke-width",
+            drawable.dataset.origStrokeWidth || "0"
           );
+        });
 
-          hover_region.addEventListener("mouseleave", (ev: any) => {
-            if (
-              snp_state.canvas_selection !== undefined &&
-              equalByJSON(
-                shape_selection_key(hover_region as any),
-                snp_state.canvas_selection
-              )
-            ) {
-              return;
-            }
-            const drawable = hover_region.querySelector("[stroke-width]");
-            if (!drawable) {
-              return;
-            }
-            drawable.setAttribute(
-              "stroke-width",
-              (drawable as any).dataset.origStrokeWidth || "0"
-            );
-          });
-
-          hover_region.addEventListener("mouseenter", (ev: any) => {
-            if (
-              snp_state.canvas_selection !== undefined &&
-              equalByJSON(
-                shape_selection_key(hover_region as any),
-                snp_state.canvas_selection
-              )
-            ) {
-              return;
-            }
-            hover_region
-              .querySelector("[stroke-width]")
-              ?.setAttribute("stroke-width", "2.0");
-          });
-        }
+        hover_region.addEventListener("mouseenter", ev => {
+          if (
+            snp_state.canvas_selection !== undefined &&
+            equal_by_json(
+              shape_selection_key(hover_region),
+              snp_state.canvas_selection
+            )
+          ) {
+            return;
+          }
+          hover_region
+            .querySelector("[stroke-width]")
+            ?.setAttribute("stroke-width", "2.0");
+        });
       }
-    );
+    });
 
   // snp_state.hover_regions_svg().querySelectorAll('[data-pos]').forEach(hover_region => {
   //   const [lineno, col_offset, end_lineno, end_col_offset] = JSON.parse(hover_region.dataset.pos)
@@ -2172,7 +1887,7 @@ function attach_events_to_hover_regions(snp_state: SNPState) {
   //   ]
 
   //   // console.log("shape_loc", [shape_start_pos, shape_end_pos])
-  //   const { widget, mark } = loced_widgets.find(({ start_pos, end_pos }) => equalByJSON([start_pos, end_pos], [shape_start_pos, shape_end_pos])) || { widget: undefined, mark: undefined }
+  //   const { widget, mark } = loced_widgets.find(({ start_pos, end_pos }) => equal_by_json([start_pos, end_pos], [shape_start_pos, shape_end_pos])) || { widget: undefined, mark: undefined }
 
   //   if (widget) {
   //     hover_region.addEventListener("click", ev => {

@@ -1,214 +1,151 @@
-import { Arg, CallInfo, CallableType, Model, Position } from "../state";
-import { partition, takeWhile } from "../utils/array";
-import CodeMirror from "../utils/codemirror";
 import {
-  arg_defaults_from_callee_type,
-  item_to_end_pos,
-  item_to_start_pos,
-} from "../utils/misc";
-import { shortest_qualified_name } from "../utils/names";
-import { get_arg_kind_from_int } from "../utils/types";
+  AppState,
+  CallWithArgs,
+  Model,
+  SidebarView,
+  SidebarViewEls,
+  View,
+} from "../state";
+import { MarkerRange, TextMarker } from "../utils/codemirror";
+import { create_el } from "../utils/misc";
+import { create_artist_view } from "./artist/artist";
+import "./sidebar.css";
 
-export function build_sidebar(m: Model, snp_outer: HTMLElement) {
-  let methods_to_place_on_canvas = [];
-
-  m.selectable_artists.forEach(({ id, names }) => {
-    const artist_name = shortest_qualified_name(names);
-
-    const artist_methods = m.methods.filter((method) =>
-      method.show_on.includes(id)
-    );
-
-    const artist_calls = m.calls.filter((call_info) =>
-      call_info.show_on.includes(id)
-    );
-
-    const methods_called = [];
-
-    const call_widgets = artist_calls.map((call_info) => {
-      const args = get_args(call_info, m.cell_lineno, m.cell.code_mirror);
-
-      const start_pos = item_to_start_pos(call_info.call, m.cell_lineno);
-      const end_pos = item_to_end_pos(call_info.call, m.cell_lineno);
-
-      const mark = m.cell.code_mirror.markText(start_pos, end_pos, {
-        inclusiveRight: true,
-        inclusiveLeft: true,
-      });
-
-      const callee_code = m.cell.code_mirror.getRange(
-        item_to_start_pos(call_info.callee, m.cell_lineno),
-        item_to_end_pos(call_info.callee, m.cell_lineno)
-      );
-
-      const [given_positional_args, given_keyword_args] = partition(
-        args,
-        (arg) => arg.name == null
-      );
-
-      const widget = make_call_widget(
-        call_info.callee,
-        given_positional_args,
-        given_keyword_args,
-        callee_code,
-        m.cell.code_mirror,
-        mark
-      );
-    });
-  });
-
-  return null;
-}
-
-export function get_args(
-  call_info: CallInfo,
-  cell_lineno: number,
-  code_mirror: CodeMirror.DocOrEditor
-): Arg[] {
-  let callee_has_self_arg = call_info.callee.def_extras.first_arg !== undefined;
-
-  let args: Arg[] = [];
-
-  call_info.given_args.forEach((given_arg, arg_i: number) => {
-    const arg_kind = get_arg_kind_from_int(given_arg.kind);
-    const arg_i_at_func_def = given_arg["name"]
-      ? call_info.callee.arg_names.indexOf(given_arg.name)
-      : callee_has_self_arg
-      ? arg_i + 1
-      : arg_i;
-
-    const arg_val_code = code_mirror.getRange(
-      item_to_start_pos(given_arg, cell_lineno),
-      item_to_end_pos(given_arg, cell_lineno)
-    );
-
-    args.push({
-      name: given_arg.name,
-      kind: arg_kind,
-      code: arg_val_code,
-      type: call_info.callee.arg_types[arg_i_at_func_def],
-      code_type: undefined,
-      type_compatible_local_names:
-        call_info.callee.arg_type_compatible_local_names[arg_i_at_func_def],
-    });
-  });
-
-  return args;
-}
-
-export function make_call_widget(
-  callee: CallableType & {
-    pos: Position;
+export function create_sidebar(
+  all_calls_and_methods: {
+    [key: string]: {
+      calls: CallWithArgs[];
+      methods: null;
+    };
   },
-  given_positional_args: Arg[],
-  given_keyword_args: Arg[],
-  callee_code: string,
-  cm: CodeMirror.DocOrEditor,
-  mark: CodeMirror.TextMarker<CodeMirror.MarkerRange>
-) {
-  const arg_defaults = arg_defaults_from_callee_type(callee);
+  model: Model,
+  view: View
+): SidebarView {
+  const sidebar_els = create_sidebar_view_skeleton();
+  view.snp_outer.append(sidebar_els.el);
 
-  const missing_positional_args = takeWhile(
-    arg_defaults.slice(given_positional_args.length),
-    (arg) => arg.kind === "ARG_POS"
-  ); // we could also look for arg.kind === "ARG_OPT" here,
-  // but optional positional args look nicer when given as keyword args
+  const sidebar_view: SidebarView = {
+    els: sidebar_els,
+    artists: {},
+  };
 
-  const missing_keyword_args = arg_defaults
-    .slice(given_positional_args.length)
-    .slice(missing_positional_args.length)
-    .filter(
-      (arg) =>
-        !given_keyword_args.some((given_arg) => given_arg.name === arg.name)
-    )
-    .filter((arg) => arg.kind !== "ARG_STAR2"); // ignore **kwargs
+  model.selectable_artists.forEach(artist => {
+    const artist_view = create_artist_view(
+      artist,
+      sidebar_view,
+      model,
+      all_calls_and_methods
+    );
 
-  // arg_els.push(
-  //   ...given_positional_args.map((arg) =>
-  //     make_arg_el(sync_editor_and_output, arg, { positional: true })
-  //   )
-  // );
+    sidebar_view.artists[artist.id] = artist_view;
+  });
 
-  // if used for a new call, required args need to be generated
-  let needed_positional_args = takeWhile(
-    missing_positional_args,
-    (arg) => arg.kind === "ARG_POS"
-  );
-
-  let missing_optional_positional_arg_els = missing_positional_args.slice(
-    needed_positional_args.length
-  );
-
-  return widget;
+  return sidebar_view;
 }
 
-// export function make_arg_el(arg: Arg, options = { positional: false }) {
-//   const arg_el = createElement("span");
+export function create_sidebar_view_skeleton(): SidebarViewEls {
+  // Sidebar container
+  const sidebar_el = create_el("div", "snp-sidebar");
 
-//   if (arg.kind !== "ARG_POS") {
-//     // Make remove button
-//     const remove_button = createElement("span");
-//     remove_button.innerText = "❌";
-//     remove_button.style.fontSize = "0.5em";
-//     remove_button.style.verticalAlign = "super";
-//     remove_button.style.cursor = "pointer";
-//     remove_button.title = `Remove argument \`${arg.name}\``;
+  // Create a header for the sidebar
+  const header_el = create_el("div", "snp-header", sidebar_el);
 
-//     remove_button.addEventListener("click", (ev) => {
-//       const ellipses_el = siblingsAfter(arg_el).find(
-//         (node) => node.hidden_arg_els !== undefined
-//       );
-//       // Try to remove the extra comma.
-//       // Need to skip any ellipses elements.
-//       const node_before = siblingsBefore(arg_el).find(
-//         (node) => to_code(node) !== "" && !node.textContent.match(/^\s*$/)
-//       );
-//       const node_after = siblingsAfter(arg_el).find(
-//         (node) => to_code(node) !== "" && !node.textContent.match(/^\s*$/)
-//       );
-//       if (node_before?.textContent?.match(/\s*,\s*$/)) {
-//         node_before.textContent = node_before.textContent.replace(
-//           /\s*,\s*$/,
-//           ""
-//         );
-//       } else if (node_after?.textContent?.match(/^\s*,\s*/)) {
-//         node_after.textContent = node_before.textContent.replace(
-//           /^\s*,\s*/,
-//           ""
-//         );
-//       }
-//       arg_el.remove();
-//       if (ellipses_el) {
-//         ellipses_el.hidden_arg_els.push(arg_el);
-//         ellipses_el.style.display = "inline";
-//       }
-//       sync_editor_and_output();
-//     });
-//     arg_el.append(remove_button);
-//   }
+  // Create a container for the artists
+  const artists_el = create_el("div", "snp-artists", sidebar_el);
 
-//   if (options?.positional) {
-//     arg_el.append(
-//       arg_to_widget(
-//         sync_editor_and_output,
-//         arg.code,
-//         arg.type,
-//         arg.code_type,
-//         arg.type_compatible_local_names
-//       )
-//     );
-//   } else {
-//     arg_el.append(
-//       arg.name,
-//       "=",
-//       arg_to_widget(
-//         sync_editor_and_output,
-//         arg.code,
-//         arg.type,
-//         arg.code_type,
-//         arg.type_compatible_local_names
-//       )
-//     );
-//   }
-//   return arg_el;
-// }
+  return {
+    el: sidebar_el,
+    header_el: header_el,
+    artists_el: artists_el,
+  };
+}
+
+export function sync_call_code(mark: TextMarker<MarkerRange>, code: string) {
+  let { from, to } = mark.find()!;
+  const code_mirror = AppState.model.cell.code_mirror;
+
+  code_mirror.replaceRange(code, from, to);
+  ({ from, to } = mark.find()!);
+  code_mirror.setSelection(from, to);
+
+  redraw_cell();
+  ``;
+}
+
+export function redraw_cell() {
+  const model = AppState.model;
+  const view = AppState.view_model;
+
+  const cell = model.cell;
+  const codeExecuting = cell.get_text();
+
+  const img = view.snp_outer.querySelector("img")!;
+
+  if (model.busy || codeExecuting == model.last_cell_code_executed) {
+    return;
+  }
+
+  model.busy = true;
+  model.last_cell_code_executed = codeExecuting;
+  view.stdout_stderr.innerHTML = "";
+
+  // Hacktastic way to get live feedback
+  const callbacks = cell.get_callbacks();
+  // console.log(cell.get_callbacks())
+
+  callbacks.iopub.output = function (msg: {
+    header: { msg_type: string };
+    content: { data: { [x: string]: string }; evalue: string; text: string };
+  }) {
+    if (
+      msg.header.msg_type === "execute_result" &&
+      msg.content.data["image/png"]
+    ) {
+      // Replace background image
+      img.src = "data:image/png;base64," + msg.content.data["image/png"]; // This also triggers img.onload which calls attach_snp and reattaches all of our events!
+    } else {
+      if (msg.header.msg_type === "error") {
+        // Display the error, but adjust line number for the lines we added to the top of the cell.
+        view.stdout_stderr.innerText += msg.content.evalue.replaceAll(
+          /\b(line +)(\d+)/gi,
+          (_: string, line_space: string, n_str: string) =>
+            `${line_space}${
+              parseInt(n_str) - model.provenance_is_off_by_n_lines
+            }`
+        );
+      } else if (msg.header.msg_type === "stream") {
+        view.stdout_stderr.innerText += msg.content.text;
+      } else {
+        console.log(arguments);
+      }
+    }
+
+    if (codeExecuting != cell.get_text()) {
+      model.busy = false;
+      redraw_cell();
+    } else {
+      model.busy = false;
+
+      // Replace hover regions
+      // if (
+      //   msg.header.msg_type === "execute_result" &&
+      //   msg.content.data["image/svg+xml"] &&
+      //   msg.content.data["application/json"]
+      // ) {
+      //   replace_hover_regions(snp_state, msg.content.data["image/svg+xml"]);
+      //   const json = msg.content.data["application/json"];
+      //   snp_state.cell_lineno = json.cell_lineno;
+      //   snp_state.provenance_is_off_by_n_lines =
+      //     json.provenance_is_off_by_n_lines;
+      //   attach_events_to_hover_regions(snp_state);
+      // }
+      // infer_types_and_attach_widgets(snp_state);
+    }
+  };
+
+  cell.kernel.execute(codeExecuting, callbacks, {
+    silent: false,
+    store_history: true,
+    stop_on_error: true,
+  });
+}

@@ -27,6 +27,8 @@ export type Cell = {
   element: Array<HTMLElement>;
 
   get_text: () => string;
+  get_callbacks: any;
+  kernel: any;
 };
 
 export type CellOutput = {

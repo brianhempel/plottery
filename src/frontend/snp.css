@@ -1,4 +1,27 @@
-.snp_outer > svg g.hovered > path {
-  stroke-width: 3.0;
+.snp_outer {
+  align-items: center;
 }
-.hidden { display: none }
+
+.snp_outer > svg {
+  display: none;
+}
+
+.snp_outer > img {
+  max-width: 450px !important;
+}
+
+.stdout_stderr {
+  font-family: monospace;
+  font-size: 14px;
+  background: #fff0d1;
+  padding: 10px;
+  margin: 20px;
+  border-radius: 5px;
+  color: #4a350a;
+  display: flex;
+  width: fit-content;
+}
+
+.stdout_stderr:empty {
+  display: none;
+}

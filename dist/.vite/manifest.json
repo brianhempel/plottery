@@ -1,0 +1,7 @@
+{
+  "src/frontend/main.ts": {
+    "file": "plugin.js",
+    "src": "src/frontend/main.ts",
+    "isEntry": true
+  }
+}

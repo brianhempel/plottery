@@ -8,15 +8,15 @@
     "enable-nbextension": "jupyter nbextension enable nbextension_snp/main",
     "disable-nbextension": "jupyter nbextension disable nbextension_snp/main",
     "build-ts": "vite build",
-    "build-ts-watch": "vite build --watch",
+    "watch-ts": "vite build --watch",
     "build": "npm run install-nbextension && npm run enable-nbextension && npm run build-ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@types/codemirror": "^5.60.15",
-    "codemirror": "^6.0.1",
     "typescript": "^5.3.3",
-    "vite": "^5.1.1"
+    "vite": "^5.1.1",
+    "vite-plugin-css-injected-by-js": "^3.4.0"
   }
 }

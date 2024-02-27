@@ -1,0 +1,77 @@
+.snp-artist-name {
+  width: fit-content;
+}
+
+.snp-artist {
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+
+.snp-artist:first-child {
+  margin-top: 0px;
+}
+
+.snp-artist:last-child {
+  margin-bottom: 0px;
+}
+
+.snp-artist-header {
+  display: flex;
+  margin-bottom: 3px;
+}
+
+.snp-artist-collapse-button {
+  padding: 0px 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.snp-artist-collapse-button:hover {
+  background: #e2e2e2;
+}
+
+.snp-artist-collapse-button > svg {
+  width: 9px;
+  transform: rotate(180deg);
+  fill: #37352f;
+}
+
+.collapsed > .snp-artist-header > .snp-artist-collapse-button > svg {
+  transform: rotate(90deg);
+  fill: #93928f;
+}
+
+.collapsed > .snp-artist-header > .snp-artist-name {
+  color: rgba(55, 53, 47, 0.5);
+}
+
+.collapsed > .snp-artist-body {
+  display: none;
+}
+
+.snp-artist-name {
+  /* font-style: italic; */
+}
+
+.snp-artist-body {
+  display: flex;
+}
+
+.snp-artist-collapse-indent {
+  width: 2px;
+  background: #e2e2e2;
+  margin-right: 10px;
+  margin-left: 7px;
+}
+
+.snp-artist-header>.snp-artist-name .snp-artist-name-faded {
+  color: #afafac;
+}
+
+/* .collapsed>.snp-artist-header>.snp-artist-name .snp-artist-name-faded {
+  opacity: 0.8;
+} */
+

@@ -12,16 +12,16 @@ define(["require", "base/js/namespace", "base/js/events"], function (
   function get_notebook_code_through(cell_code) {
     const code_cells = Jupyter.notebook
       .get_cells()
-      .filter((cell) => cell.cell_type === "code");
+      .filter(cell => cell.cell_type === "code");
 
     const code_cells_through_cell = code_cells.slice(
       0,
-      1 + code_cells.findLastIndex((cell) => cell.get_text() === cell_code)
+      1 + code_cells.findLastIndex(cell => cell.get_text() === cell_code)
     );
     const code_cells_before_cell = code_cells_through_cell.slice(0, -1);
 
     const notebook_code_before_cell = code_cells_before_cell
-      .map((cell) => cell.get_text())
+      .map(cell => cell.get_text())
       .filter(is_not_magic)
       .join("\n");
 

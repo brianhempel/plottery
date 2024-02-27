@@ -1,0 +1,96 @@
+.snp-call {
+  background: #F7F7F7;
+  border: 1px solid #cfcfcf;
+  border-radius: 2px;
+  margin-bottom: 2px;
+  padding: 0px 4px;
+  width: fit-content;
+  display: flex;
+  position: relative;
+  
+  padding-right: 0px;
+}
+
+.snp-call-args {
+  display: flex;
+}
+
+/* .snp-optional-arg {
+  display: flex;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  max-width: 0px;
+  transition-property: max-width, opacity;
+  transition-duration: 0.4s;
+}
+
+.snp-optional-arg.expanded {
+  opacity: 0.5;
+  pointer-events: inherit;
+} */
+
+.snp-arg-optional { 
+  opacity: 0;
+  max-width: 0px;
+  overflow: hidden;
+  pointer-events: none;
+  transition-property: max-width, opacity;
+  transition-duration: 0.1s;
+}
+
+.snp-call.expanded > .snp-call-args > .snp-arg-optional {
+  opacity: 0.5;
+  pointer-events: inherit;
+}
+
+.snp-call-expand-button {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+}
+
+.snp-call.expanded > .snp-call-expand-button {
+  /* fill: #037cf0; */
+  /* background: #deefff; */
+  background: #e5e5e5;
+}
+
+.snp-call-expand-button:hover  > svg {
+  opacity: 0.7;
+}
+
+.snp-call.expanded > .snp-call-expand-button > svg {
+  opacity: 0.6;
+}
+
+.snp-call.expanded > .snp-call-expand-button:hover > svg {
+  opacity: 1;
+}
+
+.snp-call-expand-button > svg {
+  transform: rotate(-90deg);
+  width: 20px;
+  opacity: 0.5;
+}
+
+.snp-call-args > .snp-arg-view {
+  display: flex;
+}
+
+.snp-comma-optional {
+  opacity: 0;
+  max-width: 0px;
+  overflow: hidden;
+  pointer-events: none;
+  transition-property: max-width, opacity;
+  transition-duration: 0.1s;
+}
+
+.snp-call.expanded > .snp-call-args > .snp-arg-view > .snp-comma-optional {
+  opacity: 0.5;
+  max-width: 16px;
+}

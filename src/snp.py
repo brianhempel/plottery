@@ -559,8 +559,8 @@ class SNP:
 
         return f"""
             <div class="snp_outer" style="position:relative;">
-            <script>{pathlib.Path("../dist/assets/plugin.js").read_text()}</script>
-            <img style="margin: 0; border: solid 1px black;" src='{data_url}'> <!-- the plot -->
+            <script>{pathlib.Path("../dist/plugin.js").read_text()}</script>
+            <img src='{data_url}'> <!-- the plot -->
             {self._repr_svg_()} <!-- hover regions -->
             <div class="stdout_stderr"></div>
             <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_info)}, {json_for_attr(sidebar_stuff)})"></style> <!-- Just a way to run this code once the elements exist. -->

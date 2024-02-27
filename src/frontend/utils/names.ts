@@ -7,6 +7,6 @@ export function compare_qualified_names(name1: string, name2: string) {
   );
 }
 
-export function shortest_qualified_name(names: string[]) {
+export function get_shortest_qualified_name(names: string[]) {
   return names.sort(compare_qualified_names)[0];
 }

@@ -1,0 +1,44 @@
+.snp-sidebar {
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  /* border-top: 1px solid #ababab;  */
+
+  /* border: 1px solid #ababab; */
+  /* box-shadow: 4px 4px 11px #00000026; */
+  /* border-radius: 2px; */
+
+  padding: 0px;
+
+  top: 0px;
+  left: 0px;
+
+  overflow: hidden;
+
+  font-family: monospace;
+  font-size: 14px;
+  white-space: pre;
+  margin: 10px;
+}
+
+.snp-header {
+  padding: 4px;
+  font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+  cursor: move;
+  border-top: 1px solid #ababab;
+  margin: 0px 10px;
+
+  display: none;
+}
+
+.snp-header:hover {
+  background: #cccccc;
+}
+
+.snp-artists {
+  padding: 5px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
