@@ -1,10 +1,10 @@
 import {
+  AppState,
   Arg,
   ArgView,
   CallView,
   CallViewEls,
   CallWithArgs,
-  Model,
 } from "../../state";
 import { Ticker } from "../../utils/Ticker";
 import {
@@ -14,23 +14,22 @@ import {
   item_to_start_pos,
 } from "../../utils/misc";
 import {
+  arg_view_to_code,
   create_arg_view,
   make_arg_view_non_optional,
   make_arg_view_optional,
 } from "../arg/arg";
 import { sync_call_code } from "../sidebar";
-import { widget_to_code } from "../widgets/dropdown/dropdown";
 import "./call.css";
 
-export function create_call_view(
-  model: Model,
-  call: CallWithArgs,
-  artist_name: string
-): CallView {
+export function create_call_view(call: CallWithArgs): CallView {
+  const code_mirror = AppState.model.cell.code_mirror;
+  const cell_lineno = AppState.model.cell_lineno;
+
   // Mark the range of code in cell for when user changes the call
-  const mark = model.cell.code_mirror.markText(
-    item_to_start_pos(call.call_info.call, model.cell_lineno),
-    item_to_end_pos(call.call_info.call, model.cell_lineno),
+  const mark = code_mirror.markText(
+    item_to_start_pos(call.call_info.call, cell_lineno),
+    item_to_end_pos(call.call_info.call, cell_lineno),
     {
       inclusiveLeft: true,
       inclusiveRight: true,
@@ -182,23 +181,6 @@ export function call_to_code(call_name: string, arg_views: ArgView[]) {
   code = code.slice(0, -2);
 
   code += ")";
-
-  return code;
-}
-
-export function arg_view_to_code(arg_view: ArgView): string {
-  if (arg_view.optional == true) return "";
-
-  let code = "";
-
-  if (!arg_view.positional) {
-    // Get prefix
-    code += (arg_view.el.children[0] as HTMLElement).innerText;
-  }
-
-  code += widget_to_code(arg_view.widget);
-
-  code += ", ";
 
   return code;
 }

@@ -4,6 +4,7 @@ import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 export default defineConfig({
   plugins: [cssInjectedByJsPlugin()],
   build: {
+    minify: false,
     manifest: true,
     rollupOptions: {
       // overwrite default .html entry

@@ -27,7 +27,7 @@ export type Cell = {
   element: Array<HTMLElement>;
 
   get_text: () => string;
-  get_callbacks: any;
+  get_callbacks: () => CellCallbacks;
   kernel: any;
 };
 
@@ -57,4 +57,63 @@ export function get_arg_kind_from_int(arg_int: number) {
   ];
 
   return int_to_arg_kind[arg_int];
+}
+
+// Cell callbacks from:
+// https://github.com/thoth-station/jupyter-nbrequirements/blob/master/js/src/types/io.d.ts#L54
+export interface CellCallbacks {
+  iopub?: IOPubCallback;
+  shell?: ShellCallback;
+}
+
+export interface IOPubCallback {
+  output?: (msg: CellMessage) => any;
+}
+
+export interface ShellCallback {
+  output?: (msg: CellMessage) => any;
+  reply?: (msg: CellMessage) => any;
+}
+
+export interface CellMessage {
+  buffers: null[] | null;
+  channel: string;
+  content: IOPubMessageContent;
+  msg_id: string;
+  msg_type: string;
+  header: IOPubMessageHeader;
+  parent_header: IOPubMessageHeader;
+  metadata: Metadata;
+}
+
+export interface IOPubMessageContent {
+  status: string;
+  data: IOPubMessageData;
+  name: string;
+  text: string;
+  metadata: any;
+  execution_count?: number;
+  ename?: string;
+  evalue?: string;
+  traceback?: string;
+}
+
+export interface IOPubMessageData {
+  name: string;
+  text: string;
+  "text/plain": string;
+  "image/png": string;
+}
+
+export interface IOPubMessageHeader {
+  date: string;
+  msg_id: string;
+  msg_type: string;
+  session: string;
+  username: string;
+  version: string;
+}
+
+export interface Metadata {
+  [name: string]: any;
 }

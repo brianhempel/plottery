@@ -1,5 +1,12 @@
 .snp-artist-name {
   width: fit-content;
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0px 2px;
+}
+
+.snp-artist-name:hover {
+  background: #00000014;
 }
 
 .snp-artist {
@@ -27,6 +34,7 @@
   align-items: center;
   border-radius: 2px;
   cursor: pointer;
+  padding-right: 2px;
 }
 
 .snp-artist-collapse-button:hover {

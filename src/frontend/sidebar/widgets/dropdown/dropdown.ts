@@ -1,26 +1,12 @@
 import { Ticker } from "../../../utils/Ticker";
 import { create_el } from "../../../utils/misc";
+import { LiteralWidget } from "../literal/literal";
 import {
-  AliasWidget,
-  alias_widget_to_code,
-  get_alias_widget_type_id,
-} from "../alias/alias";
-import {
-  IdentifierWidget,
-  get_identifier_widget_type_id,
-  identifier_widget_to_code,
-} from "../identifier/identifier";
-import {
-  InstanceWidget,
-  get_instance_widget_type_id,
-  instance_widget_to_code,
-} from "../instance/instance";
-import {
-  LiteralWidget,
-  get_literal_widget_type_id,
-  literal_widget_to_code,
-} from "../literal/literal";
-import { Widget, WidgetKind } from "../widget";
+  Widget,
+  WidgetKind,
+  get_widget_type_id,
+  widget_to_code,
+} from "../widget";
 import "./dropdown.css";
 
 export type DropdownWidget = Widget & {
@@ -105,47 +91,6 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
   add_items_to_dropdown_widget(dropdown, items);
 
   return dropdown;
-}
-
-/**
- * Given a widget (that's not a dropdown!), returns the id for it.
- * It's used to add a label next to items in dropdown drawer.
- *
- * For example, | [1, 2, 3]  list |
- *                            ^ that's the id
- * @param widget
- * @returns
- */
-export function get_widget_type_id(widget: Widget): string {
-  if (widget.kind == WidgetKind.Alias) {
-    return get_alias_widget_type_id(widget as AliasWidget);
-  } else if (widget.kind == WidgetKind.Identifier) {
-    return get_identifier_widget_type_id(widget as IdentifierWidget);
-  } else if (widget.kind == WidgetKind.Literal) {
-    return get_literal_widget_type_id(widget as LiteralWidget);
-  } else if (widget.kind == WidgetKind.Instance) {
-    return get_instance_widget_type_id(widget as InstanceWidget);
-  }
-
-  console.warn("No implementation for matching...", widget);
-  return "None";
-}
-
-export function widget_to_code(widget: Widget): string {
-  if (widget.kind == WidgetKind.Alias) {
-    return alias_widget_to_code(widget as AliasWidget);
-  } else if (widget.kind == WidgetKind.Identifier) {
-    return identifier_widget_to_code(widget as IdentifierWidget);
-  } else if (widget.kind == WidgetKind.Literal) {
-    return literal_widget_to_code(widget as LiteralWidget);
-  } else if (widget.kind == WidgetKind.Instance) {
-    return instance_widget_to_code(widget as InstanceWidget);
-  } else if (widget.kind == WidgetKind.Dropdown) {
-    return dropdown_widget_to_code(widget as DropdownWidget);
-  }
-
-  console.warn("No implementation for `to code`...", widget);
-  return "None";
 }
 
 export function dropdown_widget_to_code(widget: DropdownWidget): string {

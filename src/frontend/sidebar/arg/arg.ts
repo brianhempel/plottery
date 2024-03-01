@@ -27,7 +27,7 @@ import {
   create_literal_widget,
   match_arg_code_to_literal_widget,
 } from "../widgets/literal/literal";
-import { Widget, WidgetKind } from "../widgets/widget";
+import { Widget, WidgetKind, widget_to_code } from "../widgets/widget";
 import "./arg.css";
 
 export function create_arg_view(
@@ -177,4 +177,21 @@ export function match_arg_code_to_widget(
 
   console.warn("No implementation for matching...", widget, arg_code);
   return false;
+}
+
+export function arg_view_to_code(arg_view: ArgView): string {
+  if (arg_view.optional == true) return "";
+
+  let code = "";
+
+  if (!arg_view.positional) {
+    // Get prefix
+    code += (arg_view.el.children[0] as HTMLElement).innerText;
+  }
+
+  code += widget_to_code(arg_view.widget);
+
+  code += ", ";
+
+  return code;
 }

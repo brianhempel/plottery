@@ -1,4 +1,5 @@
 import { Widget } from "./sidebar/widgets/widget";
+import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
 
 export class AppState {
@@ -40,7 +41,7 @@ export type SelectableArtist = {
 
 /* --------------------- View Model --------------------- */
 export type View = {
-  hovered_elems: HTMLElement[];
+  hovered_elems: Element[];
   snp_outer: HTMLElement;
   stdout_stderr: HTMLElement;
 
@@ -94,8 +95,7 @@ export type CallViewEls = {
 
 export type MethodView = {
   el: HTMLElement;
-
-  arguments: ArgView[];
+  mark: TextMarker<MarkerRange>;
 };
 
 export type ArgView = {
@@ -122,7 +122,7 @@ export type MethodInfo = {
   name: string; // "set_title"
   receiver: number; // 140533847992896
   show_on: number[]; // [140533847992896, 140533885438224]
-  type: CallableType;
+  type: CallableType & { pos: Position };
 };
 
 export type Arg = {
@@ -156,6 +156,13 @@ export type CallWithArgs = {
   missing_keyword_args: Arg[];
   needed_positional_args: Arg[];
   missing_optional_positional_args: Arg[];
+};
+
+export type MethodWithArgs = {
+  method_info: MethodInfo;
+  required_positional_arg: Arg[];
+  required_keyword_args: Arg[];
+  receiver_name: string;
 };
 
 // if (type === "builtins.str") {

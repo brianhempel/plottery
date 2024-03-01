@@ -13,11 +13,9 @@ export type AliasWidget = Widget & {
 };
 
 export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
-  // @TODO: Change arg-str depending on if it's a str!
   const el = create_el("div", ["snp-arg", "snp-arg-alias"]);
   const value = default_code_and_code_type_for_type(a_type)[0];
   el.innerText = value;
-  // syntax_highlight(value, el);
 
   // Should be editable
   el.contentEditable = "true";

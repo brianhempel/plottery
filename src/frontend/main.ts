@@ -44,7 +44,11 @@ function attach_snp(
   const all_calls_and_methods = get_all_calls_and_methods(model);
 
   // Create a sidebar to show them
-  view.sidebar = create_sidebar(all_calls_and_methods, model, view);
+  view.sidebar = create_sidebar(
+    all_calls_and_methods,
+    model.selectable_artists
+  );
+  view.snp_outer.append(view.sidebar.els.el);
 
   // Put stdout_stderr at the bottom
   view.stdout_stderr.remove();
@@ -105,8 +109,10 @@ function initialize_view(model: Model, snp_outer: HTMLElement): View {
   stdout_stderr.remove();
   snp_outer.append(stdout_stderr);
 
+  const hovered_elems = [...snp_outer.querySelectorAll("g")] as Element[];
+
   return {
-    hovered_elems: [],
+    hovered_elems,
     snp_outer: snp_outer,
     sidebar: undefined,
     stdout_stderr,

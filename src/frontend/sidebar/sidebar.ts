@@ -1,13 +1,14 @@
 import {
   AppState,
   CallWithArgs,
-  Model,
+  MethodWithArgs,
+  SelectableArtist,
   SidebarView,
   SidebarViewEls,
-  View,
 } from "../state";
 import { MarkerRange, TextMarker } from "../utils/codemirror";
 import { create_el } from "../utils/misc";
+import { CellMessage } from "../utils/types";
 import { create_artist_view } from "./artist/artist";
 import "./sidebar.css";
 
@@ -15,25 +16,22 @@ export function create_sidebar(
   all_calls_and_methods: {
     [key: string]: {
       calls: CallWithArgs[];
-      methods: null;
+      methods: MethodWithArgs[];
     };
   },
-  model: Model,
-  view: View
+  selectable_artists: SelectableArtist[]
 ): SidebarView {
   const sidebar_els = create_sidebar_view_skeleton();
-  view.snp_outer.append(sidebar_els.el);
 
   const sidebar_view: SidebarView = {
     els: sidebar_els,
     artists: {},
   };
 
-  model.selectable_artists.forEach(artist => {
+  selectable_artists.forEach(artist => {
     const artist_view = create_artist_view(
       artist,
       sidebar_view,
-      model,
       all_calls_and_methods
     );
 
@@ -69,7 +67,6 @@ export function sync_call_code(mark: TextMarker<MarkerRange>, code: string) {
   code_mirror.setSelection(from, to);
 
   redraw_cell();
-  ``;
 }
 
 export function redraw_cell() {
@@ -91,32 +88,29 @@ export function redraw_cell() {
 
   // Hacktastic way to get live feedback
   const callbacks = cell.get_callbacks();
-  // console.log(cell.get_callbacks())
 
-  callbacks.iopub.output = function (msg: {
-    header: { msg_type: string };
-    content: { data: { [x: string]: string }; evalue: string; text: string };
-  }) {
+  callbacks.iopub!.output = function (msg: CellMessage) {
     if (
-      msg.header.msg_type === "execute_result" &&
+      msg.header.msg_type == "execute_result" &&
       msg.content.data["image/png"]
     ) {
       // Replace background image
-      img.src = "data:image/png;base64," + msg.content.data["image/png"]; // This also triggers img.onload which calls attach_snp and reattaches all of our events!
+      // This also triggers img.onload which calls attach_snp and reattaches all of our events!
+      img.src = "data:image/png;base64," + msg.content.data["image/png"];
     } else {
-      if (msg.header.msg_type === "error") {
+      if (msg.header.msg_type == "error") {
         // Display the error, but adjust line number for the lines we added to the top of the cell.
-        view.stdout_stderr.innerText += msg.content.evalue.replaceAll(
+        view.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
           /\b(line +)(\d+)/gi,
           (_: string, line_space: string, n_str: string) =>
             `${line_space}${
               parseInt(n_str) - model.provenance_is_off_by_n_lines
             }`
         );
-      } else if (msg.header.msg_type === "stream") {
+      } else if (msg.header.msg_type == "stream") {
         view.stdout_stderr.innerText += msg.content.text;
       } else {
-        console.log(arguments);
+        console.log("[redraw cell]", arguments);
       }
     }
 

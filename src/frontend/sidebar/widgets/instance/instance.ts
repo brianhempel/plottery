@@ -12,7 +12,6 @@ export type InstanceWidget = Widget & {
 };
 
 export function create_instance_widget(type: IInstanceType): InstanceWidget {
-  // @TODO: Change arg-str depending on if it's a str!
   const el = create_el("div", "snp-arg");
   const value = default_code_and_code_type_for_type(type)[0];
   el.innerText = value;

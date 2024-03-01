@@ -3,11 +3,28 @@
 }
 
 .snp_outer > svg {
-  display: none;
+  /* display: none; */
+  max-width: 350px!important;
+  border: none !important;
+  overflow: visible;
+}
+
+.snp_outer > svg path {
+
+}
+
+g > path {
+  /* clip-path: inset(0% 0% 0% 0% round 5px); */
+  transition: 0.2s;
+  fill: #00000000;
+}
+
+g.hovered > path {
+  fill: #0000002b;
 }
 
 .snp_outer > img {
-  max-width: 450px !important;
+  max-width: 350px !important;
 }
 
 .stdout_stderr {
@@ -25,3 +42,30 @@
 .stdout_stderr:empty {
   display: none;
 }
+
+.snp_outer svg path {
+
+}
+
+/* ----------------- Code mirror styles ----------------- */
+span.cm-variable {
+  color: #000;
+}
+
+span.cm-number {
+  color: #080;
+}
+
+span.cm-operator {
+  color: #AA22FF;
+  font-weight: bold;
+}
+
+span.cm-builtin {
+  color: #008000;
+}
+
+span.cm-string {
+  color: #BA2121;
+}
+
