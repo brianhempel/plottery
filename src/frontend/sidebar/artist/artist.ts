@@ -60,24 +60,27 @@ export function create_artist_view(
     artist_els.name_el.innerHTML = `${artist_name}`; // Set name
   }
 
-  // for (const region of view_model.hovered_elems) {
-  // const region_names: string[] = JSON.parse(
-  //   region.getAttribute("data-artist-names")!
-  // );
-  // const region_name = get_shortest_qualified_name(region_names);
-  // console.log(region_name);
-  // if (region_name == artist_name) {
-  //   artist_els.name_el.addEventListener("mouseover", () => {
-  //     const path = region.children[0] as SVGPathElement;
-  //     path.classList.add("hovered");
-  //   });
-  //   artist_els.name_el.addEventListener("mouseout", () => {
-  //     const path = region.children[0] as SVGPathElement;
-  //     path.classList.remove("hovered");
-  //   });
-  //   break;
-  // }
-  // }
+  const view = AppState.view_model;
+
+  for (const region of view.hovered_elems) {
+    const region_names: string[] = JSON.parse(
+      region.getAttribute("data-artist-names")!
+    );
+    const region_name = get_shortest_qualified_name(region_names);
+
+    if (region_name == artist_name) {
+      artist_els.name_el.addEventListener("mouseover", () => {
+        const path = region.children[0] as SVGPathElement;
+        path.classList.add("hovered");
+      });
+      artist_els.name_el.addEventListener("mouseout", () => {
+        const path = region.children[0] as SVGPathElement;
+        path.classList.remove("hovered");
+      });
+
+      break;
+    }
+  }
 
   // Loop through and build the call views for this artist
   const call_views: CallView[] = [];

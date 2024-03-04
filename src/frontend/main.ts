@@ -95,21 +95,13 @@ function initialize_model(
 }
 
 function initialize_view(model: Model, snp_outer: HTMLElement): View {
-  // const sidebar = build_sidebar(model, snp_outer);
-
-  // Clear an extra plot (if it's there)
-  const output = snp_outer.parentElement!.parentElement!.parentElement!;
-
-  if (output.children.length > 1) {
-    output.removeChild(output.children[1]);
-  }
-
   // Put stdout_stderr at the bottom
   const stdout_stderr: HTMLElement = snp_outer.querySelector(".stdout_stderr")!;
   stdout_stderr.remove();
   snp_outer.append(stdout_stderr);
 
   const hovered_elems = [...snp_outer.querySelectorAll("g")] as Element[];
+  console.log(hovered_elems);
 
   return {
     hovered_elems,

@@ -19,7 +19,7 @@ g > path {
   fill: #00000000;
 }
 
-g.hovered > path {
+g > path.hovered {
   fill: #0000002b;
 }
 
