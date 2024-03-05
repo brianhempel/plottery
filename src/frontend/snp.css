@@ -1,5 +1,10 @@
+.output_subarea {
+  overflow: visible !important;
+}
+
 .snp_outer {
-  align-items: center;
+  display: flex;
+  place-items: flex-start;
 }
 
 .snp_outer > svg {
@@ -7,6 +12,7 @@
   max-width: 350px!important;
   border: none !important;
   overflow: visible;
+  margin-top: 1em !important;
 }
 
 .snp_outer > svg path {
@@ -68,4 +74,3 @@ span.cm-builtin {
 span.cm-string {
   color: #BA2121;
 }
-

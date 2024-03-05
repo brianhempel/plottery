@@ -1,0 +1,30 @@
+.snp-toggles {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  /* border-top: 1px solid #0000004d;
+  border-left: 1px solid #0000004d; */
+  margin-left: 16px;
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+  opacity: 0.5;
+}
+
+.snp-toggles:hover {
+  opacity: 1;
+}
+
+.snp-toggle {
+  display: flex;
+}
+
+.snp-toggle-name {
+  margin-left: 5px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+}
+
+input.snp-toggle-input {
+  margin: 0px;
+}

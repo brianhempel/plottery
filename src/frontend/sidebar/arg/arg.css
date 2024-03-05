@@ -9,10 +9,6 @@
 .snp-arg-operator {
   color: #AA22FF;
 }
-/* 
-.snp-arg.snp-arg-str:hover {
-  background: #ba212117;
-} */
 
 .snp-arg:focus-visible {
   outline: none;
@@ -22,3 +18,35 @@
   content: "\00d7";
 }
 
+.snp-arg-view {
+  display: flex;
+}
+
+.snp-arg-optional { 
+  opacity: 0.5;
+  filter: saturate(0);
+}
+
+.snp-arg-view {
+  margin-bottom: 2px;
+  margin-top: 2px;
+}
+
+.snp-arg-view:first-child {
+  margin-top: 0px;
+}
+
+.snp-arg-view:last-child {
+  margin-bottom: 0px;
+}
+
+.snp-arg-name {
+  color: #2f67ac;
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.snp-arg-optional > .snp-arg-name {
+  font-weight: normal;
+  color: #6a6a6a;
+}

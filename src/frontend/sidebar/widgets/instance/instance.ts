@@ -36,7 +36,6 @@ export function match_arg_code_to_instance_widget(
   if (widget.value == arg_code) {
     return true;
   } else {
-    console.log("[instance] No match!", widget, arg_code);
     return false;
   }
 }

@@ -34,16 +34,15 @@ export function create_arg_view(
   arg: Arg,
   call: CallWithArgs,
   mark: TextMarker<MarkerRange>,
-  options: { positional: boolean; optional: boolean },
-  add_comma: boolean = true
+  options: { positional: boolean; optional: boolean }
 ): ArgView {
   const arg_el = create_el("div", "snp-arg-view");
 
-  if (!options.positional) {
-    // Prefix with the argument name
-    const prefixEl = create_el("div", "snp-arg-name", arg_el);
-    prefixEl.innerHTML = `${arg.name}<span class="snp-arg-operator">=</span>`;
-  }
+  // if (!options.positional) {
+  // Prefix with the argument name
+  const prefixEl = create_el("div", "snp-arg-name", arg_el);
+  prefixEl.innerHTML = `${arg.name}<span class="snp-arg-colon">:</span>`;
+  // }
 
   if (options.optional) {
     arg_el.classList.add("snp-arg-optional");
@@ -64,12 +63,6 @@ export function create_arg_view(
   arg_el.append(widget.el);
 
   let comma_el = null;
-
-  if (add_comma) {
-    // Add a comma
-    comma_el = create_el("div", "snp-comma", arg_el);
-    comma_el.innerHTML = ",&nbsp;";
-  }
 
   return {
     el: arg_el,
@@ -179,14 +172,14 @@ export function match_arg_code_to_widget(
   return false;
 }
 
-export function arg_view_to_code(arg_view: ArgView): string {
+export function arg_view_to_code(arg: Arg, arg_view: ArgView): string {
   if (arg_view.optional == true) return "";
 
   let code = "";
 
   if (!arg_view.positional) {
     // Get prefix
-    code += (arg_view.el.children[0] as HTMLElement).innerText;
+    code += `${arg.name}=`;
   }
 
   code += widget_to_code(arg_view.widget);

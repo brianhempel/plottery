@@ -2,14 +2,14 @@ import { Widget } from "./sidebar/widgets/widget";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
 
-export class AppState {
-  static model: Model;
-  static view_model: View;
-}
-
 /* ------------------------------------------------------ */
 /*                          Types                         */
 /* ------------------------------------------------------ */
+
+export type SNPState = {
+  model: Model;
+  view: View;
+};
 
 /* ------------------------ Model ----------------------- */
 export type Model = {
@@ -28,6 +28,15 @@ export type Model = {
   calls: CallInfo[];
 
   busy: boolean;
+
+  select_lineno_after_execute?: number;
+
+  all_calls_and_methods?: {
+    [key: string]: {
+      calls: CallWithArgs[];
+      methods: MethodWithArgs[];
+    };
+  };
 };
 
 export type SelectedItem =
@@ -37,15 +46,30 @@ export type SelectedItem =
 export type SelectableArtist = {
   id: number; // 140533847992896
   names: string[]; // ['ax.yaxis.label', 'ax.axes.yaxis.label'...]
+  parent_id?: number;
 };
 
 /* --------------------- View Model --------------------- */
 export type View = {
-  hovered_elems: Element[];
+  hovered_elems: SVGGElement[];
   snp_outer: HTMLElement;
   stdout_stderr: HTMLElement;
 
   sidebar?: SidebarView;
+
+  hover_regions?: {
+    el: HTMLElement;
+    regions: {
+      [artist_id: number]: HoverRegion;
+    };
+  };
+};
+
+export type HoverRegion = {
+  el: HTMLElement;
+  calls: { info: CallInfo; view: CallView }[];
+  methods: { info: MethodInfo; view: MethodView }[];
+  artist: ArtistView | undefined;
 };
 
 export type SidebarView = {
@@ -62,8 +86,6 @@ export type SidebarViewEls = {
 export type ArtistView = {
   els: ArtistViewEls;
 
-  is_expanded: boolean;
-
   calls: CallView[];
   methods: MethodView[];
 };
@@ -71,26 +93,25 @@ export type ArtistView = {
 export type ArtistViewEls = {
   el: HTMLElement;
   header_el: HTMLElement;
-  collapse_button_el: HTMLElement;
   name_el: HTMLElement;
   body_el: HTMLElement;
-  collapse_indent_el: HTMLElement;
-  calls_el: HTMLElement;
 };
 
 export type CallView = {
   els: CallViewEls;
   is_elided: boolean; // (i.e. not collapsed args into ...)
 
-  arguments: ArgView[];
+  arguments: {
+    arg: Arg;
+    view: ArgView;
+  }[];
 };
 
 export type CallViewEls = {
   el: HTMLElement;
+  header_el: HTMLElement;
   name_el: HTMLElement;
-  start_bracket_el: HTMLElement;
-  args_el: HTMLElement;
-  end_bracket_el: HTMLElement;
+  body_el: HTMLElement;
 };
 
 export type MethodView = {
@@ -107,6 +128,15 @@ export type ArgView = {
   positional: boolean;
 
   comma_el: HTMLElement | null;
+};
+
+export type PersistantArtist = {
+  collapsed: boolean;
+};
+
+export type PersistantCall = {
+  collapsed: boolean;
+  elided: boolean;
 };
 
 /* ----------------- Sidebar call types ----------------- */
@@ -126,12 +156,13 @@ export type MethodInfo = {
 };
 
 export type Arg = {
-  name: string | null;
+  name: string;
   kind: string;
   code: string;
   type: Type;
   code_type: Type | undefined;
   type_compatible_local_names: string[];
+  is_positional: boolean;
 };
 
 export type CallInfo = MethodInfo & {
@@ -160,6 +191,7 @@ export type CallWithArgs = {
 
 export type MethodWithArgs = {
   method_info: MethodInfo;
+  code: string;
   required_positional_arg: Arg[];
   required_keyword_args: Arg[];
   receiver_name: string;

@@ -1,0 +1,77 @@
+.snp-collapsable-button {
+  padding: 0px 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 2px;
+  cursor: pointer;
+  padding-right: 2px;
+}
+
+.snp-collapsable-header:hover {
+  background: #e2e2e2;
+}
+
+.snp-collapsable-button > svg {
+  width: 9px;
+  transform: rotate(180deg);
+  fill: #37352f;
+  transition: 0.2s;
+}
+
+.collapsed > .snp-collapsable-header > .snp-collapsable-button > svg {
+  transform: rotate(90deg);
+  fill: #93928f;
+}
+
+.collapsed > .snp-collapsable-outer-body > .snp-collapsable-body {
+  display: none;
+}
+
+.snp-collapsable-header {
+  display: flex;
+  margin-bottom: 3px;
+
+  width: fit-content;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 2px;
+}
+
+.snp-collapsable-indent {
+  margin-right: 10px;
+  margin-left: 7px;
+
+  border-right: 1px solid #cfcfcf !important;
+}
+
+.snp-collapsable-outer-body {
+  display: flex;
+}
+
+.snp-collapsable-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.snp-collapsable {
+  display: flex;
+  flex-direction: column;
+}
+
+.snp-collapsable-body > div {
+  margin-bottom: 2px;
+  margin-top: 2px;
+}
+
+.snp-collapsable-body > div:last-child {
+  margin-bottom :0px;
+}
+
+.snp-collapsable-body > div:first-child {
+  margin-top: 0px;
+}
+
+.collapsed > .snp-collapsable-header {
+  margin-bottom: 0px;
+}

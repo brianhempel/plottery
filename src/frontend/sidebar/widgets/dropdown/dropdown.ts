@@ -1,4 +1,3 @@
-import { Ticker } from "../../../utils/Ticker";
 import { create_el } from "../../../utils/misc";
 import { LiteralWidget } from "../literal/literal";
 import {
@@ -14,7 +13,6 @@ export type DropdownWidget = Widget & {
   items: Widget[];
   selected_item: Widget;
   selected_item_clone_el: HTMLElement;
-  sync_id: string;
   selected_item_holder_el: HTMLElement;
   drawer_el: HTMLElement;
 };
@@ -70,11 +68,6 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
   // Clone the selected item or the drawer
   const selected_item_clone = get_widget_clone(selected_item);
 
-  // Keep them synced
-  const sync_id = Ticker.instance.registerTick(
-    sync_clone(selected_item, selected_item_clone)
-  );
-
   // Create a dropdown with an empty drawer
   const dropdown: DropdownWidget = {
     kind: WidgetKind.Dropdown,
@@ -82,7 +75,6 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
     items: [],
     selected_item,
     selected_item_clone_el: selected_item_clone,
-    sync_id,
     selected_item_holder_el,
     drawer_el,
   };
@@ -171,17 +163,9 @@ export function select_dropdown_item(
   // Remove the selected highlight from the holder
   dropdown.selected_item.el.parentElement!.classList.remove("selected");
 
-  // Remove the old sync
-  Ticker.instance.removeTickFrom(dropdown.sync_id);
-
   // Create a new clone
   const selected_item_clone = get_widget_clone(new_selected_item);
   dropdown.selected_item_clone_el = selected_item_clone;
-
-  // Update the sync
-  dropdown.sync_id = Ticker.instance.registerTick(
-    sync_clone(new_selected_item, selected_item_clone)
-  );
 
   // Add the clone in the same holder as the item
   new_selected_item.el.insertAdjacentElement("afterend", selected_item_clone);
@@ -204,25 +188,4 @@ export function get_widget_clone(widget: Widget): HTMLElement {
   }
 
   return widget.el.cloneNode(true) as HTMLElement;
-}
-
-function sync_clone(widget: Widget, clone: HTMLElement) {
-  if (
-    widget.kind == WidgetKind.Literal &&
-    (widget as LiteralWidget).type == "builtins.float"
-  ) {
-    return () => {
-      if (
-        (widget as LiteralWidget).slider?.val_el.innerHTML != clone.innerHTML
-      ) {
-        clone.innerHTML = (widget as LiteralWidget).slider!.val_el.innerHTML;
-      }
-    };
-  }
-
-  return () => {
-    if (widget.el.innerHTML != clone.innerHTML) {
-      clone.innerHTML = widget.el.innerHTML;
-    }
-  };
 }

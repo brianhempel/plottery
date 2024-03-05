@@ -24,7 +24,6 @@ export function match_arg_code_to_identifier_widget(
   if (widget.name == arg_code) {
     return true;
   } else {
-    console.log("[Identifier] No match!", widget, arg_code);
     return false;
   }
 }

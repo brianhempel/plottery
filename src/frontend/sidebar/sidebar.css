@@ -14,12 +14,12 @@
   top: 0px;
   left: 0px;
 
-  overflow: hidden;
 
   font-family: monospace;
   font-size: 14px;
   white-space: pre;
   margin: 10px;
+  z-index: 5;
 }
 
 .snp-header {

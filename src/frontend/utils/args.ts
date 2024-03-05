@@ -24,14 +24,28 @@ export function get_all_calls_and_methods(m: Model) {
     [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
   } = {};
 
-  m.selectable_artists.forEach(artist => {
-    const artist_method_infos = m.methods.filter(method =>
-      method.show_on.includes(artist.id)
-    );
+  console.log(m);
 
-    const artist_call_infos = m.calls.filter(call_info =>
-      call_info.show_on.includes(artist.id)
-    );
+  m.selectable_artists.forEach(artist => {
+    // const artist_method_infos = m.methods.filter(method =>
+    //   method.show_on.includes(artist.id)
+    // );
+
+    // const artist_call_infos = m.calls.filter(call_info =>
+    //   call_info.show_on.includes(artist.id)
+    // );
+
+    const artist_call_infos = m.calls.filter(call_info => {
+      return call_info.show_on.at(-1) == artist.id;
+    });
+
+    let artist_method_infos = m.methods.filter(method => {
+      return method.show_on.at(-1) == artist.id;
+    });
+
+    // artist_method_infos.filter(method => {
+    //   artist_call_infos.find(call => call.func_code_and_num[0] == `${method.receiver}.${method.name}`
+    // })
 
     const artist_calls = get_calls(
       artist,
@@ -40,12 +54,23 @@ export function get_all_calls_and_methods(m: Model) {
       m.cell.code_mirror
     );
 
-    const artist_methods = get_methods(
+    let artist_methods = get_methods(
       artist,
       artist_method_infos,
       m.selectable_artists,
       m.cell.code_mirror
     );
+
+    // Filter out methods that're already called
+    artist_methods = artist_methods.filter(method => {
+      const is_already_called = artist_calls.find(
+        call =>
+          call.call_info.func_code_and_num[0] ==
+          `${method.receiver_name}.${method.method_info.name}`
+      );
+
+      return !(method.method_info.max_calls == 1 && is_already_called);
+    });
 
     all_calls_and_methods[artist.id] = {
       calls: artist_calls,
@@ -68,14 +93,6 @@ export function get_methods(
         .names || [""]
     );
 
-    // let line_count = code_mirror.getValue().split("\n").length;
-
-    // let mark = code_mirror.markText(
-    //   { line: line_count - 2, ch: 0 },
-    //   { line: line_count - 2, ch: 0 },
-    //   { inclusiveRight: true, inclusiveLeft: true, clearWhenEmpty: false }
-    // ); // insert at end, for now...
-
     let arg_defaults = arg_defaults_from_callee_type(method_info.type);
 
     let [required_positional_arg, required_keyword_args] = partition(
@@ -85,22 +102,22 @@ export function get_methods(
       arg => arg.kind == "ARG_POS"
     );
 
-    // let required_positional_arg_codes = required_positional_arg.map(
-    //   arg => arg.code
-    // );
+    let required_positional_arg_codes = required_positional_arg.map(
+      arg => arg.code
+    );
 
-    // let required_keyword_arg_codes = required_keyword_args.map(
-    //   arg => `${arg.name}=${arg.code}`
-    // );
+    let required_keyword_arg_codes = required_keyword_args.map(
+      arg => `${arg.name}=${arg.code}`
+    );
 
-    // let new_code = `${receiver_name}.${
-    //   method_info.name
-    // }(${required_positional_arg_codes
-    //   .concat(required_keyword_arg_codes)
-    //   .join(",")})\n`;
+    let code_prefix = `${receiver_name}.${method_info.name}`;
+    let code = `${code_prefix}(${required_positional_arg_codes
+      .concat(required_keyword_arg_codes)
+      .join(",")})\n`;
 
     return {
       method_info,
+      code,
       required_positional_arg,
       required_keyword_args,
       receiver_name,
@@ -119,7 +136,7 @@ export function get_calls(
 
     const [given_positional_args, given_keyword_args] = partition(
       args,
-      arg => arg.name == null
+      arg => arg.is_positional
     );
 
     const {
@@ -168,7 +185,8 @@ export function get_args(
     );
 
     args.push({
-      name: given_arg.name,
+      name: call_info.callee.arg_names[arg_i_at_func_def],
+      is_positional: given_arg.name == null,
       kind: arg_kind,
       code: arg_val_code,
       type: call_info.callee.arg_types[arg_i_at_func_def],

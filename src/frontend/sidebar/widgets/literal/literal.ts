@@ -71,7 +71,6 @@ export function match_arg_code_to_literal_widget(
   } else if (widget.el.innerText == arg_code) {
     return true;
   } else {
-    console.log("[Literal] No match!", widget, arg_code);
     return false;
   }
 }

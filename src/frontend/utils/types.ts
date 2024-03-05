@@ -28,6 +28,7 @@ export type Cell = {
 
   get_text: () => string;
   get_callbacks: () => CellCallbacks;
+  execute: (stop_on_error?: boolean) => void;
   kernel: any;
 };
 
@@ -103,6 +104,8 @@ export interface IOPubMessageData {
   text: string;
   "text/plain": string;
   "image/png": string;
+  "image/svg+xml": string;
+  "application/json": string;
 }
 
 export interface IOPubMessageHeader {

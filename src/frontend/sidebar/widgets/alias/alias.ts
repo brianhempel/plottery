@@ -41,7 +41,6 @@ export function match_arg_code_to_alias_widget(
     widget.value = arg_code;
     return true;
   } else {
-    console.log("[Alias] No match!", widget, arg_code);
     return false;
   }
 }
@@ -55,7 +54,6 @@ export function get_alias_widget_type_id(widget: AliasWidget) {
   if (widget.a_type.type_ref == "matplotlib._typing.ArrayLike") {
     return "list";
   } else {
-    console.log("[Alias] No match!", widget);
     return "???";
   }
 }

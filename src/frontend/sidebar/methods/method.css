@@ -5,10 +5,31 @@
   width: fit-content;
   display: flex;
   position: relative;
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: pointer;
+  color: #6a6a6a;
 }
 
 .snp-method-view:hover {
-  background-color: rgba(0, 0, 0, 0.048);
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.snp-method-view {
+  /* font-style: italic; */
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #636363;
+  padding: 0px 4px;
+  border-radius: 2px;
+  margin-left: 2px;
+}
+
+.snp-method-view::before {
+  content: "ƒ:";
+  font-style: italic;
+  opacity: 0.5;
+  margin-right: 3px;
+}
+
+.snp-method-view.snp-focused {
+  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);
 }

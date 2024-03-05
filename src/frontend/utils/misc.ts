@@ -1,8 +1,11 @@
 import {
   Arg,
+  CallInfo,
+  CallView,
   CallableType,
   LiteralType,
   Position,
+  SNPState,
   Type,
   UnionType,
 } from "../state";
@@ -31,9 +34,8 @@ export function arg_defaults_from_callee_type(
           default_code_and_code_type_for_type(arg_type, arg_name);
       }
 
-      console.log(arg_default_type);
-
       return {
+        is_positional: false,
         name: arg_name,
         kind: arg_kind,
         code: arg_default_code,
@@ -169,6 +171,19 @@ export function create_dropdown_nook() {
   return svgContainer;
 }
 
+export function create_edit_icon() {
+  const svgContainer = create_el("div");
+
+  const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+
+  svgEl.innerHTML = `<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>`;
+  svgContainer.append(svgEl);
+  svgEl.setAttribute("viewBox", "0 0 24 24");
+  svgEl.setAttribute("width", "24px");
+  svgEl.setAttribute("height", "24px");
+  return svgContainer;
+}
+
 // https://stackoverflow.com/a/58550111
 export function is_numeric(num: unknown) {
   return (
@@ -218,4 +233,29 @@ export function insert_to_beginning_of_el(
   el_to_insert: HTMLElement
 ) {
   parent.insertBefore(el_to_insert, parent.firstChild);
+}
+
+export function find_call_that_satisfies(
+  pred: (info: CallInfo, view: CallView) => boolean,
+  state: SNPState
+) {
+  // Go through all the call views from artists
+  for (const artist_info of state.model.selectable_artists) {
+    const artist_view = state.view.sidebar!.artists[artist_info.id];
+
+    // Each call
+    const calls = state.model.all_calls_and_methods![artist_info.id].calls;
+    const call_views = artist_view.calls;
+
+    for (let i = 0; i < calls.length; i++) {
+      const call = calls[i];
+      const call_view = call_views[i];
+
+      if (pred(call.call_info, call_view)) {
+        return { info: call.call_info, view: call_view };
+      }
+    }
+  }
+
+  return null;
 }

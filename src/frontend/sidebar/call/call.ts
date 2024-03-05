@@ -1,14 +1,13 @@
 import {
-  AppState,
   Arg,
   ArgView,
   CallView,
   CallViewEls,
   CallWithArgs,
+  PersistantCall,
+  SNPState,
 } from "../../state";
-import { Ticker } from "../../utils/Ticker";
 import {
-  create_chevron,
   create_el,
   item_to_end_pos,
   item_to_start_pos,
@@ -19,12 +18,20 @@ import {
   make_arg_view_non_optional,
   make_arg_view_optional,
 } from "../arg/arg";
-import { sync_call_code } from "../sidebar";
+import {
+  collapse_collapsable,
+  create_collapsable_els,
+  open_collapsable,
+} from "../collapsable/collapsable";
+import { get_code_and_loc_for_call, sync_call_code } from "../sidebar";
 import "./call.css";
 
-export function create_call_view(call: CallWithArgs): CallView {
-  const code_mirror = AppState.model.cell.code_mirror;
-  const cell_lineno = AppState.model.cell_lineno;
+export function create_call_view(
+  call: CallWithArgs,
+  state: SNPState
+): CallView {
+  const code_mirror = state.model.cell.code_mirror;
+  const cell_lineno = state.model.cell_lineno;
 
   // Mark the range of code in cell for when user changes the call
   const mark = code_mirror.markText(
@@ -40,6 +47,22 @@ export function create_call_view(call: CallWithArgs): CallView {
   const call_els = create_call_view_skeleton();
   call_els.name_el.innerText = call.call_info.func_code_and_num[0];
 
+  const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
+    "snp_persistent_calls"
+  ];
+  const code_and_loc = get_code_and_loc_for_call(call.call_info);
+
+  console.log(persistent_calls, code_and_loc, persistent_calls[code_and_loc]);
+
+  // If previously expanded, then expand
+  if (persistent_calls[code_and_loc]) {
+    if (persistent_calls[code_and_loc]?.collapsed) {
+      collapse_collapsable(call_els.el);
+    } else {
+      open_collapsable(call_els.el);
+    }
+  }
+
   // Arguments
   const {
     given_positional_args,
@@ -50,9 +73,7 @@ export function create_call_view(call: CallWithArgs): CallView {
     missing_optional_positional_args,
   } = call;
 
-  const arg_views: ArgView[] = [];
-
-  console.log(call);
+  const arg_and_views: { arg: Arg; view: ArgView }[] = [];
 
   const add_args = (args: Arg[], positional: boolean, optional: boolean) => {
     args.forEach(arg => {
@@ -60,8 +81,8 @@ export function create_call_view(call: CallWithArgs): CallView {
         positional,
         optional,
       });
-      call_els.args_el.append(arg_view.el);
-      arg_views.push(arg_view);
+      call_els.body_el.append(arg_view.el);
+      arg_and_views.push({ arg, view: arg_view });
     });
   };
 
@@ -79,102 +100,57 @@ export function create_call_view(call: CallWithArgs): CallView {
   // Keyword args (optional)
   add_args(missing_keyword_args, false, true);
 
-  // Remove the last comma
-  [...call_els.args_el.querySelectorAll(".snp-comma")].at(-1)?.remove();
-
-  update_commas(arg_views);
-
-  // Button to expand the optional args
-  const expand_button_el = create_chevron();
-  expand_button_el.classList.add("snp-call-expand-button");
-
-  expand_button_el.addEventListener("click", () => {
-    if (call_els.el.classList.contains("expanded")) {
-      // Collapse it
-      call_els.el.classList.remove("expanded");
-
-      arg_views.forEach(arg_view => {
-        if (arg_view.optional) {
-          arg_view.el.style.maxWidth = "0px";
-        }
-      });
-    } else {
-      // Expand it
-      call_els.el.classList.add("expanded");
-
-      arg_views.forEach(arg_view => {
-        if (arg_view.optional) {
-          arg_view.el.style.maxWidth = `${arg_view.el.scrollWidth}px`;
-        }
-      });
-    }
-  });
-
-  call_els.el.append(expand_button_el);
-
   // On clicking on a hidden arg view, unhide it
-  arg_views.forEach(arg_view => {
-    if (!arg_view.optional) return;
+  arg_and_views.forEach(({ view }) => {
+    if (!view.optional) return;
 
-    arg_view.el.addEventListener("mousedown", e => {
-      if (arg_view.optional) {
-        make_arg_view_non_optional(arg_view);
-        arg_view.el.style.maxWidth = "inherit";
-
-        update_commas(arg_views);
+    view.el.addEventListener("mousedown", e => {
+      if (view.optional) {
+        make_arg_view_non_optional(view);
       } else if (e.ctrlKey) {
-        make_arg_view_optional(arg_view);
-        update_commas(arg_views);
-
-        if (!call_els.el.classList.contains("expanded")) {
-          arg_view.el.style.maxWidth = "0px";
-        }
+        make_arg_view_optional(view);
       }
     });
   });
 
   // On change of call, check if it's code changed
   let curr_inner_text = call_els.el.innerHTML;
-  let curr_code = call_to_code(call_els.name_el.innerText, arg_views);
+  let curr_code = call_to_code(call_els.name_el.innerText, arg_and_views);
 
-  // @TODO: Unregister on destroy (?)
-  Ticker.instance.registerTick(() => {
+  // Sync changes
+  function keep_synced() {
     if (curr_inner_text != call_els.el.innerText) {
-      const code = call_to_code(call_els.name_el.innerText, arg_views);
+      const code = call_to_code(call_els.name_el.innerText, arg_and_views);
 
       if (curr_code != code) {
-        sync_call_code(mark, code);
+        sync_call_code(mark, code, state);
         curr_code = code;
       }
     }
-  });
+
+    requestAnimationFrame(keep_synced);
+  }
+  keep_synced();
 
   // Add the call view
   return {
     els: call_els,
     is_elided: false,
-    arguments: arg_views,
+    arguments: arg_and_views,
   };
 }
 
-function update_commas(arg_views: ArgView[]) {
-  // Clear existing optional commas
-  arg_views.forEach(arg_view => {
-    arg_view.comma_el?.classList.remove("snp-comma-optional");
-  });
-
-  // Find the last non-optional arg (if any) and makes its comma optional
-  const last_non_optional_arg_view = arg_views.findLast(arg_view => {
-    return !arg_view.optional;
-  });
-  last_non_optional_arg_view?.comma_el?.classList.add("snp-comma-optional");
-}
-
-export function call_to_code(call_name: string, arg_views: ArgView[]) {
+export function call_to_code(
+  call_name: string,
+  arg_and_views: {
+    arg: Arg;
+    view: ArgView;
+  }[]
+) {
   let code = `${call_name}(`;
 
-  arg_views.forEach(arg_view => {
-    code += arg_view_to_code(arg_view);
+  arg_and_views.forEach(({ arg, view }) => {
+    code += arg_view_to_code(arg, view);
   });
 
   // Remove trailing comma
@@ -186,28 +162,28 @@ export function call_to_code(call_name: string, arg_views: ArgView[]) {
 }
 
 export function create_call_view_skeleton(): CallViewEls {
-  // Call container
-  const el = create_el("div", "snp-call");
+  // Collapsable
+  const { el, body_el, header_el } = create_collapsable_els();
+  el.classList.add("snp-call");
 
   // Call name
-  const name_el = create_el("div", "snp-call-name", el);
+  const name_el = create_el("div", "snp-call-name", header_el);
 
   // Starting bracket
-  const start_bracket_el = create_el("div", "snp-bracket", el);
-  start_bracket_el.innerText = "(";
+  // const start_bracket_el = create_el("div", "snp-bracket", el);
+  // start_bracket_el.innerText = "(";
 
   // Args
-  const args_el = create_el("div", "snp-call-args", el);
+  // const args_el = create_el("div", "snp-call-args", el);
 
   // Ending bracket
-  const end_bracket_el = create_el("div", "snp-bracket", el);
-  end_bracket_el.innerText = ")";
+  // const end_bracket_el = create_el("div", "snp-bracket", el);
+  // end_bracket_el.innerText = ")";
 
   return {
     el,
+    header_el,
     name_el,
-    start_bracket_el,
-    args_el,
-    end_bracket_el,
+    body_el,
   };
 }
