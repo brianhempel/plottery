@@ -913,6 +913,9 @@ class JsonDict:
 # https://github.com/python/mypy/blob/16abf5cbe08c8b399381fc38220586cf2e49c2bc/mypy/types.py
 def serialize(_type: mypy.types.Type) -> JsonDict:
 
+    if isinstance(_type, mypy.types.Overloaded):
+        return {".class": "Overloaded", "items": [serialize(t) for t in _type.items]}
+
     if isinstance(_type, mypy.types.UnboundType):
         return {
             ".class": "UnboundType",
