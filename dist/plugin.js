@@ -487,7 +487,7 @@ function create_arg_view(arg, call, mark, options) {
   let widget = create_arg_view_widgets(arg.type);
   widget = create_arg_view_identifier_widgets(
     widget,
-    arg.type_compatible_local_names
+    arg.type_compatible_local_names ?? []
   );
   match_arg_code_to_widget(widget, arg.code);
   arg_el.append(widget.el);

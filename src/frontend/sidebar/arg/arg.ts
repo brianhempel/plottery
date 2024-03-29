@@ -55,7 +55,7 @@ export function create_arg_view(
   // Add identifiers
   widget = create_arg_view_identifier_widgets(
     widget,
-    arg.type_compatible_local_names
+    arg.type_compatible_local_names ?? []
   );
 
   // Match the `arg.code` to the args

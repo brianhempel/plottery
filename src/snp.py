@@ -292,7 +292,8 @@ def method_type(receiver, method_name, type_graph):
     if receiver_type_node is not None:
         node = full_names_dict(receiver_type_node).get(method_name)
         if node is not None:
-            return node.type
+            if not isinstance(node.type, mypy.types.Overloaded):
+                return node.type
 
     return None
 
@@ -914,7 +915,10 @@ class JsonDict:
 def serialize(_type: mypy.types.Type) -> JsonDict:
 
     if isinstance(_type, mypy.types.Overloaded):
-        return {".class": "Overloaded", "items": [serialize(t) for t in _type.items]}
+        return {
+            ".class": "Overloaded",
+            "items": [serialize(t) for t in _type.items],
+        }
 
     if isinstance(_type, mypy.types.UnboundType):
         return {
