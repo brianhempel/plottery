@@ -8,6 +8,8 @@ import {
   Model,
   Position,
   SelectableArtist,
+  TypeAliasType,
+  TypedDictType,
 } from "../state";
 import { partition, takeWhile } from "./array";
 import CodeMirror from "./codemirror";
@@ -23,8 +25,6 @@ export function get_all_calls_and_methods(m: Model) {
   let all_calls_and_methods: {
     [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
   } = {};
-
-  console.log(m);
 
   m.selectable_artists.forEach(artist => {
     // const artist_method_infos = m.methods.filter(method =>
@@ -135,7 +135,7 @@ export function get_calls(
     const args = get_args(call_info, cell_lineno, code_mirror);
 
     const [given_positional_args, given_keyword_args] = partition(
-      args,
+      args.filter(arg => arg.name != "kwargs"),
       arg => arg.is_positional
     );
 
@@ -144,6 +144,7 @@ export function get_calls(
       missing_keyword_args,
       needed_positional_args,
       missing_optional_positional_args,
+      kwargs,
     } = segment_args(
       call_info.callee,
       given_positional_args,
@@ -158,6 +159,7 @@ export function get_calls(
       missing_keyword_args,
       needed_positional_args,
       missing_optional_positional_args,
+      kwargs,
     };
   });
 }
@@ -206,7 +208,29 @@ export function segment_args(
   given_positional_args: Arg[],
   given_keyword_args: Arg[]
 ) {
-  const arg_defaults = arg_defaults_from_callee_type(callee);
+  let arg_defaults = arg_defaults_from_callee_type(callee);
+
+  const kwargs_alias = arg_defaults.find(arg => arg.name == "kwargs");
+
+  const kwargs_items = (
+    (kwargs_alias?.type as TypeAliasType)?.resolved as TypedDictType
+  )?.items;
+
+  const kwargs: Arg[] | null = kwargs_items
+    ? kwargs_items.map(([name, item]) => {
+        return {
+          name,
+          kind: "ARG_NAMED",
+          code: kwargs_alias!.code,
+          type: item,
+          code_type: kwargs_alias!.code_type,
+          type_compatible_local_names: [],
+          is_positional: false,
+        };
+      })
+    : null;
+
+  arg_defaults = arg_defaults.filter(arg => arg.name != "kwargs");
 
   const missing_positional_args = takeWhile(
     arg_defaults.slice(given_positional_args.length),
@@ -219,8 +243,8 @@ export function segment_args(
     .slice(missing_positional_args.length)
     .filter(
       arg => !given_keyword_args.some(given_arg => given_arg.name === arg.name)
-    )
-    .filter(arg => arg.kind !== "ARG_STAR2"); // ignore **kwargs
+    );
+  // .filter(arg => arg.kind !== "ARG_STAR2"); // ignore **kwargs
 
   // if used for a new call, required args need to be generated
   let needed_positional_args = takeWhile(
@@ -237,5 +261,6 @@ export function segment_args(
     missing_keyword_args,
     needed_positional_args,
     missing_optional_positional_args,
+    kwargs,
   };
 }

@@ -3,7 +3,7 @@ import {
   CallInfo,
   CallView,
   CallableType,
-  LiteralType,
+  IInstanceType,
   Position,
   SNPState,
   Type,
@@ -24,7 +24,11 @@ export function arg_defaults_from_callee_type(
       // Since the function parameter could be a union type, we need to indicate which of the types the actual code is.
       let arg_default_code: string;
       let arg_default_type: Type | undefined;
-      if (callee.definition_arguments_default_code[arg_i]) {
+      if (callee.definition_arguments_default_code == null) {
+        console.warn("No defaults found for", callee);
+      }
+
+      if (callee.definition_arguments_default_code?.at(arg_i)) {
         arg_default_code = callee.definition_arguments_default_code[
           arg_i
         ] as string;
@@ -53,44 +57,46 @@ export function default_code_and_code_type_for_type(
   name?: string
 ): [string, Type] {
   // @TODO: Why is this hardcoded?
-  const default_value_from_name = [
-    ["width", "builtins.float", "1.0"],
-    ["height", "builtins.float", "1.0"],
-  ];
+  // const default_value_from_name = [
+  //   ["width", "builtins.float", "1.0"],
+  //   ["height", "builtins.float", "1.0"],
+  // ];
 
-  const [_, __, default_code] = default_value_from_name.find(
-    ([default_name, default_type, default_code]) =>
-      name == default_name && type == default_type
-  ) || [undefined, undefined, undefined];
+  // const [_, __, default_code] = default_value_from_name.find(
+  //   ([default_name, default_type, default_code]) =>
+  //     name == default_name && type == default_type
+  // ) || [undefined, undefined, undefined];
 
-  if (default_code !== undefined) {
-    return [default_code, type];
-  }
+  // if (default_code !== undefined) {
+  //   return [default_code, type];
+  // }
 
-  if (type == "builtins.str") {
+  if ((type as IInstanceType)?.type_ref == "builtins.str") {
     return ['"Bananas..."', type];
-  } else if (type == "builtins.float") {
+  } else if ((type as IInstanceType)?.type_ref == "builtins.float") {
     return ["0.5", type];
-  } else if (typeof type == "object") {
-    if (type[".class"] == "Instance" && type["type_ref"] == "builtins.dict") {
-      return ["{}", type];
-    } else if (type[".class"] == "UnionType") {
-      return default_code_and_code_type_for_type(
-        (type as UnionType).items[0],
-        name
-      );
-    } else if (
-      type[".class"] == "LiteralType" &&
-      type["fallback"] == "builtins.str"
-    ) {
-      const ltype = type as LiteralType;
-      return [JSON.stringify(ltype.value), ltype.fallback];
-    } else if (
-      "type_ref" in type &&
-      type["type_ref"] == "matplotlib._typing.ArrayLike"
-    ) {
-      return ["[1,2,3]", type];
-    }
+  } else if (
+    type[".class"] == "Instance" &&
+    type["type_ref"] == "builtins.dict"
+  ) {
+    return ["{}", type];
+  } else if (type[".class"] == "UnionType") {
+    return default_code_and_code_type_for_type(
+      (type as UnionType).items[0],
+      name
+    );
+  } else if (
+    type[".class"] == "LiteralType" // &&
+    // (type["fallback"] as IInstanceType)?.type_ref == "builtins.str"
+  ) {
+    // const ltype = type as LiteralType;
+    // console.log("ltype", ltype, JSON.stringify(ltype.value));
+    return [JSON.stringify(type.value), type.fallback];
+  } else if (
+    "type_ref" in type &&
+    type["type_ref"] == "matplotlib._typing.ArrayLike"
+  ) {
+    return ["[1,2,3]", type];
   }
 
   return ["None", { ".class": "NoneType" }];
@@ -258,4 +264,22 @@ export function find_call_that_satisfies(
   }
 
   return null;
+}
+
+// https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+export function hex_to_rgb(hex: string): { r: number; g: number; b: number } {
+  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+  var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  hex = hex.replace(shorthandRegex, function (m, r, g, b) {
+    return r + r + g + g + b + b;
+  });
+
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : { r: 0, g: 0, b: 0 };
 }

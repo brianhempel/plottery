@@ -1,4 +1,3 @@
-import { get_config } from "./config";
 import { populate_parent_ids } from "./sidebar/artist/artist";
 import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
@@ -72,7 +71,8 @@ function attach_snp(
   view.hover_regions = make_hover_regions(state);
 
   // Make plot widgets on those hover regions
-  make_plot_widgets(get_config().plot_widgets, state);
+  // make_plot_widgets(get_config().plot_widgets, state);
+  make_plot_widgets([], state);
 
   // Create toggles
   create_toggles(state);

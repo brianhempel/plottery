@@ -79,3 +79,7 @@ jupyter notebook
 - Handle dropdowns for empty union types, is this every going to be a case? (`dropdown.ts > create_dropdown_widget`)
 - Why does `["width", "builtins.float", "1.0"]` have a hardcoded type and default? Isn't this something we should infer from type stubs?
 - Can I get the type for `fontdict` beyond it being a dictionary? (is this a limitation of the type stubs or `mypy`?)
+- ```python
+	/tmp/ipykernel_1719349/1323490357.py:6: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`). Consider using `matplotlib.pyplot.close()`.
+	fig, ax = plt.subplots()
+	```

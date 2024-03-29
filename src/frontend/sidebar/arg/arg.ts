@@ -7,6 +7,11 @@ import {
   match_arg_code_to_alias_widget,
 } from "../widgets/alias/alias";
 import {
+  ColorWidget,
+  create_color_widget,
+  match_arg_code_to_color_widget,
+} from "../widgets/color/color";
+import {
   DropdownWidget,
   add_items_to_dropdown_widget,
   create_dropdown_widget,
@@ -17,11 +22,7 @@ import {
   create_identifier_widget,
   match_arg_code_to_identifier_widget,
 } from "../widgets/identifier/identifier";
-import {
-  InstanceWidget,
-  create_instance_widget,
-  match_arg_code_to_instance_widget,
-} from "../widgets/instance/instance";
+
 import {
   LiteralWidget,
   create_literal_widget,
@@ -58,6 +59,7 @@ export function create_arg_view(
   );
 
   // Match the `arg.code` to the args
+  // console.log(widget, arg.code);
   match_arg_code_to_widget(widget, arg.code);
 
   arg_el.append(widget.el);
@@ -85,16 +87,22 @@ export function make_arg_view_optional(arg_view: ArgView) {
 
 export function create_arg_view_widgets(type: Type): Widget {
   if (
+    typeof type == "object" &&
+    type[".class"] == "TypeAliasType" &&
+    type.type_ref == "matplotlib._typing.ColorType"
+  ) {
+    return create_color_widget(type);
+  } else if (
     typeof type == "string" ||
-    (typeof type == "object" && type[".class"] == "LiteralType")
+    (typeof type == "object" && type[".class"] == "LiteralType") ||
+    (typeof type == "object" && type[".class"] == "Instance") ||
+    (typeof type == "object" && type[".class"] == "NoneType")
   ) {
     return create_literal_widget(type);
   } else if (typeof type == "object" && type[".class"] == "UnionType") {
     return create_arg_view_widget_union(type);
   } else if (typeof type == "object" && type[".class"] == "TypeAliasType") {
     return create_alias_widget(type);
-  } else if (typeof type == "object" && type[".class"] == "Instance") {
-    return create_instance_widget(type);
   }
 
   console.warn("No type widget implemented!", type);
@@ -161,11 +169,8 @@ export function match_arg_code_to_widget(
     );
   } else if (widget.kind == WidgetKind.Literal) {
     return match_arg_code_to_literal_widget(widget as LiteralWidget, arg_code);
-  } else if (widget.kind == WidgetKind.Instance) {
-    return match_arg_code_to_instance_widget(
-      widget as InstanceWidget,
-      arg_code
-    );
+  } else if (widget.kind == WidgetKind.Color) {
+    return match_arg_code_to_color_widget(widget as ColorWidget, arg_code);
   }
 
   console.warn("No implementation for matching...", widget, arg_code);

@@ -21,6 +21,7 @@ import matplotlib as mpl
 
 import shapely
 
+
 def get_trivial_names():
     """Returns stuff like __class__, __doc__, etc."""
     return set(dir(object()))
@@ -30,17 +31,20 @@ def get_trivial_names():
 file_path = "__temp.py"
 module_name = os.path.splitext(os.path.basename(file_path))[0]
 
+
 def import_lineset_in(code):
-    ''' Returns a set of code lines that begin with `import ` '''
-    import_lines_regex = re.compile(r'^[^#\n]*import .*', re.MULTILINE)
+    """Returns a set of code lines that begin with `import `"""
+    import_lines_regex = re.compile(r"^[^#\n]*import .*", re.MULTILINE)
     return set(import_lines_regex.findall(code))
+
 
 # For caching
 if "import_lineset" not in globals():
     import_lineset = set()
     fine_grained_build_manager = None
-    mypy_result = None # The FineGrainedBuildManager mutates this, apparently.
+    mypy_result = None  # The FineGrainedBuildManager mutates this, apparently.
     fscache = None
+
 
 def do_inference(code):
     # For caching
@@ -53,7 +57,10 @@ def do_inference(code):
     with open(file_path, "w") as file:
         file.write(code)
 
-    if fine_grained_build_manager is None or import_lineset != import_lineset_in(code):
+    if (
+        fine_grained_build_manager is None
+        or import_lineset != import_lineset_in(code)
+    ):
         import_lineset = import_lineset_in(code)
         sources, options = mypy.main.process_options([file_path])
 
@@ -63,17 +70,24 @@ def do_inference(code):
         options.warn_unused_configs = True
         options.fine_grained_incremental = True
         options.use_fine_grained_cache = True
-        options.local_partial_types = True  # https://github.com/python/mypy/issues/4492
+        options.local_partial_types = (
+            True  # https://github.com/python/mypy/issues/4492
+        )
         options.mypy_path = ["python-type-stubs-main/stubs"]
-        options.follow_imports = "silent"
+        # options.follow_imports = "silent"
         options.follow_imports_for_stubs = True
         options.export_types = True
 
         fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
-        mypy_result = mypy.build.build(sources, options=options, fscache=fscache)
+        mypy_result = mypy.build.build(
+            sources, options=options, fscache=fscache
+        )
 
-        fine_grained_build_manager = mypy.server.update.FineGrainedBuildManager(mypy_result)
+        fine_grained_build_manager = mypy.server.update.FineGrainedBuildManager(
+            mypy_result
+        )
 
+    # Where the mypy INTERNAL ERROR happens...
     fine_grained_build_manager.update([(module_name, file_path)], [])
     fine_grained_build_manager.flush_cache()
     fscache.flush()
@@ -83,7 +97,13 @@ def do_inference(code):
 
 def escape_html(string):
     html_chars_re = re.compile("[&<>\"']")
-    html_subs = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"}
+    html_subs = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+    }
 
     return html_chars_re.sub(lambda match: html_subs[match.group(0)], string)
 
@@ -110,7 +130,11 @@ def object_type_node(obj, type_graph):
             thing_type_node = thing_type_node.names[class_name].node
         else:
             thing_type_node = None
-            print(obj.__class__.__module__, obj.__class__.__qualname__, "not found")
+            print(
+                obj.__class__.__module__,
+                obj.__class__.__qualname__,
+                "not found",
+            )
             break
 
     return thing_type_node
@@ -151,7 +175,9 @@ def total_bbox(geometries):
 # returns list of (obj_id, shapley.Geometry)
 def flatten_regions2(objid_methods_geom_children):
     obj_id, methods, geom, children = objid_methods_geom_children
-    return [(obj_id, geom)] + flatten([flatten_regions2(child) for child in children])
+    return [(obj_id, geom)] + flatten(
+        [flatten_regions2(child) for child in children]
+    )
 
 
 # Return list of (descendants that should also expose this method, method name on the root artist, number of times method could be called)
@@ -165,6 +191,9 @@ def method_associations(artist):
                 ([], "bar", float("inf")),
                 ([], "barh", float("inf")),
                 ([], "plot", float("inf")),
+                ([], "legend", float("inf")),
+                ([], "axhline", float("inf")),
+                ([], "axvline", float("inf")),
             ]
         case _:
             return []
@@ -212,7 +241,6 @@ def regions2(artist):
         case mpl.lines.Line2D() as line:
             # based on mpl lines.py contains
             if line._xy is None or len(line._xy) == 0:
-                # print("line has no path: " + str(line))
                 my_geom = None
             else:
                 transformed_path = line._get_transformed_path()
@@ -283,7 +311,10 @@ def region2_to_svg_g(artist_methods_geom_children, object_names, type_graph):
     )  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0.0"', geom_svg)
     child_svgs_str = "\n".join(
-        [region2_to_svg_g(child, object_names, type_graph) for child in children]
+        [
+            region2_to_svg_g(child, object_names, type_graph)
+            for child in children
+        ]
     )
 
     perhaps_call_loc = (
@@ -306,8 +337,6 @@ def _object_names_deep(out, obj, name, max_depth):
         for i, item in enumerate(obj):
             _object_names_deep(out, item, f"{name}[{str(i)}]", max_depth)
     elif isinstance(obj, mpl.artist.Artist):
-        # children = obj.get_children()
-        # print(name)
         key = id(obj)
         _obj, names = out.get(key, (obj, set()))
         out[key] = (_obj, names.union({name}))
@@ -319,7 +348,9 @@ def _object_names_deep(out, obj, name, max_depth):
             if prop_name not in get_trivial_names():
                 prop = getattr(obj, prop_name)
                 if not callable(prop):
-                    _object_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
+                    _object_names_deep(
+                        out, prop, f"{name}.{prop_name}", max_depth - 1
+                    )
 
 
 def object_names(locals, user_names=None, max_depth=4):
@@ -449,7 +480,9 @@ class SNP:
 
         # Find method calls on each of the named objects.
         for obj_id, (obj, names) in self.object_names.items():
-            for children_paths, method_name, max_calls in method_associations(obj):
+            for children_paths, method_name, max_calls in method_associations(
+                obj
+            ):
                 show_on = [obj_id]
                 for code_to_descendent in children_paths:
                     show_on.append(
@@ -461,7 +494,9 @@ class SNP:
                         "name": method_name,
                         "receiver": obj_id,
                         "show_on": show_on,
-                        "type": method_type_json(obj, method_name, self.type_graph),
+                        "type": method_type_json(
+                            obj, method_name, self.type_graph
+                        ),
                         "max_calls": max_calls,
                     }
                 )
@@ -513,15 +548,11 @@ class SNP:
                                 "func_code_and_num": func_code_and_num,
                             }
                         )
-                    # else:
-                    #     print(call_loc, method_call_positions)
 
-            # if len(calls) > 0 or len(methods) > 0:
             selectable_artists.append(
                 {
                     "id": obj_id,
                     "names": list(names),
-                    # "method_call_positions": method_call_positions,
                 }
             )
 
@@ -532,7 +563,8 @@ class SNP:
                 (
                     m
                     for m in methods
-                    if (m["name"], m["receiver"]) == (call["name"], call["receiver"])
+                    if (m["name"], m["receiver"])
+                    == (call["name"], call["receiver"])
                 ),
                 None,
             )
@@ -548,7 +580,9 @@ class SNP:
         all_show_on_set = set(all_show_on)
 
         selectable_artists = [
-            artist for artist in selectable_artists if artist["id"] in all_show_on_set
+            artist
+            for artist in selectable_artists
+            if artist["id"] in all_show_on_set
         ]
 
         sidebar_stuff = {
@@ -632,19 +666,6 @@ class TaggedFloat(float):
         return out
 
 
-# code = \
-# """
-# fig, ax = plt.subplots()
-# ax.set_title("My Plot")
-# xs = np.linspace(0, 2 * np.pi, 20)
-# ys = np.sin(xs)
-# lines = ax.plot(xs, ys)
-# """
-
-# print(code)
-# tree = ast.parse(code)
-
-
 def tag_with_provenance(
     ret_obj,
     receiver,
@@ -659,7 +680,10 @@ def tag_with_provenance(
     # 1. call code and number e.g. ("ax.set_title", 3) for the front end selection state, to be somewhat robust to code changes
     # 2. code location e.g.(7,0,7,23) for matching with call information from the type checker
 
-    call_loc = ((func_code, call_num), (lineno, col_offset, end_lineno, end_col_offset))
+    call_loc = (
+        (func_code, call_num),
+        (lineno, col_offset, end_lineno, end_col_offset),
+    )
 
     try:
         method_call_locs = receiver._snp_method_call_locs
@@ -727,8 +751,6 @@ class ProvenanceTagger(ast.NodeTransformer):
                     node.end_lineno,
                     node.end_col_offset,
                 )
-                # print(loc)
-                # print(ast.unparse(node.func))
                 func_code = ast.unparse(node.func)
                 receiver = value
                 call_num = self.call_nums.get(func_code, 0) + 1
@@ -746,7 +768,6 @@ class ProvenanceTagger(ast.NodeTransformer):
                     ],
                     [],
                 )
-                # print(ast.unparse(wrapped))
                 self.call_nums[func_code] = call_num
 
                 return wrapped
@@ -760,10 +781,6 @@ class RootProvenanceTagger:
         return ProvenanceTagger().visit(node)
 
 
-# print(astor.dump_tree(ast.parse(tree)))
-
-# print(ast.unparse(ProvenanceTagger().visit(ast.parse(code))))
-# print(ast.unparse(ProvenanceTagger().visit(ast.parse(IPython.get_ipython().history_manager.input_hist_raw[-4]))))
 IPython.get_ipython().kernel.shell.ast_transformers = [RootProvenanceTagger()]
 
 # -------------------------------------------------------- #
@@ -776,7 +793,10 @@ import mypy.main
 import mypy.options
 import mypy.types
 import mypy.server.update
+import mypy.types
 from visitor import TraverserVisitor
+import mypy.subtypes
+import pprint
 
 
 def unparse_mypy_expr(expr: mypy.nodes.Expression):
@@ -800,19 +820,18 @@ def add_pos_json(type_json_dict, node):
 
 
 def to_json_dict(node, type):
-    # print(type)
-    # print(type.serialize())
-    type_json_dict = type.serialize()
-    if not isinstance(type_json_dict, dict):  # IDK why we sometimes get a string
-        type_json_dict = dict()
+    type_json_dict = serialize(type)
     return add_pos_json(type_json_dict, node)
 
 
-# callable_type_ex = None
-def callable_type_json(callable_type, user_typed_locals):
-    # global callable_type_ex
-    type_json_dict = callable_type.serialize()
-    if not isinstance(type_json_dict, dict):  # IDK why we sometimes get a string
+def callable_type_json(
+    callable_type: mypy.types.CallableType, user_typed_locals
+):
+    type_json_dict = serialize(callable_type)  # <- Custom serializer
+
+    if not isinstance(
+        type_json_dict, dict
+    ):  # IDK why we sometimes get a string
         type_json_dict = dict()
 
     if (
@@ -833,11 +852,6 @@ def callable_type_json(callable_type, user_typed_locals):
             if mypy.subtypes.is_subtype(local_type, arg_type)
         ]
         type_json_dict["arg_type_compatible_local_names"].append(arg_names)
-        # if callable_type.def_extras.get("first_arg") is not None:
-        #     # remove "self"
-        #     # print("removing self from", callable_type)
-        #     callable_type_ex = callable_type
-        #     type_json_dict["definition_arguments_default_code"] = type_json_dict["definition_arguments_default_code"][1:]
 
     return type_json_dict
 
@@ -850,18 +864,15 @@ class MyVisitor(TraverserVisitor):
 
     def visit_call_expr(self, node: mypy.nodes.CallExpr) -> None:
         super().visit_call_expr(node)
-        # print(node)
-        # print((node.line, node.column, node.end_line, node.end_column))
-        # print(node.analyzed)
-        # print(self.types_dict.get(node))
-        # print(node.callee)
+
         callee_type = self.types_dict.get(node.callee)
-        # print(callee_type)
-        # print(callee_type.__class__)
+
         if isinstance(callee_type, mypy.types.CallableType):
             # loc = (node.line, node.column, node.end_line, node.end_column)
             given_args = []
-            for arg, name, kind in zip(node.args, node.arg_names, node.arg_kinds):
+            for arg, name, kind in zip(
+                node.args, node.arg_names, node.arg_kinds
+            ):
                 given_arg = to_json_dict(arg, self.types_dict.get(arg))
                 given_arg["name"] = name
                 given_arg["kind"] = kind.value
@@ -870,7 +881,9 @@ class MyVisitor(TraverserVisitor):
             # The callee_type here is partially applied (self is already removed from the argument list).
             # For consistency with places where where that is not the case, let us unapply it
             callee_type_unapplied = callee_type.definition.type
-            callee = callable_type_json(callee_type_unapplied, self.user_typed_locals)
+            callee = callable_type_json(
+                callee_type_unapplied, self.user_typed_locals
+            )
             add_pos_json(callee, node.callee)
 
             self.out.append(
@@ -880,34 +893,12 @@ class MyVisitor(TraverserVisitor):
                     "given_args": given_args,
                 }
             )
-            # print(json.dumps(callee_type.serialize()))
-            # print(callee_type.definition)
-            # print(callee_type.arg_types)
-            # for arg_name, arg_kind, arg_type in zip(callee_type.arg_names, callee_type.arg_kinds, callee_type.arg_types):
-            #     print(arg_name, arg_kind, arg_type, json.dumps(arg_type.serialize()))
-
-            # for arg, name in zip(node.args, node.arg_names):
-            #     print(arg, name)
-            #     print(self.types_dict.get(arg))
-
-        # if node.analyzed is not None:
-        #   print(node.analyzed.type)
 
     def visit_member_expr(self, node: mypy.nodes.MemberExpr) -> None:
         super().visit_member_expr(node)
-        # print(node)
-        # print((node.line, node.column, node.end_line, node.end_column))
-        # print(self.types_dict.get(node))
-        # if node.def_var is not None:
-        #   print(node.def_var.type)
 
     def visit_name_expr(self, node: mypy.nodes.NameExpr) -> None:
         super().visit_name_expr(node)
-        # print(node)
-        # print((node.line, node.column, node.end_line, node.end_column))
-        # print(self.types_dict.get(node))
-        # if node.node is not None:
-        #   print(node.node.type)
 
 
 class JsonDict:
@@ -916,3 +907,125 @@ class JsonDict:
 
     def _repr_json_(self):
         return self.dict
+
+
+# Custom serialize copied from mypy but that expands out the type alias...
+# https://github.com/python/mypy/blob/16abf5cbe08c8b399381fc38220586cf2e49c2bc/mypy/types.py
+def serialize(_type: mypy.types.Type) -> JsonDict:
+
+    if isinstance(_type, mypy.types.UnboundType):
+        return {
+            ".class": "UnboundType",
+            "name": _type.name,
+            "args": [serialize(a) for a in _type.args],
+            "expr": _type.original_str_expr,
+            "expr_fallback": _type.original_str_fallback,
+        }
+
+    if isinstance(_type, mypy.types.TypeVarType):
+        return {
+            ".class": "TypeVarType",
+            "name": _type.name,
+            "fullname": _type.fullname,
+            "id": _type.id.raw_id,
+            "namespace": _type.id.namespace,
+            "values": [serialize(v) for v in _type.values],
+            "upper_bound": serialize(_type.upper_bound),
+            "default": serialize(_type.default),
+            "variance": _type.variance,
+        }
+
+    if isinstance(_type, mypy.types.TypedDictType):
+        return {
+            ".class": "TypedDictType",
+            "items": [[n, serialize(t)] for (n, t) in _type.items.items()],
+            "required_keys": sorted(_type.required_keys),
+            "fallback": serialize(_type.fallback),
+        }
+
+    if isinstance(_type, mypy.types.TupleType):
+        return {
+            ".class": "TupleType",
+            "items": [serialize(t) for t in _type.items],
+            "partial_fallback": serialize(_type.partial_fallback),
+            "implicit": _type.implicit,
+        }
+
+    if isinstance(_type, mypy.types.LiteralType):
+        return {
+            ".class": "LiteralType",
+            "value": _type.value,
+            "fallback": serialize(_type.fallback),
+        }
+
+    if isinstance(_type, mypy.types.NoneType):
+        return {".class": "NoneType"}
+
+    if isinstance(_type, mypy.types.AnyType):
+        return {
+            ".class": "AnyType",
+            "type_of_any": _type.type_of_any,
+            "source_any": (
+                serialize(_type.source_any.serialize)
+                if _type.source_any is not None
+                else None
+            ),
+            "missing_import_name": _type.missing_import_name,
+        }
+
+    if isinstance(_type, mypy.types.UnionType):
+        return {
+            ".class": "UnionType",
+            "items": [serialize(t) for t in _type.items],
+        }
+
+    if isinstance(_type, mypy.types.Instance):
+        type_ref = _type.type.fullname
+        if not _type.args and not _type.last_known_value:
+            return {".class": "Instance", "type_ref": type_ref}
+
+        data: JsonDict = {".class": "Instance"}
+        data["type_ref"] = type_ref
+        data["args"] = [serialize(arg) for arg in _type.args]
+        if _type.last_known_value is not None:
+            data["last_known_value"] = serialize(_type.last_known_value)
+        return data
+
+    if isinstance(_type, mypy.types.TypeAliasType):
+        return {
+            ".class": "TypeAliasType",
+            "type_ref": _type.alias.fullname,
+            "resolved": serialize(mypy.types.get_proper_type(_type)),
+            "args": [serialize(arg) for arg in _type.args],
+        }
+
+    if isinstance(_type, mypy.types.CallableType):
+        return {
+            ".class": "CallableType",
+            "arg_types": [serialize(t) for t in _type.arg_types],
+            "arg_kinds": [int(x.value) for x in _type.arg_kinds],
+            "arg_names": _type.arg_names,
+            "ret_type": serialize(_type.ret_type),
+            "fallback": serialize(_type.fallback),
+            "name": _type.name,
+            "variables": [serialize(v) for v in _type.variables],
+            "is_ellipsis_args": _type.is_ellipsis_args,
+            "implicit": _type.implicit,
+            "bound_args": [
+                (None if t is None else serialize(t)) for t in _type.bound_args
+            ],
+            "def_extras": dict(_type.def_extras),
+            "type_guard": (
+                serialize(_type.type_guard)
+                if _type.type_guard is not None
+                else None
+            ),
+            # "type_is": (serialize(_type.type_is) if _type.type_is is not None else None),
+            "from_concatenate": _type.from_concatenate,
+            "imprecise_arg_kinds": _type.imprecise_arg_kinds,
+            "unpack_kwargs": _type.unpack_kwargs,
+        }
+
+    print("Error type not implemented!", type(_type))
+
+    return {}

@@ -3,40 +3,13 @@
   try {
     if (typeof document != "undefined") {
       var elementStyle = document.createElement("style");
-      elementStyle.appendChild(document.createTextNode('.snp-dropdown-arrow {\n  padding: 0px 4px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.snp-dropdown-arrow:hover {\n  background: #e2e2e2;\n}\n\n.snp-dropdown-arrow > svg {\n  width: 9px;\n  transform: rotate(180deg);\n  fill: #37352f;\n}\n\n.snp-dropdown:hover {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.snp-dropdown.expanded {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.snp-dropdown.expanded > .snp-dropdown-drawer {\n  display: flex;\n}\n\n\n\n/* .snp-dropdown:active > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus-within > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus-visible > .snp-dropdown-drawer {\n  display: flex;\n} */\n\n\n.snp-dropdown-drawer {\n  display: none;\n  position: absolute;\n  background: white;\n  flex-direction: column;\n\n  border: 1px solid #ababab;\n  box-shadow: 2px 2px 6px #00000026;\n  border-radius: 4px;\n  overflow: hidden;\n\n  z-index: 5;\n}\n\n.snp-dropdown {\n  position: relative;\n}\n\n.snp-dropdown-hidden-item {\n  background: white;\n  display: flex;\n  cursor: pointer;\n\n  padding: 2px 4px;\n}\n\n.snp-dropdown-hidden-item:hover {\n  background: #efefef;\n}\n\n.snp-dropdown-hidden-item.selected {\n  background: #dcdcdc;\n}\n\n.snp-dropdown-hidden-item.selected:hover {\n  background: #c9c9c9;\n}\n\n.snp-dropdown-hidden-item > div:first-child {\n  flex-grow: 1;\n}\n\n.snp-widget-id {\n  opacity: 0.4;\n  margin-left: 8px;\n  font-style: italic;\n  font-size: 0.8em;\n  font-weight: bold;\n}.snp-slider-base::before {\n  background-color: black;\n  border-radius: 1px;\n  bottom: 0;\n  content: "";\n  left: 4px;\n  opacity: .15;\n  position: absolute;\n  top: 0;\n  width: 1.5px;\n  transition: 0.1s;\n}\n\n.snp-slider-base {\n  width: 8px;\n  margin: 3px 0px 3px 0;\n  position: relative;\n  cursor: e-resize;\n}\n\n.snp-slider {\n  display: flex;\n}\n\n.snp-slider-base:hover::before {\n  opacity: 0.3;\n}\n\n.snp-slider.pressed > .snp-slider-base::before {\n  opacity: 0.5;\n  margin: 2px 0px;\n}\n\n.snp-slider-spring {\n  position: absolute;\n  display: flex;\n  width: 100%;\n  height: 100%;\n  pointer-events: none;\n}\n\n.snp-spring-svg {\n  overflow: visible;\n}\n\n.snp-spring-svg-p1 {\n  fill: none;\n  stroke: rgba(0, 0, 0, 0.317);\n  stroke-dasharray: 2 1;\n}\n\n.snp-spring-svg-p2 {\n  fill: none;\n  stroke: rgba(0, 0, 0, 0.317);\n}\n\n.snp-slider > .snp-slider-spring > .snp-spring-svg {\n  opacity: 0;\n  pointer-events: none;\n  transform: translate(6.5px, 6px);\n  overflow: visible !important;\n}\n\n.snp-slider.pressed > .snp-slider-spring > .snp-spring-svg {\n  opacity: 1;\n  pointer-events: inherit;\n}.snp-arg-str {\n  color: #BA2121;\n}\n\n.snp-arg-number {\n  color: #080;\n}\n\n.snp-arg-operator {\n  color: #AA22FF;\n}\n\n.snp-arg:focus-visible {\n  outline: none;\n}\n\n.snp-remove-arg-button {\n  content: "\\00d7";\n}\n\n.snp-arg-view {\n  display: flex;\n}\n\n.snp-arg-optional { \n  opacity: 0.5;\n  filter: saturate(0);\n}\n\n.snp-arg-view {\n  margin-bottom: 2px;\n  margin-top: 2px;\n}\n\n.snp-arg-view:first-child {\n  margin-top: 0px;\n}\n\n.snp-arg-view:last-child {\n  margin-bottom: 0px;\n}\n\n.snp-arg-name {\n  color: #2f67ac;\n  font-weight: bold;\n  margin-right: 5px;\n}\n\n.snp-arg-optional > .snp-arg-name {\n  font-weight: normal;\n  color: #6a6a6a;\n}.snp-collapsable-button {\n  padding: 0px 4px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 2px;\n  cursor: pointer;\n  padding-right: 2px;\n}\n\n.snp-collapsable-header:hover {\n  background: #e2e2e2;\n}\n\n.snp-collapsable-button > svg {\n  width: 9px;\n  transform: rotate(180deg);\n  fill: #37352f;\n  transition: 0.2s;\n}\n\n.collapsed > .snp-collapsable-header > .snp-collapsable-button > svg {\n  transform: rotate(90deg);\n  fill: #93928f;\n}\n\n.collapsed > .snp-collapsable-outer-body > .snp-collapsable-body {\n  display: none;\n}\n\n.snp-collapsable-header {\n  display: flex;\n  margin-bottom: 3px;\n\n  width: fit-content;\n  cursor: pointer;\n  user-select: none;\n  border-radius: 2px;\n}\n\n.snp-collapsable-indent {\n  margin-right: 10px;\n  margin-left: 7px;\n\n  border-right: 1px solid #cfcfcf !important;\n}\n\n.snp-collapsable-outer-body {\n  display: flex;\n}\n\n.snp-collapsable-body {\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-collapsable {\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-collapsable-body > div {\n  margin-bottom: 2px;\n  margin-top: 2px;\n}\n\n.snp-collapsable-body > div:last-child {\n  margin-bottom :0px;\n}\n\n.snp-collapsable-body > div:first-child {\n  margin-top: 0px;\n}\n\n.collapsed > .snp-collapsable-header {\n  margin-bottom: 0px;\n}.snp-sidebar {\n  background-color: white;\n  display: flex;\n  flex-direction: column;\n  height: fit-content;\n  /* border-top: 1px solid #ababab;  */\n\n  /* border: 1px solid #ababab; */\n  /* box-shadow: 4px 4px 11px #00000026; */\n  /* border-radius: 2px; */\n\n  padding: 0px;\n\n  top: 0px;\n  left: 0px;\n\n\n  font-family: monospace;\n  font-size: 14px;\n  white-space: pre;\n  margin: 10px;\n  z-index: 5;\n}\n\n.snp-header {\n  padding: 4px;\n  font-family: Helvetica Neue,Helvetica,Arial,sans-serif;\n  cursor: move;\n  border-top: 1px solid #ababab;\n  margin: 0px 10px;\n\n  display: none;\n}\n\n.snp-header:hover {\n  background: #cccccc;\n}\n\n.snp-artists {\n  padding: 5px 10px;\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-call {\n  width: fit-content;\n  position: relative;\n}\n\n.snp-call-name {\n  /* font-style: italic; */\n  background: #6f0eff17;\n  color: #6a006a;\n  padding: 0px 4px;\n  border-radius: 2px;\n  margin-left: 2px;\n}\n\n.snp-call-name::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n.snp-call-expand-button {\n  display: flex;\n  cursor: pointer;\n  align-items: center;\n  justify-content: center;\n  margin-left: 5px;\n}\n\n.snp-call.expanded > .snp-call-expand-button {\n  background: #e5e5e5;\n}\n\n.snp-call-expand-button:hover  > svg {\n  opacity: 0.7;\n}\n\n.snp-call.expanded > .snp-call-expand-button > svg {\n  opacity: 0.6;\n}\n\n.snp-call.expanded > .snp-call-expand-button:hover > svg {\n  opacity: 1;\n}\n\n.snp-call-expand-button > svg {\n  transform: rotate(-90deg);\n  width: 20px;\n  opacity: 0.5;\n}\n\n.snp-call.snp-focused > .snp-collapsable-header > .snp-call-name {\n  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */\n  background: #bc00ff33;\n}\n\n.snp-call > .snp-collapsable-header:hover {\n  background: none;\n}\n\n.snp-call > .snp-collapsable-header:hover  > .snp-call-name {\n  background: #bc00ff33;\n}.snp-method-view {\n  border-radius: 2px;\n  margin-bottom: 4px;\n  padding: 0 0 0 4px;\n  width: fit-content;\n  display: flex;\n  position: relative;\n  opacity: 0.7;\n  cursor: pointer;\n  color: #6a6a6a;\n}\n\n.snp-method-view:hover {\n  background-color: rgba(0, 0, 0, 0.1);\n}\n\n.snp-method-view {\n  /* font-style: italic; */\n  background-color: rgba(0, 0, 0, 0.05);\n  color: #636363;\n  padding: 0px 4px;\n  border-radius: 2px;\n  margin-left: 2px;\n}\n\n.snp-method-view::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n.snp-method-view.snp-focused {\n  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);\n}.snp-artist-name {\n  width: fit-content;\n  cursor: pointer;\n  border-radius: 2px;\n  padding: 0px 2px;\n}\n\n.collapsed > .snp-collapsable-header > .snp-artist-name {\n  color: rgba(55, 53, 47, 0.5);\n}\n\n.snp-trigger::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n/* .snp-artist.snp-focused > .snp-collapsable-header > .snp-artist-name {\n  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);\n} */\n.snp-artist.snp-focused > .snp-collapsable-header {\n  background: #80808030;\n}.snp-hover-regions {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  width: 100%;\n  height: 100%;\n  max-width: 350px;\n  transition: 0.1s;\n}\n\n.snp-hover-regions:not(.disable):hover {\n  background: #ffffff94;\n}\n\n.snp-hover-region {\n  position: absolute;\n  background: rgba(0, 0, 0, 0);\n  border-radius: 5px;\n  transition: 0.2s;\n\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column;\n  font-family: monospace;\n}\n\n.snp-hover-region.hovered {\n  background: rgba(0, 0, 0, 0.1);\n}\n\n/* .snp-trigger {\n  display: flex;\n  background: #ececec;\n  border: 1px solid #bababa;\n  border-radius: 4px;\n  padding: 0px 4px;\n  margin-bottom: 4px;\n  cursor: pointer;\n  color: #2e2e2e;\n} */\n\n\n/* .snp-trigger:hover {\n  background: #cccccc;\n} */\n\n.snp-trigger {\n  display: flex;\n  background: #000000b3;\n  /* border: 1px solid #bababa; */\n  border-radius: 4px;\n  padding: 0px 4px;\n  margin-bottom: 4px;\n  cursor: pointer;\n  color: #d5d5d5;\n  font-size: 11px;\n  backdrop-filter: blur(5px);\n  pointer-events: none;\n  transform: scale(0.8);\n  opacity: 0;\n  transition: 0.1s;\n}\n\n.snp-trigger:hover {\n  background: #262626;\n  color: #e7e7e7;\n}\n\n.snp-hover-regions:not(.disable):hover > .snp-hover-region > .snp-trigger {\n  pointer-events: initial;\n  transform: scale(1);\n  opacity: 1;\n}\n\n.snp-hover-region.snp-focused {\n  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */\n  background: #80808030;\n}.plot-widget {\n  display: flex;\n  position: relative;\n}\n\n.plot-widget.disabled {\n  display: none !important;\n}\n\n.plot-widget-input {\n  display: none;\n  position: absolute;\n  top: -20px;\n\n  box-shadow: 0px 0px 0px 1px #0000005e, 3px 1px 5px 0px #0000003d;\n  padding: 0px 3px;\n  border-radius: 2px;\n  color: #BA2121;\n  background: #ffffff;\n  left: -10px;\n  font-size: 12px;\n\n  white-space: pre;\n}\n\n.plot-widget-container {\n  display: flex;\n  width: calc(100% + 30px) !important;\n  flex-direction: row-reverse;\n}\n\n.plot-widget-input.visible {\n  display: flex;\n\n}\n\n.plot-widget-edit-icon {\n  fill: none;\n  stroke: #000000bd;\n  stroke-width: 2px;\n  width: 15px;\n  cursor: pointer;\n}\n\n.plot-widget-edit-icon {\n  fill: none;\n  stroke: #777777bd;\n  stroke-width: 2px;\n  width: 12px;\n}\n\n.plot-widget-edit-icon:hover {\n  stroke: #5b0f88bd;\n}\n\n.plot-widget-edit-icon.toggled {\n  stroke: #5b0f88bd;\n}.snp-toggles {\n  display: flex;\n  flex-direction: column;\n  padding: 10px;\n  /* border-top: 1px solid #0000004d;\n  border-left: 1px solid #0000004d; */\n  margin-left: 16px;\n  position: absolute;\n  right: 0px;\n  bottom: 0px;\n  opacity: 0.5;\n}\n\n.snp-toggles:hover {\n  opacity: 1;\n}\n\n.snp-toggle {\n  display: flex;\n}\n\n.snp-toggle-name {\n  margin-left: 5px;\n  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;\n  font-size: 13px;\n}\n\ninput.snp-toggle-input {\n  margin: 0px;\n}.output_subarea {\n  overflow: visible !important;\n}\n\n.snp_outer {\n  display: flex;\n  place-items: flex-start;\n}\n\n.snp_outer > svg {\n  /* display: none; */\n  max-width: 350px!important;\n  border: none !important;\n  overflow: visible;\n  margin-top: 1em !important;\n}\n\n.snp_outer > svg path {\n\n}\n\ng > path {\n  /* clip-path: inset(0% 0% 0% 0% round 5px); */\n  transition: 0.2s;\n  fill: #00000000;\n}\n\ng > path.hovered {\n  fill: #0000002b;\n}\n\n.snp_outer > img {\n  max-width: 350px !important;\n}\n\n.stdout_stderr {\n  font-family: monospace;\n  font-size: 14px;\n  background: #fff0d1;\n  padding: 10px;\n  margin: 20px;\n  border-radius: 5px;\n  color: #4a350a;\n  display: flex;\n  width: fit-content;\n}\n\n.stdout_stderr:empty {\n  display: none;\n}\n\n.snp_outer svg path {\n\n}\n\n/* ----------------- Code mirror styles ----------------- */\nspan.cm-variable {\n  color: #000;\n}\n\nspan.cm-number {\n  color: #080;\n}\n\nspan.cm-operator {\n  color: #AA22FF;\n  font-weight: bold;\n}\n\nspan.cm-builtin {\n  color: #008000;\n}\n\nspan.cm-string {\n  color: #BA2121;\n}'));
+      elementStyle.appendChild(document.createTextNode('input.snp-arg-color {\n  width: 20px;\n  height: 20px;\n  border: none;\n  outline: none;\n  background: none;\n}.snp-dropdown-arrow {\n  padding: 0px 4px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.snp-dropdown-arrow:hover {\n  background: #e2e2e2;\n}\n\n.snp-dropdown-arrow > svg {\n  width: 9px;\n  transform: rotate(180deg);\n  fill: #37352f;\n}\n\n.snp-dropdown:hover {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.snp-dropdown.expanded {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.snp-dropdown.expanded > .snp-dropdown-drawer {\n  display: flex;\n}\n\n\n\n/* .snp-dropdown:active > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus-within > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus-visible > .snp-dropdown-drawer {\n  display: flex;\n} */\n\n\n.snp-dropdown-drawer {\n  display: none;\n  position: absolute;\n  background: white;\n  flex-direction: column;\n\n  border: 1px solid #ababab;\n  box-shadow: 2px 2px 6px #00000026;\n  border-radius: 4px;\n  overflow: hidden;\n\n  z-index: 5;\n}\n\n.snp-dropdown {\n  position: relative;\n}\n\n.snp-dropdown-hidden-item {\n  background: white;\n  display: flex;\n  cursor: pointer;\n\n  padding: 2px 4px;\n}\n\n.snp-dropdown-hidden-item:hover {\n  background: #efefef;\n}\n\n.snp-dropdown-hidden-item.selected {\n  background: #dcdcdc;\n}\n\n.snp-dropdown-hidden-item.selected:hover {\n  background: #c9c9c9;\n}\n\n.snp-dropdown-hidden-item > div:first-child {\n  flex-grow: 1;\n}\n\n.snp-widget-id {\n  opacity: 0.4;\n  margin-left: 8px;\n  font-style: italic;\n  font-size: 0.8em;\n  font-weight: bold;\n}.snp-slider-base::before {\n  background-color: black;\n  border-radius: 1px;\n  bottom: 0;\n  content: "";\n  left: 4px;\n  opacity: .15;\n  position: absolute;\n  top: 0;\n  width: 1.5px;\n  transition: 0.1s;\n}\n\n.snp-slider-base {\n  width: 8px;\n  margin: 3px 0px 3px 0;\n  position: relative;\n  cursor: e-resize;\n}\n\n.snp-slider {\n  display: flex;\n}\n\n.snp-slider-base:hover::before {\n  opacity: 0.3;\n}\n\n.snp-slider.pressed > .snp-slider-base::before {\n  opacity: 0.5;\n  margin: 2px 0px;\n}\n\n.snp-slider-spring {\n  position: absolute;\n  display: flex;\n  width: 100%;\n  height: 100%;\n  pointer-events: none;\n}\n\n.snp-spring-svg {\n  overflow: visible;\n}\n\n.snp-spring-svg-p1 {\n  fill: none;\n  stroke: rgba(0, 0, 0, 0.317);\n  stroke-dasharray: 2 1;\n}\n\n.snp-spring-svg-p2 {\n  fill: none;\n  stroke: rgba(0, 0, 0, 0.317);\n}\n\n.snp-slider > .snp-slider-spring > .snp-spring-svg {\n  opacity: 0;\n  pointer-events: none;\n  transform: translate(6.5px, 6px);\n  overflow: visible !important;\n}\n\n.snp-slider.pressed > .snp-slider-spring > .snp-spring-svg {\n  opacity: 1;\n  pointer-events: inherit;\n}.snp-arg-str {\n  color: #BA2121;\n}\n\n.snp-arg-number {\n  color: #080;\n}\n\n.snp-arg-operator {\n  color: #AA22FF;\n}\n\n.snp-arg:focus-visible {\n  outline: none;\n}\n\n.snp-remove-arg-button {\n  content: "\\00d7";\n}\n\n.snp-arg-view {\n  display: flex;\n}\n\n.snp-arg-optional { \n  opacity: 0.5;\n  filter: saturate(0);\n}\n\n.snp-arg-view {\n  margin-bottom: 2px;\n  margin-top: 2px;\n}\n\n.snp-arg-view:first-child {\n  margin-top: 0px;\n}\n\n.snp-arg-view:last-child {\n  margin-bottom: 0px;\n}\n\n.snp-arg-name {\n  color: #2f67ac;\n  font-weight: bold;\n  margin-right: 5px;\n}\n\n.snp-arg-optional > .snp-arg-name {\n  font-weight: normal;\n  color: #6a6a6a;\n}.snp-collapsable-button {\n  padding: 0px 4px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 2px;\n  cursor: pointer;\n  padding-right: 2px;\n}\n\n.snp-collapsable-header:hover {\n  background: #e2e2e2;\n}\n\n.snp-collapsable-button > svg {\n  width: 9px;\n  transform: rotate(180deg);\n  fill: #37352f;\n  transition: 0.2s;\n}\n\n.collapsed > .snp-collapsable-header > .snp-collapsable-button > svg {\n  transform: rotate(90deg);\n  fill: #93928f;\n}\n\n.collapsed > .snp-collapsable-outer-body > .snp-collapsable-body {\n  display: none;\n}\n\n.snp-collapsable-header {\n  display: flex;\n  margin-bottom: 3px;\n\n  width: fit-content;\n  cursor: pointer;\n  user-select: none;\n  border-radius: 2px;\n}\n\n.snp-collapsable-indent {\n  margin-right: 10px;\n  margin-left: 7px;\n\n  border-right: 1px solid #cfcfcf !important;\n}\n\n.snp-collapsable-outer-body {\n  display: flex;\n}\n\n.snp-collapsable-body {\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-collapsable {\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-collapsable-body > div {\n  margin-bottom: 2px;\n  margin-top: 2px;\n}\n\n.snp-collapsable-body > div:last-child {\n  margin-bottom :0px;\n}\n\n.snp-collapsable-body > div:first-child {\n  margin-top: 0px;\n}\n\n.collapsed > .snp-collapsable-header {\n  margin-bottom: 0px;\n}.snp-sidebar {\n  background-color: white;\n  display: flex;\n  flex-direction: column;\n  height: fit-content;\n  /* border-top: 1px solid #ababab;  */\n\n  /* border: 1px solid #ababab; */\n  /* box-shadow: 4px 4px 11px #00000026; */\n  /* border-radius: 2px; */\n\n  padding: 0px;\n\n  top: 0px;\n  left: 0px;\n\n\n  font-family: monospace;\n  font-size: 14px;\n  white-space: pre;\n  margin: 10px;\n  z-index: 5;\n}\n\n.snp-header {\n  padding: 4px;\n  font-family: Helvetica Neue,Helvetica,Arial,sans-serif;\n  cursor: move;\n  border-top: 1px solid #ababab;\n  margin: 0px 10px;\n\n  display: none;\n}\n\n.snp-header:hover {\n  background: #cccccc;\n}\n\n.snp-artists {\n  padding: 5px 10px;\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-call {\n  width: fit-content;\n  position: relative;\n}\n\n.snp-call-name {\n  /* font-style: italic; */\n  background: #6f0eff17;\n  color: #6a006a;\n  padding: 0px 4px;\n  border-radius: 2px;\n  margin-left: 2px;\n}\n\n.snp-call-name::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n.snp-call-expand-button {\n  display: flex;\n  cursor: pointer;\n  align-items: center;\n  justify-content: center;\n  margin-left: 5px;\n}\n\n.snp-call.expanded > .snp-call-expand-button {\n  background: #e5e5e5;\n}\n\n.snp-call-expand-button:hover  > svg {\n  opacity: 0.7;\n}\n\n.snp-call.expanded > .snp-call-expand-button > svg {\n  opacity: 0.6;\n}\n\n.snp-call.expanded > .snp-call-expand-button:hover > svg {\n  opacity: 1;\n}\n\n.snp-call-expand-button > svg {\n  transform: rotate(-90deg);\n  width: 20px;\n  opacity: 0.5;\n}\n\n.snp-call.snp-focused > .snp-collapsable-header > .snp-call-name {\n  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */\n  background: #bc00ff33;\n}\n\n.snp-call > .snp-collapsable-header:hover {\n  background: none;\n}\n\n.snp-call > .snp-collapsable-header:hover  > .snp-call-name {\n  background: #bc00ff33;\n}.snp-method-view {\n  border-radius: 2px;\n  margin-bottom: 4px;\n  padding: 0 0 0 4px;\n  width: fit-content;\n  display: flex;\n  position: relative;\n  opacity: 0.7;\n  cursor: pointer;\n  color: #6a6a6a;\n}\n\n.snp-method-view:hover {\n  background-color: rgba(0, 0, 0, 0.1);\n}\n\n.snp-method-view {\n  /* font-style: italic; */\n  background-color: rgba(0, 0, 0, 0.05);\n  color: #636363;\n  padding: 0px 4px;\n  border-radius: 2px;\n  margin-left: 2px;\n}\n\n.snp-method-view::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n.snp-method-view.snp-focused {\n  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);\n}.snp-artist-name {\n  width: fit-content;\n  cursor: pointer;\n  border-radius: 2px;\n  padding: 0px 2px;\n}\n\n.collapsed > .snp-collapsable-header > .snp-artist-name {\n  color: rgba(55, 53, 47, 0.5);\n}\n\n.snp-trigger::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n/* .snp-artist.snp-focused > .snp-collapsable-header > .snp-artist-name {\n  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);\n} */\n.snp-artist.snp-focused > .snp-collapsable-header {\n  background: #80808030;\n}.snp-hover-regions {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  width: 100%;\n  height: 100%;\n  max-width: 350px;\n  transition: 0.1s;\n}\n\n.snp-hover-regions:not(.disable):hover {\n  background: #ffffff94;\n}\n\n.snp-hover-region {\n  position: absolute;\n  background: rgba(0, 0, 0, 0);\n  border-radius: 5px;\n  transition: 0.2s;\n\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column;\n  font-family: monospace;\n}\n\n.snp-hover-region.hovered {\n  background: rgba(0, 0, 0, 0.1);\n}\n\n/* .snp-trigger {\n  display: flex;\n  background: #ececec;\n  border: 1px solid #bababa;\n  border-radius: 4px;\n  padding: 0px 4px;\n  margin-bottom: 4px;\n  cursor: pointer;\n  color: #2e2e2e;\n} */\n\n\n/* .snp-trigger:hover {\n  background: #cccccc;\n} */\n\n.snp-trigger {\n  display: flex;\n  background: #000000b3;\n  /* border: 1px solid #bababa; */\n  border-radius: 4px;\n  padding: 0px 4px;\n  margin-bottom: 4px;\n  cursor: pointer;\n  color: #d5d5d5;\n  font-size: 11px;\n  backdrop-filter: blur(5px);\n  pointer-events: none;\n  transform: scale(0.8);\n  opacity: 0;\n  transition: 0.1s;\n}\n\n.snp-trigger:hover {\n  background: #262626;\n  color: #e7e7e7;\n}\n\n.snp-hover-regions:not(.disable):hover > .snp-hover-region > .snp-trigger {\n  pointer-events: initial;\n  transform: scale(1);\n  opacity: 1;\n}\n\n.snp-hover-region.snp-focused {\n  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */\n  background: #80808030;\n}.plot-widget {\n  display: flex;\n  position: relative;\n}\n\n.plot-widget.disabled {\n  display: none !important;\n}\n\n.plot-widget-input {\n  display: none;\n  position: absolute;\n  top: -20px;\n\n  box-shadow: 0px 0px 0px 1px #0000005e, 3px 1px 5px 0px #0000003d;\n  padding: 0px 3px;\n  border-radius: 2px;\n  color: #BA2121;\n  background: #ffffff;\n  left: -10px;\n  font-size: 12px;\n\n  white-space: pre;\n}\n\n.plot-widget-container {\n  display: flex;\n  width: calc(100% + 30px) !important;\n  flex-direction: row-reverse;\n}\n\n.plot-widget-input.visible {\n  display: flex;\n\n}\n\n.plot-widget-edit-icon {\n  fill: none;\n  stroke: #000000bd;\n  stroke-width: 2px;\n  width: 15px;\n  cursor: pointer;\n}\n\n.plot-widget-edit-icon {\n  fill: none;\n  stroke: #777777bd;\n  stroke-width: 2px;\n  width: 12px;\n}\n\n.plot-widget-edit-icon:hover {\n  stroke: #5b0f88bd;\n}\n\n.plot-widget-edit-icon.toggled {\n  stroke: #5b0f88bd;\n}.snp-toggles {\n  display: flex;\n  flex-direction: column;\n  padding: 10px;\n  /* border-top: 1px solid #0000004d;\n  border-left: 1px solid #0000004d; */\n  margin-left: 16px;\n  position: absolute;\n  right: 0px;\n  bottom: 0px;\n  opacity: 0.5;\n}\n\n.snp-toggles:hover {\n  opacity: 1;\n}\n\n.snp-toggle {\n  display: flex;\n}\n\n.snp-toggle-name {\n  margin-left: 5px;\n  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;\n  font-size: 13px;\n}\n\ninput.snp-toggle-input {\n  margin: 0px;\n}.output_subarea {\n  overflow: visible !important;\n}\n\n.snp_outer {\n  display: flex;\n  place-items: flex-start;\n}\n\n.snp_outer > svg {\n  /* display: none; */\n  max-width: 350px!important;\n  border: none !important;\n  overflow: visible;\n  margin-top: 1em !important;\n}\n\n.snp_outer > svg path {\n\n}\n\ng > path {\n  /* clip-path: inset(0% 0% 0% 0% round 5px); */\n  transition: 0.2s;\n  fill: #00000000;\n}\n\ng > path.hovered {\n  fill: #0000002b;\n}\n\n.snp_outer > img {\n  max-width: 350px !important;\n}\n\n.stdout_stderr {\n  font-family: monospace;\n  font-size: 14px;\n  background: #fff0d1;\n  padding: 10px;\n  margin: 20px;\n  border-radius: 5px;\n  color: #4a350a;\n  display: flex;\n  width: fit-content;\n}\n\n.stdout_stderr:empty {\n  display: none;\n}\n\n.snp_outer svg path {\n\n}\n\n/* ----------------- Code mirror styles ----------------- */\nspan.cm-variable {\n  color: #000;\n}\n\nspan.cm-number {\n  color: #080;\n}\n\nspan.cm-operator {\n  color: #AA22FF;\n  font-weight: bold;\n}\n\nspan.cm-builtin {\n  color: #008000;\n}\n\nspan.cm-string {\n  color: #BA2121;\n}'));
       document.head.appendChild(elementStyle);
     }
   } catch (e) {
     console.error("vite-plugin-css-injected-by-js", e);
   }
 })();
-function get_config() {
-  return {
-    plot_widgets: [
-      {
-        call_code: "ax.set_title",
-        arg_name: "label",
-        type: "builtins.str"
-      },
-      // {
-      //   call_code: "ax.set_title",
-      //   arg_name: "y",
-      //   flip: true,
-      //   type: "builtins.float",
-      // },
-      {
-        call_code: "ax.set_xlabel",
-        arg_name: "xlabel",
-        type: "builtins.str"
-      },
-      {
-        call_code: "ax.set_ylabel",
-        arg_name: "ylabel",
-        type: "builtins.str"
-      }
-    ]
-  };
-}
 function get_arg_kind_from_int(arg_int) {
   const int_to_arg_kind = [
     "ARG_POS",
@@ -56,15 +29,19 @@ function get_arg_kind_from_int(arg_int) {
 }
 function arg_defaults_from_callee_type(callee) {
   return callee.arg_names.map((arg_name, arg_i) => {
+    var _a;
     const arg_kind = get_arg_kind_from_int(callee.arg_kinds[arg_i]);
     const arg_type = callee.arg_types[arg_i];
     let arg_default_code;
     let arg_default_type;
-    if (callee.definition_arguments_default_code[arg_i]) {
+    if (callee.definition_arguments_default_code == null) {
+      console.warn("No defaults found for", callee);
+    }
+    if ((_a = callee.definition_arguments_default_code) == null ? void 0 : _a.at(arg_i)) {
       arg_default_code = callee.definition_arguments_default_code[arg_i];
       arg_default_type = void 0;
     } else {
-      [arg_default_code, arg_default_type] = default_code_and_code_type_for_type(arg_type, arg_name);
+      [arg_default_code, arg_default_type] = default_code_and_code_type_for_type(arg_type);
     }
     return {
       is_positional: false,
@@ -78,34 +55,20 @@ function arg_defaults_from_callee_type(callee) {
   }).slice(callee.def_extras.first_arg !== void 0 ? 1 : 0);
 }
 function default_code_and_code_type_for_type(type, name) {
-  const default_value_from_name = [
-    ["width", "builtins.float", "1.0"],
-    ["height", "builtins.float", "1.0"]
-  ];
-  const [_, __, default_code] = default_value_from_name.find(
-    ([default_name, default_type, default_code2]) => name == default_name && type == default_type
-  ) || [void 0, void 0, void 0];
-  if (default_code !== void 0) {
-    return [default_code, type];
-  }
-  if (type == "builtins.str") {
+  if ((type == null ? void 0 : type.type_ref) == "builtins.str") {
     return ['"Bananas..."', type];
-  } else if (type == "builtins.float") {
+  } else if ((type == null ? void 0 : type.type_ref) == "builtins.float") {
     return ["0.5", type];
-  } else if (typeof type == "object") {
-    if (type[".class"] == "Instance" && type["type_ref"] == "builtins.dict") {
-      return ["{}", type];
-    } else if (type[".class"] == "UnionType") {
-      return default_code_and_code_type_for_type(
-        type.items[0],
-        name
-      );
-    } else if (type[".class"] == "LiteralType" && type["fallback"] == "builtins.str") {
-      const ltype = type;
-      return [JSON.stringify(ltype.value), ltype.fallback];
-    } else if ("type_ref" in type && type["type_ref"] == "matplotlib._typing.ArrayLike") {
-      return ["[1,2,3]", type];
-    }
+  } else if (type[".class"] == "Instance" && type["type_ref"] == "builtins.dict") {
+    return ["{}", type];
+  } else if (type[".class"] == "UnionType") {
+    return default_code_and_code_type_for_type(
+      type.items[0]
+    );
+  } else if (type[".class"] == "LiteralType") {
+    return [JSON.stringify(type.value), type.fallback];
+  } else if ("type_ref" in type && type["type_ref"] == "matplotlib._typing.ArrayLike") {
+    return ["[1,2,3]", type];
   }
   return ["None", { ".class": "NoneType" }];
 }
@@ -180,11 +143,46 @@ function find_call_that_satisfies(pred, state) {
   }
   return null;
 }
+function hex_to_rgb(hex) {
+  var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+    return r + r + g + g + b + b;
+  });
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+}
 function compare_qualified_names(name1, name2) {
   return name1.length + 100 * name1.split(".").length - (name2.length + 100 * name2.split(".").length);
 }
 function get_shortest_qualified_name(names) {
   return names.sort(compare_qualified_names)[0];
+}
+function create_color_widget(type) {
+  const el = create_el("div", "snp-arg");
+  const color_picker = create_el("input", "snp-arg-color");
+  color_picker.setAttribute("type", "color");
+  color_picker.setAttribute("value", "#e66465");
+  el.append(color_picker);
+  return {
+    kind: WidgetKind.Color,
+    type,
+    el,
+    color_picker
+  };
+}
+function match_arg_code_to_color_widget(widget, arg_code) {
+  return false;
+}
+function color_widget_to_code(widget) {
+  const rgb = hex_to_rgb(widget.color_picker.value);
+  return `(${(rgb.r / 255).toFixed(2)}, ${(rgb.g / 255).toFixed(2)}, ${(rgb.b / 255).toFixed(2)})`;
+}
+function get_color_widget_type_id(widget) {
+  return "color";
 }
 function create_dropdown_widget(items) {
   const el = create_el("div", "snp-dropdown");
@@ -295,34 +293,6 @@ function identifier_widget_to_code(widget) {
 function get_identifier_widget_type_id(widget) {
   return "var";
 }
-function create_instance_widget(type) {
-  const el = create_el("div", "snp-arg");
-  const value = default_code_and_code_type_for_type(type)[0];
-  el.innerText = value;
-  el.contentEditable = "true";
-  return {
-    kind: WidgetKind.Instance,
-    el,
-    value,
-    type
-  };
-}
-function instance_widget_to_code(widget) {
-  return widget.el.innerText;
-}
-function match_arg_code_to_instance_widget(widget, arg_code) {
-  if (widget.value == arg_code) {
-    return true;
-  } else {
-    return false;
-  }
-}
-function get_instance_widget_type_id(widget) {
-  if (widget.type.type_ref == "builtins.dict") {
-    return "dict";
-  }
-  return "???";
-}
 function make_slider(val, min = -Infinity, max = Infinity) {
   const el = create_el("div", "snp-slider");
   const base = create_el("div", "snp-slider-base", el);
@@ -376,20 +346,20 @@ function update_slider_val(widget, new_value) {
 }
 function create_literal_widget(type) {
   const el = create_el("div", "snp-arg");
-  if (type == "builtins.str") {
+  if ((type == null ? void 0 : type.type_ref) == "builtins.str") {
     el.contentEditable = "true";
   }
   let slider = null;
   const default_value = default_code_and_code_type_for_type(type)[0];
-  if (type == "builtins.float") {
+  if (is_literal_type_a_kind_of(type, "builtins.float")) {
     slider = make_slider(parseFloat(default_value));
     el.append(slider.el);
   } else {
     el.innerText = default_value;
   }
-  if (type == "builtins.str" || typeof type == "object" && type.fallback == "builtins.str")
+  if (is_literal_type_a_kind_of(type, "builtins.str"))
     el.classList.add("snp-arg-str");
-  if (type == "builtins.float" || typeof type == "object" && type.fallback == "builtins.float")
+  if (is_literal_type_a_kind_of(type, "builtins.float") || is_literal_type_a_kind_of(type, "builtins.int"))
     el.classList.add("snp-arg-number");
   return {
     kind: WidgetKind.Literal,
@@ -398,11 +368,23 @@ function create_literal_widget(type) {
     slider
   };
 }
+function is_literal_type_a_kind_of(type, kind) {
+  var _a;
+  if (type == kind) {
+    return true;
+  } else if (typeof type == "object" && (type == null ? void 0 : type[".class"]) == "Instance" && type.type_ref == kind) {
+    return true;
+  } else if (typeof type == "object" && (type == null ? void 0 : type[".class"]) == "LiteralType" && ((_a = type.fallback) == null ? void 0 : _a.type_ref) == kind) {
+    return true;
+  } else {
+    return false;
+  }
+}
 function match_arg_code_to_literal_widget(widget, arg_code) {
-  if (widget.type == "builtins.str" && is_string_like(arg_code)) {
+  if (is_literal_type_a_kind_of(widget.type, "builtins.str") && is_string_like(arg_code)) {
     widget.el.innerText = arg_code;
     return true;
-  } else if (widget.type == "builtins.float" && is_numeric(arg_code)) {
+  } else if (is_literal_type_a_kind_of(widget.type, "builtins.float") && is_numeric(arg_code)) {
     update_slider_val(widget, parseFloat(arg_code));
     return true;
   } else if (widget.el.innerText == arg_code) {
@@ -423,6 +405,8 @@ function get_literal_widget_type_id(widget) {
     return "str";
   } else if (widget.type == "builtins.float") {
     return "num";
+  } else if (widget.type == null) {
+    return "None";
   } else {
     return "lit";
   }
@@ -432,7 +416,7 @@ var WidgetKind = /* @__PURE__ */ ((WidgetKind2) => {
   WidgetKind2["Literal"] = "Literal";
   WidgetKind2["Alias"] = "Alias";
   WidgetKind2["Identifier"] = "Identifier";
-  WidgetKind2["Instance"] = "Instance";
+  WidgetKind2["Color"] = "Color";
   return WidgetKind2;
 })(WidgetKind || {});
 function get_widget_type_id(widget) {
@@ -442,8 +426,8 @@ function get_widget_type_id(widget) {
     return get_identifier_widget_type_id();
   } else if (widget.kind == "Literal") {
     return get_literal_widget_type_id(widget);
-  } else if (widget.kind == "Instance") {
-    return get_instance_widget_type_id(widget);
+  } else if (widget.kind == "Color") {
+    return get_color_widget_type_id();
   }
   console.warn("No implementation for matching...", widget);
   return "None";
@@ -455,12 +439,11 @@ function widget_to_code(widget) {
     return identifier_widget_to_code(widget);
   } else if (widget.kind == "Literal") {
     return literal_widget_to_code(widget);
-  } else if (widget.kind == "Instance") {
-    return instance_widget_to_code(widget);
   } else if (widget.kind == "Dropdown") {
     return dropdown_widget_to_code(widget);
+  } else if (widget.kind == "Color") {
+    return color_widget_to_code(widget);
   }
-  console.warn("No implementation for `to code`...", widget);
   return "None";
 }
 function create_alias_widget(a_type) {
@@ -526,14 +509,14 @@ function make_arg_view_optional(arg_view) {
   arg_view.optional = true;
 }
 function create_arg_view_widgets(type) {
-  if (typeof type == "string" || typeof type == "object" && type[".class"] == "LiteralType") {
+  if (typeof type == "object" && type[".class"] == "TypeAliasType" && type.type_ref == "matplotlib._typing.ColorType") {
+    return create_color_widget(type);
+  } else if (typeof type == "string" || typeof type == "object" && type[".class"] == "LiteralType" || typeof type == "object" && type[".class"] == "Instance" || typeof type == "object" && type[".class"] == "NoneType") {
     return create_literal_widget(type);
   } else if (typeof type == "object" && type[".class"] == "UnionType") {
     return create_arg_view_widget_union(type);
   } else if (typeof type == "object" && type[".class"] == "TypeAliasType") {
     return create_alias_widget(type);
-  } else if (typeof type == "object" && type[".class"] == "Instance") {
-    return create_instance_widget(type);
   }
   console.warn("No type widget implemented!", type);
   return { kind: null, el: create_el("div", "placeholder") };
@@ -581,11 +564,8 @@ function match_arg_code_to_widget(widget, arg_code) {
     );
   } else if (widget.kind == WidgetKind.Literal) {
     return match_arg_code_to_literal_widget(widget, arg_code);
-  } else if (widget.kind == WidgetKind.Instance) {
-    return match_arg_code_to_instance_widget(
-      widget,
-      arg_code
-    );
+  } else if (widget.kind == WidgetKind.Color) {
+    return match_arg_code_to_color_widget();
   }
   console.warn("No implementation for matching...", widget, arg_code);
   return false;
@@ -838,8 +818,10 @@ function create_call_view(call, state) {
       inclusiveRight: true
     }
   );
+  console.log(call);
   const call_els = create_call_view_skeleton();
   call_els.name_el.innerText = call.call_info.func_code_and_num[0];
+  console.log(call_els.name_el.innerText, call);
   const persistent_calls = window["snp_persistent_calls"];
   const code_and_loc = get_code_and_loc_for_call(call.call_info);
   console.log(persistent_calls, code_and_loc, persistent_calls[code_and_loc]);
@@ -856,7 +838,8 @@ function create_call_view(call, state) {
     missing_positional_args,
     missing_keyword_args,
     needed_positional_args,
-    missing_optional_positional_args
+    missing_optional_positional_args,
+    kwargs
   } = call;
   const arg_and_views = [];
   const add_args = (args, positional, optional) => {
@@ -875,6 +858,9 @@ function create_call_view(call, state) {
   add_args(missing_positional_args, true, true);
   add_args(given_keyword_args, false, false);
   add_args(missing_keyword_args, false, true);
+  if (kwargs != null) {
+    add_args(kwargs, false, true);
+  }
   arg_and_views.forEach(({ view }) => {
     if (!view.optional)
       return;
@@ -1292,7 +1278,6 @@ function takeWhile(array, predicate) {
 }
 function get_all_calls_and_methods(m) {
   let all_calls_and_methods = {};
-  console.log(m);
   m.selectable_artists.forEach((artist) => {
     const artist_call_infos = m.calls.filter((call_info) => {
       return call_info.show_on.at(-1) == artist.id;
@@ -1359,14 +1344,15 @@ function get_calls(artist, artist_call_infos, cell_lineno, code_mirror) {
   return artist_call_infos.map((call_info) => {
     const args = get_args(call_info, cell_lineno, code_mirror);
     const [given_positional_args, given_keyword_args] = partition(
-      args,
+      args.filter((arg) => arg.name != "kwargs"),
       (arg) => arg.is_positional
     );
     const {
       missing_positional_args,
       missing_keyword_args,
       needed_positional_args,
-      missing_optional_positional_args
+      missing_optional_positional_args,
+      kwargs
     } = segment_args(
       call_info.callee,
       given_positional_args,
@@ -1379,7 +1365,8 @@ function get_calls(artist, artist_call_infos, cell_lineno, code_mirror) {
       missing_positional_args,
       missing_keyword_args,
       needed_positional_args,
-      missing_optional_positional_args
+      missing_optional_positional_args,
+      kwargs
     };
   });
 }
@@ -1406,14 +1393,29 @@ function get_args(call_info, cell_lineno, code_mirror) {
   return args;
 }
 function segment_args(callee, given_positional_args, given_keyword_args) {
-  const arg_defaults = arg_defaults_from_callee_type(callee);
+  var _a, _b;
+  let arg_defaults = arg_defaults_from_callee_type(callee);
+  const kwargs_alias = arg_defaults.find((arg) => arg.name == "kwargs");
+  const kwargs_items = (_b = (_a = kwargs_alias == null ? void 0 : kwargs_alias.type) == null ? void 0 : _a.resolved) == null ? void 0 : _b.items;
+  const kwargs = kwargs_items ? kwargs_items.map(([name, item]) => {
+    return {
+      name,
+      kind: "ARG_NAMED",
+      code: kwargs_alias.code,
+      type: item,
+      code_type: kwargs_alias.code_type,
+      type_compatible_local_names: [],
+      is_positional: false
+    };
+  }) : null;
+  arg_defaults = arg_defaults.filter((arg) => arg.name != "kwargs");
   const missing_positional_args = takeWhile(
     arg_defaults.slice(given_positional_args.length),
     (arg) => arg.kind === "ARG_POS"
   );
   const missing_keyword_args = arg_defaults.slice(given_positional_args.length).slice(missing_positional_args.length).filter(
     (arg) => !given_keyword_args.some((given_arg) => given_arg.name === arg.name)
-  ).filter((arg) => arg.kind !== "ARG_STAR2");
+  );
   let needed_positional_args = takeWhile(
     missing_positional_args,
     (arg) => arg.kind === "ARG_POS"
@@ -1425,7 +1427,8 @@ function segment_args(callee, given_positional_args, given_keyword_args) {
     missing_positional_args,
     missing_keyword_args,
     needed_positional_args,
-    missing_optional_positional_args
+    missing_optional_positional_args,
+    kwargs
   };
 }
 function attach_snp(snp_outer, cell_lineno, provenance_is_off_by_n_lines, user_call_info, sidebar_stuff) {
@@ -1450,7 +1453,7 @@ function attach_snp(snp_outer, cell_lineno, provenance_is_off_by_n_lines, user_c
   );
   view.snp_outer.append(view.sidebar.els.el);
   view.hover_regions = make_hover_regions(state);
-  make_plot_widgets(get_config().plot_widgets, state);
+  make_plot_widgets([], state);
   create_toggles(state);
   view.stdout_stderr.remove();
   snp_outer.append(view.stdout_stderr);

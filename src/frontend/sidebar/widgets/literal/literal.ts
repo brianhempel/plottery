@@ -1,4 +1,4 @@
-import { LiteralType } from "../../../state";
+import { IInstanceType, LiteralType, NoneType } from "../../../state";
 import {
   create_el,
   default_code_and_code_type_for_type,
@@ -10,16 +10,16 @@ import { Slider, make_slider, update_slider_val } from "./slider/slider";
 
 export type LiteralWidget = Widget & {
   kind: WidgetKind.Literal;
-  type: LiteralType | string;
+  type: LiteralType | string | IInstanceType | NoneType;
   slider: Slider | null;
 };
 
 export function create_literal_widget(
-  type: LiteralType | string
+  type: LiteralType | IInstanceType | NoneType
 ): LiteralWidget {
   const el = create_el("div", "snp-arg");
 
-  if (type == "builtins.str") {
+  if ((type as IInstanceType)?.type_ref == "builtins.str") {
     el.contentEditable = "true";
   }
 
@@ -27,7 +27,7 @@ export function create_literal_widget(
 
   const default_value = default_code_and_code_type_for_type(type)[0];
 
-  if (type == "builtins.float") {
+  if (is_literal_type_a_kind_of(type, "builtins.float")) {
     // ...make a slider
     slider = make_slider(parseFloat(default_value));
     el.append(slider.el);
@@ -36,15 +36,12 @@ export function create_literal_widget(
   }
 
   // Set appropriate styles
-  if (
-    type == "builtins.str" ||
-    (typeof type == "object" && type.fallback == "builtins.str")
-  )
+  if (is_literal_type_a_kind_of(type, "builtins.str"))
     el.classList.add("snp-arg-str");
 
   if (
-    type == "builtins.float" ||
-    (typeof type == "object" && type.fallback == "builtins.float")
+    is_literal_type_a_kind_of(type, "builtins.float") ||
+    is_literal_type_a_kind_of(type, "builtins.int")
   )
     el.classList.add("snp-arg-number");
 
@@ -56,17 +53,44 @@ export function create_literal_widget(
   };
 }
 
+export function is_literal_type_a_kind_of(
+  type: LiteralType | string | IInstanceType | NoneType,
+  kind: string
+): boolean {
+  if (type == kind) {
+    return true;
+  } else if (
+    typeof type == "object" &&
+    type?.[".class"] == "Instance" &&
+    type.type_ref == kind
+  ) {
+    return true;
+  } else if (
+    typeof type == "object" &&
+    type?.[".class"] == "LiteralType" &&
+    (type.fallback as IInstanceType)?.type_ref == kind
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 export function match_arg_code_to_literal_widget(
   widget: LiteralWidget,
   arg_code: string
 ): boolean {
-  if (widget.type == "builtins.str" && is_string_like(arg_code)) {
+  if (
+    is_literal_type_a_kind_of(widget.type, "builtins.str") &&
+    is_string_like(arg_code)
+  ) {
     widget.el.innerText = arg_code;
-
     return true;
-  } else if (widget.type == "builtins.float" && is_numeric(arg_code)) {
+  } else if (
+    is_literal_type_a_kind_of(widget.type, "builtins.float") &&
+    is_numeric(arg_code)
+  ) {
     update_slider_val(widget, parseFloat(arg_code));
-
     return true;
   } else if (widget.el.innerText == arg_code) {
     return true;
@@ -88,6 +112,8 @@ export function get_literal_widget_type_id(widget: LiteralWidget) {
     return "str";
   } else if (widget.type == "builtins.float") {
     return "num";
+  } else if (widget.type == null) {
+    return "None";
   } else {
     return "lit";
   }

@@ -43,9 +43,13 @@ export function create_call_view(
     }
   );
 
+  console.log(call);
+
   // Call container
   const call_els = create_call_view_skeleton();
   call_els.name_el.innerText = call.call_info.func_code_and_num[0];
+
+  console.log(call_els.name_el.innerText, call);
 
   const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
     "snp_persistent_calls"
@@ -71,6 +75,7 @@ export function create_call_view(
     missing_keyword_args,
     needed_positional_args,
     missing_optional_positional_args,
+    kwargs,
   } = call;
 
   const arg_and_views: { arg: Arg; view: ArgView }[] = [];
@@ -99,6 +104,10 @@ export function create_call_view(
 
   // Keyword args (optional)
   add_args(missing_keyword_args, false, true);
+
+  if (kwargs != null) {
+    add_args(kwargs, false, true);
+  }
 
   // On clicking on a hidden arg view, unhide it
   arg_and_views.forEach(({ view }) => {

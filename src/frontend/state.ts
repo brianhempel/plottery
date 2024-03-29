@@ -187,6 +187,7 @@ export type CallWithArgs = {
   missing_keyword_args: Arg[];
   needed_positional_args: Arg[];
   missing_optional_positional_args: Arg[];
+  kwargs: Arg[] | null;
 };
 
 export type MethodWithArgs = {
@@ -220,16 +221,14 @@ export type MethodWithArgs = {
 // }
 
 export type Type =
-  | "builtins.str"
-  | "builtins.float"
-  | string // "matplotlib.axes._axes.Axes", etc.
   | UnionType
   | LiteralType
   | AnyType
   | CallableType
   | NoneType
   | TypeAliasType
-  | IInstanceType;
+  | IInstanceType
+  | TypedDictType;
 
 export type UnionType = {
   ".class": "UnionType";
@@ -239,7 +238,7 @@ export type UnionType = {
 export type LiteralType = {
   ".class": "LiteralType";
   value: string | number; // "left"
-  fallback: string; // "builtins.str"
+  fallback: Type;
 };
 
 export type AnyType = {
@@ -287,10 +286,18 @@ export type TypeAliasType = {
   ".class": "TypeAliasType";
   args: undefined[]; // ?
   type_ref: string; // "matplotlib._typing.ArrayLike"
+  resolved: Type;
 };
 
 export type IInstanceType = {
   ".class": "Instance";
   args: Type[]; // "['matplotlib.lines.Line2D']"
   type_ref: string; // "builtins.list"
+};
+
+export type TypedDictType = {
+  ".class": "TypedDictType";
+  fallback: Type; // "builtins.dict"
+  items: [string, Type][];
+  required_keys: string[];
 };
