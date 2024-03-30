@@ -881,19 +881,20 @@ class MyVisitor(TraverserVisitor):
 
             # The callee_type here is partially applied (self is already removed from the argument list).
             # For consistency with places where where that is not the case, let us unapply it
-            callee_type_unapplied = callee_type.definition.type
-            callee = callable_type_json(
-                callee_type_unapplied, self.user_typed_locals
-            )
-            add_pos_json(callee, node.callee)
+            if callee_type.definition is not None:
+                callee_type_unapplied = callee_type.definition.type
+                callee = callable_type_json(
+                    callee_type_unapplied, self.user_typed_locals
+                )
+                add_pos_json(callee, node.callee)
 
-            self.out.append(
-                {
-                    "call": to_json_dict(node, self.types_dict.get(node)),
-                    "callee": callee,
-                    "given_args": given_args,
-                }
-            )
+                self.out.append(
+                    {
+                        "call": to_json_dict(node, self.types_dict.get(node)),
+                        "callee": callee,
+                        "given_args": given_args,
+                    }
+                )
 
     def visit_member_expr(self, node: mypy.nodes.MemberExpr) -> None:
         super().visit_member_expr(node)
