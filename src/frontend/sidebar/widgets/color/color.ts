@@ -1,4 +1,4 @@
-import { TypeAliasType } from "../../../state";
+import { TypeAliasType } from "../../../types";
 import { create_el, hex_to_rgb } from "../../../utils/misc";
 import { Widget, WidgetKind } from "../widget";
 import "./color.css";

@@ -1,4 +1,4 @@
-import { TypeAliasType } from "../../../state";
+import { TypeAliasType } from "../../../types";
 import {
   create_el,
   default_code_and_code_type_for_type,

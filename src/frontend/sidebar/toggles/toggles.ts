@@ -1,20 +1,27 @@
-import { SNPState } from "../../state";
+import { State } from "../../types";
 import { create_el } from "../../utils/misc";
 import "./toggles.css";
 
-export function create_toggles(state: SNPState) {
-  const el = create_el("div", "snp-toggles", state.view.sidebar!.els.el);
+/**
+ * Global on-off bools to enable/disable functionality, normally at the bottom
+ * right of the screen: e.g.
+ * [x] Show plot widgets
+ * [x] Show methods on plot
+ * ...
+ */
+export function create_toggles(state: State) {
+  const el = create_el("div", "snp-toggles", state.sidebar!.els.el);
 
   // Create a toggle to show or hide methods on plot
   const method_toggle_name = "Show methods on plot";
   const method_toggle_enable = () => {
-    state.view.hover_regions?.el.classList.remove("disable");
+    state.hover_regions?.el.classList.remove("disable");
   };
   const method_toggle_disable = () => {
-    state.view.hover_regions?.el.classList.add("disable");
+    state.hover_regions?.el.classList.add("disable");
   };
   const method_toggle_is_checked = (window as any)[method_toggle_name] == true;
-  const method_toggle = create_toggle(
+  create_toggle(
     method_toggle_name,
     method_toggle_enable,
     method_toggle_disable,
@@ -54,14 +61,14 @@ export function create_toggles(state: SNPState) {
   // Create a toggle to enable showing widgets on plot
   const widget_toggle_name = "Show on-plot widgets";
   const widget_toggle_enable = () => {
-    state.view.snp_outer
+    state.snp_outer
       .querySelectorAll(".plot-widget")
       .forEach(w => w.classList.remove("disabled"));
 
     (window as any)["snp_enable_plot_widget"] = true;
   };
   const widget_toggle_disable = () => {
-    state.view.snp_outer
+    state.snp_outer
       .querySelectorAll(".plot-widget")
       .forEach(w => w.classList.add("disabled"));
 

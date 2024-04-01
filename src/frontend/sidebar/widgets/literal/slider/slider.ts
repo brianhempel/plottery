@@ -24,28 +24,6 @@ export function make_slider(
   val_el.innerText = val.toString();
   val_el.contentEditable = "true";
 
-  // Setup spring
-  // const spring_svg = document.createElementNS(
-  //   "http://www.w3.org/2000/svg",
-  //   "svg"
-  // );
-  // spring_svg.classList.add("snp-spring-svg");
-
-  // const spring_svg_p1 = document.createElementNS(
-  //   "http://www.w3.org/2000/svg",
-  //   "path"
-  // );
-  // spring_svg_p1.classList.add("snp-spring-svg-p1");
-
-  // const spring_svg_p2 = document.createElementNS(
-  //   "http://www.w3.org/2000/svg",
-  //   "path"
-  // );
-  // spring_svg_p2.classList.add("snp-spring-svg-p2");
-
-  // spring_svg.append(spring_svg_p1, spring_svg_p2);
-  // spring.append(spring_svg);
-
   let mult = 0.02;
 
   let pressed = false;
@@ -55,9 +33,6 @@ export function make_slider(
     pressed = true;
     ix = e.x;
     iv = parseFloat(val_el.innerText);
-
-    // update_spring(spring_svg_p1, spring_svg_p2, 0);
-
     el.classList.add("pressed");
     document.body.style.cursor = "e-resize";
   });
@@ -90,26 +65,7 @@ export function make_slider(
     val_el,
     el,
     base,
-    // spring,
   };
-}
-
-function update_spring(p1: SVGPathElement, p2: SVGPathElement, dx: number) {
-  p1.setAttribute("d", `M 0,4 L${dx},4`);
-
-  let m = 1 - Math.exp(-(0.01 * dx ** 2));
-
-  if (dx < 0) {
-    p2.setAttribute(
-      "d",
-      `M ${dx + m * 5},0 L${dx + m * 1},4 L${dx + m * 5},8 M ${dx},-1 L${dx},9`
-    );
-  } else {
-    p2.setAttribute(
-      "d",
-      `M ${dx - m * 5},0 L${dx - m * 1},4 L${dx - m * 5},8 M ${dx},-1 L${dx},9`
-    );
-  }
 }
 
 export function update_slider_val(widget: LiteralWidget, new_value: number) {

@@ -70,6 +70,5 @@ export function widget_to_code(widget: Widget): string {
     return color_widget_to_code(widget as ColorWidget);
   }
 
-  // console.warn("No implementation for `to code`...", widget);
   return "None";
 }

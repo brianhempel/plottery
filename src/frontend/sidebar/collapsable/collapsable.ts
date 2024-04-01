@@ -1,6 +1,18 @@
 import { create_dropdown_arrow, create_el } from "../../utils/misc";
 import "./collapsable.css";
 
+/**
+ * Just a simple element that can be collapsed/uncollapsed.
+ *
+ * Collapsed:
+ * [>] Label
+ *
+ * Uncollapsed:
+ * [v] Label
+ *      - Child 1
+ *      - Child 2
+ *      ...
+ */
 export function create_collapsable_els() {
   // Collapse container
   const el = create_el("div", "snp-collapsable");

@@ -3,7 +3,7 @@
   try {
     if (typeof document != "undefined") {
       var elementStyle = document.createElement("style");
-      elementStyle.appendChild(document.createTextNode('input.snp-arg-color {\n  width: 20px;\n  height: 20px;\n  border: none;\n  outline: none;\n  background: none;\n}.snp-dropdown-arrow {\n  padding: 0px 4px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.snp-dropdown-arrow:hover {\n  background: #e2e2e2;\n}\n\n.snp-dropdown-arrow > svg {\n  width: 9px;\n  transform: rotate(180deg);\n  fill: #37352f;\n}\n\n.snp-dropdown:hover {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.snp-dropdown.expanded {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.snp-dropdown.expanded > .snp-dropdown-drawer {\n  display: flex;\n}\n\n\n\n/* .snp-dropdown:active > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus-within > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus-visible > .snp-dropdown-drawer {\n  display: flex;\n} */\n\n\n.snp-dropdown-drawer {\n  display: none;\n  position: absolute;\n  background: white;\n  flex-direction: column;\n\n  border: 1px solid #ababab;\n  box-shadow: 2px 2px 6px #00000026;\n  border-radius: 4px;\n  overflow: hidden;\n\n  z-index: 5;\n}\n\n.snp-dropdown {\n  position: relative;\n}\n\n.snp-dropdown-hidden-item {\n  background: white;\n  display: flex;\n  cursor: pointer;\n\n  padding: 2px 4px;\n}\n\n.snp-dropdown-hidden-item:hover {\n  background: #efefef;\n}\n\n.snp-dropdown-hidden-item.selected {\n  background: #dcdcdc;\n}\n\n.snp-dropdown-hidden-item.selected:hover {\n  background: #c9c9c9;\n}\n\n.snp-dropdown-hidden-item > div:first-child {\n  flex-grow: 1;\n}\n\n.snp-widget-id {\n  opacity: 0.4;\n  margin-left: 8px;\n  font-style: italic;\n  font-size: 0.8em;\n  font-weight: bold;\n}.snp-slider-base::before {\n  background-color: black;\n  border-radius: 1px;\n  bottom: 0;\n  content: "";\n  left: 4px;\n  opacity: .15;\n  position: absolute;\n  top: 0;\n  width: 1.5px;\n  transition: 0.1s;\n}\n\n.snp-slider-base {\n  width: 8px;\n  margin: 3px 0px 3px 0;\n  position: relative;\n  cursor: e-resize;\n}\n\n.snp-slider {\n  display: flex;\n}\n\n.snp-slider-base:hover::before {\n  opacity: 0.3;\n}\n\n.snp-slider.pressed > .snp-slider-base::before {\n  opacity: 0.5;\n  margin: 2px 0px;\n}\n\n.snp-slider-spring {\n  position: absolute;\n  display: flex;\n  width: 100%;\n  height: 100%;\n  pointer-events: none;\n}\n\n.snp-spring-svg {\n  overflow: visible;\n}\n\n.snp-spring-svg-p1 {\n  fill: none;\n  stroke: rgba(0, 0, 0, 0.317);\n  stroke-dasharray: 2 1;\n}\n\n.snp-spring-svg-p2 {\n  fill: none;\n  stroke: rgba(0, 0, 0, 0.317);\n}\n\n.snp-slider > .snp-slider-spring > .snp-spring-svg {\n  opacity: 0;\n  pointer-events: none;\n  transform: translate(6.5px, 6px);\n  overflow: visible !important;\n}\n\n.snp-slider.pressed > .snp-slider-spring > .snp-spring-svg {\n  opacity: 1;\n  pointer-events: inherit;\n}.snp-arg-str {\n  color: #BA2121;\n}\n\n.snp-arg-number {\n  color: #080;\n}\n\n.snp-arg-operator {\n  color: #AA22FF;\n}\n\n.snp-arg:focus-visible {\n  outline: none;\n}\n\n.snp-remove-arg-button {\n  content: "\\00d7";\n}\n\n.snp-arg-view {\n  display: flex;\n}\n\n.snp-arg-optional { \n  opacity: 0.5;\n  filter: saturate(0);\n}\n\n.snp-arg-view {\n  margin-bottom: 2px;\n  margin-top: 2px;\n}\n\n.snp-arg-view:first-child {\n  margin-top: 0px;\n}\n\n.snp-arg-view:last-child {\n  margin-bottom: 0px;\n}\n\n.snp-arg-name {\n  color: #2f67ac;\n  font-weight: bold;\n  margin-right: 5px;\n}\n\n.snp-arg-optional > .snp-arg-name {\n  font-weight: normal;\n  color: #6a6a6a;\n}.snp-collapsable-button {\n  padding: 0px 4px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 2px;\n  cursor: pointer;\n  padding-right: 2px;\n}\n\n.snp-collapsable-header:hover {\n  background: #e2e2e2;\n}\n\n.snp-collapsable-button > svg {\n  width: 9px;\n  transform: rotate(180deg);\n  fill: #37352f;\n  transition: 0.2s;\n}\n\n.collapsed > .snp-collapsable-header > .snp-collapsable-button > svg {\n  transform: rotate(90deg);\n  fill: #93928f;\n}\n\n.collapsed > .snp-collapsable-outer-body > .snp-collapsable-body {\n  display: none;\n}\n\n.snp-collapsable-header {\n  display: flex;\n  margin-bottom: 3px;\n\n  width: fit-content;\n  cursor: pointer;\n  user-select: none;\n  border-radius: 2px;\n}\n\n.snp-collapsable-indent {\n  margin-right: 10px;\n  margin-left: 7px;\n\n  border-right: 1px solid #cfcfcf !important;\n}\n\n.snp-collapsable-outer-body {\n  display: flex;\n}\n\n.snp-collapsable-body {\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-collapsable {\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-collapsable-body > div {\n  margin-bottom: 2px;\n  margin-top: 2px;\n}\n\n.snp-collapsable-body > div:last-child {\n  margin-bottom :0px;\n}\n\n.snp-collapsable-body > div:first-child {\n  margin-top: 0px;\n}\n\n.collapsed > .snp-collapsable-header {\n  margin-bottom: 0px;\n}.snp-sidebar {\n  background-color: white;\n  display: flex;\n  flex-direction: column;\n  height: fit-content;\n  /* border-top: 1px solid #ababab;  */\n\n  /* border: 1px solid #ababab; */\n  /* box-shadow: 4px 4px 11px #00000026; */\n  /* border-radius: 2px; */\n\n  padding: 0px;\n\n  top: 0px;\n  left: 0px;\n\n\n  font-family: monospace;\n  font-size: 14px;\n  white-space: pre;\n  margin: 10px;\n  z-index: 5;\n}\n\n.snp-header {\n  padding: 4px;\n  font-family: Helvetica Neue,Helvetica,Arial,sans-serif;\n  cursor: move;\n  border-top: 1px solid #ababab;\n  margin: 0px 10px;\n\n  display: none;\n}\n\n.snp-header:hover {\n  background: #cccccc;\n}\n\n.snp-artists {\n  padding: 5px 10px;\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-call {\n  width: fit-content;\n  position: relative;\n}\n\n.snp-call-name {\n  /* font-style: italic; */\n  background: #6f0eff17;\n  color: #6a006a;\n  padding: 0px 4px;\n  border-radius: 2px;\n  margin-left: 2px;\n}\n\n.snp-call-name::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n.snp-call-expand-button {\n  display: flex;\n  cursor: pointer;\n  align-items: center;\n  justify-content: center;\n  margin-left: 5px;\n}\n\n.snp-call.expanded > .snp-call-expand-button {\n  background: #e5e5e5;\n}\n\n.snp-call-expand-button:hover  > svg {\n  opacity: 0.7;\n}\n\n.snp-call.expanded > .snp-call-expand-button > svg {\n  opacity: 0.6;\n}\n\n.snp-call.expanded > .snp-call-expand-button:hover > svg {\n  opacity: 1;\n}\n\n.snp-call-expand-button > svg {\n  transform: rotate(-90deg);\n  width: 20px;\n  opacity: 0.5;\n}\n\n.snp-call.snp-focused > .snp-collapsable-header > .snp-call-name {\n  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */\n  background: #bc00ff33;\n}\n\n.snp-call > .snp-collapsable-header:hover {\n  background: none;\n}\n\n.snp-call > .snp-collapsable-header:hover  > .snp-call-name {\n  background: #bc00ff33;\n}.snp-method-view {\n  border-radius: 2px;\n  margin-bottom: 4px;\n  padding: 0 0 0 4px;\n  width: fit-content;\n  display: flex;\n  position: relative;\n  opacity: 0.7;\n  cursor: pointer;\n  color: #6a6a6a;\n}\n\n.snp-method-view:hover {\n  background-color: rgba(0, 0, 0, 0.1);\n}\n\n.snp-method-view {\n  /* font-style: italic; */\n  background-color: rgba(0, 0, 0, 0.05);\n  color: #636363;\n  padding: 0px 4px;\n  border-radius: 2px;\n  margin-left: 2px;\n}\n\n.snp-method-view::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n.snp-method-view.snp-focused {\n  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);\n}.snp-artist-name {\n  width: fit-content;\n  cursor: pointer;\n  border-radius: 2px;\n  padding: 0px 2px;\n}\n\n.collapsed > .snp-collapsable-header > .snp-artist-name {\n  color: rgba(55, 53, 47, 0.5);\n}\n\n.snp-trigger::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n/* .snp-artist.snp-focused > .snp-collapsable-header > .snp-artist-name {\n  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);\n} */\n.snp-artist.snp-focused > .snp-collapsable-header {\n  background: #80808030;\n}.snp-hover-regions {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  width: 100%;\n  height: 100%;\n  max-width: 350px;\n  transition: 0.1s;\n}\n\n.snp-hover-regions:not(.disable):hover {\n  background: #ffffff94;\n}\n\n.snp-hover-region {\n  position: absolute;\n  background: rgba(0, 0, 0, 0);\n  border-radius: 5px;\n  transition: 0.2s;\n\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column;\n  font-family: monospace;\n}\n\n.snp-hover-region.hovered {\n  background: rgba(0, 0, 0, 0.1);\n}\n\n/* .snp-trigger {\n  display: flex;\n  background: #ececec;\n  border: 1px solid #bababa;\n  border-radius: 4px;\n  padding: 0px 4px;\n  margin-bottom: 4px;\n  cursor: pointer;\n  color: #2e2e2e;\n} */\n\n\n/* .snp-trigger:hover {\n  background: #cccccc;\n} */\n\n.snp-trigger {\n  display: flex;\n  background: #000000b3;\n  /* border: 1px solid #bababa; */\n  border-radius: 4px;\n  padding: 0px 4px;\n  margin-bottom: 4px;\n  cursor: pointer;\n  color: #d5d5d5;\n  font-size: 11px;\n  backdrop-filter: blur(5px);\n  pointer-events: none;\n  transform: scale(0.8);\n  opacity: 0;\n  transition: 0.1s;\n}\n\n.snp-trigger:hover {\n  background: #262626;\n  color: #e7e7e7;\n}\n\n.snp-hover-regions:not(.disable):hover > .snp-hover-region > .snp-trigger {\n  pointer-events: initial;\n  transform: scale(1);\n  opacity: 1;\n}\n\n.snp-hover-region.snp-focused {\n  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */\n  background: #80808030;\n}.plot-widget {\n  display: flex;\n  position: relative;\n}\n\n.plot-widget.disabled {\n  display: none !important;\n}\n\n.plot-widget-input {\n  display: none;\n  position: absolute;\n  top: -20px;\n\n  box-shadow: 0px 0px 0px 1px #0000005e, 3px 1px 5px 0px #0000003d;\n  padding: 0px 3px;\n  border-radius: 2px;\n  color: #BA2121;\n  background: #ffffff;\n  left: -10px;\n  font-size: 12px;\n\n  white-space: pre;\n}\n\n.plot-widget-container {\n  display: flex;\n  width: calc(100% + 30px) !important;\n  flex-direction: row-reverse;\n}\n\n.plot-widget-input.visible {\n  display: flex;\n\n}\n\n.plot-widget-edit-icon {\n  fill: none;\n  stroke: #000000bd;\n  stroke-width: 2px;\n  width: 15px;\n  cursor: pointer;\n}\n\n.plot-widget-edit-icon {\n  fill: none;\n  stroke: #777777bd;\n  stroke-width: 2px;\n  width: 12px;\n}\n\n.plot-widget-edit-icon:hover {\n  stroke: #5b0f88bd;\n}\n\n.plot-widget-edit-icon.toggled {\n  stroke: #5b0f88bd;\n}.snp-toggles {\n  display: flex;\n  flex-direction: column;\n  padding: 10px;\n  /* border-top: 1px solid #0000004d;\n  border-left: 1px solid #0000004d; */\n  margin-left: 16px;\n  position: absolute;\n  right: 0px;\n  bottom: 0px;\n  opacity: 0.5;\n}\n\n.snp-toggles:hover {\n  opacity: 1;\n}\n\n.snp-toggle {\n  display: flex;\n}\n\n.snp-toggle-name {\n  margin-left: 5px;\n  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;\n  font-size: 13px;\n}\n\ninput.snp-toggle-input {\n  margin: 0px;\n}.output_subarea {\n  overflow: visible !important;\n}\n\n.snp_outer {\n  display: flex;\n  place-items: flex-start;\n}\n\n.snp_outer > svg {\n  /* display: none; */\n  max-width: 350px!important;\n  border: none !important;\n  overflow: visible;\n  margin-top: 1em !important;\n}\n\n.snp_outer > svg path {\n\n}\n\ng > path {\n  /* clip-path: inset(0% 0% 0% 0% round 5px); */\n  transition: 0.2s;\n  fill: #00000000;\n}\n\ng > path.hovered {\n  fill: #0000002b;\n}\n\n.snp_outer > img {\n  max-width: 350px !important;\n}\n\n.stdout_stderr {\n  font-family: monospace;\n  font-size: 14px;\n  background: #fff0d1;\n  padding: 10px;\n  margin: 20px;\n  border-radius: 5px;\n  color: #4a350a;\n  display: flex;\n  width: fit-content;\n}\n\n.stdout_stderr:empty {\n  display: none;\n}\n\n.snp_outer svg path {\n\n}\n\n/* ----------------- Code mirror styles ----------------- */\nspan.cm-variable {\n  color: #000;\n}\n\nspan.cm-number {\n  color: #080;\n}\n\nspan.cm-operator {\n  color: #AA22FF;\n  font-weight: bold;\n}\n\nspan.cm-builtin {\n  color: #008000;\n}\n\nspan.cm-string {\n  color: #BA2121;\n}'));
+      elementStyle.appendChild(document.createTextNode('input.snp-arg-color {\n  width: 20px;\n  height: 20px;\n  border: none;\n  outline: none;\n  background: none;\n}.snp-dropdown-arrow {\n  padding: 0px 4px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 2px;\n  cursor: pointer;\n}\n\n.snp-dropdown-arrow:hover {\n  background: #e2e2e2;\n}\n\n.snp-dropdown-arrow > svg {\n  width: 9px;\n  transform: rotate(180deg);\n  fill: #37352f;\n}\n\n.snp-dropdown:hover {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.snp-dropdown.expanded {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.snp-dropdown.expanded > .snp-dropdown-drawer {\n  display: flex;\n}\n\n\n\n/* .snp-dropdown:active > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus-within > .snp-dropdown-drawer {\n  display: flex;\n}\n\n.snp-dropdown:focus-visible > .snp-dropdown-drawer {\n  display: flex;\n} */\n\n\n.snp-dropdown-drawer {\n  display: none;\n  position: absolute;\n  background: white;\n  flex-direction: column;\n\n  border: 1px solid #ababab;\n  box-shadow: 2px 2px 6px #00000026;\n  border-radius: 4px;\n  overflow: hidden;\n\n  z-index: 5;\n}\n\n.snp-dropdown {\n  position: relative;\n}\n\n.snp-dropdown-hidden-item {\n  background: white;\n  display: flex;\n  cursor: pointer;\n\n  padding: 2px 4px;\n}\n\n.snp-dropdown-hidden-item:hover {\n  background: #efefef;\n}\n\n.snp-dropdown-hidden-item.selected {\n  background: #dcdcdc;\n}\n\n.snp-dropdown-hidden-item.selected:hover {\n  background: #c9c9c9;\n}\n\n.snp-dropdown-hidden-item > div:first-child {\n  flex-grow: 1;\n}\n\n.snp-widget-id {\n  opacity: 0.4;\n  margin-left: 8px;\n  font-style: italic;\n  font-size: 0.8em;\n  font-weight: bold;\n}.snp-slider-base::before {\n  background-color: black;\n  border-radius: 1px;\n  bottom: 0;\n  content: "";\n  left: 4px;\n  opacity: .15;\n  position: absolute;\n  top: 0;\n  width: 1.5px;\n  transition: 0.1s;\n}\n\n.snp-slider-base {\n  width: 8px;\n  margin: 3px 0px 3px 0;\n  position: relative;\n  cursor: e-resize;\n}\n\n.snp-slider {\n  display: flex;\n}\n\n.snp-slider-base:hover::before {\n  opacity: 0.3;\n}\n\n.snp-slider.pressed > .snp-slider-base::before {\n  opacity: 0.5;\n  margin: 2px 0px;\n}\n\n.snp-slider-spring {\n  position: absolute;\n  display: flex;\n  width: 100%;\n  height: 100%;\n  pointer-events: none;\n}\n\n.snp-spring-svg {\n  overflow: visible;\n}\n\n.snp-spring-svg-p1 {\n  fill: none;\n  stroke: rgba(0, 0, 0, 0.317);\n  stroke-dasharray: 2 1;\n}\n\n.snp-spring-svg-p2 {\n  fill: none;\n  stroke: rgba(0, 0, 0, 0.317);\n}\n\n.snp-slider > .snp-slider-spring > .snp-spring-svg {\n  opacity: 0;\n  pointer-events: none;\n  transform: translate(6.5px, 6px);\n  overflow: visible !important;\n}\n\n.snp-slider.pressed > .snp-slider-spring > .snp-spring-svg {\n  opacity: 1;\n  pointer-events: inherit;\n}.snp-arg-str {\n  color: #BA2121;\n}\n\n.snp-arg-number {\n  color: #080;\n}\n\n.snp-arg-operator {\n  color: #AA22FF;\n}\n\n.snp-arg:focus-visible {\n  outline: none;\n}\n\n.snp-remove-arg-button {\n  content: "\\00d7";\n}\n\n.snp-arg-view {\n  display: flex;\n}\n\n.snp-arg-optional { \n  opacity: 0.5;\n  filter: saturate(0);\n}\n\n.snp-arg-view {\n  margin-bottom: 2px;\n  margin-top: 2px;\n}\n\n.snp-arg-view:first-child {\n  margin-top: 0px;\n}\n\n.snp-arg-view:last-child {\n  margin-bottom: 0px;\n}\n\n.snp-arg-name {\n  color: #2f67ac;\n  font-weight: bold;\n  margin-right: 5px;\n}\n\n.snp-arg-optional > .snp-arg-name {\n  font-weight: normal;\n  color: #6a6a6a;\n}.snp-collapsable-button {\n  padding: 0px 4px;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  border-radius: 2px;\n  cursor: pointer;\n  padding-right: 2px;\n}\n\n.snp-collapsable-header:hover {\n  background: #e2e2e2;\n}\n\n.snp-collapsable-button > svg {\n  width: 9px;\n  transform: rotate(180deg);\n  fill: #37352f;\n  transition: 0.2s;\n}\n\n.collapsed > .snp-collapsable-header > .snp-collapsable-button > svg {\n  transform: rotate(90deg);\n  fill: #93928f;\n}\n\n.collapsed > .snp-collapsable-outer-body > .snp-collapsable-body {\n  display: none;\n}\n\n.snp-collapsable-header {\n  display: flex;\n  margin-bottom: 3px;\n\n  width: fit-content;\n  cursor: pointer;\n  user-select: none;\n  border-radius: 2px;\n}\n\n.snp-collapsable-indent {\n  margin-right: 10px;\n  margin-left: 7px;\n\n  border-right: 1px solid #cfcfcf !important;\n}\n\n.snp-collapsable-outer-body {\n  display: flex;\n}\n\n.snp-collapsable-body {\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-collapsable {\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-collapsable-body > div {\n  margin-bottom: 2px;\n  margin-top: 2px;\n}\n\n.snp-collapsable-body > div:last-child {\n  margin-bottom :0px;\n}\n\n.snp-collapsable-body > div:first-child {\n  margin-top: 0px;\n}\n\n.collapsed > .snp-collapsable-header {\n  margin-bottom: 0px;\n}.snp-sidebar {\n  background-color: white;\n  display: flex;\n  flex-direction: column;\n  height: fit-content;\n  /* border-top: 1px solid #ababab;  */\n\n  /* border: 1px solid #ababab; */\n  /* box-shadow: 4px 4px 11px #00000026; */\n  /* border-radius: 2px; */\n\n  padding: 0px;\n\n  top: 0px;\n  left: 0px;\n\n\n  font-family: monospace;\n  font-size: 14px;\n  white-space: pre;\n  margin: 10px;\n  z-index: 5;\n}\n\n.snp-header {\n  padding: 4px;\n  font-family: Helvetica Neue,Helvetica,Arial,sans-serif;\n  cursor: move;\n  border-top: 1px solid #ababab;\n  margin: 0px 10px;\n\n  display: none;\n}\n\n.snp-header:hover {\n  background: #cccccc;\n}\n\n.snp-artists {\n  padding: 5px 10px;\n  display: flex;\n  flex-direction: column;\n}\n\n.snp-call {\n  width: fit-content;\n  position: relative;\n}\n\n.snp-call-name {\n  /* font-style: italic; */\n  background: #6f0eff17;\n  color: #6a006a;\n  padding: 0px 4px;\n  border-radius: 2px;\n  margin-left: 2px;\n}\n\n.snp-call-name::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n.snp-call-expand-button {\n  display: flex;\n  cursor: pointer;\n  align-items: center;\n  justify-content: center;\n  margin-left: 5px;\n}\n\n.snp-call.expanded > .snp-call-expand-button {\n  background: #e5e5e5;\n}\n\n.snp-call-expand-button:hover  > svg {\n  opacity: 0.7;\n}\n\n.snp-call.expanded > .snp-call-expand-button > svg {\n  opacity: 0.6;\n}\n\n.snp-call.expanded > .snp-call-expand-button:hover > svg {\n  opacity: 1;\n}\n\n.snp-call-expand-button > svg {\n  transform: rotate(-90deg);\n  width: 20px;\n  opacity: 0.5;\n}\n\n.snp-call.snp-focused > .snp-collapsable-header > .snp-call-name {\n  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */\n  background: #bc00ff33;\n}\n\n.snp-call > .snp-collapsable-header:hover {\n  background: none;\n}\n\n.snp-call > .snp-collapsable-header:hover  > .snp-call-name {\n  background: #bc00ff33;\n}.snp-method-view {\n  border-radius: 2px;\n  margin-bottom: 4px;\n  padding: 0 0 0 4px;\n  width: fit-content;\n  display: flex;\n  position: relative;\n  opacity: 0.7;\n  cursor: pointer;\n  color: #6a6a6a;\n}\n\n.snp-method-view:hover {\n  background-color: rgba(0, 0, 0, 0.1);\n}\n\n.snp-method-view {\n  /* font-style: italic; */\n  background-color: rgba(0, 0, 0, 0.05);\n  color: #636363;\n  padding: 0px 4px;\n  border-radius: 2px;\n  margin-left: 2px;\n}\n\n.snp-method-view::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n.snp-method-view.snp-focused {\n  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);\n}.snp-artist-name {\n  width: fit-content;\n  cursor: pointer;\n  border-radius: 2px;\n  padding: 0px 2px;\n}\n\n.collapsed > .snp-collapsable-header > .snp-artist-name {\n  color: rgba(55, 53, 47, 0.5);\n}\n\n.snp-trigger::before {\n  content: "ƒ:";\n  font-style: italic;\n  opacity: 0.5;\n  margin-right: 3px;\n}\n\n/* .snp-artist.snp-focused > .snp-collapsable-header > .snp-artist-name {\n  box-shadow: 0px 0px 0px 1px rgb(94, 196, 255);\n} */\n.snp-artist.snp-focused > .snp-collapsable-header {\n  background: #80808030;\n}.snp-hover-regions {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  width: 100%;\n  height: 100%;\n  max-width: 350px;\n  transition: 0.1s;\n}\n\n.snp-hover-regions:not(.disable):hover {\n  background: #ffffff94;\n}\n\n.snp-hover-region {\n  position: absolute;\n  background: rgba(0, 0, 0, 0);\n  border-radius: 5px;\n  transition: 0.2s;\n\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  flex-direction: column;\n  font-family: monospace;\n}\n\n.snp-hover-region.hovered {\n  background: rgba(0, 0, 0, 0.1);\n}\n\n/* .snp-trigger {\n  display: flex;\n  background: #ececec;\n  border: 1px solid #bababa;\n  border-radius: 4px;\n  padding: 0px 4px;\n  margin-bottom: 4px;\n  cursor: pointer;\n  color: #2e2e2e;\n} */\n\n\n/* .snp-trigger:hover {\n  background: #cccccc;\n} */\n\n.snp-trigger {\n  display: flex;\n  background: #000000b3;\n  /* border: 1px solid #bababa; */\n  border-radius: 4px;\n  padding: 0px 4px;\n  margin-bottom: 4px;\n  cursor: pointer;\n  color: #d5d5d5;\n  font-size: 11px;\n  backdrop-filter: blur(5px);\n  pointer-events: none;\n  transform: scale(0.8);\n  opacity: 0;\n  transition: 0.1s;\n}\n\n.snp-trigger:hover {\n  background: #262626;\n  color: #e7e7e7;\n}\n\n.snp-hover-regions:not(.disable):hover > .snp-hover-region > .snp-trigger {\n  pointer-events: initial;\n  transform: scale(1);\n  opacity: 1;\n}\n\n.snp-hover-region.snp-focused {\n  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */\n  background: #80808030;\n}.plot-widget {\n  display: flex;\n  position: relative;\n}\n\n.plot-widget.disabled {\n  display: none !important;\n}\n\n.plot-widget-input {\n  display: none;\n  position: absolute;\n  top: -20px;\n\n  box-shadow: 0px 0px 0px 1px #0000005e, 3px 1px 5px 0px #0000003d;\n  padding: 0px 3px;\n  border-radius: 2px;\n  color: #BA2121;\n  background: #ffffff;\n  left: -10px;\n  font-size: 12px;\n\n  white-space: pre;\n}\n\n.plot-widget-container {\n  display: flex;\n  width: calc(100% + 30px) !important;\n  flex-direction: row-reverse;\n}\n\n.plot-widget-input.visible {\n  display: flex;\n\n}\n\n.plot-widget-edit-icon {\n  fill: none;\n  stroke: #000000bd;\n  stroke-width: 2px;\n  width: 15px;\n  cursor: pointer;\n}\n\n.plot-widget-edit-icon {\n  fill: none;\n  stroke: #777777bd;\n  stroke-width: 2px;\n  width: 12px;\n}\n\n.plot-widget-edit-icon:hover {\n  stroke: #5b0f88bd;\n}\n\n.plot-widget-edit-icon.toggled {\n  stroke: #5b0f88bd;\n}.snp-toggles {\n  display: flex;\n  flex-direction: column;\n  padding: 10px;\n  margin-left: 16px;\n  position: absolute;\n  right: 0px;\n  bottom: 0px;\n  opacity: 0.5;\n}\n\n.snp-toggles:hover {\n  opacity: 1;\n}\n\n.snp-toggle {\n  display: flex;\n}\n\n.snp-toggle-name {\n  margin-left: 5px;\n  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;\n  font-size: 13px;\n}\n\ninput.snp-toggle-input {\n  margin: 0px;\n}.output_subarea {\n  overflow: visible !important;\n}\n\n.snp_outer {\n  display: flex;\n  place-items: flex-start;\n}\n\n.snp_outer > svg {\n  /* display: none; */\n  max-width: 350px!important;\n  border: none !important;\n  overflow: visible;\n  margin-top: 1em !important;\n}\n\n.snp_outer > svg path {\n\n}\n\ng > path {\n  /* clip-path: inset(0% 0% 0% 0% round 5px); */\n  transition: 0.2s;\n  fill: #00000000;\n}\n\ng > path.hovered {\n  fill: #0000002b;\n}\n\n.snp_outer > img {\n  max-width: 350px !important;\n}\n\n.stdout_stderr {\n  font-family: monospace;\n  font-size: 14px;\n  background: #fff0d1;\n  padding: 10px;\n  margin: 20px;\n  border-radius: 5px;\n  color: #4a350a;\n  display: flex;\n  width: fit-content;\n}\n\n.stdout_stderr:empty {\n  display: none;\n}\n\n.snp_outer svg path {\n\n}\n\n/* ----------------- Code mirror styles ----------------- */\nspan.cm-variable {\n  color: #000;\n}\n\nspan.cm-number {\n  color: #080;\n}\n\nspan.cm-operator {\n  color: #AA22FF;\n  font-weight: bold;\n}\n\nspan.cm-builtin {\n  color: #008000;\n}\n\nspan.cm-string {\n  color: #BA2121;\n}'));
       document.head.appendChild(elementStyle);
     }
   } catch (e) {
@@ -129,9 +129,9 @@ function is_string_like(val) {
   return false;
 }
 function find_call_that_satisfies(pred, state) {
-  for (const artist_info of state.model.selectable_artists) {
-    const artist_view = state.view.sidebar.artists[artist_info.id];
-    const calls = state.model.all_calls_and_methods[artist_info.id].calls;
+  for (const artist_info of state.selectable_artists) {
+    const artist_view = state.sidebar.artists[artist_info.id];
+    const calls = state.all_calls_and_methods[artist_info.id].calls;
     const call_views = artist_view.calls;
     for (let i = 0; i < calls.length; i++) {
       const call = calls[i];
@@ -333,7 +333,6 @@ function make_slider(val, min = -Infinity, max = Infinity) {
     val_el,
     el,
     base
-    // spring,
   };
 }
 function update_slider_val(widget, new_value) {
@@ -491,10 +490,8 @@ function create_arg_view(arg, call, mark, options) {
   );
   match_arg_code_to_widget(widget, arg.code);
   arg_el.append(widget.el);
-  let comma_el = null;
   return {
     el: arg_el,
-    comma_el,
     widget,
     positional: options.positional,
     optional: options.optional
@@ -646,9 +643,9 @@ function create_sidebar_view_skeleton() {
   };
 }
 function find_artist_from_method(target_method_info, state) {
-  for (const artist_info of state.model.selectable_artists) {
-    const artist_view = state.view.sidebar.artists[artist_info.id];
-    const methods = state.model.all_calls_and_methods[artist_info.id].methods;
+  for (const artist_info of state.selectable_artists) {
+    const artist_view = state.sidebar.artists[artist_info.id];
+    const methods = state.all_calls_and_methods[artist_info.id].methods;
     const includes = methods.map((m) => m.method_info).includes(target_method_info);
     if (includes) {
       return { info: artist_info, view: artist_view };
@@ -657,9 +654,9 @@ function find_artist_from_method(target_method_info, state) {
   return null;
 }
 function find_artist_from_call(target_call_info, state) {
-  for (const artist_info of state.model.selectable_artists) {
-    const artist_view = state.view.sidebar.artists[artist_info.id];
-    const calls = state.model.all_calls_and_methods[artist_info.id].calls;
+  for (const artist_info of state.selectable_artists) {
+    const artist_view = state.sidebar.artists[artist_info.id];
+    const calls = state.all_calls_and_methods[artist_info.id].calls;
     const includes = calls.map((c) => c.call_info).includes(target_call_info);
     if (includes) {
       return { info: artist_info, view: artist_view };
@@ -675,8 +672,8 @@ function open_collapsable_artist(target_artist, state) {
     if (curr_info.parent_id == null)
       break;
     const id = curr_info.parent_id;
-    curr_info = state.model.selectable_artists.find((artist) => artist.id == id);
-    curr_view = state.view.sidebar.artists[id];
+    curr_info = state.selectable_artists.find((artist) => artist.id == id);
+    curr_view = state.sidebar.artists[id];
   }
 }
 function focus_on_call(target_call_info, target_call_view, state) {
@@ -716,23 +713,22 @@ function add_temporary_focus(el) {
 }
 function add_method_code(mark, code, state) {
   let { from, to } = mark.find();
-  state.model.cell.code_mirror.replaceRange(code, from, to);
+  state.cell.code_mirror.replaceRange(code, from, to);
   ({ from, to } = mark.find());
   const prefix = code.split("(")[0];
-  const loc = to.line + state.model.provenance_is_off_by_n_lines + 1;
+  const loc = to.line + state.provenance_is_off_by_n_lines + 1;
   window["snp_focused_call"] = `${prefix}${loc}`;
-  console.log("Focusing on...", `${prefix}${loc}`);
   hard_rerun(state);
 }
 function get_code_and_loc_for_call(call) {
   return `${call.func_code_and_num[0]}${call.call.pos.line}`;
 }
 function catalog_open_artists(state) {
-  const sidebar = state.view.sidebar;
-  const all_calls_and_methods = state.model.all_calls_and_methods;
+  const sidebar = state.sidebar;
+  const all_calls_and_methods = state.all_calls_and_methods;
   const persistent_artists = {};
   const persistent_calls = {};
-  for (const artist_info of state.model.selectable_artists) {
+  for (const artist_info of state.selectable_artists) {
     const name = get_shortest_qualified_name(artist_info.names);
     const artist_view = sidebar.artists[artist_info.id];
     persistent_artists[name] = {
@@ -753,51 +749,50 @@ function catalog_open_artists(state) {
   window["snp_persistent_calls"] = persistent_calls;
 }
 function hard_rerun(state) {
-  state.model.busy = false;
-  state.model.cell.code_mirror.getAllMarks().forEach((mark) => mark.clear());
+  state.busy = false;
+  state.cell.code_mirror.getAllMarks().forEach((mark) => mark.clear());
   catalog_open_artists(state);
-  state.model.cell.execute();
+  state.cell.execute();
 }
 function sync_call_code(mark, code, state) {
   let { from, to } = mark.find();
-  const code_mirror = state.model.cell.code_mirror;
+  const code_mirror = state.cell.code_mirror;
   code_mirror.replaceRange(code, from, to);
   ({ from, to } = mark.find());
   code_mirror.setSelection(from, to);
   redraw_cell(state);
 }
 function redraw_cell(state) {
-  const { model, view } = state;
-  const cell = model.cell;
+  const cell = state.cell;
   const codeExecuting = cell.get_text();
-  const img = view.snp_outer.querySelector("img");
-  if (model.busy || codeExecuting == model.last_cell_code_executed) {
+  const img = state.snp_outer.querySelector("img");
+  if (state.busy || codeExecuting == state.last_cell_code_executed) {
     return;
   }
-  model.busy = true;
-  model.last_cell_code_executed = codeExecuting;
-  view.stdout_stderr.innerHTML = "";
+  state.busy = true;
+  state.last_cell_code_executed = codeExecuting;
+  state.stdout_stderr.innerHTML = "";
   const callbacks = cell.get_callbacks();
   callbacks.iopub.output = function(msg) {
     if (msg.header.msg_type == "execute_result" && msg.content.data["image/png"]) {
       img.src = "data:image/png;base64," + msg.content.data["image/png"];
     } else {
       if (msg.header.msg_type == "error") {
-        view.stdout_stderr.innerText += msg.content.evalue.replaceAll(
+        state.stdout_stderr.innerText += msg.content.evalue.replaceAll(
           /\b(line +)(\d+)/gi,
-          (_, line_space, n_str) => `${line_space}${parseInt(n_str) - model.provenance_is_off_by_n_lines}`
+          (_, line_space, n_str) => `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
         );
       } else if (msg.header.msg_type == "stream") {
-        view.stdout_stderr.innerText += msg.content.text;
+        state.stdout_stderr.innerText += msg.content.text;
       } else {
         console.warn("[redraw cell]", arguments);
       }
     }
     if (codeExecuting != cell.get_text()) {
-      model.busy = false;
+      state.busy = false;
       redraw_cell(state);
     } else {
-      model.busy = false;
+      state.busy = false;
     }
   };
   cell.kernel.execute(codeExecuting, callbacks, {
@@ -808,8 +803,8 @@ function redraw_cell(state) {
 }
 function create_call_view(call, state) {
   var _a;
-  const code_mirror = state.model.cell.code_mirror;
-  const cell_lineno = state.model.cell_lineno;
+  const code_mirror = state.cell.code_mirror;
+  const cell_lineno = state.cell_lineno;
   const mark = code_mirror.markText(
     item_to_start_pos(call.call_info.call, cell_lineno),
     item_to_end_pos(call.call_info.call, cell_lineno),
@@ -818,13 +813,10 @@ function create_call_view(call, state) {
       inclusiveRight: true
     }
   );
-  console.log(call);
   const call_els = create_call_view_skeleton();
   call_els.name_el.innerText = call.call_info.func_code_and_num[0];
-  console.log(call_els.name_el.innerText, call);
   const persistent_calls = window["snp_persistent_calls"];
   const code_and_loc = get_code_and_loc_for_call(call.call_info);
-  console.log(persistent_calls, code_and_loc, persistent_calls[code_and_loc]);
   if (persistent_calls[code_and_loc]) {
     if ((_a = persistent_calls[code_and_loc]) == null ? void 0 : _a.collapsed) {
       collapse_collapsable(call_els.el);
@@ -912,7 +904,7 @@ function create_call_view_skeleton() {
   };
 }
 function create_method_view(method, state) {
-  const code_mirror = state.model.cell.code_mirror;
+  const code_mirror = state.cell.code_mirror;
   let line_count = code_mirror.getValue().split("\n").length;
   let mark = code_mirror.markText(
     { line: line_count - 2, ch: 0 },
@@ -922,7 +914,7 @@ function create_method_view(method, state) {
   let code_prefix = `${method.receiver_name}.${method.method_info.name}`;
   const el = create_el("div", "snp-method-view");
   el.innerText = code_prefix;
-  el.addEventListener("click", (e) => {
+  el.addEventListener("click", (_) => {
     add_method_code(mark, method.code, state);
   });
   return {
@@ -963,7 +955,6 @@ function create_artist_view(artist, sidebar_view, calls_and_methods, state) {
   const method_views = [];
   const methods = calls_and_methods.methods;
   methods.forEach((method) => {
-    `${method.receiver_name}.${method.method_info.name}`;
     const method_view = create_method_view(method, state);
     method_views.push(method_view);
     body_el.append(method_view.el);
@@ -979,7 +970,7 @@ function create_artist_view(artist, sidebar_view, calls_and_methods, state) {
     methods: method_views
   };
 }
-function populate_parent_ids(selectable_artists) {
+function set_artist_parent_ids(selectable_artists) {
   const searched = [];
   for (const artist of selectable_artists) {
     const name = get_shortest_qualified_name(artist.names);
@@ -987,13 +978,11 @@ function populate_parent_ids(selectable_artists) {
       const other_name = get_shortest_qualified_name(other.names);
       if (name.split(".").slice(0, -1).join(".") == other_name) {
         artist.parent_id = other.id;
-        console.log("Setting parent...");
         break;
       }
     }
     searched.push(artist);
   }
-  console.log(selectable_artists);
 }
 function make_hover_regions(state) {
   var _a, _b, _c;
@@ -1001,13 +990,13 @@ function make_hover_regions(state) {
   const hover_regions_el = create_el(
     "div",
     "snp-hover-regions",
-    state.view.snp_outer
+    state.snp_outer
   );
+  const hovered_elems = [
+    ...state.snp_outer.querySelectorAll("g")
+  ];
   const create_region = (artist_id, artist_view) => {
-    const hovered_el = find_svg_hovered_elem(
-      state.view.hovered_elems,
-      artist_id
-    );
+    const hovered_el = find_svg_hovered_elem(hovered_elems, artist_id);
     const h_bbox = hovered_el.getBoundingClientRect();
     const p_bbox = hover_regions_el.getBoundingClientRect();
     const top = h_bbox.top - p_bbox.top;
@@ -1026,28 +1015,28 @@ function make_hover_regions(state) {
       () => region.el.classList.remove("hovered")
     );
   };
-  for (const artist_info of state.model.selectable_artists) {
-    const artist_view = (_a = state.view.sidebar) == null ? void 0 : _a.artists[artist_info.id];
+  for (const artist_info of state.selectable_artists) {
+    const artist_view = (_a = state.sidebar) == null ? void 0 : _a.artists[artist_info.id];
     regions[artist_info.id] = create_region(artist_info.id, artist_view);
     attach_hover_region(regions[artist_info.id], artist_view.els.header_el);
-    const calls = state.model.all_calls_and_methods[artist_info.id].calls;
+    const calls = state.all_calls_and_methods[artist_info.id].calls;
     for (let i = 0; i < calls.length; i++) {
       const call = calls[i];
       const region_artist_id = call.call_info.show_on.at(-1);
       regions[region_artist_id] = regions[region_artist_id] ?? create_region(region_artist_id);
-      const call_view = (_b = state.view.sidebar) == null ? void 0 : _b.artists[artist_info.id].calls[i];
+      const call_view = (_b = state.sidebar) == null ? void 0 : _b.artists[artist_info.id].calls[i];
       regions[region_artist_id].calls.push({
         view: call_view,
         info: call.call_info
       });
       attach_hover_region(regions[region_artist_id], call_view.els.header_el);
     }
-    const methods = state.model.all_calls_and_methods[artist_info.id].methods;
+    const methods = state.all_calls_and_methods[artist_info.id].methods;
     for (let i = 0; i < methods.length; i++) {
       const method = methods[i];
       const region_artist_id = method.method_info.show_on.at(-1);
       regions[region_artist_id] = regions[region_artist_id] ?? create_region(region_artist_id);
-      const method_view = (_c = state.view.sidebar) == null ? void 0 : _c.artists[artist_info.id].methods[i];
+      const method_view = (_c = state.sidebar) == null ? void 0 : _c.artists[artist_info.id].methods[i];
       regions[region_artist_id].methods.push({
         view: method_view,
         info: method.method_info
@@ -1096,7 +1085,30 @@ function add_method_trigger_to_hover_region(region, method, method_view, state) 
     add_method_code(method_view.mark, method.code, state);
   });
 }
-function make_plot_widgets(plot_widgets_config, state) {
+const plot_widgets_config = [
+  {
+    call_code: "ax.set_title",
+    arg_name: "label",
+    type: "builtins.str"
+  },
+  // {
+  //   call_code: "ax.set_title",
+  //   arg_name: "y",
+  //   flip: true,
+  //   type: "builtins.float",
+  // },
+  {
+    call_code: "ax.set_xlabel",
+    arg_name: "xlabel",
+    type: "builtins.str"
+  },
+  {
+    call_code: "ax.set_ylabel",
+    arg_name: "ylabel",
+    type: "builtins.str"
+  }
+];
+function make_plot_widgets(state) {
   for (const plot_widget_config of plot_widgets_config) {
     let target_call = find_call_that_satisfies((call_info, _) => {
       const call_code_prefix = call_info.func_code_and_num[0];
@@ -1123,7 +1135,7 @@ function make_plot_widgets(plot_widgets_config, state) {
       );
       continue;
     }
-    const hover_region = state.view.hover_regions.regions[target_call.info.show_on.at(-1)];
+    const hover_region = state.hover_regions.regions[target_call.info.show_on.at(-1)];
     let widget = target_arg.view.widget;
     if (widget.kind == WidgetKind.Dropdown) {
       widget = widget.selected_item;
@@ -1141,7 +1153,7 @@ function make_plot_widgets(plot_widgets_config, state) {
   }
 }
 function make_plot_widget(config, call, arg, widget, hover_region, state) {
-  if (widget.kind == WidgetKind.Literal && arg.arg.type == "builtins.str" && config.type == "builtins.str") {
+  if (widget.kind == WidgetKind.Literal && config.type == "builtins.str") {
     const container = hover_region.el.querySelector(".plot-widget-container");
     const el = create_el("div", "plot-widget", container);
     const icon = create_edit_icon();
@@ -1166,15 +1178,15 @@ function make_plot_widget(config, call, arg, widget, hover_region, state) {
   }
 }
 function create_toggles(state) {
-  const el = create_el("div", "snp-toggles", state.view.sidebar.els.el);
+  const el = create_el("div", "snp-toggles", state.sidebar.els.el);
   const method_toggle_name = "Show methods on plot";
   const method_toggle_enable = () => {
     var _a;
-    (_a = state.view.hover_regions) == null ? void 0 : _a.el.classList.remove("disable");
+    (_a = state.hover_regions) == null ? void 0 : _a.el.classList.remove("disable");
   };
   const method_toggle_disable = () => {
     var _a;
-    (_a = state.view.hover_regions) == null ? void 0 : _a.el.classList.add("disable");
+    (_a = state.hover_regions) == null ? void 0 : _a.el.classList.add("disable");
   };
   const method_toggle_is_checked = window[method_toggle_name] == true;
   create_toggle(
@@ -1207,11 +1219,11 @@ function create_toggles(state) {
   }
   const widget_toggle_name = "Show on-plot widgets";
   const widget_toggle_enable = () => {
-    state.view.snp_outer.querySelectorAll(".plot-widget").forEach((w) => w.classList.remove("disabled"));
+    state.snp_outer.querySelectorAll(".plot-widget").forEach((w) => w.classList.remove("disabled"));
     window["snp_enable_plot_widget"] = true;
   };
   const widget_toggle_disable = () => {
-    state.view.snp_outer.querySelectorAll(".plot-widget").forEach((w) => w.classList.add("disabled"));
+    state.snp_outer.querySelectorAll(".plot-widget").forEach((w) => w.classList.add("disabled"));
     window["snp_enable_plot_widget"] = false;
   };
   const widget_toggle_is_checked = window["snp_enable_plot_widget"] == true;
@@ -1276,26 +1288,78 @@ function takeWhile(array, predicate) {
   }
   return out;
 }
-function get_all_calls_and_methods(m) {
+function attach_snp(snp_outer, cell_lineno, provenance_is_off_by_n_lines, user_call_info, sidebar_stuff) {
+  window["snp_persistent_artists"] = window["snp_persistent_artists"] ?? {};
+  window["snp_persistent_calls"] = window["snp_persistent_calls"] ?? {};
+  const state = initialize_state(
+    snp_outer,
+    cell_lineno,
+    provenance_is_off_by_n_lines,
+    sidebar_stuff
+  );
+  state.stdout_stderr.remove();
+  snp_outer.append(state.stdout_stderr);
+  set_artist_parent_ids(sidebar_stuff.selectable_artists);
+  state.all_calls_and_methods = get_all_calls_and_methods(state);
+  console.log("State", state);
+  state.sidebar = create_sidebar(
+    state.all_calls_and_methods,
+    state.selectable_artists,
+    state
+  );
+  state.snp_outer.append(state.sidebar.els.el);
+  state.hover_regions = make_hover_regions(state);
+  make_plot_widgets(state);
+  create_toggles(state);
+  const focused_call = window["snp_focused_call"];
+  if (focused_call != null) {
+    focus_on_call_from_code(focused_call, state);
+    window["snp_focused_call"] = null;
+  }
+  setTimeout(() => {
+    var _a, _b, _c;
+    (_c = (_b = (_a = snp_outer.parentElement) == null ? void 0 : _a.parentElement) == null ? void 0 : _b.nextElementSibling) == null ? void 0 : _c.remove();
+  }, 200);
+}
+function initialize_state(snp_outer, cell_lineno, provenance_is_off_by_n_lines, sidebar_stuff) {
+  const cell_el = snp_outer.closest(".code_cell");
+  const cell = Jupyter.notebook.get_cells().filter((cell2) => cell2.element[0] === cell_el)[0];
+  return {
+    canvas_selection: null,
+    cell,
+    cell_lineno,
+    last_cell_code_executed: cell.get_text(),
+    provenance_is_off_by_n_lines,
+    selectable_artists: sidebar_stuff.selectable_artists,
+    methods: sidebar_stuff.methods,
+    calls: sidebar_stuff.calls,
+    busy: false,
+    snp_outer,
+    sidebar: void 0,
+    stdout_stderr: snp_outer.querySelector(".stdout_stderr")
+  };
+}
+window["attach_snp"] = attach_snp;
+function get_all_calls_and_methods(state) {
   let all_calls_and_methods = {};
-  m.selectable_artists.forEach((artist) => {
-    const artist_call_infos = m.calls.filter((call_info) => {
+  state.selectable_artists.forEach((artist) => {
+    const artist_call_infos = state.calls.filter((call_info) => {
       return call_info.show_on.at(-1) == artist.id;
     });
-    let artist_method_infos = m.methods.filter((method) => {
+    let artist_method_infos = state.methods.filter((method) => {
       return method.show_on.at(-1) == artist.id;
     });
     const artist_calls = get_calls(
       artist,
       artist_call_infos,
-      m.cell_lineno,
-      m.cell.code_mirror
+      state.cell_lineno,
+      state.cell.code_mirror
     );
     let artist_methods = get_methods(
       artist,
       artist_method_infos,
-      m.selectable_artists,
-      m.cell.code_mirror
+      state.selectable_artists,
+      state.cell.code_mirror
     );
     artist_methods = artist_methods.filter((method) => {
       const is_already_called = artist_calls.find(
@@ -1431,67 +1495,3 @@ function segment_args(callee, given_positional_args, given_keyword_args) {
     kwargs
   };
 }
-function attach_snp(snp_outer, cell_lineno, provenance_is_off_by_n_lines, user_call_info, sidebar_stuff) {
-  window["snp_persistent_artists"] = window["snp_persistent_artists"] ?? {};
-  window["snp_persistent_calls"] = window["snp_persistent_calls"] ?? {};
-  const model = initialize_model(
-    snp_outer,
-    cell_lineno,
-    provenance_is_off_by_n_lines,
-    sidebar_stuff
-  );
-  const view = initialize_view(model, snp_outer);
-  const state = { model, view };
-  populate_parent_ids(sidebar_stuff.selectable_artists);
-  const all_calls_and_methods = get_all_calls_and_methods(model);
-  state.model.all_calls_and_methods = all_calls_and_methods;
-  console.log(state);
-  view.sidebar = create_sidebar(
-    all_calls_and_methods,
-    model.selectable_artists,
-    state
-  );
-  view.snp_outer.append(view.sidebar.els.el);
-  view.hover_regions = make_hover_regions(state);
-  make_plot_widgets([], state);
-  create_toggles(state);
-  view.stdout_stderr.remove();
-  snp_outer.append(view.stdout_stderr);
-  const focused_call = window["snp_focused_call"];
-  if (focused_call != null) {
-    focus_on_call_from_code(focused_call, state);
-    window["snp_focused_call"] = null;
-  }
-  setTimeout(() => {
-    var _a, _b, _c;
-    (_c = (_b = (_a = snp_outer.parentElement) == null ? void 0 : _a.parentElement) == null ? void 0 : _b.nextElementSibling) == null ? void 0 : _c.remove();
-  }, 200);
-}
-function initialize_model(snp_outer, cell_lineno, provenance_is_off_by_n_lines, sidebar_stuff) {
-  const cell_el = snp_outer.closest(".code_cell");
-  const cell = Jupyter.notebook.get_cells().filter((cell2) => cell2.element[0] === cell_el)[0];
-  return {
-    canvas_selection: null,
-    cell,
-    cell_lineno,
-    last_cell_code_executed: cell.get_text(),
-    provenance_is_off_by_n_lines,
-    selectable_artists: sidebar_stuff.selectable_artists,
-    methods: sidebar_stuff.methods,
-    calls: sidebar_stuff.calls,
-    busy: false
-  };
-}
-function initialize_view(model, snp_outer) {
-  const stdout_stderr = snp_outer.querySelector(".stdout_stderr");
-  stdout_stderr.remove();
-  snp_outer.append(stdout_stderr);
-  const hovered_elems = [...snp_outer.querySelectorAll("g")];
-  return {
-    hovered_elems,
-    snp_outer,
-    sidebar: void 0,
-    stdout_stderr
-  };
-}
-window["attach_snp"] = attach_snp;

@@ -1,4 +1,4 @@
-import { Arg, ArgView, CallWithArgs, Type, UnionType } from "../../state";
+import { Arg, ArgView, CallWithArgs, Type, UnionType } from "../../types";
 import { MarkerRange, TextMarker } from "../../utils/codemirror";
 import { create_el } from "../../utils/misc";
 import {
@@ -39,11 +39,9 @@ export function create_arg_view(
 ): ArgView {
   const arg_el = create_el("div", "snp-arg-view");
 
-  // if (!options.positional) {
   // Prefix with the argument name
   const prefixEl = create_el("div", "snp-arg-name", arg_el);
   prefixEl.innerHTML = `${arg.name}<span class="snp-arg-colon">:</span>`;
-  // }
 
   if (options.optional) {
     arg_el.classList.add("snp-arg-optional");
@@ -59,16 +57,12 @@ export function create_arg_view(
   );
 
   // Match the `arg.code` to the args
-  // console.log(widget, arg.code);
   match_arg_code_to_widget(widget, arg.code);
 
   arg_el.append(widget.el);
 
-  let comma_el = null;
-
   return {
     el: arg_el,
-    comma_el,
     widget,
     positional: options.positional,
     optional: options.optional,

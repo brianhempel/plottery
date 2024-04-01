@@ -3,8 +3,8 @@ import {
   HoverRegion,
   MethodView,
   MethodWithArgs,
-  SNPState,
-} from "../../state";
+  State,
+} from "../../types";
 import { create_el } from "../../utils/misc";
 import {
   add_method_code,
@@ -14,7 +14,11 @@ import {
 } from "../sidebar";
 import "./hover_regions.css";
 
-export function make_hover_regions(state: SNPState): {
+/**
+ * Makes 'hover regions' so that hovering on an artist in the plot
+ * selects it/provides some feedback in the sidebar
+ */
+export function make_hover_regions(state: State): {
   el: HTMLElement;
   regions: { [artist_id: number]: HoverRegion };
 } {
@@ -22,18 +26,19 @@ export function make_hover_regions(state: SNPState): {
   const hover_regions_el = create_el(
     "div",
     "snp-hover-regions",
-    state.view.snp_outer
+    state.snp_outer
   );
+
+  const hovered_elems = [
+    ...state.snp_outer.querySelectorAll("g"),
+  ] as SVGGElement[];
 
   const create_region = (
     artist_id: number,
     artist_view?: ArtistView
   ): HoverRegion => {
     // Find SVG Group element for the artist
-    const hovered_el = find_svg_hovered_elem(
-      state.view.hovered_elems,
-      artist_id
-    )!;
+    const hovered_el = find_svg_hovered_elem(hovered_elems, artist_id)!;
 
     const h_bbox = hovered_el.getBoundingClientRect();
     const p_bbox = hover_regions_el.getBoundingClientRect();
@@ -59,8 +64,8 @@ export function make_hover_regions(state: SNPState): {
   };
 
   // Go through the artists
-  for (const artist_info of state.model.selectable_artists) {
-    const artist_view = state.view.sidebar?.artists[artist_info.id]!;
+  for (const artist_info of state.selectable_artists) {
+    const artist_view = state.sidebar?.artists[artist_info.id]!;
 
     // Create the region el for that artist
     regions[artist_info.id] = create_region(artist_info.id, artist_view);
@@ -69,7 +74,7 @@ export function make_hover_regions(state: SNPState): {
     attach_hover_region(regions[artist_info.id], artist_view.els.header_el);
 
     // Calls
-    const calls = state.model.all_calls_and_methods![artist_info.id].calls;
+    const calls = state.all_calls_and_methods![artist_info.id].calls;
     for (let i = 0; i < calls.length; i++) {
       const call = calls[i];
       const region_artist_id = call.call_info.show_on.at(-1)!;
@@ -78,7 +83,7 @@ export function make_hover_regions(state: SNPState): {
         regions[region_artist_id] ?? create_region(region_artist_id);
 
       // Show the element on hover of the label
-      const call_view = state.view.sidebar?.artists[artist_info.id].calls[i]!;
+      const call_view = state.sidebar?.artists[artist_info.id].calls[i]!;
       regions[region_artist_id].calls.push({
         view: call_view,
         info: call.call_info,
@@ -88,7 +93,7 @@ export function make_hover_regions(state: SNPState): {
     }
 
     // Methods
-    const methods = state.model.all_calls_and_methods![artist_info.id].methods;
+    const methods = state.all_calls_and_methods![artist_info.id].methods;
     for (let i = 0; i < methods.length; i++) {
       const method = methods[i];
       const region_artist_id = method.method_info.show_on.at(-1)!;
@@ -97,8 +102,7 @@ export function make_hover_regions(state: SNPState): {
         regions[region_artist_id] ?? create_region(region_artist_id);
 
       // Show the element on hover of the label
-      const method_view =
-        state.view.sidebar?.artists[artist_info.id].methods[i]!;
+      const method_view = state.sidebar?.artists[artist_info.id].methods[i]!;
       regions[region_artist_id].methods.push({
         view: method_view,
         info: method.method_info,
@@ -159,7 +163,7 @@ export function add_method_trigger_to_hover_region(
   region: HoverRegion,
   method: MethodWithArgs,
   method_view: MethodView,
-  state: SNPState
+  state: State
 ) {
   const trigger_el = create_el("div", "snp-trigger", region.el);
   trigger_el.innerText = method_view.el.innerText;

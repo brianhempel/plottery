@@ -1,13 +1,20 @@
-import { MethodView, MethodWithArgs, SNPState } from "../../state";
+import { MethodView, MethodWithArgs, State } from "../../types";
 import { create_el } from "../../utils/misc";
 import { add_method_code } from "../sidebar";
 import "./method.css";
 
+/**
+ * Methods shown in the sidebar. For now, it just shows their name...
+ *
+ * - ax.bar
+ * - ax.barh
+ * ...
+ */
 export function create_method_view(
   method: MethodWithArgs,
-  state: SNPState
+  state: State
 ): MethodView {
-  const code_mirror = state.model.cell.code_mirror;
+  const code_mirror = state.cell.code_mirror;
 
   let line_count = code_mirror.getValue().split("\n").length;
   let mark = code_mirror.markText(
@@ -23,10 +30,9 @@ export function create_method_view(
 
   // @TODO: Don't add if max calls is 1 and has already
   // been called.
-  el.addEventListener("click", e => {
+  el.addEventListener("click", _ => {
     add_method_code(mark, method.code, state);
   });
-  // syntax_highlight(new_code, el);
 
   return {
     el,

@@ -1,4 +1,4 @@
-import { IInstanceType, LiteralType, NoneType } from "../../../state";
+import { IInstanceType, LiteralType, NoneType } from "../../../types";
 import {
   create_el,
   default_code_and_code_type_for_type,
@@ -14,6 +14,11 @@ export type LiteralWidget = Widget & {
   slider: Slider | null;
 };
 
+/**
+ * A literal widget is a
+ * @param type Literal type
+ * @returns
+ */
 export function create_literal_widget(
   type: LiteralType | IInstanceType | NoneType
 ): LiteralWidget {

@@ -7,10 +7,9 @@ import {
   PersistantArtist,
   SelectableArtist,
   SidebarView,
-  SNPState,
-} from "../../state";
-import { create_el } from "../../utils/misc";
-import { get_shortest_qualified_name } from "../../utils/names";
+  State,
+} from "../../types";
+import { create_el, get_shortest_qualified_name } from "../../utils/misc";
 import { create_call_view } from "../call/call";
 import {
   collapse_collapsable,
@@ -20,6 +19,14 @@ import {
 import { create_method_view } from "../methods/method";
 import "./artist.css";
 
+/**
+ * Makes an artist in the sidebar. E.g.
+ *
+ * ax
+ *  - ax.bar
+ *  - ax.barh
+ *  ...
+ */
 export function create_artist_view(
   artist: SelectableArtist,
   sidebar_view: SidebarView,
@@ -27,7 +34,7 @@ export function create_artist_view(
     calls: CallWithArgs[];
     methods: MethodWithArgs[];
   },
-  state: SNPState
+  state: State
 ): ArtistView {
   let artist_name = get_shortest_qualified_name(artist.names);
 
@@ -81,15 +88,6 @@ export function create_artist_view(
   const methods = calls_and_methods.methods;
 
   methods.forEach(method => {
-    const method_prefix = `${method.receiver_name}.${method.method_info.name}`;
-
-    // Don't add a method that's already been called
-    // for (const call of calls) {
-    //   if (call.call_info.func_code_and_num[0] == method_prefix) {
-    //     return;
-    //   }
-    // }
-
     const method_view = create_method_view(method, state);
     method_views.push(method_view);
 
@@ -109,7 +107,7 @@ export function create_artist_view(
   };
 }
 
-export function populate_parent_ids(selectable_artists: SelectableArtist[]) {
+export function set_artist_parent_ids(selectable_artists: SelectableArtist[]) {
   const searched: SelectableArtist[] = [];
 
   // Exploiting that the list is ordered from root -> root.children -> ... -> leaves
@@ -122,13 +120,10 @@ export function populate_parent_ids(selectable_artists: SelectableArtist[]) {
 
       if (name.split(".").slice(0, -1).join(".") == other_name) {
         artist.parent_id = other.id;
-        console.log("Setting parent...");
         break;
       }
     }
 
     searched.push(artist);
   }
-
-  console.log(selectable_artists);
 }

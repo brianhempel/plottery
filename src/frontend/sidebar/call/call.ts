@@ -5,8 +5,8 @@ import {
   CallViewEls,
   CallWithArgs,
   PersistantCall,
-  SNPState,
-} from "../../state";
+  State,
+} from "../../types";
 import {
   create_el,
   item_to_end_pos,
@@ -26,12 +26,16 @@ import {
 import { get_code_and_loc_for_call, sync_call_code } from "../sidebar";
 import "./call.css";
 
-export function create_call_view(
-  call: CallWithArgs,
-  state: SNPState
-): CallView {
-  const code_mirror = state.model.cell.code_mirror;
-  const cell_lineno = state.model.cell_lineno;
+/**
+ * Creates a call in the sidebar. e.g.
+ *
+ * ax.barh
+ *   - y=data[0]
+ *   - heights=data[1]
+ */
+export function create_call_view(call: CallWithArgs, state: State): CallView {
+  const code_mirror = state.cell.code_mirror;
+  const cell_lineno = state.cell_lineno;
 
   // Mark the range of code in cell for when user changes the call
   const mark = code_mirror.markText(
@@ -43,20 +47,14 @@ export function create_call_view(
     }
   );
 
-  console.log(call);
-
   // Call container
   const call_els = create_call_view_skeleton();
   call_els.name_el.innerText = call.call_info.func_code_and_num[0];
-
-  console.log(call_els.name_el.innerText, call);
 
   const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
     "snp_persistent_calls"
   ];
   const code_and_loc = get_code_and_loc_for_call(call.call_info);
-
-  console.log(persistent_calls, code_and_loc, persistent_calls[code_and_loc]);
 
   // If previously expanded, then expand
   if (persistent_calls[code_and_loc]) {

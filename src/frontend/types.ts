@@ -6,13 +6,8 @@ import { Cell } from "./utils/types";
 /*                          Types                         */
 /* ------------------------------------------------------ */
 
-export type SNPState = {
-  model: Model;
-  view: View;
-};
-
-/* ------------------------ Model ----------------------- */
-export type Model = {
+/* ------------------------ State ----------------------- */
+export type State = {
   canvas_selection: SelectedItem | null;
 
   // Jupyter Cell the output is in
@@ -37,21 +32,8 @@ export type Model = {
       methods: MethodWithArgs[];
     };
   };
-};
 
-export type SelectedItem =
-  | { name: string }
-  | { func_code: string; call_num: number };
-
-export type SelectableArtist = {
-  id: number; // 140533847992896
-  names: string[]; // ['ax.yaxis.label', 'ax.axes.yaxis.label'...]
-  parent_id?: number;
-};
-
-/* --------------------- View Model --------------------- */
-export type View = {
-  hovered_elems: SVGGElement[];
+  // hovered_elems: SVGGElement[];
   snp_outer: HTMLElement;
   stdout_stderr: HTMLElement;
 
@@ -63,6 +45,16 @@ export type View = {
       [artist_id: number]: HoverRegion;
     };
   };
+};
+
+export type SelectedItem =
+  | { name: string }
+  | { func_code: string; call_num: number };
+
+export type SelectableArtist = {
+  id: number; // 140533847992896
+  names: string[]; // ['ax.yaxis.label', 'ax.axes.yaxis.label'...]
+  parent_id?: number;
 };
 
 export type HoverRegion = {
@@ -126,8 +118,6 @@ export type ArgView = {
   optional: boolean;
 
   positional: boolean;
-
-  comma_el: HTMLElement | null;
 };
 
 export type PersistantArtist = {
@@ -197,28 +187,6 @@ export type MethodWithArgs = {
   required_keyword_args: Arg[];
   receiver_name: string;
 };
-
-// if (type === "builtins.str") {
-//   return ['""', type];
-// } else if (type === "builtins.float") {
-//   return ["0.0", type];
-// } else if (
-//   type[".class"] === "Instance" &&
-//   type["type_ref"] === "builtins.dict"
-// ) {
-//   return ["{}", type];
-// } else if (type[".class"] === "UnionType") {
-//   return default_code_and_code_type_for_type((type as Type).items[0], name);
-// } else if (
-//   type[".class"] === "LiteralType" &&
-//   type["fallback"] == "builtins.str"
-// ) {
-//   return [JSON.stringify(type["value"]), type["fallback"]];
-// } else if (type["type_ref"] === "matplotlib._typing.ArrayLike") {
-//   return ["[1,2,3]", type];
-// } else {
-//   return ["None", { ".class": "NoneType" }];
-// }
 
 export type Type =
   | UnionType

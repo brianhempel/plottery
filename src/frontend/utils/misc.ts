@@ -5,10 +5,10 @@ import {
   CallableType,
   IInstanceType,
   Position,
-  SNPState,
+  State,
   Type,
   UnionType,
-} from "../state";
+} from "../types";
 import { get_arg_kind_from_int } from "./types";
 
 export function arg_defaults_from_callee_type(
@@ -90,7 +90,6 @@ export function default_code_and_code_type_for_type(
     // (type["fallback"] as IInstanceType)?.type_ref == "builtins.str"
   ) {
     // const ltype = type as LiteralType;
-    // console.log("ltype", ltype, JSON.stringify(ltype.value));
     return [JSON.stringify(type.value), type.fallback];
   } else if (
     "type_ref" in type &&
@@ -243,14 +242,14 @@ export function insert_to_beginning_of_el(
 
 export function find_call_that_satisfies(
   pred: (info: CallInfo, view: CallView) => boolean,
-  state: SNPState
+  state: State
 ) {
   // Go through all the call views from artists
-  for (const artist_info of state.model.selectable_artists) {
-    const artist_view = state.view.sidebar!.artists[artist_info.id];
+  for (const artist_info of state.selectable_artists) {
+    const artist_view = state.sidebar!.artists[artist_info.id];
 
     // Each call
-    const calls = state.model.all_calls_and_methods![artist_info.id].calls;
+    const calls = state.all_calls_and_methods![artist_info.id].calls;
     const call_views = artist_view.calls;
 
     for (let i = 0; i < calls.length; i++) {
@@ -282,4 +281,17 @@ export function hex_to_rgb(hex: string): { r: number; g: number; b: number } {
         b: parseInt(result[3], 16),
       }
     : { r: 0, g: 0, b: 0 };
+}
+
+// Sort by number of dots, then by total length.
+export function compare_qualified_names(name1: string, name2: string) {
+  return (
+    name1.length +
+    100 * name1.split(".").length -
+    (name2.length + +100 * name2.split(".").length)
+  );
+}
+
+export function get_shortest_qualified_name(names: string[]) {
+  return names.sort(compare_qualified_names)[0];
 }

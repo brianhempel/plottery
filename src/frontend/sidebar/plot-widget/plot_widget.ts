@@ -1,12 +1,11 @@
-import { PlotWidget } from "../../config";
 import {
   Arg,
   ArgView,
   CallInfo,
   CallView,
   HoverRegion,
-  SNPState,
-} from "../../state";
+  State,
+} from "../../types";
 import {
   create_edit_icon,
   create_el,
@@ -16,10 +15,43 @@ import { DropdownWidget } from "../widgets/dropdown/dropdown";
 import { Widget, WidgetKind } from "../widgets/widget";
 import "./plot_widget.css";
 
-export function make_plot_widgets(
-  plot_widgets_config: PlotWidget[],
-  state: SNPState
-) {
+export type PlotWidget = {
+  call_code: string;
+  arg_name: string;
+  type: string;
+};
+
+const plot_widgets_config: PlotWidget[] = [
+  {
+    call_code: "ax.set_title",
+    arg_name: "label",
+    type: "builtins.str",
+  },
+  // {
+  //   call_code: "ax.set_title",
+  //   arg_name: "y",
+  //   flip: true,
+  //   type: "builtins.float",
+  // },
+  {
+    call_code: "ax.set_xlabel",
+    arg_name: "xlabel",
+    type: "builtins.str",
+  },
+  {
+    call_code: "ax.set_ylabel",
+    arg_name: "ylabel",
+    type: "builtins.str",
+  },
+];
+
+/**
+ * Widgets that are located on the plot. Right now, the only one supported is
+ * to edit text. E.g. editing the 'title' by clicking it on the plot.
+ * @param plot_widgets_config
+ * @param state
+ */
+export function make_plot_widgets(state: State) {
   for (const plot_widget_config of plot_widgets_config) {
     // Find the call
     let target_call = find_call_that_satisfies((call_info, _) => {
@@ -58,7 +90,7 @@ export function make_plot_widgets(
 
     // Find the hover element
     const hover_region =
-      state.view.hover_regions!.regions[target_call.info.show_on.at(-1)!];
+      state.hover_regions!.regions[target_call.info.show_on.at(-1)!];
 
     // Find the widget
     let widget = target_arg.view.widget;
@@ -93,13 +125,9 @@ export function make_plot_widget(
   },
   widget: Widget,
   hover_region: HoverRegion,
-  state: SNPState
+  state: State
 ) {
-  if (
-    widget.kind == WidgetKind.Literal &&
-    arg.arg.type == "builtins.str" &&
-    config.type == "builtins.str"
-  ) {
+  if (widget.kind == WidgetKind.Literal && config.type == "builtins.str") {
     const container = hover_region.el.querySelector(".plot-widget-container")!;
 
     const el = create_el("div", "plot-widget", container);
