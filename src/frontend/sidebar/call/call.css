@@ -61,3 +61,10 @@
 .snp-call > .snp-collapsable-header:hover  > .snp-call-name {
   background: #bc00ff33;
 }
+
+.snp-call-kwargs-label {
+  width: fit-content;
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0px 2px;
+}

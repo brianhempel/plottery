@@ -44,6 +44,10 @@
   color: #2f67ac;
   font-weight: bold;
   margin-right: 5px;
+  min-width: 100px;
+  max-width: 100px;
+  text-overflow: ellipsis;
+  overflow: auto;
 }
 
 .snp-arg-optional > .snp-arg-name {

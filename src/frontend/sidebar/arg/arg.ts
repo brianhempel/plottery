@@ -41,7 +41,8 @@ export function create_arg_view(
 
   // Prefix with the argument name
   const prefixEl = create_el("div", "snp-arg-name", arg_el);
-  prefixEl.innerHTML = `${arg.name}<span class="snp-arg-colon">:</span>`;
+  // prefixEl.innerHTML = `${arg.name}<span class="snp-arg-colon">:</span>`;
+  prefixEl.innerHTML = `${arg.name}`;
 
   if (options.optional) {
     arg_el.classList.add("snp-arg-optional");

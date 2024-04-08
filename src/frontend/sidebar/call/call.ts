@@ -103,8 +103,29 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   // Keyword args (optional)
   add_args(missing_keyword_args, false, true);
 
+  // TODO: Store kwargs_collapsable in call els
   if (kwargs != null) {
-    add_args(kwargs, false, true);
+    const kwargs_collapsable = create_collapsable_els();
+    kwargs_collapsable.el.classList.add("snp-kwargs");
+
+    collapse_collapsable(kwargs_collapsable.el);
+
+    call_els.body_el.append(kwargs_collapsable.el);
+    const kwargs_label = create_el(
+      "div",
+      "snp-call-kwargs-label",
+      kwargs_collapsable.header_el
+    );
+    kwargs_label.innerText = "See more";
+
+    kwargs.forEach(arg => {
+      const arg_view = create_arg_view(arg, call, mark, {
+        positional: false,
+        optional: true,
+      });
+      kwargs_collapsable.body_el.append(arg_view.el);
+      arg_and_views.push({ arg, view: arg_view });
+    });
   }
 
   // On clicking on a hidden arg view, unhide it
