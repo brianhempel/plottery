@@ -61,7 +61,7 @@ export type HoverRegion = {
   el: HTMLElement;
   calls: { info: CallInfo; view: CallView }[];
   methods: { info: MethodInfo; view: MethodView }[];
-  artist: ArtistView | undefined;
+  artist: ArtistView | null;
 };
 
 export type SidebarView = {
@@ -150,7 +150,7 @@ export type Arg = {
   kind: string;
   code: string;
   type: Type;
-  code_type: Type | undefined;
+  code_type: Type | null;
   type_compatible_local_names: string[];
   is_positional: boolean;
 };
@@ -224,7 +224,7 @@ export type CallableType = {
   arg_type_compatible_local_names: string[][]; // [['ax'], ['colors', 'counts'], ...]
   arg_types: Type[];
 
-  bound_args: undefined[]; // ?
+  bound_args: null[]; // ?
   def_extras: {
     first_arg: string; // 'self'
   };
@@ -243,7 +243,7 @@ export type CallableType = {
   type_gaurd: null; // ?
   unpack_kwargs: false;
 
-  variables: undefined[]; // ?
+  variables: null[]; // ?
 };
 
 export type NoneType = {
@@ -252,7 +252,7 @@ export type NoneType = {
 
 export type TypeAliasType = {
   ".class": "TypeAliasType";
-  args: undefined[]; // ?
+  args: null[]; // ?
   type_ref: string; // "matplotlib._typing.ArrayLike"
   resolved: Type;
 };

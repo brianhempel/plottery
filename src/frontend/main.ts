@@ -140,7 +140,9 @@ function initialize_state(
 
 (window as any)["attach_snp"] = attach_snp;
 
-export function get_all_calls_and_methods(state: State) {
+export function calls_and_methods_by_artist(state: State): {
+  [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
+} {
   let all_calls_and_methods: {
     [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
   } = {};
@@ -299,7 +301,7 @@ export function get_args(
       kind: arg_kind,
       code: arg_val_code,
       type: call_info.callee.arg_types[arg_i_at_func_def],
-      code_type: undefined,
+      code_type: null,
       type_compatible_local_names:
         call_info.callee.arg_type_compatible_local_names[arg_i_at_func_def],
     });

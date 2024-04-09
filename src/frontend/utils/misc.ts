@@ -23,7 +23,7 @@ export function arg_defaults_from_callee_type(
 
       // Since the function parameter could be a union type, we need to indicate which of the types the actual code is.
       let arg_default_code: string;
-      let arg_default_type: Type | undefined;
+      let arg_default_type: Type | null;
       if (callee.definition_arguments_default_code == null) {
         console.warn("No defaults found for", callee);
       }
@@ -32,7 +32,7 @@ export function arg_defaults_from_callee_type(
         arg_default_code = callee.definition_arguments_default_code[
           arg_i
         ] as string;
-        arg_default_type = undefined; // We don't know.
+        arg_default_type = null; // We don't know.
       } else {
         [arg_default_code, arg_default_type] =
           default_code_and_code_type_for_type(arg_type, arg_name);

@@ -35,7 +35,7 @@ export function make_hover_regions(state: State): {
 
   const create_region = (
     artist_id: number,
-    artist_view?: ArtistView
+    artist_view: ArtistView | null = null
   ): HoverRegion => {
     // Find SVG Group element for the artist
     const hovered_el = find_svg_hovered_elem(hovered_elems, artist_id)!;
