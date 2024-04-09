@@ -15,7 +15,7 @@
   width: 8px;
   margin: 3px 0px 3px 0;
   position: relative;
-  cursor: e-resize;
+  cursor: ew-resize;
 }
 
 .snp-slider {
