@@ -40,8 +40,12 @@ function attach_snp(
     selectable_artists: SelectableArtist[];
     methods: MethodInfo[];
     calls: CallInfo[];
-  }
+  },
+  notebook_ast: Object
 ) {
+
+  console.log(notebook_ast);
+
   // ...Initialize some globals
   (window as any)["snp_persistent_artists"] =
     (window as any)["snp_persistent_artists"] ?? {};
