@@ -64,7 +64,7 @@ function attach_snp(
   set_artist_parent_ids(sidebar_stuff.selectable_artists);
 
   // Get all calls and methods for artists
-  state.all_calls_and_methods = get_all_calls_and_methods(state);
+  state.all_calls_and_methods = calls_and_methods_by_artist(state);
   console.log("State", state);
 
   // Create sidebar
