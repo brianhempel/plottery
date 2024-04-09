@@ -1,3 +1,4 @@
+import { P_Module } from "./ast_types";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
@@ -41,9 +42,8 @@ function attach_snp(
     methods: MethodInfo[];
     calls: CallInfo[];
   },
-  notebook_ast: Object
+  notebook_ast: P_Module
 ) {
-
   console.log(notebook_ast);
 
   // ...Initialize some globals

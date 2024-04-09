@@ -11,7 +11,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "And",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_AnnAssign(self, node: ast.AnnAssign):
@@ -20,7 +21,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "AnnAssign",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Assert(self, node: ast.Assert):
@@ -29,7 +31,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Assert",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Assign(self, node: ast.Assign):
@@ -37,7 +40,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Assign",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "value": self.visit(node.value),
             "targets": [self.visit(target) for target in node.targets],
         }
@@ -48,7 +52,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "AsyncFor",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
@@ -57,7 +62,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "AsyncFunctionDef",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_AsyncWith(self, node: ast.AsyncWith):
@@ -66,7 +72,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "AsyncWith",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Attribute(self, node: ast.Attribute):
@@ -74,7 +81,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Attribute",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "value": self.visit(node.value),
             "attr": node.attr,
             "ctx": self.visit(node.ctx),
@@ -85,7 +93,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "AugAssign",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "value": self.visit(node.value),
             "target": self.visit(node.target),
             "op": self.visit(node.op),
@@ -97,7 +106,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "AugLoad",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_AugStore(self, node: ast.AugStore):
@@ -106,7 +116,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "AugStore",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Await(self, node: ast.Await):
@@ -115,7 +126,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Await",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_BinOp(self, node: ast.BinOp):
@@ -123,7 +135,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "BinOp",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "left": self.visit(node.left),
             "right": self.visit(node.right),
             "op": self.visit(node.op),
@@ -135,7 +148,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "BitAnd",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_BitOr(self, node: ast.BitOr):
@@ -144,7 +158,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "BitOr",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_BitXor(self, node: ast.BitXor):
@@ -153,7 +168,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "BitXor",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_BoolOp(self, node: ast.BoolOp):
@@ -162,7 +178,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "BoolOp",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Break(self, node: ast.Break):
@@ -171,7 +188,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Break",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Call(self, node: ast.Call):
@@ -179,7 +197,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Call",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "func": self.visit(node.func),
             "args": [self.visit(arg) for arg in node.args],
             "keywords": [self.visit(keyword) for keyword in node.keywords],
@@ -191,7 +210,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "ClassDef",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Compare(self, node: ast.Compare):
@@ -200,7 +220,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Compare",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Constant(self, node: ast.Constant):
@@ -208,7 +229,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Constant",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "value": node.value,
             "kind": node.kind,
         }
@@ -219,7 +241,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Continue",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Del(self, node: ast.Del):
@@ -228,7 +251,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Del",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Delete(self, node: ast.Delete):
@@ -237,7 +261,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Delete",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Dict(self, node: ast.Dict):
@@ -245,7 +270,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Dict",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "keys": [
                 self.visit(k) if k is not None else None for k in node.keys
             ],
@@ -258,7 +284,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "DictComp",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Div(self, node: ast.Div):
@@ -267,7 +294,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Div",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Eq(self, node: ast.Eq):
@@ -276,7 +304,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Eq",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_ExceptHandler(self, node: ast.ExceptHandler):
@@ -285,7 +314,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "ExceptHandler",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Expr(self, node: ast.Expr):
@@ -293,7 +323,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Expr",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "value": self.visit(node.value),
         }
 
@@ -303,7 +334,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Expression",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_FloorDiv(self, node: ast.FloorDiv):
@@ -312,7 +344,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "FloorDiv",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_For(self, node: ast.For):
@@ -320,7 +353,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "For",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "target": self.visit(node.target),
             "iter": self.visit(node.iter),
             "body": [self.visit(stmt) for stmt in node.body],
@@ -333,7 +367,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "FormattedValue",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
@@ -342,7 +377,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "FunctionDef",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_FunctionType(self, node: ast.FunctionType):
@@ -351,7 +387,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "FunctionType",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_GeneratorExp(self, node: ast.GeneratorExp):
@@ -360,7 +397,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "GeneratorExp",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Global(self, node: ast.Global):
@@ -369,7 +407,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Global",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Gt(self, node: ast.Gt):
@@ -378,7 +417,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Gt",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_GtE(self, node: ast.GtE):
@@ -387,7 +427,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "GtE",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_If(self, node: ast.If):
@@ -396,7 +437,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "If",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_IfExp(self, node: ast.IfExp):
@@ -405,7 +447,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "IfExp",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Import(self, node: ast.Import):
@@ -413,7 +456,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Import",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "names": [self.visit(name) for name in node.names],
         }
 
@@ -423,7 +467,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "ImportFrom",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_In(self, node: ast.In):
@@ -432,7 +477,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "In",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Interactive(self, node: ast.Interactive):
@@ -441,7 +487,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Interactive",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Invert(self, node: ast.Invert):
@@ -450,7 +497,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Invert",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Is(self, node: ast.Is):
@@ -459,7 +507,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Is",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_IsNot(self, node: ast.IsNot):
@@ -468,7 +517,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "IsNot",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_JoinedStr(self, node: ast.JoinedStr):
@@ -477,7 +527,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "JoinedStr",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_LShift(self, node: ast.LShift):
@@ -486,7 +537,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "LShift",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Lambda(self, node: ast.Lambda):
@@ -495,7 +547,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Lambda",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_List(self, node: ast.List):
@@ -503,7 +556,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "List",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "elts": [self.visit(expr) for expr in node.elts],
             "ctx": self.visit(node.ctx),
         }
@@ -514,7 +568,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "ListComp",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Load(self, node: ast.Load):
@@ -526,7 +581,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Lt",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_LtE(self, node: ast.LtE):
@@ -535,7 +591,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "LtE",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatMult(self, node: ast.MatMult):
@@ -544,7 +601,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatMult",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Match(self, node: ast.Match):
@@ -553,7 +611,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Match",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatchAs(self, node: ast.MatchAs):
@@ -562,7 +621,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatchAs",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatchClass(self, node: ast.MatchClass):
@@ -571,7 +631,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatchClass",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatchMapping(self, node: ast.MatchMapping):
@@ -580,7 +641,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatchMapping",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatchOr(self, node: ast.MatchOr):
@@ -589,7 +651,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatchOr",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatchSequence(self, node: ast.MatchSequence):
@@ -598,7 +661,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatchSequence",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatchSingleton(self, node: ast.MatchSingleton):
@@ -607,7 +671,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatchSingleton",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatchStar(self, node: ast.MatchStar):
@@ -616,7 +681,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatchStar",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_MatchValue(self, node: ast.MatchValue):
@@ -625,7 +691,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "MatchValue",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Mod(self, node: ast.Mod):
@@ -634,7 +701,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Mod",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Module(self, node: ast.Module):
@@ -651,7 +719,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Name",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "id": node.id,
             "ctx": self.visit(node.ctx),
         }
@@ -662,7 +731,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "NamedExpr",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Nonlocal(self, node: ast.Nonlocal):
@@ -671,7 +741,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Nonlocal",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Not(self, node: ast.Not):
@@ -680,7 +751,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Not",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_NotEq(self, node: ast.NotEq):
@@ -689,7 +761,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "NotEq",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_NotIn(self, node: ast.NotIn):
@@ -698,7 +771,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "NotIn",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Or(self, node: ast.Or):
@@ -707,7 +781,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Or",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Param(self, node: ast.Param):
@@ -716,7 +791,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Param",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Pass(self, node: ast.Pass):
@@ -725,7 +801,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Pass",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Pow(self, node: ast.Pow):
@@ -734,7 +811,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Pow",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_RShift(self, node: ast.RShift):
@@ -743,7 +821,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "RShift",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Raise(self, node: ast.Raise):
@@ -752,7 +831,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Raise",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Return(self, node: ast.Return):
@@ -761,7 +841,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Return",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Set(self, node: ast.Set):
@@ -770,7 +851,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Set",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_SetComp(self, node: ast.SetComp):
@@ -779,7 +861,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "SetComp",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Slice(self, node: ast.Slice):
@@ -788,7 +871,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Slice",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Starred(self, node: ast.Starred):
@@ -797,7 +881,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Starred",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Store(self, node: ast.Store):
@@ -811,16 +896,20 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Sub",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Subscript(self, node: ast.Subscript):
-        print("AST Node not implemented!", ast.dump(node))
         return {
             "type": "Subscript",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
+            "value": self.visit(node.value),
+            "slice": self.visit(node.slice),
+            "ctx": self.visit(node.ctx),
         }
 
     def visit_Suite(self, node: ast.Suite):
@@ -829,7 +918,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Suite",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Try(self, node: ast.Try):
@@ -838,7 +928,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Try",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Tuple(self, node: ast.Tuple):
@@ -846,7 +937,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Tuple",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "elts": [self.visit(expr) for expr in node.elts],
             "ctx": self.visit(node.ctx),
         }
@@ -857,7 +949,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "TypeIgnore",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_UAdd(self, node: ast.UAdd):
@@ -866,7 +959,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "UAdd",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_USub(self, node: ast.USub):
@@ -875,7 +969,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "USub",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_UnaryOp(self, node: ast.UnaryOp):
@@ -884,7 +979,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "UnaryOp",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_While(self, node: ast.While):
@@ -893,7 +989,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "While",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_With(self, node: ast.With):
@@ -902,7 +999,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "With",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_Yield(self, node: ast.Yield):
@@ -911,7 +1009,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "Yield",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_YieldFrom(self, node: ast.YieldFrom):
@@ -920,7 +1019,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "YieldFrom",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_alias(self, node: ast.alias):
@@ -928,7 +1028,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "alias",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "name": node.name,
             "asname": node.asname,
         }
@@ -939,7 +1040,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "arg",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_arguments(self, node: ast.arguments):
@@ -948,7 +1050,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "arguments",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_boolop(self, node: ast.boolop):
@@ -957,7 +1060,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "boolop",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_cmpop(self, node: ast.cmpop):
@@ -966,7 +1070,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "cmpop",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_comprehension(self, node: ast.comprehension):
@@ -975,7 +1080,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "comprehension",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_excepthandler(self, node: ast.excepthandler):
@@ -984,7 +1090,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "excepthandler",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_expr(self, node: ast.expr):
@@ -992,16 +1099,13 @@ class MyVisitor(ast.NodeVisitor):
             "type": "expr",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_expr_context(self, node: ast.expr_context):
-        print("AST Node not implemented!", ast.dump(node))
         return {
-            "type": "expr_context",
-            "col_offset": node.col_offset,
-            "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "type": "expr_context"
         }
 
     def visit_keyword(self, node: ast.keyword):
@@ -1009,7 +1113,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "keyword",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
             "arg": node.arg,
             "value": self.visit(node.value),
         }
@@ -1020,7 +1125,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "match_case",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_mod(self, node: ast.mod):
@@ -1029,7 +1135,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "mod",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_operator(self, node: ast.operator):
@@ -1037,7 +1144,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "operator",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_pattern(self, node: ast.pattern):
@@ -1046,7 +1154,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "pattern",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_slice(self, node: ast.slice):
@@ -1055,7 +1164,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "slice",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_stmt(self, node: ast.stmt):
@@ -1064,7 +1174,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "stmt",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_type_ignore(self, node: ast.type_ignore):
@@ -1073,7 +1184,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "type_ignore",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_unaryop(self, node: ast.unaryop):
@@ -1082,7 +1194,8 @@ class MyVisitor(ast.NodeVisitor):
             "type": "unaryop",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
 
     def visit_withitem(self, node: ast.withitem):
@@ -1091,5 +1204,6 @@ class MyVisitor(ast.NodeVisitor):
             "type": "withitem",
             "col_offset": node.col_offset,
             "lineno": node.lineno,
-            "end_lineno": node.end_col_offset,
+            "end_lineno": node.end_lineno,
+            "end_col_offset": node.end_col_offset,
         }
