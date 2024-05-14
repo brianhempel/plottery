@@ -1,3 +1,43 @@
+# Derived from https://github.com/dosisod/refurb/blob/7834a66f5c36df04389b9859aff03e2b5efbc001/refurb/visitor/traverser.py
+
+# Added a .visit() that fires for every visit
+
+# = = = = =
+
+# This work is substantially derived from mypy (https://mypy-lang.org/), and
+# is licensed under the same terms
+# (https://github.com/python/mypy/blob/master/LICENSE) with all credits to the
+# original author(s) and contributor(s), reproduced below.
+#
+# = = = = =
+#
+# The MIT License
+#
+# Copyright (c) 2012-2023 Jukka Lehtosalo and contributors
+# Copyright (c) 2015-2023 Dropbox, Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+# = = = = =
+
+from __future__ import annotations
+
 import functools
 
 import mypy.nodes
@@ -102,6 +142,9 @@ class TraverserVisitor:
 
     def accept(self, o: Context) -> None:
         return accept(o, self)
+
+    def visit(self, o: mypy.nodes.Node) -> None:
+        pass
 
     def visit_func(self, o: mypy.nodes.FuncItem) -> None:
         if o.arguments is not None:
@@ -491,414 +534,497 @@ def accept(node: Context, visitor: TraverserVisitor) -> None:
 
 @accept.register
 def _(node: MypyFile, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_mypy_file(node)
 
 
 @accept.register
 def _(node: Import, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_import(node)
 
 
 @accept.register
 def _(node: ImportFrom, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_import_from(node)
 
 
 @accept.register
 def _(node: ImportAll, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_import_all(node)
 
 
 @accept.register
 def _(node: OverloadedFuncDef, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_overloaded_func_def(node)
 
 
 @accept.register
 def _(node: FuncDef, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_func_def(node)
 
 
 @accept.register
 def _(node: Decorator, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_decorator(node)
 
 
 @accept.register
 def _(node: Var, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_var(node)
 
 
 @accept.register
 def _(node: ClassDef, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_class_def(node)
 
 
 @accept.register
 def _(node: GlobalDecl, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_global_decl(node)
 
 
 @accept.register
 def _(node: NonlocalDecl, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_nonlocal_decl(node)
 
 
 @accept.register
 def _(node: Block, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_block(node)
 
 
 @accept.register
 def _(node: ExpressionStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_expression_stmt(node)
 
 
 @accept.register
 def _(node: AssignmentStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_assignment_stmt(node)
 
 
 @accept.register
 def _(node: OperatorAssignmentStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_operator_assignment_stmt(node)
 
 
 @accept.register
 def _(node: WhileStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_while_stmt(node)
 
 
 @accept.register
 def _(node: ForStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_for_stmt(node)
 
 
 @accept.register
 def _(node: ReturnStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_return_stmt(node)
 
 
 @accept.register
 def _(node: AssertStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_assert_stmt(node)
 
 
 @accept.register
 def _(node: DelStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_del_stmt(node)
 
 
 @accept.register
 def _(node: BreakStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_break_stmt(node)
 
 
 @accept.register
 def _(node: ContinueStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_continue_stmt(node)
 
 
 @accept.register
 def _(node: PassStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_pass_stmt(node)
 
 
 @accept.register
 def _(node: IfStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_if_stmt(node)
 
 
 @accept.register
 def _(node: RaiseStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_raise_stmt(node)
 
 
 @accept.register
 def _(node: TryStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_try_stmt(node)
 
 
 @accept.register
 def _(node: WithStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_with_stmt(node)
 
 
 @accept.register
 def _(node: MatchStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_match_stmt(node)
 
 
 @accept.register
 def _(node: IntExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_int_expr(node)
 
 
 @accept.register
 def _(node: StrExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_str_expr(node)
 
 
 @accept.register
 def _(node: BytesExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_bytes_expr(node)
 
 
 @accept.register
 def _(node: FloatExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_float_expr(node)
 
 
 @accept.register
 def _(node: ComplexExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_complex_expr(node)
 
 
 @accept.register
 def _(node: EllipsisExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_ellipsis(node)
 
 
 @accept.register
 def _(node: StarExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_star_expr(node)
 
 
 @accept.register
 def _(node: NameExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_name_expr(node)
 
 
 @accept.register
 def _(node: MemberExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_member_expr(node)
 
 
 @accept.register
 def _(node: CallExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_call_expr(node)
 
 
 @accept.register
 def _(node: YieldFromExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_yield_from_expr(node)
 
 
 @accept.register
 def _(node: YieldExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_yield_expr(node)
 
 
 @accept.register
 def _(node: IndexExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_index_expr(node)
 
 
 @accept.register
 def _(node: UnaryExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_unary_expr(node)
 
 
 @accept.register
 def _(node: AssignmentExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_assignment_expr(node)
 
 
 @accept.register
 def _(node: OpExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_op_expr(node)
 
 
 @accept.register
 def _(node: ComparisonExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_comparison_expr(node)
 
 
 @accept.register
 def _(node: SliceExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_slice_expr(node)
 
 
 @accept.register
 def _(node: CastExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_cast_expr(node)
 
 
 @accept.register
 def _(node: AssertTypeExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_assert_type_expr(node)
 
 
 @accept.register
 def _(node: RevealExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_reveal_expr(node)
 
 
 @accept.register
 def _(node: SuperExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_super_expr(node)
 
 
 @accept.register
 def _(node: LambdaExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_lambda_expr(node)
 
 
 @accept.register
 def _(node: ListExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_list_expr(node)
 
 
 @accept.register
 def _(node: DictExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_dict_expr(node)
 
 
 @accept.register
 def _(node: TupleExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_tuple_expr(node)
 
 
 @accept.register
 def _(node: SetExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_set_expr(node)
 
 
 @accept.register
 def _(node: GeneratorExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_generator_expr(node)
 
 
 @accept.register
 def _(node: ListComprehension, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_list_comprehension(node)
 
 
 @accept.register
 def _(node: SetComprehension, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_set_comprehension(node)
 
 
 @accept.register
 def _(node: DictionaryComprehension, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_dictionary_comprehension(node)
 
 
 @accept.register
 def _(node: ConditionalExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_conditional_expr(node)
 
 
 @accept.register
 def _(node: TypeApplication, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_type_application(node)
 
 
 @accept.register
 def _(node: TypeVarExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_type_var_expr(node)
 
 
 @accept.register
 def _(node: ParamSpecExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_paramspec_expr(node)
 
 
 @accept.register
 def _(node: TypeVarTupleExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_type_var_tuple_expr(node)
 
 
 @accept.register
 def _(node: TypeAliasExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_type_alias_expr(node)
 
 
 @accept.register
 def _(node: NamedTupleExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_namedtuple_expr(node)
 
 
 @accept.register
 def _(node: TypedDictExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_typeddict_expr(node)
 
 
 @accept.register
 def _(node: EnumCallExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_enum_call_expr(node)
 
 
 @accept.register
 def _(node: PromoteExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit__promote_expr(node)
 
 
 @accept.register
 def _(node: NewTypeExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_newtype_expr(node)
 
 
 @accept.register
 def _(node: AwaitExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_await_expr(node)
 
 
 @accept.register
 def _(node: TempNode, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_temp_node(node)
 
 
 @accept.register
 def _(node: TypeAlias, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_type_alias(node)
 
 
 @accept.register
 def _(node: PlaceholderNode, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_placeholder_node(node)
 
 
 @accept.register
 def _(node: AsPattern, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_as_pattern(node)
 
 
 @accept.register
 def _(node: OrPattern, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_or_pattern(node)
 
 
 @accept.register
 def _(node: ValuePattern, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_value_pattern(node)
 
 
 @accept.register
 def _(node: SingletonPattern, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_singleton_pattern(node)
 
 
 @accept.register
 def _(node: SequencePattern, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_sequence_pattern(node)
 
 
 @accept.register
 def _(node: StarredPattern, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_starred_pattern(node)
 
 
 @accept.register
 def _(node: MappingPattern, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_mapping_pattern(node)
 
 
 @accept.register
 def _(node: ClassPattern, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return visitor.visit_class_pattern(node)
 
 
 @accept.register
 def _(node: RequiredType, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
     return accept(node.item, visitor)

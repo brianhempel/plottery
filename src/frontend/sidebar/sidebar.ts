@@ -1,6 +1,6 @@
 import {
   ArtistView,
-  CallInfo,
+  DynamicCallInfo,
   CallView,
   CallWithArgs,
   MethodInfo,
@@ -10,7 +10,6 @@ import {
   PersistantCall,
   SelectableArtist,
   SidebarView,
-  SidebarViewEls,
   State,
 } from "../types";
 import { MarkerRange, TextMarker } from "../utils/codemirror";
@@ -37,10 +36,12 @@ export function create_sidebar(
   selectable_artists: SelectableArtist[],
   state: State
 ): SidebarView {
-  const sidebar_els = create_sidebar_view_skeleton();
+
+  const sidebar_el = create_el("div", "snp-sidebar");
 
   const sidebar_view: SidebarView = {
-    els: sidebar_els,
+    el:         sidebar_el,
+    artists_el: create_el("div", "snp-artists", sidebar_el),
     artists: {},
   };
 
@@ -58,22 +59,6 @@ export function create_sidebar(
   return sidebar_view;
 }
 
-export function create_sidebar_view_skeleton(): SidebarViewEls {
-  // Sidebar container
-  const sidebar_el = create_el("div", "snp-sidebar");
-
-  // Create a header for the sidebar
-  const header_el = create_el("div", "snp-header", sidebar_el);
-
-  // Create a container for the artists
-  const artists_el = create_el("div", "snp-artists", sidebar_el);
-
-  return {
-    el: sidebar_el,
-    header_el: header_el,
-    artists_el: artists_el,
-  };
-}
 
 export function find_artist_from_method(
   target_method_info: MethodInfo,
@@ -97,7 +82,7 @@ export function find_artist_from_method(
 }
 
 export function find_artist_from_call(
-  target_call_info: CallInfo,
+  target_call_info: DynamicCallInfo,
   state: State
 ): { info: SelectableArtist; view: ArtistView } | null {
   for (const artist_info of state.selectable_artists) {
@@ -136,7 +121,7 @@ export function open_collapsable_artist(
 }
 
 export function focus_on_call(
-  target_call_info: CallInfo,
+  target_call_info: DynamicCallInfo,
   target_call_view: CallView,
   state: State
 ) {
@@ -213,8 +198,8 @@ export function add_method_code(
   hard_rerun(state);
 }
 
-export function get_code_and_loc_for_call(call: CallInfo) {
-  return `${call.func_code_and_num[0]}${call.call.pos.line}`;
+export function get_code_and_loc_for_call(call: DynamicCallInfo) {
+  return `${call.loc_via_func_code_and_num[0]}${call.call.pos.line}`;
 }
 
 export function catalog_open_artists(state: State) {

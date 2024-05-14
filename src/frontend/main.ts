@@ -1,4 +1,5 @@
 import { P_Module } from "./ast_types";
+import { layer_from_ast_node } from "./layer_panel/layer_panel";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
@@ -7,7 +8,7 @@ import { create_toggles } from "./sidebar/toggles/toggles";
 import "./snp.css";
 import {
   Arg,
-  CallInfo,
+  DynamicCallInfo,
   CallWithArgs,
   CallableType,
   MethodInfo,
@@ -17,6 +18,8 @@ import {
   State,
   TypeAliasType,
   TypedDictType,
+  StaticCallTypeInfo,
+  Type,
 } from "./types";
 import { partition, takeWhile } from "./utils/array";
 import {
@@ -36,15 +39,15 @@ function attach_snp(
   snp_outer: HTMLElement,
   cell_lineno: number,
   provenance_is_off_by_n_lines: number,
-  user_call_info: any,
+  user_call_type_info: StaticCallTypeInfo[],
   sidebar_stuff: {
     selectable_artists: SelectableArtist[];
     methods: MethodInfo[];
-    calls: CallInfo[];
+    calls: DynamicCallInfo[];
   },
   notebook_ast: P_Module
 ) {
-  console.log(notebook_ast);
+  console.log("user_call_type_info", user_call_type_info);
 
   // ...Initialize some globals
   (window as any)["snp_persistent_artists"] =
@@ -57,6 +60,7 @@ function attach_snp(
     snp_outer,
     cell_lineno,
     provenance_is_off_by_n_lines,
+    notebook_ast,
     sidebar_stuff
   );
 
@@ -71,13 +75,16 @@ function attach_snp(
   state.all_calls_and_methods = calls_and_methods_by_artist(state);
   console.log("State", state);
 
+  const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
+  state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));
+
   // Create sidebar
   state.sidebar = create_sidebar(
     state.all_calls_and_methods,
     state.selectable_artists,
     state
   );
-  state.snp_outer.append(state.sidebar.els.el);
+  state.snp_outer.append(state.sidebar.el);
 
   // Make hover regions
   state.hover_regions = make_hover_regions(state);
@@ -106,10 +113,11 @@ function initialize_state(
   snp_outer: HTMLElement,
   cell_lineno: number,
   provenance_is_off_by_n_lines: number,
+  notebook_ast: P_Module,
   sidebar_stuff: {
     selectable_artists: SelectableArtist[];
     methods: MethodInfo[];
-    calls: CallInfo[];
+    calls: DynamicCallInfo[];
   }
 ): State {
   const cell_el = snp_outer.closest(".code_cell");
@@ -128,6 +136,8 @@ function initialize_state(
 
     last_cell_code_executed: cell.get_text(),
     provenance_is_off_by_n_lines,
+
+    notebook_ast,
 
     selectable_artists: sidebar_stuff.selectable_artists,
 
@@ -160,12 +170,7 @@ export function calls_and_methods_by_artist(state: State): {
       return method.show_on.at(-1) == artist.id;
     });
 
-    const artist_calls = get_calls(
-      artist,
-      artist_call_infos,
-      state.cell_lineno,
-      state.cell.code_mirror
-    );
+    const artist_calls = artist_call_infos.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
 
     let artist_methods = get_methods(
       artist,
@@ -178,7 +183,7 @@ export function calls_and_methods_by_artist(state: State): {
     artist_methods = artist_methods.filter(method => {
       const is_already_called = artist_calls.find(
         call =>
-          call.call_info.func_code_and_num[0] ==
+          call.call_info.loc_via_func_code_and_num[0] ==
           `${method.receiver_name}.${method.method_info.name}`
       );
 
@@ -238,47 +243,44 @@ export function get_methods(
   });
 }
 
-export function get_calls(
-  artist: SelectableArtist,
-  artist_call_infos: CallInfo[],
+export function call_info_to_call_with_args<call_info_type>(
+  call_info: call_info_type & (StaticCallTypeInfo | DynamicCallInfo),
   cell_lineno: number,
   code_mirror: CodeMirror.DocOrEditor
-): CallWithArgs[] {
-  return artist_call_infos.map(call_info => {
-    const args = get_args(call_info, cell_lineno, code_mirror);
+): CallWithArgs<call_info_type> {
+  const args = get_args(call_info, cell_lineno, code_mirror);
 
-    const [given_positional_args, given_keyword_args] = partition(
-      args.filter(arg => arg.name != "kwargs"),
-      arg => arg.is_positional
-    );
+  const [given_positional_args, given_keyword_args] = partition(
+    args.filter(arg => arg.name != "kwargs"),
+    arg => arg.is_positional
+  );
 
-    const {
-      missing_positional_args,
-      missing_keyword_args,
-      needed_positional_args,
-      missing_optional_positional_args,
-      kwargs,
-    } = segment_args(
-      call_info.callee,
-      given_positional_args,
-      given_keyword_args
-    );
+  const {
+    missing_positional_args,
+    missing_keyword_args,
+    needed_positional_args,
+    missing_optional_positional_args,
+    kwargs,
+  } = segment_args(
+    call_info.callee,
+    given_positional_args,
+    given_keyword_args
+  );
 
-    return {
-      call_info,
-      given_positional_args,
-      given_keyword_args,
-      missing_positional_args,
-      missing_keyword_args,
-      needed_positional_args,
-      missing_optional_positional_args,
-      kwargs,
-    };
-  });
+  return {
+    call_info,
+    given_positional_args,
+    given_keyword_args,
+    missing_positional_args,
+    missing_keyword_args,
+    needed_positional_args,
+    missing_optional_positional_args,
+    kwargs,
+  };
 }
 
 export function get_args(
-  call_info: CallInfo,
+  call_info: StaticCallTypeInfo | DynamicCallInfo,
   cell_lineno: number,
   code_mirror: CodeMirror.DocOrEditor
 ): Arg[] {
@@ -307,7 +309,7 @@ export function get_args(
       type: call_info.callee.arg_types[arg_i_at_func_def],
       code_type: null,
       type_compatible_local_names:
-        call_info.callee.arg_type_compatible_local_names[arg_i_at_func_def],
+        call_info.callee.type_compatible_local_names_by_arg_i[arg_i_at_func_def],
     });
   });
 

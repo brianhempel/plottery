@@ -1,7 +1,7 @@
 import {
   Arg,
   ArgView,
-  CallInfo,
+  DynamicCallInfo,
   CallView,
   HoverRegion,
   State,
@@ -55,7 +55,7 @@ export function make_plot_widgets(state: State) {
   for (const plot_widget_config of plot_widgets_config) {
     // Find the call
     let target_call = find_call_that_satisfies((call_info, _) => {
-      const call_code_prefix = call_info.func_code_and_num[0];
+      const call_code_prefix = call_info.loc_via_func_code_and_num[0];
       return call_code_prefix == plot_widget_config.call_code;
     }, state);
 
@@ -116,7 +116,7 @@ export function make_plot_widgets(state: State) {
 export function make_plot_widget(
   config: PlotWidget,
   call: {
-    info: CallInfo;
+    info: DynamicCallInfo;
     view: CallView;
   },
   arg: {

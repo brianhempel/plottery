@@ -6,7 +6,9 @@ export type P_expr = {
   end_lineno: number;
 };
 
-export type P_stmt = P_expr;
+export type P_stmt = P_expr & {
+  type: "stmt"
+};
 
 export type P_expr_context = {
   type: "expr_context";
@@ -16,7 +18,7 @@ export type P_Add = {
   type: "Add";
 };
 
-export type P_Assign = P_expr & {
+export type P_Assign = P_stmt & {
   type: "Assign";
 };
 
@@ -27,7 +29,7 @@ export type P_Attribute = P_expr & {
   ctx: P_expr_context;
 };
 
-export type P_AugAssign = P_expr & {
+export type P_AugAssign = P_stmt & {
   type: "AugAssign";
   value: P_expr;
   target: P_Name | P_Attribute | P_Subscript;
@@ -60,12 +62,12 @@ export type P_Dict = P_expr & {
   values: P_expr[];
 };
 
-export type P_Expr = P_expr & {
+export type P_Expr = P_stmt & {
   type: "Expr";
   value: P_expr;
 };
 
-export type P_For = P_expr & {
+export type P_For = P_stmt & {
   type: "For";
   target: P_expr;
   iter: P_expr;
@@ -73,7 +75,7 @@ export type P_For = P_expr & {
   orelse: P_stmt[];
 };
 
-export type P_Import = P_expr & {
+export type P_Import = P_stmt & {
   type: "Import";
   names: P_alias[];
 };

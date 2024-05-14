@@ -1,6 +1,6 @@
 import {
   Arg,
-  CallInfo,
+  DynamicCallInfo,
   CallView,
   CallableType,
   IInstanceType,
@@ -24,12 +24,12 @@ export function arg_defaults_from_callee_type(
       // Since the function parameter could be a union type, we need to indicate which of the types the actual code is.
       let arg_default_code: string;
       let arg_default_type: Type | null;
-      if (callee.definition_arguments_default_code == null) {
+      if (callee.default_code_by_arg_idx == null) {
         console.warn("No defaults found for", callee);
       }
 
-      if (callee.definition_arguments_default_code?.at(arg_i)) {
-        arg_default_code = callee.definition_arguments_default_code[
+      if (callee.default_code_by_arg_idx?.at(arg_i)) {
+        arg_default_code = callee.default_code_by_arg_idx[
           arg_i
         ] as string;
         arg_default_type = null; // We don't know.
@@ -46,7 +46,7 @@ export function arg_defaults_from_callee_type(
         type: arg_type,
         code_type: arg_default_type,
         type_compatible_local_names:
-          callee.arg_type_compatible_local_names[arg_i],
+          callee.type_compatible_local_names_by_arg_i[arg_i],
       };
     })
     .slice(callee.def_extras.first_arg !== undefined ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined
@@ -241,7 +241,7 @@ export function insert_to_beginning_of_el(
 }
 
 export function find_call_that_satisfies(
-  pred: (info: CallInfo, view: CallView) => boolean,
+  pred: (info: DynamicCallInfo, view: CallView) => boolean,
   state: State
 ) {
   // Go through all the call views from artists

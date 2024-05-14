@@ -41,7 +41,7 @@ export function create_artist_view(
   // Find parent element
   let parent_el = artist.parent_id
     ? sidebar_view.artists[artist.parent_id!].els.body_el
-    : sidebar_view.els.artists_el;
+    : sidebar_view.artists_el;
 
   // Make artist view
   const { el, body_el, header_el } = create_collapsable_els();
@@ -51,7 +51,7 @@ export function create_artist_view(
   // Add a name
   const name_el = create_el("div", "snp-artist-name", header_el);
 
-  if (parent_el != sidebar_view.els.artists_el) {
+  if (parent_el != sidebar_view.artists_el) {
     collapse_collapsable(el); // Collapse children by default
     const end = artist_name.split(".").at(-1)!;
     name_el.innerHTML = `${end}`; // Set name to be trimmed

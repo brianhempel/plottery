@@ -17,10 +17,12 @@ export type State = {
   last_cell_code_executed: string;
   provenance_is_off_by_n_lines: number;
 
+  notebook_ast: P_Module;
+
   selectable_artists: SelectableArtist[];
 
   methods: MethodInfo[];
-  calls: CallInfo[];
+  calls: DynamicCallInfo[];
 
   busy: boolean;
 
@@ -28,7 +30,7 @@ export type State = {
 
   all_calls_and_methods?: {
     [key: string]: {
-      calls: CallWithArgs[];
+      calls: CallWithArgs<DynamicCallInfo | StaticCallTypeInfo>[];
       methods: MethodWithArgs[];
     };
   };
@@ -47,6 +49,7 @@ export type State = {
   };
 };
 
+
 export type SelectedItem =
   | { name: string }
   | { func_code: string; call_num: number };
@@ -59,20 +62,15 @@ export type SelectableArtist = {
 
 export type HoverRegion = {
   el: HTMLElement;
-  calls: { info: CallInfo; view: CallView }[];
+  calls: { info: DynamicCallInfo; view: CallView }[];
   methods: { info: MethodInfo; view: MethodView }[];
   artist: ArtistView | null;
 };
 
 export type SidebarView = {
-  els: SidebarViewEls;
-  artists: { [name: string]: ArtistView };
-};
-
-export type SidebarViewEls = {
   el: HTMLElement;
-  header_el: HTMLElement;
   artists_el: HTMLElement;
+  artists: { [name: string]: ArtistView };
 };
 
 export type ArtistView = {
@@ -155,10 +153,9 @@ export type Arg = {
   is_positional: boolean;
 };
 
-export type CallInfo = MethodInfo & {
+export type StaticCallTypeInfo = {
   call: { pos: Position };
   callee: CallableType & { pos: Position };
-  func_code_and_num: [string, number]; // ["ax.bar", 1]
 
   // It's either a Type with { kind, name, pos }, OR
   // its just { kind, name, pos }.
@@ -169,8 +166,12 @@ export type CallInfo = MethodInfo & {
   })[];
 };
 
-export type CallWithArgs = {
-  call_info: CallInfo;
+export type DynamicCallInfo = MethodInfo & StaticCallTypeInfo & {
+  loc_via_func_code_and_num: [string, number]; // ["ax.bar", 1]
+};
+
+export type CallWithArgs<call_info_type> = {
+  call_info: call_info_type;
   given_positional_args: Arg[];
   given_keyword_args: Arg[];
   missing_positional_args: Arg[];
@@ -221,7 +222,7 @@ export type CallableType = {
 
   arg_kinds: number[]; // [0, 0, 1, ...]
   arg_names: string[]; // ['self', 'label', 'fontdict', 'loc', ...]
-  arg_type_compatible_local_names: string[][]; // [['ax'], ['colors', 'counts'], ...]
+  type_compatible_local_names_by_arg_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
   arg_types: Type[];
 
   bound_args: null[]; // ?
@@ -229,7 +230,7 @@ export type CallableType = {
     first_arg: string; // 'self'
   };
 
-  definition_arguments_default_code: (number | string | null)[];
+  default_code_by_arg_idx: (number | string | null)[];
   fallback: string; // "builtins.str"
 
   from_concatenate: boolean;

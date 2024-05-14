@@ -49,7 +49,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
   // Call container
   const call_els = create_call_view_skeleton();
-  call_els.name_el.innerText = call.call_info.func_code_and_num[0];
+  call_els.name_el.innerText = call.call_info.loc_via_func_code_and_num[0];
 
   const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
     "snp_persistent_calls"

@@ -10,7 +10,7 @@ import "./toggles.css";
  * ...
  */
 export function create_toggles(state: State) {
-  const el = create_el("div", "snp-toggles", state.sidebar!.els.el);
+  const el = create_el("div", "snp-toggles", state.sidebar!.el);
 
   // Create a toggle to show or hide methods on plot
   const method_toggle_name = "Show methods on plot";

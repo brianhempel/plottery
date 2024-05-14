@@ -22,20 +22,6 @@
   z-index: 5;
 }
 
-.snp-header {
-  padding: 4px;
-  font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
-  cursor: move;
-  border-top: 1px solid #ababab;
-  margin: 0px 10px;
-
-  display: none;
-}
-
-.snp-header:hover {
-  background: #cccccc;
-}
-
 .snp-artists {
   padding: 5px 10px;
   display: flex;

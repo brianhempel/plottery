@@ -1087,8 +1087,8 @@ function arg_defaults_from_callee_type(callee): Arg[] {
       // Since the function parameter could be a union type, we need to indicate which of the types the actual code is.
       let arg_default_code: string;
       let arg_default_type;
-      if (callee.definition_arguments_default_code[arg_i]) {
-        arg_default_code = callee.definition_arguments_default_code[arg_i];
+      if (callee.default_code_by_arg_idx[arg_i]) {
+        arg_default_code = callee.default_code_by_arg_idx[arg_i];
         arg_default_type = undefined; // We don't know.
       } else {
         [arg_default_code, arg_default_type] =
@@ -1102,7 +1102,7 @@ function arg_defaults_from_callee_type(callee): Arg[] {
         type: arg_type,
         code_type: arg_default_type,
         type_compatible_local_names:
-          callee.arg_type_compatible_local_names[arg_i],
+          callee.type_compatible_local_names_by_arg_i[arg_i],
       };
     })
     .slice(callee.def_extras.first_arg !== undefined ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined
@@ -1286,7 +1286,7 @@ function loced_widget_from_code(call_info, cell_lineno, cm, snp_state) {
       type: callee.arg_types[arg_i_at_func_def],
       code_type: undefined,
       type_compatible_local_names:
-        callee.arg_type_compatible_local_names[arg_i_at_func_def],
+        callee.type_compatible_local_names_by_arg_i[arg_i_at_func_def],
     });
   });
 
@@ -1624,7 +1624,7 @@ function build_sidebar(snp_state) {
     const methods_called = [];
 
     const call_widgets = artist_calls.map(call_info => {
-      const { name, receiver, max_calls, func_code_and_num } = call_info;
+      const { name, receiver, max_calls, loc_via_func_code_and_num } = call_info;
       const { widget, mark } = loced_widget_from_code(
         call_info,
         cell_lineno,
@@ -1648,7 +1648,7 @@ function build_sidebar(snp_state) {
       if (is_single_call) {
         return make_el(
           "span",
-          { funcCodeAndNum: func_code_and_num },
+          { funcCodeAndNum: loc_via_func_code_and_num },
           { display: "grid", gridTemplateColumns: "min-content 333px" },
           {},
           [
@@ -1666,7 +1666,7 @@ function build_sidebar(snp_state) {
       } else {
         return make_el(
           "div",
-          { funcCodeAndNum: func_code_and_num },
+          { funcCodeAndNum: loc_via_func_code_and_num },
           { display: "grid", gridTemplateColumns: "min-content 333px" },
           {},
           [
