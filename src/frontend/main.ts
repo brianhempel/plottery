@@ -4,7 +4,6 @@ import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 import { create_sidebar, focus_on_call_from_code } from "./sidebar/sidebar";
-import { create_toggles } from "./sidebar/toggles/toggles";
 import "./snp.css";
 import {
   Arg,
@@ -113,9 +112,6 @@ function attach_snp(
 
   // Make plot widgets on those hover regions
   make_plot_widgets(state);
-
-  // Create toggles
-  create_toggles(state);
 
   // Focus on call (i.e. expand the sidebar to show the call)
   // e.g. when adding a new method, expand it's call

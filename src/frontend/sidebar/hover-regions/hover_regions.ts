@@ -122,10 +122,6 @@ export function make_hover_regions(state: State): {
   // Clicking on region should focus on the calls and methods of it
   for (const [_, region] of Object.entries(regions)) {
     region.el.addEventListener("click", () => {
-      if ((window as any)["enable_focus_from_plot"] != true) {
-        return;
-      }
-
       add_temporary_focus(region.el);
 
       region.calls.forEach(call => {

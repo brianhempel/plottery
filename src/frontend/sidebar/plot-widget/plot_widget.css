@@ -3,10 +3,6 @@
   position: relative;
 }
 
-.plot-widget.disabled {
-  display: none !important;
-}
-
 .plot-widget-input {
   display: none;
   position: absolute;
