@@ -4,6 +4,7 @@ import {
   CallView,
   CallViewEls,
   CallWithArgs,
+  DynamicCallInfo,
   PersistantCall,
   State,
 } from "../../types";
@@ -33,7 +34,7 @@ import "./call.css";
  *   - y=data[0]
  *   - heights=data[1]
  */
-export function create_call_view(call: CallWithArgs, state: State): CallView {
+export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: State): CallView {
   const code_mirror = state.cell.code_mirror;
   const cell_lineno = state.cell_lineno;
 
@@ -48,8 +49,12 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   );
 
   // Call container
-  const call_els = create_call_view_skeleton();
-  call_els.name_el.innerText = call.call_info.loc_via_func_code_and_num[0];
+
+  const { el: call_el, body_el, header_el } = create_collapsable_els();
+  call_el.classList.add("snp-call");
+  const name_el = create_el("div", "snp-call-name", header_el);
+
+  name_el.innerText = call.call_info.loc_via_func_code_and_num[0];
 
   const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
     "snp_persistent_calls"
@@ -59,9 +64,9 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   // If previously expanded, then expand
   if (persistent_calls[code_and_loc]) {
     if (persistent_calls[code_and_loc]?.collapsed) {
-      collapse_collapsable(call_els.el);
+      collapse_collapsable(call_el);
     } else {
-      open_collapsable(call_els.el);
+      open_collapsable(call_el);
     }
   }
 
@@ -84,7 +89,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
         positional,
         optional,
       });
-      call_els.body_el.append(arg_view.el);
+      body_el.append(arg_view.el);
       arg_and_views.push({ arg, view: arg_view });
     });
   };
@@ -110,7 +115,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
     collapse_collapsable(kwargs_collapsable.el);
 
-    call_els.body_el.append(kwargs_collapsable.el);
+    body_el.append(kwargs_collapsable.el);
     const kwargs_label = create_el(
       "div",
       "snp-call-kwargs-label",
@@ -141,14 +146,14 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
     });
   });
 
-  // On change of call, check if it's code changed
-  let curr_inner_text = call_els.el.innerHTML;
-  let curr_code = call_to_code(call_els.name_el.innerText, arg_and_views);
+  // On change of call, check if its code changed
+  let curr_inner_text = call_el.innerHTML;
+  let curr_code = call_to_code(name_el.innerText, arg_and_views);
 
   // Sync changes
   function keep_synced() {
-    if (curr_inner_text != call_els.el.innerText) {
-      const code = call_to_code(call_els.name_el.innerText, arg_and_views);
+    if (curr_inner_text != call_el.innerText) {
+      const code = call_to_code(name_el.innerText, arg_and_views);
 
       if (curr_code != code) {
         sync_call_code(mark, code, state);
@@ -160,9 +165,13 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   }
   keep_synced();
 
-  // Add the call view
   return {
-    els: call_els,
+    els: {
+      el: call_el,
+      header_el,
+      name_el: create_el("div", "snp-call-name", header_el),
+      body_el,
+    },
     is_elided: false,
     arguments: arg_and_views,
   };
@@ -187,31 +196,4 @@ export function call_to_code(
   code += ")";
 
   return code;
-}
-
-export function create_call_view_skeleton(): CallViewEls {
-  // Collapsable
-  const { el, body_el, header_el } = create_collapsable_els();
-  el.classList.add("snp-call");
-
-  // Call name
-  const name_el = create_el("div", "snp-call-name", header_el);
-
-  // Starting bracket
-  // const start_bracket_el = create_el("div", "snp-bracket", el);
-  // start_bracket_el.innerText = "(";
-
-  // Args
-  // const args_el = create_el("div", "snp-call-args", el);
-
-  // Ending bracket
-  // const end_bracket_el = create_el("div", "snp-bracket", el);
-  // end_bracket_el.innerText = ")";
-
-  return {
-    el,
-    header_el,
-    name_el,
-    body_el,
-  };
 }

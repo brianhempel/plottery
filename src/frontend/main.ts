@@ -1,5 +1,5 @@
 import { P_Module } from "./ast_types";
-import { layer_from_ast_node } from "./layer_panel/layer_panel";
+import { layer_from_ast_node, maybe_layer_from_typed_node } from "./layer_panel/layer_panel";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
@@ -21,14 +21,17 @@ import {
   StaticCallTypeInfo,
   Type,
 } from "./types";
-import { partition, takeWhile } from "./utils/array";
+import "./utils/array";
 import {
   arg_defaults_from_callee_type,
+  create_el,
   get_shortest_qualified_name,
   item_to_end_pos,
   item_to_start_pos,
 } from "./utils/misc";
 import { JupyterType, get_arg_kind_from_int } from "./utils/types";
+import * as deserialize from "./utils/deserialize";
+
 
 // These will already exist where we inject the JS in the notebook.
 declare const IPython: any;
@@ -45,7 +48,8 @@ function attach_snp(
     methods: MethodInfo[];
     calls: DynamicCallInfo[];
   },
-  notebook_ast: P_Module
+  notebook_ast: P_Module,
+  notebook_typed_defs: Type[]
 ) {
   console.log("user_call_type_info", user_call_type_info);
 
@@ -75,16 +79,34 @@ function attach_snp(
   state.all_calls_and_methods = calls_and_methods_by_artist(state);
   console.log("State", state);
 
-  const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
-  state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));
+  // const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
+  // state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));
+
+  // log the number of keys in notebook_typed_defs
+  console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs).length);
+  console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs));
+
+  state.notebook_typed_defs = deserialize.python_objects_to_js(notebook_typed_defs);
+
+  const calls_with_args = sidebar_stuff.calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
+  state.layers = state.notebook_typed_defs.filterMap(typed_node =>
+    typed_node['line'] >= cell_lineno ? maybe_layer_from_typed_node(typed_node, calls_with_args, state) : null
+  );
+
+  const sidebar_el = create_el("div", "snp-sidebar");
+
+  state.layers.forEach(layer => {
+    sidebar_el.append(layer);
+  })
+  state.snp_outer.append(sidebar_el);
 
   // Create sidebar
-  state.sidebar = create_sidebar(
-    state.all_calls_and_methods,
-    state.selectable_artists,
-    state
-  );
-  state.snp_outer.append(state.sidebar.el);
+  // state.sidebar = create_sidebar(
+  //   state.all_calls_and_methods,
+  //   state.selectable_artists,
+  //   state
+  // );
+  // state.snp_outer.append(state.sidebar.el);
 
   // Make hover regions
   state.hover_regions = make_hover_regions(state);
@@ -104,9 +126,9 @@ function attach_snp(
   }
 
   // Suppress additional plot
-  setTimeout(() => {
-    snp_outer.parentElement?.parentElement?.nextElementSibling?.remove();
-  }, 200);
+  // setTimeout(() => {
+  //   snp_outer.parentElement?.parentElement?.nextElementSibling?.remove();
+  // }, 200);
 }
 
 function initialize_state(
@@ -138,8 +160,11 @@ function initialize_state(
     provenance_is_off_by_n_lines,
 
     notebook_ast,
+    notebook_typed_defs: [],
 
     selectable_artists: sidebar_stuff.selectable_artists,
+
+    layers: [],
 
     methods: sidebar_stuff.methods,
     calls: sidebar_stuff.calls,
@@ -170,7 +195,9 @@ export function calls_and_methods_by_artist(state: State): {
       return method.show_on.at(-1) == artist.id;
     });
 
-    const artist_calls = artist_call_infos.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
+    const artist_calls = artist_call_infos.map(
+      call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror)
+    )
 
     let artist_methods = get_methods(
       artist,
@@ -213,12 +240,10 @@ export function get_methods(
 
     let arg_defaults = arg_defaults_from_callee_type(method_info.type);
 
-    let [required_positional_arg, required_keyword_args] = partition(
+    let [required_positional_arg, required_keyword_args] =
       arg_defaults.filter(
         arg => arg.kind == "ARG_POS" || arg.kind == "ARG_NAMED"
-      ),
-      arg => arg.kind == "ARG_POS"
-    );
+      ).partition(arg => arg.kind == "ARG_POS");
 
     let required_positional_arg_codes = required_positional_arg.map(
       arg => arg.code
@@ -243,17 +268,15 @@ export function get_methods(
   });
 }
 
-export function call_info_to_call_with_args<call_info_type>(
-  call_info: call_info_type & (StaticCallTypeInfo | DynamicCallInfo),
+export function call_info_to_call_with_args<call_info_type extends (DynamicCallInfo | StaticCallTypeInfo)>(
+  call_info: call_info_type,
   cell_lineno: number,
   code_mirror: CodeMirror.DocOrEditor
 ): CallWithArgs<call_info_type> {
   const args = get_args(call_info, cell_lineno, code_mirror);
 
-  const [given_positional_args, given_keyword_args] = partition(
-    args.filter(arg => arg.name != "kwargs"),
-    arg => arg.is_positional
-  );
+  const [given_positional_args, given_keyword_args] =
+    args.filter(arg => arg.name != "kwargs").partition(arg => arg.is_positional);
 
   const {
     missing_positional_args,
@@ -286,22 +309,17 @@ export function get_args(
 ): Arg[] {
   let callee_has_self_arg = call_info.callee.def_extras.first_arg !== undefined;
 
-  let args: Arg[] = [];
-
-  call_info.given_args.forEach((given_arg, arg_i: number) => {
+  return call_info.given_args.map((given_arg, arg_i: number) => {
     const arg_kind = get_arg_kind_from_int(given_arg.kind);
-    const arg_i_at_func_def = given_arg["name"]
-      ? call_info.callee.arg_names.indexOf(given_arg.name)
-      : callee_has_self_arg
-      ? arg_i + 1
-      : arg_i;
+    const arg_i_at_func_def =
+      given_arg["name"] ? call_info.callee.arg_names.indexOf(given_arg.name) : (callee_has_self_arg ? arg_i + 1 : arg_i);
 
     const arg_val_code = code_mirror.getRange(
       item_to_start_pos(given_arg, cell_lineno),
       item_to_end_pos(given_arg, cell_lineno)
     );
 
-    args.push({
+    return {
       name: call_info.callee.arg_names[arg_i_at_func_def],
       is_positional: given_arg.name == null,
       kind: arg_kind,
@@ -310,10 +328,8 @@ export function get_args(
       code_type: null,
       type_compatible_local_names:
         call_info.callee.type_compatible_local_names_by_arg_i[arg_i_at_func_def],
-    });
+    };
   });
-
-  return args;
 }
 
 export function segment_args(
@@ -347,11 +363,10 @@ export function segment_args(
 
   arg_defaults = arg_defaults.filter(arg => arg.name != "kwargs");
 
-  const missing_positional_args = takeWhile(
-    arg_defaults.slice(given_positional_args.length),
-    arg => arg.kind === "ARG_POS"
-  ); // we could also look for arg.kind === "ARG_OPT" here,
-  // but optional positional args look nicer when given as keyword args
+  const missing_positional_args =
+    arg_defaults.slice(given_positional_args.length).takeWhile(arg => arg.kind === "ARG_POS");
+      // we could also look for arg.kind === "ARG_OPT" here,
+      // but optional positional args look nicer when given as keyword args
 
   const missing_keyword_args = arg_defaults
     .slice(given_positional_args.length)
@@ -362,10 +377,8 @@ export function segment_args(
   // .filter(arg => arg.kind !== "ARG_STAR2"); // ignore **kwargs
 
   // if used for a new call, required args need to be generated
-  let needed_positional_args = takeWhile(
-    missing_positional_args,
-    arg => arg.kind === "ARG_POS"
-  );
+  let needed_positional_args =
+    missing_positional_args.takeWhile(arg => arg.kind === "ARG_POS");
 
   let missing_optional_positional_args = missing_positional_args.slice(
     needed_positional_args.length

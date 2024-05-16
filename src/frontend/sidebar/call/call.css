@@ -12,12 +12,12 @@
   margin-left: 2px;
 }
 
-.snp-call-name::before {
+/* .snp-call-name::before {
   content: "ƒ:";
   font-style: italic;
   opacity: 0.5;
   margin-right: 3px;
-}
+} */
 
 .snp-call-expand-button {
   display: flex;

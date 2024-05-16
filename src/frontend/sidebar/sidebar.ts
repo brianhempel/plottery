@@ -11,6 +11,7 @@ import {
   SelectableArtist,
   SidebarView,
   State,
+  StaticCallTypeInfo,
 } from "../types";
 import { MarkerRange, TextMarker } from "../utils/codemirror";
 import {
@@ -29,7 +30,7 @@ import "./sidebar.css";
 export function create_sidebar(
   all_calls_and_methods: {
     [key: string]: {
-      calls: CallWithArgs[];
+      calls: CallWithArgs<DynamicCallInfo | StaticCallTypeInfo>[];
       methods: MethodWithArgs[];
     };
   },

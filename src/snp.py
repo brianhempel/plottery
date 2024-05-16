@@ -21,6 +21,8 @@ import mypy.server.update
 import matplotlib as mpl
 
 import shapely
+
+import serialize
 import visitor_ast
 
 
@@ -534,13 +536,43 @@ class SNP:
         # print(json.dumps(ast_v.visit(ast.parse(self.notebook_code_through_cell)))
         notebook_ast = ast_v.visit(ast.parse(self.notebook_code_through_cell))
 
+        notebook_code_lines = self.notebook_code_through_cell.split("\n")
+
+        # This assumes the typed node is in the notebook.
+        # The nodes do not specify which file they actually came from.
+        def extract(line, column, end_line, end_column):
+            if end_line is None or end_line > len(notebook_code_lines) or line < 1:
+                return None
+            if line == end_line:
+                return notebook_code_lines[line-1][column:end_column+1]
+            else:
+                return "\n".join(
+                    [notebook_code_lines[line-1][column:]] +
+                    notebook_code_lines[line:end_line-1] +
+                    [notebook_code_lines[end_line-1][:end_column+1]]
+                )
+
+        def type_node_to_json(node):
+            def extra_attrs(obj):
+                try:
+                    unparsed = extract(obj.line, obj.column, obj.end_line, obj.end_column)
+                except AttributeError:
+                    unparsed = None
+                return { 'unparsed': unparsed } if unparsed is not None else {}
+            def no_types(obj):
+                type_str = str(type(obj))
+                return 'mypy.types.' not in type_str and 'mypy.nodes.MypyFile' not in type_str
+            return serialize.arbitrary_to_json(node, recurse=no_types, extra_attrs=extra_attrs)
+
+        notebook_typed_ast = type_node_to_json(self.type_tree.defs)
+
         return f"""
             <div class="snp_outer" style="position:relative;">
             <script>{pathlib.Path("../dist/plugin.js").read_text()}</script>
             <img src='{data_url}'> <!-- the plot -->
             {self._repr_svg_()} <!-- hover regions -->
             <div class="stdout_stderr"></div>
-            <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_ast)})"></style> <!-- Just a way to run this code once the elements exist. -->
+            <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_ast)}, {json_for_attr(notebook_typed_ast)})"></style> <!-- Just a way to run this code once the elements exist. -->
             </div>
         """
 

@@ -21,37 +21,37 @@ export type PlotWidget = {
   type: string;
 };
 
-const plot_widgets_config: PlotWidget[] = [
-  {
-    call_code: "ax.set_title",
-    arg_name: "label",
-    type: "builtins.str",
-  },
-  // {
-  //   call_code: "ax.set_title",
-  //   arg_name: "y",
-  //   flip: true,
-  //   type: "builtins.float",
-  // },
-  {
-    call_code: "ax.set_xlabel",
-    arg_name: "xlabel",
-    type: "builtins.str",
-  },
-  {
-    call_code: "ax.set_ylabel",
-    arg_name: "ylabel",
-    type: "builtins.str",
-  },
-];
 
 /**
  * Widgets that are located on the plot. Right now, the only one supported is
  * to edit text. E.g. editing the 'title' by clicking it on the plot.
- * @param plot_widgets_config
  * @param state
  */
 export function make_plot_widgets(state: State) {
+  const plot_widgets_config: PlotWidget[] = [
+    {
+      call_code: "ax.set_title",
+      arg_name: "label",
+      type: "builtins.str",
+    },
+    // {
+    //   call_code: "ax.set_title",
+    //   arg_name: "y",
+    //   flip: true,
+    //   type: "builtins.float",
+    // },
+    {
+      call_code: "ax.set_xlabel",
+      arg_name: "xlabel",
+      type: "builtins.str",
+    },
+    {
+      call_code: "ax.set_ylabel",
+      arg_name: "ylabel",
+      type: "builtins.str",
+    },
+  ];
+
   for (const plot_widget_config of plot_widgets_config) {
     // Find the call
     let target_call = find_call_that_satisfies((call_info, _) => {

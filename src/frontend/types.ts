@@ -1,3 +1,4 @@
+import { P_Module } from "./ast_types";
 import { Widget } from "./sidebar/widgets/widget";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
@@ -34,11 +35,13 @@ export type State = {
       methods: MethodWithArgs[];
     };
   };
+  notebook_typed_defs: Type[],
 
   // hovered_elems: SVGGElement[];
   snp_outer: HTMLElement;
   stdout_stderr: HTMLElement;
 
+  layers: HTMLElement[];
   sidebar?: SidebarView;
 
   hover_regions?: {
