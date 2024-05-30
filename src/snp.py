@@ -592,6 +592,10 @@ class SNP:
         with Timer("notebook_typed_ast"):
             notebook_typed_ast = type_node_to_json(self.type_tree.defs)
 
+        # Walk all the files in the frontend folder, and append all the contents of the .css files
+        with Timer("frontend_css"):
+            frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path("frontend").rglob("*.css")])
+
         with Timer("out_html"):
             out_html = f"""
                 <div class="snp_outer" style="position:relative;">
@@ -601,6 +605,7 @@ class SNP:
                 <div class="stdout_stderr"></div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
                 <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_ast)}, {json_for_attr(notebook_typed_ast)})">
+                    {frontend_css}
                 </style>
                 </div>
             """
