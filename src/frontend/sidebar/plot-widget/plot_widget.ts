@@ -1,18 +1,15 @@
 import {
   Arg,
   ArgView,
-  DynamicCallInfo,
-  CallView,
-  HoverRegion,
   State,
 } from "../../types";
 import {
   create_edit_icon,
   create_el,
   find_call_that_satisfies,
+  relativeBoundingRect,
 } from "../../utils/misc";
-import { DropdownWidget } from "../widgets/dropdown/dropdown";
-import { Widget, WidgetKind } from "../widgets/widget";
+import { WidgetKind } from "../widgets/widget";
 import "./plot_widget.css";
 
 export type PlotWidget = {
@@ -34,12 +31,6 @@ export function make_plot_widgets(state: State) {
       arg_name: "label",
       type: "builtins.str",
     },
-    // {
-    //   call_code: "ax.set_title",
-    //   arg_name: "y",
-    //   flip: true,
-    //   type: "builtins.float",
-    // },
     {
       call_code: "ax.set_xlabel",
       arg_name: "xlabel",
@@ -59,11 +50,11 @@ export function make_plot_widgets(state: State) {
       return call_code_prefix == plot_widget_config.call_code;
     }, state);
 
-    if (target_call == null) {
-      console.warn(
-        "[Make plot widgets] Target call is null for",
-        plot_widget_config
-      );
+    if (target_call == undefined) {
+      // console.warn(
+      //   "[Make plot widgets] Target call is null for",
+      //   plot_widget_config
+      // );
       continue;
     }
 
@@ -71,95 +62,69 @@ export function make_plot_widgets(state: State) {
     let target_arg: {
       arg: Arg;
       view: ArgView;
-    } | null = null;
+    } | undefined = target_call.view.arguments.find(({ arg }) => arg.name == plot_widget_config.arg_name);
 
-    for (const { arg, view } of target_call.view.arguments) {
-      if (arg.name == plot_widget_config.arg_name) {
-        target_arg = { arg, view };
-        break;
-      }
-    }
-
-    if (target_arg == null) {
-      console.warn(
-        "[Make plot widgets] Target arg is null for",
-        plot_widget_config
-      );
+    if (target_arg == undefined) {
+      // console.warn(
+      //   "[Make plot widgets] Target arg is null for",
+      //   plot_widget_config
+      // );
       continue;
     }
 
     // Find the hover element
-    const hover_region =
-      state.hover_regions!.regions[target_call.info.show_on.at(-1)!];
+    const show_on: number[] = target_call.info.show_on; // Python artist object_ids
+    console.log("show_on", show_on);
 
-    // Find the widget
+    const hover_regions = Array.from(state.snp_outer.querySelector("svg")?.querySelectorAll('[data-artist-id]') || []).filter(el => show_on.includes(parseInt(el.getAttribute("data-artist-id") || "-1")));
+
+    // console.log("hover_regions", hover_regions);
+
     let widget = target_arg.view.widget;
-    if (widget.kind == WidgetKind.Dropdown) {
-      widget = (widget as DropdownWidget).selected_item;
-    }
+    // if (widget.kind == WidgetKind.Dropdown) {
+    //   widget = (widget as DropdownWidget).selected_item;
+    // }
 
-    if (hover_region.el.querySelector(".plot-widget-container") == null) {
-      create_el("div", "plot-widget-container", hover_region.el);
-    }
+    // Only show on last hover region
+    for (const hover_region of hover_regions.slice(-1)) {
+      if (widget.kind == WidgetKind.Literal && plot_widget_config.type == "builtins.str") {
+        // const container = create_el("div", "plot-widget-container");
 
-    make_plot_widget(
-      plot_widget_config,
-      target_call,
-      target_arg,
-      widget,
-      hover_region,
-      state
-    );
-  }
-}
+        const el = create_el("div", "plot-widget", state.snp_outer);
+        const {top, right} = relativeBoundingRect(hover_region, state.snp_outer)
+        el.style.top = `${top}px`;
+        el.style.left = `${right}px`;
+        const icon = create_edit_icon();
+        icon.classList.add("plot-widget-edit-icon");
+        el.append(icon);
 
-export function make_plot_widget(
-  config: PlotWidget,
-  call: {
-    info: DynamicCallInfo;
-    view: CallView;
-  },
-  arg: {
-    arg: Arg;
-    view: ArgView;
-  },
-  widget: Widget,
-  hover_region: HoverRegion,
-  state: State
-) {
-  if (widget.kind == WidgetKind.Literal && config.type == "builtins.str") {
-    const container = hover_region.el.querySelector(".plot-widget-container")!;
+        // Freeform input box
+        const plot_widget_el = create_el("div", "plot-widget-input", el);
+        plot_widget_el.contentEditable = "true";
 
-    const el = create_el("div", "plot-widget", container);
-    const icon = create_edit_icon();
-    icon.classList.add("plot-widget-edit-icon");
-    el.append(icon);
+        plot_widget_el.innerText = widget.el.innerText;
 
-    // Freeform input box
-    const plot_widget_el = create_el("div", "plot-widget-input", el);
-    plot_widget_el.contentEditable = "true";
+        // Clicking on the el, triggers the input box to show above the el
+        icon.addEventListener("click", () => {
+          plot_widget_el.classList.toggle("visible");
+          icon.classList.toggle("toggled");
+        });
 
-    plot_widget_el.innerText = widget.el.innerText;
+        plot_widget_el.addEventListener("input", () => {
+          widget.el.innerText = plot_widget_el.innerText;
+        });
 
-    // Clicking on the el, triggers the input box to show above the el
-    icon.addEventListener("click", () => {
-      plot_widget_el.classList.toggle("visible");
-      icon.classList.toggle("toggled");
-    });
-
-    plot_widget_el.addEventListener("input", () => {
-      widget.el.innerText = plot_widget_el.innerText;
-    });
-
-    // Clicking anywhere else, hides the widget
-    document.addEventListener("mousedown", e => {
-      if (
-        plot_widget_el.classList.contains("visible") &&
-        e.target != plot_widget_el
-      ) {
-        plot_widget_el.classList.remove("visible");
-        icon.classList.remove("toggled");
+        // Clicking anywhere else, hides the widget
+        document.addEventListener("mousedown", e => {
+          if (
+            plot_widget_el.classList.contains("visible") &&
+            e.target != plot_widget_el
+          ) {
+            plot_widget_el.classList.remove("visible");
+            icon.classList.remove("toggled");
+          }
+        });
       }
-    });
+    }
   }
 }

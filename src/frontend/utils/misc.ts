@@ -121,6 +121,23 @@ export function create_el(
   return el;
 }
 
+export function relativeTopLeft(el: Element, container: Element) : [number, number] {
+  const { top, left } = relativeBoundingRect(el, container);
+  return [top, left];
+}
+
+export function relativeBoundingRect(el: Element, container: Element) : DOMRect {
+  const elRect = el.getBoundingClientRect();
+  const refRect = container.getBoundingClientRect();
+
+  return DOMRect.fromRect({
+    x: elRect.x - refRect.x,
+    y: elRect.y - refRect.y,
+    width: elRect.width,
+    height: elRect.height,
+  });
+}
+
 export function item_to_start_pos(
   item: { pos: Position },
   cell_lineno: number
@@ -243,26 +260,22 @@ export function insert_to_beginning_of_el(
 export function find_call_that_satisfies(
   pred: (info: DynamicCallInfo, view: CallView) => boolean,
   state: State
-) {
+) : { info: DynamicCallInfo, view: CallView } | undefined {
+  console.log("find_call_that_satisfies state", state);
+
   // Go through all the call views from artists
-  for (const artist_info of state.selectable_artists) {
-    const artist_view = state.sidebar!.artists[artist_info.id];
+  for (const layer of state.layers) {
+    for (let i = 0; i < layer.calls_with_args.length; i++) {
+      const calls_with_args = layer.calls_with_args[i];
+      const call_view = layer.call_views[i];
 
-    // Each call
-    const calls = state.all_calls_and_methods![artist_info.id].calls;
-    const call_views = artist_view.calls;
-
-    for (let i = 0; i < calls.length; i++) {
-      const call = calls[i];
-      const call_view = call_views[i];
-
-      if (pred(call.call_info, call_view)) {
-        return { info: call.call_info, view: call_view };
+      if (pred(calls_with_args.call_info, call_view)) {
+        return { info: calls_with_args.call_info, view: call_view };
       }
     }
   }
 
-  return null;
+  return undefined;
 }
 
 // https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb

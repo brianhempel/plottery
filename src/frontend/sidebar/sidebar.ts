@@ -69,7 +69,7 @@ export function find_artist_from_method(
     const artist_view = state.sidebar!.artists[artist_info.id];
 
     // Each method
-    const methods = state.all_calls_and_methods![artist_info.id].methods;
+    const methods = state.calls_and_methods_by_artist![artist_info.id].methods;
     const includes = methods
       .map(m => m.method_info)
       .includes(target_method_info);
@@ -90,7 +90,7 @@ export function find_artist_from_call(
     const artist_view = state.sidebar!.artists[artist_info.id];
 
     // Each call
-    const calls = state.all_calls_and_methods![artist_info.id].calls;
+    const calls = state.calls_and_methods_by_artist![artist_info.id].calls;
     const includes = calls.map(c => c.call_info).includes(target_call_info);
 
     if (includes) {
@@ -205,7 +205,7 @@ export function get_code_and_loc_for_call(call: DynamicCallInfo) {
 
 export function catalog_open_artists(state: State) {
   const sidebar = state.sidebar!;
-  const all_calls_and_methods = state.all_calls_and_methods!;
+  const all_calls_and_methods = state.calls_and_methods_by_artist!;
 
   const persistent_artists: { [name: string]: PersistantArtist } = {};
   const persistent_calls: { [name: string]: PersistantCall } = {};

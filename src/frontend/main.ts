@@ -1,7 +1,7 @@
 import { P_Module } from "./ast_types";
-import { layer_from_ast_node, maybe_layer_from_typed_node } from "./layer_panel/layer_panel";
+import { layer_from_ast_node, layer_from_typed_node } from "./layer_panel/layer_panel";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
-import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
+// import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 import { create_sidebar, focus_on_call_from_code } from "./sidebar/sidebar";
 import "./snp.css";
@@ -19,6 +19,7 @@ import {
   TypedDictType,
   StaticCallTypeInfo,
   Type,
+  MethodInfoWithType,
 } from "./types";
 import "./utils/array";
 import {
@@ -44,13 +45,14 @@ function attach_snp(
   user_call_type_info: StaticCallTypeInfo[],
   sidebar_stuff: {
     selectable_artists: SelectableArtist[];
-    methods: MethodInfo[];
+    methods: MethodInfoWithType[];
     calls: DynamicCallInfo[];
   },
   notebook_ast: P_Module,
   notebook_typed_defs: Type[]
 ) {
   console.log("user_call_type_info", user_call_type_info);
+  console.log("sidebar_stuff", sidebar_stuff);
 
   // ...Initialize some globals
   (window as any)["snp_persistent_artists"] =
@@ -59,94 +61,9 @@ function attach_snp(
     (window as any)["snp_persistent_calls"] ?? {};
 
   // Initialize state
-  const state = initialize_state(
-    snp_outer,
-    cell_lineno,
-    provenance_is_off_by_n_lines,
-    notebook_ast,
-    sidebar_stuff
-  );
-
-  // Put stdout_stderr at the bottom
-  state.stdout_stderr.remove();
-  snp_outer.append(state.stdout_stderr);
-
-  // Set artist.parent_id on all artists
-  set_artist_parent_ids(sidebar_stuff.selectable_artists);
-
-  // Get all calls and methods for artists
-  state.all_calls_and_methods = calls_and_methods_by_artist(state);
-  console.log("State", state);
-
-  // const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
-  // state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));
-
-  // log the number of keys in notebook_typed_defs
-  console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs).length);
-  console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs));
-
-  state.notebook_typed_defs = deserialize.python_objects_to_js(notebook_typed_defs);
-
-  const calls_with_args = sidebar_stuff.calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
-  state.layers = state.notebook_typed_defs.filterMap(typed_node =>
-    typed_node['line'] >= cell_lineno ? maybe_layer_from_typed_node(typed_node, calls_with_args, state) : null
-  );
-
-  const sidebar_el = create_el("div", "snp-sidebar");
-
-  state.layers.forEach(layer => {
-    sidebar_el.append(layer);
-  })
-  state.snp_outer.append(sidebar_el);
-
-  // Create sidebar
-  // state.sidebar = create_sidebar(
-  //   state.all_calls_and_methods,
-  //   state.selectable_artists,
-  //   state
-  // );
-  // state.snp_outer.append(state.sidebar.el);
-
-  // Make hover regions
-  state.hover_regions = make_hover_regions(state);
-
-  // Make plot widgets on those hover regions
-  make_plot_widgets(state);
-
-  // Focus on call (i.e. expand the sidebar to show the call)
-  // e.g. when adding a new method, expand it's call
-  const focused_call: string | null = (window as any)["snp_focused_call"];
-  if (focused_call != null) {
-    focus_on_call_from_code(focused_call, state);
-    (window as any)["snp_focused_call"] = null;
-  }
-
-  // Suppress additional plot
-  // setTimeout(() => {
-  //   snp_outer.parentElement?.parentElement?.nextElementSibling?.remove();
-  // }, 200);
-}
-
-function initialize_state(
-  snp_outer: HTMLElement,
-  cell_lineno: number,
-  provenance_is_off_by_n_lines: number,
-  notebook_ast: P_Module,
-  sidebar_stuff: {
-    selectable_artists: SelectableArtist[];
-    methods: MethodInfo[];
-    calls: DynamicCallInfo[];
-  }
-): State {
   const cell_el = snp_outer.closest(".code_cell");
-
-  const cell = Jupyter.notebook
-    .get_cells()
-    .filter(cell => cell.element[0] === cell_el)[0];
-
-  // const hovered_elems = [...snp_outer.querySelectorAll("g")] as SVGGElement[];
-
-  return {
+  const cell = Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
+  const state: State = {
     canvas_selection: null,
 
     cell: cell,
@@ -171,6 +88,63 @@ function initialize_state(
     sidebar: undefined,
     stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
   };
+
+  // Put stdout_stderr at the bottom
+  state.stdout_stderr.remove();
+  snp_outer.append(state.stdout_stderr);
+
+  // Set artist.parent_id on all artists
+  set_artist_parent_ids(sidebar_stuff.selectable_artists);
+
+  // Get all calls and methods for artists
+  state.calls_and_methods_by_artist = calls_and_methods_by_artist(state);
+  console.log("State", state);
+
+  // const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
+  // state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));
+
+  // log the number of keys in notebook_typed_defs
+  console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs).length);
+  console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs));
+
+  state.notebook_typed_defs = deserialize.python_objects_to_js(notebook_typed_defs);
+
+  const calls_with_args = sidebar_stuff.calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
+  state.layers = state.notebook_typed_defs.filterMap(typed_node =>
+    typed_node.line >= cell_lineno ? layer_from_typed_node(typed_node, calls_with_args, state) : null
+  );
+
+  const sidebar_el = create_el("div", "snp-sidebar");
+
+  state.layers.forEach(layer => {
+    sidebar_el.append(layer.el);
+  })
+  state.snp_outer.append(sidebar_el);
+
+  // state.sidebar = create_sidebar(
+  //   state.all_calls_and_methods,
+  //   state.selectable_artists,
+  //   state
+  // );
+  // state.snp_outer.append(state.sidebar.el);
+
+  // state.hover_regions = undefined;
+
+  // Make plot widgets on those hover regions
+  make_plot_widgets(state);
+
+  // Focus on call (i.e. expand the sidebar to show the call)
+  // e.g. when adding a new method, expand it's call
+  const focused_call: string | null = (window as any)["snp_focused_call"];
+  if (focused_call != null) {
+    focus_on_call_from_code(focused_call, state);
+    (window as any)["snp_focused_call"] = null;
+  }
+
+  // Suppress additional plot
+  // setTimeout(() => {
+  //   snp_outer.parentElement?.parentElement?.nextElementSibling?.remove();
+  // }, 200);
 }
 
 (window as any)["attach_snp"] = attach_snp;
@@ -196,10 +170,8 @@ export function calls_and_methods_by_artist(state: State): {
     )
 
     let artist_methods = get_methods(
-      artist,
       artist_method_infos,
-      state.selectable_artists,
-      state.cell.code_mirror
+      state.selectable_artists
     );
 
     // Filter out methods that're already called
@@ -223,10 +195,8 @@ export function calls_and_methods_by_artist(state: State): {
 }
 
 export function get_methods(
-  artist: SelectableArtist,
-  method_infos: MethodInfo[],
+  method_infos: MethodInfoWithType[],
   artists: SelectableArtist[],
-  code_mirror: CodeMirror.DocOrEditor
 ): MethodWithArgs[] {
   return method_infos.map(method_info => {
     let receiver_name = get_shortest_qualified_name(

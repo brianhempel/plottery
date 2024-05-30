@@ -1,6 +1,6 @@
 .plot-widget {
   display: flex;
-  position: relative;
+  position: absolute;
 }
 
 .plot-widget-input {
@@ -19,11 +19,11 @@
   white-space: pre;
 }
 
-.plot-widget-container {
+/* .plot-widget-container {
   display: flex;
   width: calc(100% + 30px) !important;
   flex-direction: row-reverse;
-}
+} */
 
 .plot-widget-input.visible {
   display: flex;

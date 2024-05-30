@@ -1,13 +1,14 @@
 import { P_stmt } from "../ast_types";
 import { create_call_view } from "../sidebar/call/call";
-import { CallView, CallWithArgs, DynamicCallInfo, State, StaticCallTypeInfo } from "../types";
+import { Layer, CallView, CallWithArgs, DynamicCallInfo, State, StaticCallTypeInfo } from "../types";
 import { create_el } from "../utils/misc";
 
 // ✅ Step 1: get everything displayed as text
 // ✅ Step 2: get the the calls to behave as before
 // Step 3: Start over on the example and work from nothing
 
-export function maybe_layer_from_typed_node(typed_node: any, calls_with_args: CallWithArgs<DynamicCallInfo>[], state: State) : HTMLElement | null {
+export function layer_from_typed_node(typed_node: any, calls_with_args: CallWithArgs<DynamicCallInfo>[], state: State)
+  : Layer {
   const layer_el = create_el("div", "snp-layer");
 
   console.log('layer typed node:', typed_node)
@@ -25,7 +26,11 @@ export function maybe_layer_from_typed_node(typed_node: any, calls_with_args: Ca
     layer_el.innerText = typed_node.unparsed;
   }
 
-  return layer_el;
+  return {
+    el: layer_el,
+    calls_with_args: calls_at_loc,
+    call_views,
+  };
 }
 
 export function layer_from_ast_node(calls: CallWithArgs<StaticCallTypeInfo>[], stmt: P_stmt, state: State) : HTMLElement {

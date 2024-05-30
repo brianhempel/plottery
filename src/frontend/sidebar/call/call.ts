@@ -169,7 +169,7 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
     els: {
       el: call_el,
       header_el,
-      name_el: create_el("div", "snp-call-name", header_el),
+      name_el: name_el,
       body_el,
     },
     is_elided: false,

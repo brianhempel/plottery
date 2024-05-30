@@ -29,16 +29,14 @@ export function make_hover_regions(state: State): {
     state.snp_outer
   );
 
-  const hovered_elems = [
-    ...state.snp_outer.querySelectorAll("g"),
-  ] as SVGGElement[];
+  const hoverable_els = Array.from(state.snp_outer.querySelector("svg")?.querySelectorAll('[data-artist-id]') || []) as SVGGElement[];
 
   const create_region = (
     artist_id: number,
     artist_view: ArtistView | null = null
   ): HoverRegion => {
     // Find SVG Group element for the artist
-    const hovered_el = find_svg_hovered_elem(hovered_elems, artist_id)!;
+    const hovered_el = hoverable_els.find(el => parseInt(el.getAttribute("data-artist-id") || "-1") == artist_id)!;
 
     const h_bbox = hovered_el.getBoundingClientRect();
     const p_bbox = hover_regions_el.getBoundingClientRect();
@@ -56,7 +54,7 @@ export function make_hover_regions(state: State): {
     return { el: region_el, calls: [], methods: [], artist: artist_view };
   };
 
-  const attach_hover_region = (region: HoverRegion, el: HTMLElement) => {
+  const add_hover_region_hover_effects_for = (region: HoverRegion, el: HTMLElement) => {
     el.addEventListener("mouseover", () => region.el.classList.add("hovered"));
     el.addEventListener("mouseout", () =>
       region.el.classList.remove("hovered")
@@ -71,10 +69,10 @@ export function make_hover_regions(state: State): {
     regions[artist_info.id] = create_region(artist_info.id, artist_view);
 
     // Show the element on hover of the label
-    attach_hover_region(regions[artist_info.id], artist_view.els.header_el);
+    // add_hover_region_hover_effects_for(regions[artist_info.id], artist_view.els.header_el);
 
     // Calls
-    const calls = state.all_calls_and_methods![artist_info.id].calls;
+    const calls = state.calls_and_methods_by_artist![artist_info.id].calls;
     for (let i = 0; i < calls.length; i++) {
       const call = calls[i];
       const region_artist_id = call.call_info.show_on.at(-1)!;
@@ -89,11 +87,11 @@ export function make_hover_regions(state: State): {
         info: call.call_info,
       });
 
-      attach_hover_region(regions[region_artist_id], call_view.els.header_el);
+      // add_hover_region_hover_effects_for(regions[region_artist_id], call_view.els.header_el);
     }
 
     // Methods
-    const methods = state.all_calls_and_methods![artist_info.id].methods;
+    const methods = state.calls_and_methods_by_artist![artist_info.id].methods;
     for (let i = 0; i < methods.length; i++) {
       const method = methods[i];
       const region_artist_id = method.method_info.show_on.at(-1)!;
@@ -108,7 +106,7 @@ export function make_hover_regions(state: State): {
         info: method.method_info,
       });
 
-      attach_hover_region(regions[region_artist_id], method_view.el);
+      add_hover_region_hover_effects_for(regions[region_artist_id], method_view.el);
 
       add_method_trigger_to_hover_region(
         regions[region_artist_id],
@@ -132,27 +130,13 @@ export function make_hover_regions(state: State): {
         focus_on_method(method.info, method.view, state);
       });
 
-      if (region.artist != undefined) {
-        add_temporary_focus(region.artist.els.el);
-      }
+      // if (region.artist != undefined) {
+      //   add_temporary_focus(region.artist.els.el);
+      // }
     });
   }
 
   return { el: hover_regions_el, regions };
-}
-
-function find_svg_hovered_elem(
-  hovered_elems: SVGGElement[],
-  artist_id: number
-) {
-  for (const el of hovered_elems) {
-    const el_id = parseInt(el.getAttribute("data-artist-id")!);
-    if (el_id == artist_id) {
-      return el;
-    }
-  }
-
-  console.error("No svg hover elem found", hovered_elems, artist_id);
 }
 
 export function add_method_trigger_to_hover_region(

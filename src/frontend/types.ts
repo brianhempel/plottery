@@ -9,9 +9,9 @@ import { Cell } from "./utils/types";
 
 /* ------------------------ State ----------------------- */
 export type State = {
-  canvas_selection: SelectedItem | null;
 
-  // Jupyter Cell the output is in
+  // **** Effectively static stuff to create the view ****
+
   cell: Cell;
   cell_lineno: number;
 
@@ -22,14 +22,10 @@ export type State = {
 
   selectable_artists: SelectableArtist[];
 
-  methods: MethodInfo[];
+  methods: MethodInfoWithType[];
   calls: DynamicCallInfo[];
 
-  busy: boolean;
-
-  select_lineno_after_execute?: number;
-
-  all_calls_and_methods?: {
+  calls_and_methods_by_artist?: {
     [key: string]: {
       calls: CallWithArgs<DynamicCallInfo | StaticCallTypeInfo>[];
       methods: MethodWithArgs[];
@@ -37,19 +33,28 @@ export type State = {
   };
   notebook_typed_defs: Type[],
 
+
+  // **** Actual state ****
+
+  canvas_selection: SelectedItem | null;
+  busy: boolean;
+
+
+  // **** View outputs ****
+
   // hovered_elems: SVGGElement[];
   snp_outer: HTMLElement;
   stdout_stderr: HTMLElement;
 
-  layers: HTMLElement[];
+  layers: Layer[];
   sidebar?: SidebarView;
 
-  hover_regions?: {
-    el: HTMLElement;
-    regions: {
-      [artist_id: number]: HoverRegion;
-    };
-  };
+  // hover_regions?: {
+  //   el: HTMLElement;
+  //   regions: {
+  //     [artist_id: number]: HoverRegion;
+  //   };
+  // };
 };
 
 
@@ -89,6 +94,12 @@ export type ArtistViewEls = {
   name_el: HTMLElement;
   body_el: HTMLElement;
 };
+
+export type Layer = {
+  el: HTMLElement;
+  calls_with_args: CallWithArgs<DynamicCallInfo>[];
+  call_views: CallView[];
+}
 
 export type CallView = {
   els: CallViewEls;
@@ -143,6 +154,9 @@ export type MethodInfo = {
   name: string; // "set_title"
   receiver: number; // 140533847992896
   show_on: number[]; // [140533847992896, 140533885438224]
+};
+
+export type MethodInfoWithType = MethodInfo & {
   type: CallableType & { pos: Position };
 };
 
@@ -156,7 +170,7 @@ export type Arg = {
   is_positional: boolean;
 };
 
-export type StaticCallTypeInfo = {
+export type StaticCallTypeInfo = MethodInfo & {
   call: { pos: Position };
   callee: CallableType & { pos: Position };
 
@@ -169,7 +183,7 @@ export type StaticCallTypeInfo = {
   })[];
 };
 
-export type DynamicCallInfo = MethodInfo & StaticCallTypeInfo & {
+export type DynamicCallInfo =  StaticCallTypeInfo & {
   loc_via_func_code_and_num: [string, number]; // ["ax.bar", 1]
 };
 
@@ -185,7 +199,7 @@ export type CallWithArgs<call_info_type> = {
 };
 
 export type MethodWithArgs = {
-  method_info: MethodInfo;
+  method_info: MethodInfoWithType;
   code: string;
   required_positional_arg: Arg[];
   required_keyword_args: Arg[];

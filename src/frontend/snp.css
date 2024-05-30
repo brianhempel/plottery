@@ -9,7 +9,7 @@
 
 .snp_outer > svg {
   /* display: none; */
-  max-width: 350px!important;
+  /* max-width: 350px!important; */
   border: none !important;
   overflow: visible;
   margin-top: 1em !important;
@@ -29,9 +29,9 @@ g > path.hovered {
   fill: #0000002b;
 }
 
-.snp_outer > img {
+/* .snp_outer > img {
   max-width: 350px !important;
-}
+} */
 
 .stdout_stderr {
   font-family: monospace;

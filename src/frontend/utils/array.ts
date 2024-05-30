@@ -1,5 +1,6 @@
 
 // lol javascript can't compare stuff
+// also, we need to explicitly export something so everything below will typecheck
 export function equalByJSON(a: Object, b: Object) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
