@@ -7,6 +7,7 @@ import os
 import pathlib
 import re
 import ast
+import time
 
 import IPython
 
@@ -24,6 +25,20 @@ import shapely
 
 import serialize
 import visitor_ast
+
+
+# thanks GPT-4
+class Timer:
+    def __init__(self, message=""):
+        self.message = message
+
+    def __enter__(self):
+        self.start_time = time.time()
+        return self
+
+    def __exit__(self, *args):
+        self.elapsed_time = time.time() - self.start_time
+        # print(f"{self.message}: {self.elapsed_time:.2f} seconds")
 
 
 def get_trivial_names():
@@ -351,13 +366,15 @@ class SNP:
         self.cell_lineno = cell_lineno
         self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
         self.notebook_code_through_cell = notebook_code_through_cell
-        self.mypy_result = do_inference(notebook_code_through_cell)
+        with Timer("do_inference"):
+            self.mypy_result = do_inference(notebook_code_through_cell)
         self.type_graph = self.mypy_result.graph
         self.type_tree = self.type_graph[module_name].tree
         tree = self.type_tree
 
         # Make a map of object id to object name (e.g. "fig.axes")
-        self.object_names = object_names(locals, user_names=user_names)
+        with Timer("object_names"):
+            self.object_names = object_names(locals, user_names=user_names)
 
         # print(ast.dump(ast.parse(notebook_code_through_cell)))
 
@@ -366,57 +383,61 @@ class SNP:
         # print([v[1] for k,v in self.object_names.items()])
 
         # Make a map of user local names to types, things we could use for autocompleting arguments.
-        self.user_typed_locals = {}
-        for name, value in locals.items():
-            if name in user_names and name not in get_trivial_names() and not callable(value) and name in tree.names:
-                name_type = tree.names[name].type
-                if name_type is not None:
-                    self.user_typed_locals[name] = name_type
+        with Timer("user_typed_locals"):
+            self.user_typed_locals = {}
+            for name, value in locals.items():
+                if name in user_names and name not in get_trivial_names() and not callable(value) and name in tree.names:
+                    name_type = tree.names[name].type
+                    if name_type is not None:
+                        self.user_typed_locals[name] = name_type
 
         # Gather all the type information for function calls in the notebook
-        self.user_call_type_info = None
-        if tree is not None:
-            visitor = GatherTypedCalls(self.mypy_result.types, self.user_typed_locals)
-            visitor.visit_mypy_file(tree)
-            self.user_call_type_info = visitor.out
+        with Timer("GartherTypedCalls"):
+            self.user_call_type_info = None
+            if tree is not None:
+                visitor = GatherTypedCalls(self.mypy_result.types, self.user_typed_locals)
+                visitor.visit_mypy_file(tree)
+                self.user_call_type_info = visitor.out
 
         self.cached_png = None
         self.cached_svg_hover_regions = None
 
     def _repr_png_(self):
-        if self.cached_png == None:
-            buf = io.BytesIO()
-            self.figure.canvas.print_figure(
-                buf,
-                format="png",
-                dpi="figure",
-                bbox_inches="tight",
-                pad_inches=mpl.rcParams["savefig.pad_inches"],
-            )  # tight version
-            self.cached_png = buf.getvalue()
+        with Timer("_repr_png_"):
+            if self.cached_png == None:
+                buf = io.BytesIO()
+                self.figure.canvas.print_figure(
+                    buf,
+                    format="png",
+                    dpi="figure",
+                    bbox_inches="tight",
+                    pad_inches=mpl.rcParams["savefig.pad_inches"],
+                )  # tight version
+                self.cached_png = buf.getvalue()
 
         return self.cached_png
 
     # Note this is the hover regions only.
     def _repr_svg_(self):
-        if self.cached_svg_hover_regions == None:
-            self._repr_png_()  # Ensure elements are laid out.
+        with Timer("_repr_svg_"):
+            if self.cached_svg_hover_regions == None:
+                self._repr_png_()  # Ensure elements are laid out.
 
-            fig = self.figure
-            bbox_inches = fig.get_tightbbox(fig.canvas.renderer).padded(mpl.rcParams["savefig.pad_inches"])
-            x0_px = bbox_inches.x0 * fig.get_dpi()
-            y0_px = bbox_inches.y0 * fig.get_dpi()
-            width_px = bbox_inches.width * fig.get_dpi()
-            height_px = bbox_inches.height * fig.get_dpi()
+                fig = self.figure
+                bbox_inches = fig.get_tightbbox(fig.canvas.renderer).padded(mpl.rcParams["savefig.pad_inches"])
+                x0_px = bbox_inches.x0 * fig.get_dpi()
+                y0_px = bbox_inches.y0 * fig.get_dpi()
+                width_px = bbox_inches.width * fig.get_dpi()
+                height_px = bbox_inches.height * fig.get_dpi()
 
-            # fig_regions = flatten_regions(regions(fig))
-            fig_regions2 = regions2(self.figure)
+                # fig_regions = flatten_regions(regions(fig))
+                fig_regions2 = regions2(self.figure)
 
-            svg_body = region2_to_svg_g(fig_regions2, self.object_names, self.type_graph)
+                svg_body = region2_to_svg_g(fig_regions2, self.object_names, self.type_graph)
 
-            self.cached_svg_hover_regions = f"""<svg style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
-                {svg_body}
-            </svg>"""
+                self.cached_svg_hover_regions = f"""<svg style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
+                    {svg_body}
+                </svg>"""
 
         return self.cached_svg_hover_regions
 
@@ -430,8 +451,9 @@ class SNP:
 
     def _repr_html_(self):
         # ripped the below from ipympl/backend_nbagg.py
-        base64_image = base64.b64encode(self._repr_png_()).decode("utf-8")
-        data_url = f"data:image/png;base64,{base64_image}"
+        with Timer("base64_image"):
+            base64_image = base64.b64encode(self._repr_png_()).decode("utf-8")
+            data_url = f"data:image/png;base64,{base64_image}"
 
         selectable_artists = []
 
@@ -440,77 +462,79 @@ class SNP:
         methods = []
         calls = []
 
-        # Find method calls on each of the named objects.
-        for obj_id, (obj, names) in self.object_names.items():
-            for children_paths, method_name, max_calls in method_associations(obj):
-                show_on = [obj_id]
-                for code_to_descendent in children_paths:
-                    show_on.append(id(eval("obj" + code_to_descendent)))  # This can't be in a comprehension because eval() can't find "obj" when it is
+        with Timer("associate method calls on named objects"):
+            # Find method calls on each of the named objects.
+            for obj_id, (obj, names) in self.object_names.items():
+                for children_paths, method_name, max_calls in method_associations(obj):
+                    show_on = [obj_id]
+                    for code_to_descendent in children_paths:
+                        show_on.append(id(eval("obj" + code_to_descendent)))  # This can't be in a comprehension because eval() can't find "obj" when it is
 
-                methods.append(
+                    methods.append(
+                        {
+                            "name": method_name,
+                            "receiver": obj_id,
+                            "show_on": show_on,
+                            "type": method_type_json(obj, method_name, self.type_graph),
+                            "max_calls": max_calls,
+                        }
+                    )
+
+                try:
+                    loc_via_func_code_and_nums = [loc_via_func_code_and_num for loc_via_func_code_and_num, position in obj._snp_method_call_locs]
+                    method_call_positions = [position for loc_via_func_code_and_num, position in obj._snp_method_call_locs]
+                except:
+                    loc_via_func_code_and_nums = []
+                    method_call_positions = []
+
+                # n^2!
+                #
+                # Correlate to the call info from the type checker, which only know about code positions, not object names or ids
+                if len(method_call_positions) > 0:
+                    for call_info in self.user_call_type_info:
+                        call_pos_dict = call_info["call"]["pos"]
+                        # Convert from loc in current_notebook.py to loc in the executed cell
+                        call_pos = (
+                            call_pos_dict["line"] - self.cell_lineno + self.provenance_is_off_by_n_lines + 1,
+                            call_pos_dict["column"],
+                            call_pos_dict["end_line"] - self.cell_lineno + self.provenance_is_off_by_n_lines + 1,
+                            call_pos_dict["end_column"],
+                        )
+
+                        if call_pos in method_call_positions:
+                            i = method_call_positions.index(call_pos)
+                            loc_via_func_code_and_num = loc_via_func_code_and_nums[i]
+                            method_name = call_info["callee"]["name"].split(" ")[0]  # "set_title of Axes" => "set_title"
+                            calls.append(
+                                call_info
+                                | {
+                                    "name": method_name,
+                                    "receiver": id(obj),
+                                    "loc_via_func_code_and_num": loc_via_func_code_and_num,
+                                }
+                            )
+
+                selectable_artists.append(
                     {
-                        "name": method_name,
-                        "receiver": obj_id,
-                        "show_on": show_on,
-                        "type": method_type_json(obj, method_name, self.type_graph),
-                        "max_calls": max_calls,
+                        "id": obj_id,
+                        "names": list(names),
                     }
                 )
 
-            try:
-                loc_via_func_code_and_nums = [loc_via_func_code_and_num for loc_via_func_code_and_num, position in obj._snp_method_call_locs]
-                method_call_positions = [position for loc_via_func_code_and_num, position in obj._snp_method_call_locs]
-            except:
-                loc_via_func_code_and_nums = []
-                method_call_positions = []
-
-            # n^2!
-            #
-            # Correlate to the call info from the type checker, which only know about code positions, not object names or ids
-            if len(method_call_positions) > 0:
-                for call_info in self.user_call_type_info:
-                    call_pos_dict = call_info["call"]["pos"]
-                    # Convert from loc in current_notebook.py to loc in the executed cell
-                    call_pos = (
-                        call_pos_dict["line"] - self.cell_lineno + self.provenance_is_off_by_n_lines + 1,
-                        call_pos_dict["column"],
-                        call_pos_dict["end_line"] - self.cell_lineno + self.provenance_is_off_by_n_lines + 1,
-                        call_pos_dict["end_column"],
-                    )
-
-                    if call_pos in method_call_positions:
-                        i = method_call_positions.index(call_pos)
-                        loc_via_func_code_and_num = loc_via_func_code_and_nums[i]
-                        method_name = call_info["callee"]["name"].split(" ")[0]  # "set_title of Axes" => "set_title"
-                        calls.append(
-                            call_info
-                            | {
-                                "name": method_name,
-                                "receiver": id(obj),
-                                "loc_via_func_code_and_num": loc_via_func_code_and_num,
-                            }
-                        )
-
-            selectable_artists.append(
-                {
-                    "id": obj_id,
-                    "names": list(names),
-                }
-            )
-
         # Add show_on to each call
-        for call in calls:
-            # Apparently, this is how you find the first elem of a list by predicate in Python.
-            method = next(
-                (m for m in methods if (m["name"], m["receiver"]) == (call["name"], call["receiver"])),
-                None,
-            )
-            if method is not None:
-                call["show_on"] = method["show_on"]
-                call["max_calls"] = method["max_calls"]
-            else:
-                call["show_on"] = [call["receiver"]]
-                call["max_calls"] = float("inf")
+        with Timer("Add show_on to each call"):
+            for call in calls:
+                # Apparently, this is how you find the first elem of a list by predicate in Python.
+                method = next(
+                    (m for m in methods if (m["name"], m["receiver"]) == (call["name"], call["receiver"])),
+                    None,
+                )
+                if method is not None:
+                    call["show_on"] = method["show_on"]
+                    call["max_calls"] = method["max_calls"]
+                else:
+                    call["show_on"] = [call["receiver"]]
+                    call["max_calls"] = float("inf")
 
         # Now, trim down to only objects that have something worth showing.
         all_show_on = flatten([method["show_on"] for method in methods])
@@ -532,9 +556,10 @@ class SNP:
         # THIS IS CAUSING A CIRCULAR REFERENCE ERROR
         # print(ast.parse(self.notebook_code_through_cell).)
         # notebook_ast = json.dumps(ast.parse(self.notebook_code_through_cell), default=lambda o: o.__dict__)
-        ast_v = visitor_ast.MyVisitor()
-        # print(json.dumps(ast_v.visit(ast.parse(self.notebook_code_through_cell)))
-        notebook_ast = ast_v.visit(ast.parse(self.notebook_code_through_cell))
+        with Timer("notebook_ast"):
+            ast_v = visitor_ast.MyVisitor()
+            # print(json.dumps(ast_v.visit(ast.parse(self.notebook_code_through_cell)))
+            notebook_ast = ast_v.visit(ast.parse(self.notebook_code_through_cell))
 
         notebook_code_lines = self.notebook_code_through_cell.split("\n")
 
@@ -564,17 +589,23 @@ class SNP:
                 return 'mypy.types.' not in type_str and 'mypy.nodes.MypyFile' not in type_str
             return serialize.arbitrary_to_json(node, recurse=no_types, extra_attrs=extra_attrs)
 
-        notebook_typed_ast = type_node_to_json(self.type_tree.defs)
+        with Timer("notebook_typed_ast"):
+            notebook_typed_ast = type_node_to_json(self.type_tree.defs)
 
-        return f"""
-            <div class="snp_outer" style="position:relative;">
-            <script>{pathlib.Path("../dist/plugin.js").read_text()}</script>
-            <img src='{data_url}'> <!-- the plot -->
-            {self._repr_svg_()} <!-- hover regions -->
-            <div class="stdout_stderr"></div>
-            <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_ast)}, {json_for_attr(notebook_typed_ast)})"></style> <!-- Just a way to run this code once the elements exist. -->
-            </div>
-        """
+        with Timer("out_html"):
+            out_html = f"""
+                <div class="snp_outer" style="position:relative;">
+                <script>{pathlib.Path("../dist/plugin.js").read_text()}</script>
+                <img src='{data_url}'> <!-- the plot -->
+                {self._repr_svg_()} <!-- hover regions -->
+                <div class="stdout_stderr"></div>
+                <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
+                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_ast)}, {json_for_attr(notebook_typed_ast)})">
+                </style>
+                </div>
+            """
+
+        return out_html
 
 
 # -------------------------------------------------------- #
