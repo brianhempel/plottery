@@ -1,14 +1,11 @@
+import { MarkerRange, TextMarker } from "../../utils/codemirror";
 import { MethodView, MethodWithArgs, State } from "../../types";
 import { create_el } from "../../utils/misc";
-import { add_method_code } from "../sidebar";
+import { hard_rerun } from "../../code_sync/code_sync";
 import "./method.css";
 
 /**
- * Methods shown in the sidebar. For now, it just shows their name...
- *
- * - ax.bar
- * - ax.barh
- * ...
+ * Buttons to click to add method calls to the code.
  */
 export function create_method_view(
   method: MethodWithArgs,
@@ -38,4 +35,19 @@ export function create_method_view(
     el,
     mark,
   };
+}
+
+export function add_method_code(
+  mark: TextMarker<MarkerRange>,
+  code: string,
+  state: State
+) {
+  let { from, to } = mark.find()!;
+  state.cell.code_mirror.replaceRange(code, from, to);
+  ({ from, to } = mark.find()!);
+  const prefix = code.split("(")[0];
+  const loc = to.line + state.provenance_is_off_by_n_lines + 1;
+  (window as any)["snp_focused_call"] = `${prefix}${loc}`;
+
+  hard_rerun(state);
 }

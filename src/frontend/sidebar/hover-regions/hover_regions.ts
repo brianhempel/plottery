@@ -6,153 +6,153 @@ import {
   State,
 } from "../../types";
 import { create_el } from "../../utils/misc";
+import { add_method_code } from "../methods/method";
 import {
-  add_method_code,
   add_temporary_focus,
   focus_on_call,
-  focus_on_method,
+  // focus_on_method,
 } from "../sidebar";
 import "./hover_regions.css";
 
-/**
- * Makes 'hover regions' so that hovering on an artist in the plot
- * selects it/provides some feedback in the sidebar
- */
-export function make_hover_regions(state: State): {
-  el: HTMLElement;
-  regions: { [artist_id: number]: HoverRegion };
-} {
-  const regions: { [artist_id: number]: HoverRegion } = {};
-  const hover_regions_el = create_el(
-    "div",
-    "snp-hover-regions",
-    state.snp_outer
-  );
+// /**
+//  * Makes 'hover regions' so that hovering on an artist in the plot
+//  * selects it/provides some feedback in the sidebar
+//  */
+// export function make_hover_regions(state: State): {
+//   el: HTMLElement;
+//   regions: { [artist_id: number]: HoverRegion };
+// } {
+//   const regions: { [artist_id: number]: HoverRegion } = {};
+//   const hover_regions_el = create_el(
+//     "div",
+//     "snp-hover-regions",
+//     state.snp_outer
+//   );
 
-  const hoverable_els = Array.from(state.snp_outer.querySelector("svg")?.querySelectorAll('[data-artist-id]') || []) as SVGGElement[];
+//   const hoverable_els = Array.from(state.snp_outer.querySelector("svg")?.querySelectorAll('[data-artist-id]') || []) as SVGGElement[];
 
-  const create_region = (
-    artist_id: number,
-    artist_view: ArtistView | null = null
-  ): HoverRegion => {
-    // Find SVG Group element for the artist
-    const hovered_el = hoverable_els.find(el => parseInt(el.getAttribute("data-artist-id") || "-1") == artist_id)!;
+//   const create_region = (
+//     artist_id: number,
+//     artist_view: ArtistView | null = null
+//   ): HoverRegion => {
+//     // Find SVG Group element for the artist
+//     const hovered_el = hoverable_els.find(el => parseInt(el.getAttribute("data-artist-id") || "-1") == artist_id)!;
 
-    const h_bbox = hovered_el.getBoundingClientRect();
-    const p_bbox = hover_regions_el.getBoundingClientRect();
+//     const h_bbox = hovered_el.getBoundingClientRect();
+//     const p_bbox = hover_regions_el.getBoundingClientRect();
 
-    const top = h_bbox.top - p_bbox.top;
-    const left = h_bbox.left - p_bbox.left;
+//     const top = h_bbox.top - p_bbox.top;
+//     const left = h_bbox.left - p_bbox.left;
 
-    const region_el = create_el("div", "snp-hover-region", hover_regions_el);
+//     const region_el = create_el("div", "snp-hover-region", hover_regions_el);
 
-    region_el.style.top = `${top}px`;
-    region_el.style.left = `${left}px`;
-    region_el.style.width = `${h_bbox.width}px`;
-    region_el.style.height = `${h_bbox.height}px`;
+//     region_el.style.top = `${top}px`;
+//     region_el.style.left = `${left}px`;
+//     region_el.style.width = `${h_bbox.width}px`;
+//     region_el.style.height = `${h_bbox.height}px`;
 
-    return { el: region_el, calls: [], methods: [], artist: artist_view };
-  };
+//     return { el: region_el, calls: [], methods: [], artist: artist_view };
+//   };
 
-  const add_hover_region_hover_effects_for = (region: HoverRegion, el: HTMLElement) => {
-    el.addEventListener("mouseover", () => region.el.classList.add("hovered"));
-    el.addEventListener("mouseout", () =>
-      region.el.classList.remove("hovered")
-    );
-  };
+//   const add_hover_region_hover_effects_for = (region: HoverRegion, el: HTMLElement) => {
+//     el.addEventListener("mouseover", () => region.el.classList.add("hovered"));
+//     el.addEventListener("mouseout", () =>
+//       region.el.classList.remove("hovered")
+//     );
+//   };
 
-  // Go through the artists
-  for (const artist_info of state.selectable_artists) {
-    const artist_view = state.sidebar?.artists[artist_info.id]!;
+//   // Go through the artists
+//   for (const artist_info of state.selectable_artists) {
+//     const artist_view = state.sidebar?.artists[artist_info.id]!;
 
-    // Create the region el for that artist
-    regions[artist_info.id] = create_region(artist_info.id, artist_view);
+//     // Create the region el for that artist
+//     regions[artist_info.id] = create_region(artist_info.id, artist_view);
 
-    // Show the element on hover of the label
-    // add_hover_region_hover_effects_for(regions[artist_info.id], artist_view.els.header_el);
+//     // Show the element on hover of the label
+//     // add_hover_region_hover_effects_for(regions[artist_info.id], artist_view.els.header_el);
 
-    // Calls
-    const calls = state.calls_and_methods_by_artist![artist_info.id].calls;
-    for (let i = 0; i < calls.length; i++) {
-      const call = calls[i];
-      const region_artist_id = call.call_info.show_on.at(-1)!;
+//     // Calls
+//     const calls = state.calls_and_methods_by_artist![artist_info.id].calls;
+//     for (let i = 0; i < calls.length; i++) {
+//       const call = calls[i];
+//       const region_artist_id = call.call_info.show_on.at(-1)!;
 
-      regions[region_artist_id] =
-        regions[region_artist_id] ?? create_region(region_artist_id);
+//       regions[region_artist_id] =
+//         regions[region_artist_id] ?? create_region(region_artist_id);
 
-      // Show the element on hover of the label
-      const call_view = state.sidebar?.artists[artist_info.id].calls[i]!;
-      regions[region_artist_id].calls.push({
-        view: call_view,
-        info: call.call_info,
-      });
+//       // Show the element on hover of the label
+//       const call_view = state.sidebar?.artists[artist_info.id].calls[i]!;
+//       regions[region_artist_id].calls.push({
+//         view: call_view,
+//         info: call.call_info,
+//       });
 
-      // add_hover_region_hover_effects_for(regions[region_artist_id], call_view.els.header_el);
-    }
+//       // add_hover_region_hover_effects_for(regions[region_artist_id], call_view.els.header_el);
+//     }
 
-    // Methods
-    const methods = state.calls_and_methods_by_artist![artist_info.id].methods;
-    for (let i = 0; i < methods.length; i++) {
-      const method = methods[i];
-      const region_artist_id = method.method_info.show_on.at(-1)!;
+//     // Methods
+//     const methods = state.calls_and_methods_by_artist![artist_info.id].methods;
+//     for (let i = 0; i < methods.length; i++) {
+//       const method = methods[i];
+//       const region_artist_id = method.method_info.show_on.at(-1)!;
 
-      regions[region_artist_id] =
-        regions[region_artist_id] ?? create_region(region_artist_id);
+//       regions[region_artist_id] =
+//         regions[region_artist_id] ?? create_region(region_artist_id);
 
-      // Show the element on hover of the label
-      const method_view = state.sidebar?.artists[artist_info.id].methods[i]!;
-      regions[region_artist_id].methods.push({
-        view: method_view,
-        info: method.method_info,
-      });
+//       // Show the element on hover of the label
+//       const method_view = state.sidebar?.artists[artist_info.id].methods[i]!;
+//       regions[region_artist_id].methods.push({
+//         view: method_view,
+//         info: method.method_info,
+//       });
 
-      add_hover_region_hover_effects_for(regions[region_artist_id], method_view.el);
+//       add_hover_region_hover_effects_for(regions[region_artist_id], method_view.el);
 
-      add_method_trigger_to_hover_region(
-        regions[region_artist_id],
-        method,
-        method_view,
-        state
-      );
-    }
-  }
+//       add_method_trigger_to_hover_region(
+//         regions[region_artist_id],
+//         method,
+//         method_view,
+//         state
+//       );
+//     }
+//   }
 
-  // Clicking on region should focus on the calls and methods of it
-  for (const [_, region] of Object.entries(regions)) {
-    region.el.addEventListener("click", () => {
-      add_temporary_focus(region.el);
+//   // Clicking on region should focus on the calls and methods of it
+//   for (const [_, region] of Object.entries(regions)) {
+//     region.el.addEventListener("click", () => {
+//       add_temporary_focus(region.el);
 
-      region.calls.forEach(call => {
-        focus_on_call(call.info, call.view, state);
-      });
+//       region.calls.forEach(call => {
+//         focus_on_call(call.info, call.view, state);
+//       });
 
-      region.methods.forEach(method => {
-        focus_on_method(method.info, method.view, state);
-      });
+//       region.methods.forEach(method => {
+//         focus_on_method(method.info, method.view, state);
+//       });
 
-      // if (region.artist != undefined) {
-      //   add_temporary_focus(region.artist.els.el);
-      // }
-    });
-  }
+//       // if (region.artist != undefined) {
+//       //   add_temporary_focus(region.artist.els.el);
+//       // }
+//     });
+//   }
 
-  return { el: hover_regions_el, regions };
-}
+//   return { el: hover_regions_el, regions };
+// }
 
-export function add_method_trigger_to_hover_region(
-  region: HoverRegion,
-  method: MethodWithArgs,
-  method_view: MethodView,
-  state: State
-) {
-  const trigger_el = create_el("div", "snp-trigger", region.el);
-  trigger_el.innerText = method_view.el.innerText;
+// export function add_method_trigger_to_hover_region(
+//   region: HoverRegion,
+//   method: MethodWithArgs,
+//   method_view: MethodView,
+//   state: State
+// ) {
+//   const trigger_el = create_el("div", "snp-trigger", region.el);
+//   trigger_el.innerText = method_view.el.innerText;
 
-  // On method click
-  trigger_el.addEventListener("click", () => {
-    add_method_code(method_view.mark, method.code, state);
-  });
-}
+//   // On method click
+//   trigger_el.addEventListener("click", () => {
+//     add_method_code(method_view.mark, method.code, state);
+//   });
+// }
 
 // // Hover regions
 // for (const region of state.view.hovered_elems) {

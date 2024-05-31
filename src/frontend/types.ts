@@ -22,7 +22,7 @@ export type State = {
 
   selectable_artists: SelectableArtist[];
 
-  methods: MethodInfoWithType[];
+  methods: MethodWithArgs[];
   calls: DynamicCallInfo[];
 
   calls_and_methods_by_artist?: {

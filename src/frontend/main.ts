@@ -1,16 +1,16 @@
 import { P_Module } from "./ast_types";
-import { layer_from_ast_node, layer_from_typed_node } from "./layer_panel/layer_panel";
+import { layer_from_typed_node } from "./layer_panel/layer_panel";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
 // import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
+import { create_method_view } from "./sidebar/methods/method";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
-import { create_sidebar, focus_on_call_from_code } from "./sidebar/sidebar";
+import { focus_on_call_from_code } from "./sidebar/sidebar";
 import "./snp.css";
 import {
   Arg,
   DynamicCallInfo,
   CallWithArgs,
   CallableType,
-  MethodInfo,
   MethodWithArgs,
   Position,
   SelectableArtist,
@@ -28,6 +28,8 @@ import {
   get_shortest_qualified_name,
   item_to_end_pos,
   item_to_start_pos,
+  place_centered_over_shape,
+  reposition_to_avoid_overlap,
 } from "./utils/misc";
 import { JupyterType, get_arg_kind_from_int } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
@@ -76,10 +78,10 @@ function attach_snp(
     notebook_typed_defs: [],
 
     selectable_artists: sidebar_stuff.selectable_artists,
+    methods: get_methods(sidebar_stuff.methods, sidebar_stuff.selectable_artists),
 
     layers: [],
 
-    methods: sidebar_stuff.methods,
     calls: sidebar_stuff.calls,
 
     busy: false,
@@ -94,10 +96,10 @@ function attach_snp(
   snp_outer.append(state.stdout_stderr);
 
   // Set artist.parent_id on all artists
-  set_artist_parent_ids(sidebar_stuff.selectable_artists);
+  set_artist_parent_ids(state.selectable_artists);
 
   // Get all calls and methods for artists
-  state.calls_and_methods_by_artist = calls_and_methods_by_artist(state);
+  // state.calls_and_methods_by_artist = calls_and_methods_by_artist(state);
   console.log("State", state);
 
   // const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
@@ -133,6 +135,27 @@ function attach_snp(
   // Make plot widgets on those hover regions
   make_plot_widgets(state);
 
+  const hover_regions = Array.from(state.snp_outer.querySelector("svg")?.querySelectorAll('[data-artist-id]') || []);
+
+  // Draw add method widgets on appropriate hover regions
+  const placed_methods: HTMLElement[] = [];
+  state.methods.forEach(method => {
+    // Skip if already called
+    const dont_show = method.method_info.max_calls == 1 && state.calls.some(call => call.loc_via_func_code_and_num[0] == `${method.receiver_name}.${method.method_info.name}`);
+    if (dont_show) { return; }
+
+    const show_on = method.method_info.show_on.at(-1);
+
+    hover_regions.filter(el => parseInt(el.getAttribute("data-artist-id") || "-1") == show_on).forEach(hover_region => {
+      const { el: method_el } = create_method_view(method, state);
+      snp_outer.append(method_el); // Have to place in DOM first so it has width/height for centering
+      place_centered_over_shape(hover_region, method_el, state.snp_outer);
+      reposition_to_avoid_overlap(method_el, placed_methods, state.snp_outer);
+      placed_methods.push(method_el);
+    });
+  });
+
+
   // Focus on call (i.e. expand the sidebar to show the call)
   // e.g. when adding a new method, expand it's call
   const focused_call: string | null = (window as any)["snp_focused_call"];
@@ -149,50 +172,50 @@ function attach_snp(
 
 (window as any)["attach_snp"] = attach_snp;
 
-export function calls_and_methods_by_artist(state: State): {
-  [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
-} {
-  let all_calls_and_methods: {
-    [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
-  } = {};
+// export function calls_and_methods_by_artist(state: State): {
+//   [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
+// } {
+//   let all_calls_and_methods: {
+//     [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
+//   } = {};
 
-  state.selectable_artists.forEach(artist => {
-    const artist_call_infos = state.calls.filter(call_info => {
-      return call_info.show_on.at(-1) == artist.id;
-    });
+//   state.selectable_artists.forEach(artist => {
+//     const artist_call_infos = state.calls.filter(call_info => {
+//       return call_info.show_on.at(-1) == artist.id;
+//     });
 
-    let artist_method_infos = state.methods.filter(method => {
-      return method.show_on.at(-1) == artist.id;
-    });
+//     let artist_method_infos = state.methods.filter(method => {
+//       return method.show_on.at(-1) == artist.id;
+//     });
 
-    const artist_calls = artist_call_infos.map(
-      call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror)
-    )
+//     const artist_calls = artist_call_infos.map(
+//       call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror)
+//     )
 
-    let artist_methods = get_methods(
-      artist_method_infos,
-      state.selectable_artists
-    );
+//     let artist_methods = get_methods(
+//       artist_method_infos,
+//       state.selectable_artists
+//     );
 
-    // Filter out methods that're already called
-    artist_methods = artist_methods.filter(method => {
-      const is_already_called = artist_calls.find(
-        call =>
-          call.call_info.loc_via_func_code_and_num[0] ==
-          `${method.receiver_name}.${method.method_info.name}`
-      );
+//     // Filter out methods that're already called
+//     artist_methods = artist_methods.filter(method => {
+//       const is_already_called = artist_calls.find(
+//         call =>
+//           call.call_info.loc_via_func_code_and_num[0] ==
+//           `${method.receiver_name}.${method.method_info.name}`
+//       );
 
-      return !(method.method_info.max_calls == 1 && is_already_called);
-    });
+//       return !(method.method_info.max_calls == 1 && is_already_called);
+//     });
 
-    all_calls_and_methods[artist.id] = {
-      calls: artist_calls,
-      methods: artist_methods,
-    };
-  });
+//     all_calls_and_methods[artist.id] = {
+//       calls: artist_calls,
+//       methods: artist_methods,
+//     };
+//   });
 
-  return all_calls_and_methods;
-}
+//   return all_calls_and_methods;
+// }
 
 export function get_methods(
   method_infos: MethodInfoWithType[],
@@ -200,8 +223,7 @@ export function get_methods(
 ): MethodWithArgs[] {
   return method_infos.map(method_info => {
     let receiver_name = get_shortest_qualified_name(
-      artists.find(other_artist => other_artist.id == method_info.receiver)!
-        .names || [""]
+      artists.find(other_artist => other_artist.id == method_info.receiver)?.names || [""]
     );
 
     let arg_defaults = arg_defaults_from_callee_type(method_info.type);

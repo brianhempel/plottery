@@ -1,3 +1,4 @@
+import { sync_call_code } from "../../code_sync/code_sync";
 import {
   Arg,
   ArgView,
@@ -24,7 +25,7 @@ import {
   create_collapsable_els,
   open_collapsable,
 } from "../collapsable/collapsable";
-import { get_code_and_loc_for_call, sync_call_code } from "../sidebar";
+import { get_code_and_loc_for_call } from "../sidebar";
 import "./call.css";
 
 /**

@@ -138,6 +138,40 @@ export function relativeBoundingRect(el: Element, container: Element) : DOMRect 
   });
 }
 
+// Absolutely positions el over the center of shape, where container is the appropriate relative ancestor.
+export function place_centered_over_shape(shape: Element, el: HTMLElement, container: Element) {
+  // const [plot_width, plot_height] = [
+  //   snp_state.img.getBoundingClientRect().width,
+  //   snp_state.img.getBoundingClientRect().height,
+  // ];
+  const shapeRect = relativeBoundingRect(shape, container);
+  const elRect = el.getBoundingClientRect();
+  let top = shapeRect.top + shapeRect.height / 2 - elRect.height / 2;
+  let left = shapeRect.left + shapeRect.width / 2 - elRect.width / 2;
+  // top = Math.max(0, Math.min(top, plot_height - elRect.height));
+  // left = Math.max(0, Math.min(left, plot_width - elRect.width));
+  el.style.position = "absolute";
+  el.style.top = `${top}px`;
+  el.style.left = `${left}px`;
+}
+
+export function reposition_to_avoid_overlap(el: HTMLElement, avoid_els: Element[], container: Element) {
+  const el_rect = relativeBoundingRect(el, container);
+  const avoid_el = avoid_els.find(avoid_el => {
+    const avoid_rect = relativeBoundingRect(avoid_el, container);
+    return (
+      el_rect.left < avoid_rect.right &&
+      avoid_rect.left < el_rect.right &&
+      el_rect.top < avoid_rect.bottom &&
+      avoid_rect.top < el_rect.bottom
+    );
+  });
+  if (avoid_el) {
+    el.style.top = relativeBoundingRect(avoid_el, container).bottom + 3 + "px";
+    reposition_to_avoid_overlap(el, avoid_els, container);
+  }
+}
+
 export function item_to_start_pos(
   item: { pos: Position },
   cell_lineno: number
