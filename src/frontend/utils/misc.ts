@@ -45,8 +45,8 @@ export function arg_defaults_from_callee_type(
         code: arg_default_code,
         type: arg_type,
         code_type: arg_default_type,
-        type_compatible_local_names:
-          callee.type_compatible_local_names_by_arg_i[arg_i],
+        type_compatible_code_snippets:
+          callee.type_compatible_code_snippets_by_arg_i[arg_i],
       };
     })
     .slice(callee.def_extras.first_arg !== undefined ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined

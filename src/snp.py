@@ -371,6 +371,7 @@ class SNP:
         self.type_graph = self.mypy_result.graph
         self.type_tree = self.type_graph[module_name].tree
         tree = self.type_tree
+        self.user_names = user_names
 
         # Make a map of object id to object name (e.g. "fig.axes")
         with Timer("object_names"):
@@ -382,20 +383,40 @@ class SNP:
 
         # print([v[1] for k,v in self.object_names.items()])
 
-        # Make a map of user local names to types, things we could use for autocompleting arguments.
-        with Timer("user_typed_locals"):
-            self.user_typed_locals = {}
+        # Make a map of user code snippets to types, things we could use for autocompleting arguments.
+        #
+        # Goes down one level into dicts and lists and tuples.
+        with Timer("user_typed_snippets"):
+            self.user_typed_snippets = {}
             for name, value in locals.items():
-                if name in user_names and name not in get_trivial_names() and not callable(value) and name in tree.names:
+                if name in tree.names and name in user_names and name not in get_trivial_names() and not callable(value):
                     name_type = tree.names[name].type
                     if name_type is not None:
-                        self.user_typed_locals[name] = name_type
+                        self.user_typed_snippets[name] = name_type
+
+                        if isinstance(value, dict) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.dict':
+                            key_type = name_type.args[1]
+                            if key_type is not None:
+                                for key, _ in value.items():
+                                    self.user_typed_snippets[f"{name}[{repr(key)}]"] = key_type
+
+                        if isinstance(value, list) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.list':
+                            item_type = name_type.args[0]
+                            if item_type is not None:
+                                for i, _ in enumerate(value):
+                                    self.user_typed_snippets[f"{name}[{i}]"] = item_type
+
+                        if isinstance(value, tuple) and isinstance(name_type, mypy.types.TupleType):
+                            for i, item_type in enumerate(name_type.items):
+                                if item_type is not None:
+                                    self.user_typed_snippets[f"{name}[{i}]"] = item_type
+
 
         # Gather all the type information for function calls in the notebook
         with Timer("GartherTypedCalls"):
             self.user_call_type_info = None
             if tree is not None:
-                visitor = GatherTypedCalls(self.mypy_result.types, self.user_typed_locals)
+                visitor = GatherTypedCalls(self.mypy_result.types, self.user_typed_snippets)
                 visitor.visit_mypy_file(tree)
                 self.user_call_type_info = visitor.out
 
@@ -835,7 +856,7 @@ def to_json_dict(node, type):
     return add_pos_json(type_json_dict, node)
 
 
-def callable_type_json(callable_type: mypy.types.CallableType, user_typed_locals):
+def callable_type_json(callable_type: mypy.types.CallableType, user_typed_snippets):
     type_json_dict = serialize_type(callable_type)  # <- Custom serializer
 
     if not isinstance(type_json_dict, dict):  # IDK why we sometimes get a string
@@ -844,18 +865,18 @@ def callable_type_json(callable_type: mypy.types.CallableType, user_typed_locals
     if hasattr(callable_type, "definition") and callable_type.definition and callable_type.definition.arguments:
         type_json_dict["default_code_by_arg_idx"] = [unparse_mypy_expr(arg.initializer) for arg in callable_type.definition.arguments]
 
-    type_json_dict["type_compatible_local_names_by_arg_i"] = []
+    type_json_dict["type_compatible_code_snippets_by_arg_i"] = []
     for arg_type in callable_type.arg_types:
-        compatible_local_names = [name for name, local_type in user_typed_locals.items() if mypy.subtypes.is_subtype(local_type, arg_type)]
-        type_json_dict["type_compatible_local_names_by_arg_i"].append(compatible_local_names)
+        compatible_snippets = [name for name, snippet_type in user_typed_snippets.items() if mypy.subtypes.is_subtype(snippet_type, arg_type)]
+        type_json_dict["type_compatible_code_snippets_by_arg_i"].append(compatible_snippets)
 
     return type_json_dict
 
 
 class GatherTypedCalls(TraverserVisitor):
-    def __init__(self, types_dict, user_typed_locals):
+    def __init__(self, types_dict, user_typed_snippets):
         self.types_dict = types_dict
-        self.user_typed_locals = user_typed_locals
+        self.user_typed_snippets = user_typed_snippets
         self.out = []
 
     def visit_call_expr(self, node: mypy.nodes.CallExpr) -> None:
@@ -876,7 +897,7 @@ class GatherTypedCalls(TraverserVisitor):
             # For consistency with places where where that is not the case, let us unapply it
             if callee_type.definition is not None:
                 callee_type_unapplied = callee_type.definition.type
-                callee = callable_type_json(callee_type_unapplied, self.user_typed_locals)
+                callee = callable_type_json(callee_type_unapplied, self.user_typed_snippets)
                 add_pos_json(callee, node.callee)
 
                 self.out.append(

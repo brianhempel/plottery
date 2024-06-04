@@ -18,10 +18,10 @@ import {
   select_dropdown_item,
 } from "../widgets/dropdown/dropdown";
 import {
-  IdentifierWidget,
-  create_identifier_widget,
-  match_arg_code_to_identifier_widget,
-} from "../widgets/identifier/identifier";
+  CodeSnippetWidget,
+  create_code_snippet_widget,
+  match_arg_code_to_code_snippet_widget,
+} from "../widgets/code_snippet/code_snippet";
 
 import {
   LiteralWidget,
@@ -33,8 +33,6 @@ import "./arg.css";
 
 export function create_arg_view(
   arg: Arg,
-  call: CallWithArgs,
-  mark: TextMarker<MarkerRange>,
   options: { positional: boolean; optional: boolean }
 ): ArgView {
   const arg_el = create_el("div", "snp-arg-view");
@@ -51,11 +49,10 @@ export function create_arg_view(
   // Get the widget from type
   let widget = create_arg_view_widgets(arg.type);
 
-  // Add identifiers
-  // START HERE need to be able to do penguin_means['Bill Depth'] etc. (e.g. with dataframes too)
-  widget = create_arg_view_identifier_widgets(
+  // Add code snippets
+  widget = create_arg_view_code_snippet_widgets(
     widget,
-    arg.type_compatible_local_names ?? []
+    arg.type_compatible_code_snippets ?? []
   );
 
   // Match the `arg.code` to the args
@@ -117,23 +114,23 @@ export function create_arg_view_widget_union(u_type: UnionType): Widget {
   );
 }
 
-export function create_arg_view_identifier_widgets(
+export function create_arg_view_code_snippet_widgets(
   widget: Widget,
-  identifiers: string[]
+  code_snippets: string[]
 ): Widget {
-  if (identifiers.length == 0) return widget;
+  if (code_snippets.length == 0) return widget;
 
   // Make it into a dropdown if not already
   if (widget.kind != WidgetKind.Dropdown) {
     const new_widget = create_dropdown_widget([widget]);
-    return create_arg_view_identifier_widgets(new_widget, identifiers);
+    return create_arg_view_code_snippet_widgets(new_widget, code_snippets);
   }
 
-  // Add identifier widgets to the dropdown
-  const identifier_widgets = identifiers.map(name =>
-    create_identifier_widget(name)
+  // Add code_snippet widgets to the dropdown
+  const code_snippet_widgets = code_snippets.map(name =>
+    create_code_snippet_widget(name)
   );
-  add_items_to_dropdown_widget(widget as DropdownWidget, identifier_widgets);
+  add_items_to_dropdown_widget(widget as DropdownWidget, code_snippet_widgets);
 
   return widget;
 }
@@ -158,9 +155,9 @@ export function match_arg_code_to_widget(
     return did_match;
   } else if (widget.kind == WidgetKind.Alias) {
     return match_arg_code_to_alias_widget(widget as AliasWidget, arg_code);
-  } else if (widget.kind == WidgetKind.Identifier) {
-    return match_arg_code_to_identifier_widget(
-      widget as IdentifierWidget,
+  } else if (widget.kind == WidgetKind.CodeSnippet) {
+    return match_arg_code_to_code_snippet_widget(
+      widget as CodeSnippetWidget,
       arg_code
     );
   } else if (widget.kind == WidgetKind.Literal) {

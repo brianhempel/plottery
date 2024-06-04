@@ -314,8 +314,8 @@ export function get_args(
       code: arg_val_code,
       type: call_info.callee.arg_types[arg_i_at_func_def],
       code_type: null,
-      type_compatible_local_names:
-        call_info.callee.type_compatible_local_names_by_arg_i[arg_i_at_func_def],
+      type_compatible_code_snippets:
+        call_info.callee.type_compatible_code_snippets_by_arg_i[arg_i_at_func_def],
     };
   });
 }
@@ -343,7 +343,7 @@ export function segment_args(
           code: kwargs_alias!.code,
           type: item,
           code_type: kwargs_alias!.code_type,
-          type_compatible_local_names: [],
+          type_compatible_code_snippets: [],
           is_positional: false,
         };
       })

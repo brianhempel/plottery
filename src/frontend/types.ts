@@ -166,7 +166,7 @@ export type Arg = {
   code: string;
   type: Type;
   code_type: Type | null;
-  type_compatible_local_names: string[];
+  type_compatible_code_snippets: string[];
   is_positional: boolean;
 };
 
@@ -239,7 +239,7 @@ export type CallableType = {
 
   arg_kinds: number[]; // [0, 0, 1, ...]
   arg_names: string[]; // ['self', 'label', 'fontdict', 'loc', ...]
-  type_compatible_local_names_by_arg_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
+  type_compatible_code_snippets_by_arg_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
   arg_types: Type[];
 
   bound_args: null[]; // ?

@@ -86,7 +86,7 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
 
   const add_args = (args: Arg[], positional: boolean, optional: boolean) => {
     args.forEach(arg => {
-      const arg_view = create_arg_view(arg, call, mark, {
+      const arg_view = create_arg_view(arg, {
         positional,
         optional,
       });
@@ -125,7 +125,7 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
     kwargs_label.innerText = "See more";
 
     kwargs.forEach(arg => {
-      const arg_view = create_arg_view(arg, call, mark, {
+      const arg_view = create_arg_view(arg, {
         positional: false,
         optional: true,
       });
