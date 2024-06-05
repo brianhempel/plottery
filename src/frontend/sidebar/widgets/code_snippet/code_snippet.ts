@@ -17,7 +17,7 @@ export function create_code_snippet_widget(code: string): CodeSnippetWidget {
   };
 }
 
-export function match_arg_code_to_code_snippet_widget(
+export function arg_code_matches_code_snippet_widget(
   widget: CodeSnippetWidget,
   arg_code: string
 ): boolean {

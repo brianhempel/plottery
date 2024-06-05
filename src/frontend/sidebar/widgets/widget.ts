@@ -19,12 +19,18 @@ import {
   get_literal_widget_type_id,
   literal_widget_to_code,
 } from "./literal/literal";
+import {
+  ArbitraryCodeWidget,
+  get_arbitrary_code_widget_type_id,
+  arbitrary_code_widget_to_code,
+} from "./arbitrary_code/arbitrary_code";
 
 export enum WidgetKind {
   Dropdown = "Dropdown",
   Literal = "Literal",
   Alias = "Alias",
   CodeSnippet = "CodeSnippet",
+  ArbitraryCode = "ArbitraryCode",
   Color = "Color",
 }
 
@@ -47,6 +53,8 @@ export function get_widget_type_id(widget: Widget): string {
     return get_alias_widget_type_id(widget as AliasWidget);
   } else if (widget.kind == WidgetKind.CodeSnippet) {
     return get_code_snippet_widget_type_id(widget as CodeSnippetWidget);
+  } else if (widget.kind == WidgetKind.ArbitraryCode) {
+    return get_arbitrary_code_widget_type_id(widget as ArbitraryCodeWidget);
   } else if (widget.kind == WidgetKind.Literal) {
     return get_literal_widget_type_id(widget as LiteralWidget);
   } else if (widget.kind == WidgetKind.Color) {
@@ -62,6 +70,8 @@ export function widget_to_code(widget: Widget): string {
     return alias_widget_to_code(widget as AliasWidget);
   } else if (widget.kind == WidgetKind.CodeSnippet) {
     return code_snippet_widget_to_code(widget as CodeSnippetWidget);
+  } else if (widget.kind == WidgetKind.ArbitraryCode) {
+    return arbitrary_code_widget_to_code(widget as ArbitraryCodeWidget);
   } else if (widget.kind == WidgetKind.Literal) {
     return literal_widget_to_code(widget as LiteralWidget);
   } else if (widget.kind == WidgetKind.Dropdown) {

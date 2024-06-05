@@ -28,7 +28,7 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
   };
 }
 
-export function match_arg_code_to_alias_widget(
+export function arg_code_matches_alias_widget(
   widget: AliasWidget,
   arg_code: string
 ): boolean {

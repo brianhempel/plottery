@@ -81,7 +81,7 @@ export function is_literal_type_a_kind_of(
   }
 }
 
-export function match_arg_code_to_literal_widget(
+export function arg_code_matches_literal_widget(
   widget: LiteralWidget,
   arg_code: string
 ): boolean {

@@ -27,7 +27,7 @@ export function create_color_widget(type: TypeAliasType): ColorWidget {
   };
 }
 
-export function match_arg_code_to_color_widget(
+export function arg_code_matches_color_widget(
   widget: ColorWidget,
   arg_code: string
 ): boolean {
