@@ -135,18 +135,6 @@ export function arg_code_matches_widget(
 }
 
 export function arg_view_to_code(arg: Arg, arg_view: ArgView): string {
-  if (arg_view.optional == true) return "";
-
-  let code = "";
-
-  if (!arg_view.positional) {
-    // Get prefix
-    code += `${arg.name}=`;
-  }
-
-  code += widget_to_code(arg_view.widget);
-
-  code += ", ";
-
-  return code;
+  const value_code = widget_to_code(arg_view.widget);
+  return arg_view.positional ? value_code : `${arg.name}=${value_code}`;
 }

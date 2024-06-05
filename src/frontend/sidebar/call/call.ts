@@ -185,16 +185,10 @@ export function call_to_code(
     view: ArgView;
   }[]
 ) {
-  let code = `${call_name}(`;
+  const args_str =
+    arg_and_views.
+      filterMap(({ arg, view }) => view.optional ? null : arg_view_to_code(arg, view)).
+      join(", ");
 
-  arg_and_views.forEach(({ arg, view }) => {
-    code += arg_view_to_code(arg, view);
-  });
-
-  // Remove trailing comma
-  code = code.slice(0, -2);
-
-  code += ")";
-
-  return code;
+  return `${call_name}(${args_str})`;
 }
