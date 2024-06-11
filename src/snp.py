@@ -568,6 +568,9 @@ class SNP:
             "methods": methods,
             "calls": calls,
         }
+        self.selectable_artists = selectable_artists
+        self.methods = methods
+        self.calls = calls
         # sidebar_stuff = {
         #     "selectable_artists": [],
         #     "methods": [],
@@ -856,6 +859,19 @@ def to_json_dict(node, type):
     return add_pos_json(type_json_dict, node)
 
 
+# MyPy's is_subtype accepts AnyType on both LHS and RHS, which is maddening.
+# And I can't get its is_proper_subtype to reliable match things like tuples with e.g. Collection[Any] or ListLike
+# So this version rejects bare AnyType as a subtype of everything (but is not recursive).
+def is_subtype(subtype, type):
+    subtype = mypy.types.get_proper_type(subtype)
+    type = mypy.types.get_proper_type(type)
+
+    if isinstance(subtype, mypy.types.AnyType) and not isinstance(type, mypy.types.AnyType):
+        return False
+
+    return mypy.subtypes.is_subtype(subtype, type)
+
+
 def callable_type_json(callable_type: mypy.types.CallableType, user_typed_snippets):
     type_json_dict = serialize_type(callable_type)  # <- Custom serializer
 
@@ -867,7 +883,7 @@ def callable_type_json(callable_type: mypy.types.CallableType, user_typed_snippe
 
     type_json_dict["type_compatible_code_snippets_by_arg_i"] = []
     for arg_type in callable_type.arg_types:
-        compatible_snippets = [name for name, snippet_type in user_typed_snippets.items() if mypy.subtypes.is_subtype(snippet_type, arg_type)]
+        compatible_snippets = [name for name, snippet_type in user_typed_snippets.items() if is_subtype(snippet_type, arg_type)]
         type_json_dict["type_compatible_code_snippets_by_arg_i"].append(compatible_snippets)
 
     return type_json_dict
