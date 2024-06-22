@@ -192,6 +192,16 @@ export function call_to_code(
   return `${call_name}(${args_str})`;
 }
 
+// So that 0.1 + 0.2 actually prints 0.3
+function number_to_string_not_ugly(n: number) {
+  const str = n.toString();
+
+  if (str.match(/9999999999\d\d\d$/)) {
+    return number_to_string_not_ugly(n * 1.00000000000001);
+  }
+  return str.replace(/0+000000000\d\d\d$/, "");
+}
+
 // The handling has to be routed through the layers UI element because all the logic
 // for attaching the arguments to the code is buried there, including adding new args
 // and modifying current args.
@@ -205,8 +215,20 @@ export function perhaps_get_mouse_drag_x_handler(call_view: CallView) : null | (
 
   const starting_arg_code = widget_to_code(x_arg_view.widget);
 
+  let code_lhs   = starting_arg_code;
+  let starting_rhs_number = 0;
+
+  // Match starting_arg_code with WHATEVER + number, so we don't keep adding + x + x + x on every new drag
+  let match = starting_arg_code.match(/^(?<whatever>.*)\s*\+\s*(?<number>-?[0-9\.]+)\s*$/) ||
+              starting_arg_code.match(/^(?<number>-?[0-9\.]+)\s*\+\s*(?<whatever>.*)\s*$/);
+  if (match) {
+    code_lhs = match.groups!["whatever"].trim();
+    starting_rhs_number = parseFloat(match.groups!["number"]);
+  }
+
   return (dx_px, px_per_unit) => {
-    const new_arg_code = `${starting_arg_code} + ${dx_px / px_per_unit}`;
+    const new_number = starting_rhs_number + dx_px / px_per_unit;
+    const new_arg_code = new_number !== 0 ? `${code_lhs} + ${number_to_string_not_ugly(new_number)}` : code_lhs;
     change_widget_code(x_arg_view.widget, new_arg_code);
   };
 }
