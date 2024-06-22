@@ -22,7 +22,7 @@
   display: flex;
 }
 
-.snp-arg-optional { 
+.snp-arg-disabled {
   opacity: 0.5;
   filter: saturate(0);
 }
@@ -50,7 +50,7 @@
   overflow: auto;
 }
 
-.snp-arg-optional > .snp-arg-name {
+.snp-arg-disabled > .snp-arg-name {
   font-weight: normal;
   color: #6a6a6a;
 }

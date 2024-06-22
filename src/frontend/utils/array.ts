@@ -16,9 +16,27 @@ declare global {
     clean(): Exclude<T, null | undefined>[];
     takeWhile(predicate: (el: T) => boolean): T[];
     filterMap<U>(callback: (value: T, index: number, array: T[]) => U | null | undefined): U[];
+    min(): T | undefined;
+    max(): T | undefined;
   }
 }
 
+if(!Array.prototype.min) {
+  Array.prototype.min = function<T>(this: T[]): T | undefined {
+    return this.reduce((acc, cur) => cur < acc ? cur : acc, this[0]);
+  }
+}
+
+if(!Array.prototype.max) {
+  Array.prototype.max = function<T>(this: T[]): T | undefined {
+    return this.reduce((acc, cur) => cur > acc ? cur : acc, this[0]);
+  }
+}
+
+export function zip<T, U>(arr1: T[], arr2: U[]): [T, U][] {
+  if (arr1.length !== arr2.length) throw new Error(`zip: arrays must be same length, lengths were ${arr1.length} and ${arr2.length}`);
+  return arr1.map((x, i) => [x, arr2[i]]);
+}
 
 /* Partitions array into two based on predicate. */
 if (!Array.prototype.partition) {

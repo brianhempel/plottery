@@ -32,6 +32,10 @@ export function code_snippet_widget_to_code(widget: CodeSnippetWidget) {
   return widget.el.innerText;
 }
 
+export function change_code_snippet_widget_code(widget: CodeSnippetWidget, new_code: string) {
+  widget.el.innerText = new_code;
+}
+
 export function get_code_snippet_widget_type_id(widget: CodeSnippetWidget) {
   return "var";
 }

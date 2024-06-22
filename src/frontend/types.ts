@@ -18,12 +18,11 @@ export type State = {
   last_cell_code_executed: string;
   provenance_is_off_by_n_lines: number;
 
-  notebook_ast: P_Module;
-
   selectable_artists: SelectableArtist[];
 
   methods: MethodWithArgs[];
   calls: DynamicCallInfo[];
+  calls_with_args: CallWithArgs<DynamicCallInfo>[];
 
   calls_and_methods_by_artist?: {
     [key: string]: {
@@ -45,6 +44,10 @@ export type State = {
   // hovered_elems: SVGGElement[];
   snp_outer: HTMLElement;
   stdout_stderr: HTMLElement;
+
+  hover_regions_svg: () => SVGElement | undefined; // The SVG element not always there (e.g. during drag ops) and is sometimes replaced.
+  set_hover_regions_html: (html_svg_str: string) => void;
+  hover_regions_container: HTMLElement;
 
   layers: Layer[];
   sidebar?: SidebarView;
@@ -127,7 +130,7 @@ export type ArgView = {
   el: HTMLElement;
   widget: Widget;
 
-  optional: boolean;
+  disabled: boolean;
 
   positional: boolean;
 };

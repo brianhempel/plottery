@@ -9,7 +9,6 @@ import { Widget, WidgetKind } from "../widget";
 export type AliasWidget = Widget & {
   kind: WidgetKind.Alias;
   a_type: TypeAliasType;
-  value: string;
 };
 
 export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
@@ -23,8 +22,7 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
   return {
     kind: WidgetKind.Alias,
     el,
-    a_type,
-    value,
+    a_type
   };
 }
 
@@ -33,20 +31,15 @@ export function arg_code_matches_alias_widget(
   arg_code: string
 ): boolean {
   // @TODO: Make more robust
-  if (
-    widget.a_type.type_ref == "matplotlib._typing.ArrayLike" &&
-    is_array_like(arg_code)
-  ) {
-    widget.el.innerText = arg_code;
-    widget.value = arg_code;
-    return true;
-  } else {
-    return false;
-  }
+  return widget.a_type.type_ref == "matplotlib._typing.ArrayLike" && is_array_like(arg_code)
 }
 
 export function alias_widget_to_code(widget: AliasWidget) {
   return widget.el.innerText;
+}
+
+export function change_alias_widget_code(widget: AliasWidget, new_code: string) {
+  widget.el.innerText = new_code;
 }
 
 export function get_alias_widget_type_id(widget: AliasWidget) {

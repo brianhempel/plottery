@@ -1,8 +1,5 @@
-import { P_Module } from "./ast_types";
 import { layer_from_typed_node } from "./layer_panel/layer_panel";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
-// import { make_hover_regions } from "./sidebar/hover-regions/hover_regions";
-import { create_method_view } from "./sidebar/methods/method";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 import { focus_on_call_from_code } from "./sidebar/sidebar";
 import "./snp.css";
@@ -28,11 +25,10 @@ import {
   get_shortest_qualified_name,
   item_to_end_pos,
   item_to_start_pos,
-  place_centered_over_shape,
-  reposition_to_avoid_overlap,
 } from "./utils/misc";
 import { JupyterType, get_arg_kind_from_int } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
+import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
 
 
 // These will already exist where we inject the JS in the notebook.
@@ -50,7 +46,6 @@ function attach_snp(
     methods: MethodInfoWithType[];
     calls: DynamicCallInfo[];
   },
-  notebook_ast: P_Module,
   notebook_typed_defs: Type[]
 ) {
   console.log("user_call_type_info", user_call_type_info);
@@ -74,7 +69,6 @@ function attach_snp(
     last_cell_code_executed: cell.get_text(),
     provenance_is_off_by_n_lines,
 
-    notebook_ast,
     notebook_typed_defs: [],
 
     selectable_artists: sidebar_stuff.selectable_artists,
@@ -83,10 +77,15 @@ function attach_snp(
     layers: [],
 
     calls: sidebar_stuff.calls,
+    calls_with_args: [],
 
     busy: false,
 
     snp_outer: snp_outer,
+    hover_regions_container: snp_outer.querySelector(".hover_regions")!,
+    hover_regions_svg: () => state.hover_regions_container.querySelector("svg") as SVGElement | undefined,
+    set_hover_regions_html: (html_svg_str: string) => { state.hover_regions_container.innerHTML = html_svg_str; },
+
     sidebar: undefined,
     stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
   };
@@ -111,9 +110,9 @@ function attach_snp(
 
   state.notebook_typed_defs = deserialize.python_objects_to_js(notebook_typed_defs);
 
-  const calls_with_args = sidebar_stuff.calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
+  state.calls_with_args = sidebar_stuff.calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror));
   state.layers = state.notebook_typed_defs.filterMap(typed_node =>
-    typed_node.line >= cell_lineno ? layer_from_typed_node(typed_node, calls_with_args, state) : null
+    typed_node.line >= cell_lineno ? layer_from_typed_node(typed_node, state) : null
   );
 
   const sidebar_el = create_el("div", "snp-sidebar");
@@ -135,25 +134,9 @@ function attach_snp(
   // Make plot widgets on those hover regions
   make_plot_widgets(state);
 
-  const hover_regions = Array.from(state.snp_outer.querySelector("svg")?.querySelectorAll('[data-artist-id]') || []);
+  place_add_method_buttons_on_plot(state);
 
-  // Draw add method widgets on appropriate hover regions
-  const placed_methods: HTMLElement[] = [];
-  state.methods.forEach(method => {
-    // Skip if already called
-    const dont_show = method.method_info.max_calls == 1 && state.calls.some(call => call.loc_via_func_code_and_num[0] == `${method.receiver_name}.${method.method_info.name}`);
-    if (dont_show) { return; }
-
-    const show_on = method.method_info.show_on.at(-1);
-
-    hover_regions.filter(el => parseInt(el.getAttribute("data-artist-id") || "-1") == show_on).forEach(hover_region => {
-      const { el: method_el } = create_method_view(method, state);
-      snp_outer.append(method_el); // Have to place in DOM first so it has width/height for centering
-      place_centered_over_shape(hover_region, method_el, state.snp_outer);
-      reposition_to_avoid_overlap(method_el, placed_methods, state.snp_outer);
-      placed_methods.push(method_el);
-    });
-  });
+  attach_events_to_hover_regions(state);
 
 
   // Focus on call (i.e. expand the sidebar to show the call)
@@ -163,6 +146,8 @@ function attach_snp(
     focus_on_call_from_code(focused_call, state);
     (window as any)["snp_focused_call"] = null;
   }
+
+  (window as any)["last_snp_state"] = state;
 
   // Suppress additional plot
   // setTimeout(() => {

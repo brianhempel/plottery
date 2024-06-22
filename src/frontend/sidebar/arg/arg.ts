@@ -33,7 +33,7 @@ import { create_arbitrary_code_widget } from "../widgets/arbitrary_code/arbitrar
 
 export function create_arg_view(
   arg: Arg,
-  options: { positional: boolean; optional: boolean }
+  options: { positional: boolean; disabled: boolean }
 ): ArgView {
   const arg_el = create_el("div", "snp-arg-view");
 
@@ -42,8 +42,8 @@ export function create_arg_view(
   // prefixEl.innerHTML = `${arg.name}<span class="snp-arg-colon">:</span>`;
   prefixEl.innerHTML = `${arg.name}`;
 
-  if (options.optional) {
-    arg_el.classList.add("snp-arg-optional");
+  if (options.disabled) {
+    arg_el.classList.add("snp-arg-disabled");
   }
 
   // Get the widgets based on the type
@@ -75,18 +75,18 @@ export function create_arg_view(
     el: arg_el,
     widget,
     positional: options.positional,
-    optional: options.optional,
+    disabled: options.disabled,
   };
 }
 
-export function make_arg_view_non_optional(arg_view: ArgView) {
-  arg_view.el.classList.remove("snp-arg-optional");
-  arg_view.optional = false;
+export function enable_arg_view(arg_view: ArgView) {
+  arg_view.el.classList.remove("snp-arg-disabled");
+  arg_view.disabled = false;
 }
 
-export function make_arg_view_optional(arg_view: ArgView) {
-  arg_view.el.classList.add("snp-arg-optional");
-  arg_view.optional = true;
+export function disable_arg_view(arg_view: ArgView) {
+  arg_view.el.classList.add("snp-arg-disabled");
+  arg_view.disabled = true;
 }
 
 export function arg_view_widgets_from_type(type: Type): Widget[] {

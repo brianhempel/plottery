@@ -1,18 +1,113 @@
+import { refresh_hover_regions } from "../../code_sync/code_sync";
 import {
-  ArtistView,
-  HoverRegion,
-  MethodView,
-  MethodWithArgs,
   State,
 } from "../../types";
-import { create_el } from "../../utils/misc";
-import { add_method_code } from "../methods/method";
-import {
-  add_temporary_focus,
-  focus_on_call,
-  // focus_on_method,
-} from "../sidebar";
+import { zip, equalByJSON } from "../../utils/array";
+import { place_centered_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
+import { perhaps_get_mouse_drag_x_handler } from "../call/call";
+import { create_method_view } from "../methods/method";
 import "./hover_regions.css";
+
+
+export function place_add_method_buttons_on_plot(state: State) {
+
+  const svg_overlay_el = state.hover_regions_svg();
+
+  if (!svg_overlay_el) { return; }
+
+  const hover_regions: Element[] = Array.from(svg_overlay_el.querySelectorAll('[data-artist-id]'));
+
+  // Draw add method widgets on appropriate hover regions
+  const placed_methods: HTMLElement[] = [];
+  state.methods.forEach(method => {
+    // Skip if already called
+    const dont_show = method.method_info.max_calls == 1 && state.calls.some(call => call.loc_via_func_code_and_num[0] == `${method.receiver_name}.${method.method_info.name}`);
+    if (dont_show) { return; }
+
+    const show_on = method.method_info.show_on.at(-1);
+
+    hover_regions.filter(el => parseInt(el.getAttribute("data-artist-id") || "-1") == show_on).forEach(hover_region => {
+      const { el: method_el } = create_method_view(method, state);
+      state.snp_outer.append(method_el); // Have to place in DOM first so it has width/height for centering
+      place_centered_over_shape(hover_region, method_el, state.snp_outer);
+      reposition_to_avoid_overlap(method_el, placed_methods, state.snp_outer);
+      placed_methods.push(method_el);
+    });
+  });
+}
+
+
+export function attach_events_to_hover_regions(state: State) {
+
+  const svg_overlay_el = state.hover_regions_svg();
+
+  if (!svg_overlay_el) { return; }
+
+  (Array.from(svg_overlay_el.querySelectorAll('[data-artist-id] > [stroke-width]')) as SVGElement[]).forEach(hover_region => {
+    hover_region.dataset.origStrokeWidth = hover_region.getAttribute("stroke-width") || undefined;
+    hover_region.addEventListener("mouseover", () => { hover_region.setAttribute("stroke-width", "2.0"); });
+    hover_region.addEventListener("mouseout", () => { hover_region.setAttribute("stroke-width", hover_region.dataset.origStrokeWidth || "0"); });
+  });
+
+
+  // Attach drag handlers to artists that are the result of calls in the code
+  //
+  // The handling has to be routed through the layers UI elemnt because all the logic
+  // for attaching the arguments to the code is buried there, including adding new args
+  // and modifying current args.
+  state.layers.forEach(layer => {
+    // Layers in practice only have zero or one calls, but the types and code allow more.
+    zip(layer.calls_with_args, layer.call_views).forEach(([call_with_args, call_view]) => {
+      const call_info = call_with_args.call_info;
+
+      const perhaps_drag_x_handler = perhaps_get_mouse_drag_x_handler(call_view);
+
+      const hover_regions_for_call =
+        (Array.from(svg_overlay_el.querySelectorAll('[data-func-code-and-num]')) as SVGElement[]).filter(hover_region => {
+          return equalByJSON(JSON.parse(hover_region.dataset.funcCodeAndNum || ""), call_info.loc_via_func_code_and_num);
+        });
+
+      hover_regions_for_call.forEach(hover_region => {
+        hover_region.style.cursor = "move";
+
+        let pressed = false;
+        let start_x = 0;
+        let start_y = 0;
+
+        hover_region.addEventListener("mousedown", evt => {
+          console.log(call_with_args)
+          pressed = true;
+          state.hover_regions_container.classList.add("hidden");
+          start_x = evt.x;
+          start_y = evt.y;
+          evt.preventDefault();
+          evt.stopPropagation();
+        });
+
+        document.addEventListener("mousemove", evt => {
+          if (pressed) {
+            const dx = evt.x - start_x;
+            const dy = evt.y - start_y;
+            console.log(dx,dy);
+            if (perhaps_drag_x_handler) { perhaps_drag_x_handler(dx, 50); }
+            evt.preventDefault();
+            evt.stopPropagation();
+          }
+        });
+
+        document.addEventListener("mouseup", _ => {
+          if (pressed) {
+            pressed = false;
+            state.hover_regions_container.classList.remove("hidden");
+            refresh_hover_regions(state);
+          }
+        });
+      });
+    });
+  });
+}
+
+
 
 // /**
 //  * Makes 'hover regions' so that hovering on an artist in the plot
@@ -29,7 +124,7 @@ import "./hover_regions.css";
 //     state.snp_outer
 //   );
 
-//   const hoverable_els = Array.from(state.snp_outer.querySelector("svg")?.querySelectorAll('[data-artist-id]') || []) as SVGGElement[];
+//   const hoverable_els = Array.from(state.snp_outer.querySelector(".hover_regions > svg")?.querySelectorAll('[data-artist-id]') || []) as SVGGElement[];
 
 //   const create_region = (
 //     artist_id: number,

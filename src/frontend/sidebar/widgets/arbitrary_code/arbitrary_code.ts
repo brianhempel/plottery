@@ -33,6 +33,10 @@ export function arbitrary_code_widget_to_code(widget: ArbitraryCodeWidget) {
   return widget.el.innerText;
 }
 
+export function change_arbitrary_code_widget_code(widget: ArbitraryCodeWidget, new_code: string) {
+  widget.el.innerText = new_code;
+}
+
 export function get_arbitrary_code_widget_type_id(widget: ArbitraryCodeWidget) {
   return "code";
 }

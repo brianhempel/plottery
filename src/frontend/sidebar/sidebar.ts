@@ -20,7 +20,6 @@ import {
   get_shortest_qualified_name,
 } from "../utils/misc";
 import { CellMessage } from "../utils/types";
-import { create_artist_view } from "./artist/artist";
 import {
   is_collapsable_collapsed,
   open_collapsable,

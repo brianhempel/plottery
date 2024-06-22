@@ -1,3 +1,4 @@
+import { attach_events_to_hover_regions } from "../sidebar/hover-regions/hover_regions";
 import { State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
 import { CellMessage } from "../utils/types";
@@ -25,15 +26,15 @@ export function sync_call_code(
   redraw_cell(state);
 }
 
+
 export function redraw_cell(state: State) {
   const cell = state.cell;
   const codeExecuting = cell.get_text();
 
-  const img = state.snp_outer.querySelector("img")!;
+  if (state.busy) return;
+  if (codeExecuting == state.last_cell_code_executed) return;
 
-  if (state.busy || codeExecuting == state.last_cell_code_executed) {
-    return;
-  }
+  const img = state.snp_outer.querySelector("img")!;
 
   state.busy = true;
   state.last_cell_code_executed = codeExecuting;
@@ -48,7 +49,6 @@ export function redraw_cell(state: State) {
       msg.content.data["image/png"]
     ) {
       // Replace background image
-      // This also triggers img.onload which calls attach_snp and reattaches all of our events!
       img.src = "data:image/png;base64," + msg.content.data["image/png"];
     } else {
       if (msg.header.msg_type == "error") {
@@ -56,9 +56,7 @@ export function redraw_cell(state: State) {
         state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
           /\b(line +)(\d+)/gi,
           (_: string, line_space: string, n_str: string) =>
-            `${line_space}${
-              parseInt(n_str) - state.provenance_is_off_by_n_lines
-            }`
+            `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
         );
       } else if (msg.header.msg_type == "stream") {
         state.stdout_stderr.innerText += msg.content.text;
@@ -71,26 +69,54 @@ export function redraw_cell(state: State) {
       state.busy = false;
       redraw_cell(state);
     } else {
+      // Wait to refresh hover regions until the cell is not changing value.
       state.busy = false;
-
-      // Replace hover regions
-      // if (
-      //   msg.header.msg_type === "execute_result" &&
-      //   msg.content.data["image/svg+xml"] &&
-      //   msg.content.data["application/json"]
-      // ) {
-      //   replace_hover_regions(snp_state, msg.content.data["image/svg+xml"]);
-      //   const json = msg.content.data["application/json"];
-      //   snp_state.cell_lineno = json.cell_lineno;
-      //   snp_state.provenance_is_off_by_n_lines =
-      //     json.provenance_is_off_by_n_lines;
-      //   attach_events_to_hover_regions(snp_state);
-      // }
-      // infer_types_and_attach_widgets(snp_state);
+      refresh_hover_regions(state);
     }
   };
 
-  cell.kernel.execute(codeExecuting, callbacks, {
+  cell.kernel.execute(codeExecuting.replace('SNP(', `SNPFigureOnly(`), callbacks, {
+    silent: false,
+    store_history: true,
+    stop_on_error: true,
+  });
+}
+
+
+export function refresh_hover_regions(state: State) {
+  const cell = state.cell;
+
+  const img = state.snp_outer.querySelector("img")!;
+
+  state.stdout_stderr.innerHTML = "";
+
+  // Hacktastic way to get live feedback
+  const callbacks = cell.get_callbacks();
+
+  callbacks.iopub!.output = function (msg: CellMessage) {
+    // Replace hover regions
+    if (
+      msg.header.msg_type === "execute_result" &&
+      msg.content.data["image/svg+xml"]
+    ) {
+      console.log("Replacing hover regions");
+      state.set_hover_regions_html(msg.content.data["image/svg+xml"]);
+      attach_events_to_hover_regions(state);
+    } else if (msg.header.msg_type == "error") {
+      // Display the error, but adjust line number for the lines we added to the top of the cell.
+      state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
+        /\b(line +)(\d+)/gi,
+        (_: string, line_space: string, n_str: string) =>
+          `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
+      );
+    } else if (msg.header.msg_type == "stream") {
+      state.stdout_stderr.innerText += msg.content.text;
+    } else {
+      console.warn("[refresh_hover_regions]", arguments);
+    }
+  };
+
+  cell.kernel.execute(cell.get_text().replace('SNP(', `SNPFigureAndHoverRegions(`), callbacks, {
     silent: false,
     store_history: true,
     stop_on_error: true,

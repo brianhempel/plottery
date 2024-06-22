@@ -41,6 +41,10 @@ export function color_widget_to_code(widget: ColorWidget) {
   ).toFixed(2)})`;
 }
 
+export function change_color_widget_code(widget: ColorWidget, new_code: string) {
+  console.error(`change_color_widget_code: not implemented yet, was given code ${new_code}`);
+}
+
 export function get_color_widget_type_id(widget: ColorWidget) {
   return "color";
 }

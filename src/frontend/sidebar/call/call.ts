@@ -17,8 +17,8 @@ import {
 import {
   arg_view_to_code,
   create_arg_view,
-  make_arg_view_non_optional,
-  make_arg_view_optional,
+  enable_arg_view as enable_arg_view,
+  disable_arg_view as disable_arg_view,
 } from "../arg/arg";
 import {
   collapse_collapsable,
@@ -26,6 +26,7 @@ import {
   open_collapsable,
 } from "../collapsable/collapsable";
 import { get_code_and_loc_for_call } from "../sidebar";
+import { change_widget_code, widget_to_code } from "../widgets/widget";
 import "./call.css";
 
 /**
@@ -84,11 +85,11 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
 
   const arg_and_views: { arg: Arg; view: ArgView }[] = [];
 
-  const add_args = (args: Arg[], positional: boolean, optional: boolean) => {
+  const add_args = (args: Arg[], positional: boolean, disabled: boolean) => {
     args.forEach(arg => {
       const arg_view = create_arg_view(arg, {
         positional,
-        optional,
+        disabled: disabled,
       });
       body_el.append(arg_view.el);
       arg_and_views.push({ arg, view: arg_view });
@@ -127,7 +128,7 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
     kwargs.forEach(arg => {
       const arg_view = create_arg_view(arg, {
         positional: false,
-        optional: true,
+        disabled: true,
       });
       kwargs_collapsable.body_el.append(arg_view.el);
       arg_and_views.push({ arg, view: arg_view });
@@ -136,35 +137,33 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
 
   // On clicking on a hidden arg view, unhide it
   arg_and_views.forEach(({ view }) => {
-    if (!view.optional) return;
+    if (!view.disabled) return;
 
     view.el.addEventListener("mousedown", e => {
-      if (view.optional) {
-        make_arg_view_non_optional(view);
+      if (view.disabled) {
+        enable_arg_view(view);
       } else if (e.ctrlKey) {
-        make_arg_view_optional(view);
+        disable_arg_view(view);
       }
     });
   });
 
   // On change of call, check if its code changed
-  let curr_inner_text = call_el.innerHTML;
   let curr_code = call_to_code(name_el.innerText, arg_and_views);
 
   // Sync changes
   function keep_synced() {
-    if (curr_inner_text != call_el.innerText) {
-      const code = call_to_code(name_el.innerText, arg_and_views);
+    const code = call_to_code(name_el.innerText, arg_and_views);
 
-      if (curr_code != code) {
-        sync_call_code(mark, code, state);
-        curr_code = code;
-      }
+    if (curr_code != code) {
+      sync_call_code(mark, code, state);
+      curr_code = code;
     }
 
     requestAnimationFrame(keep_synced);
   }
   keep_synced();
+
 
   return {
     els: {
@@ -187,8 +186,27 @@ export function call_to_code(
 ) {
   const args_str =
     arg_and_views.
-      filterMap(({ arg, view }) => view.optional ? null : arg_view_to_code(arg, view)).
+      filterMap(({ arg, view }) => view.disabled ? null : arg_view_to_code(arg, view)).
       join(", ");
 
   return `${call_name}(${args_str})`;
+}
+
+// The handling has to be routed through the layers UI element because all the logic
+// for attaching the arguments to the code is buried there, including adding new args
+// and modifying current args.
+export function perhaps_get_mouse_drag_x_handler(call_view: CallView) : null | ((dx_px: number, px_per_unit: number) => void) {
+
+  const maybe_arg_and_view = call_view.arguments.find(({ arg }) => arg.name == 'x');
+
+  if (!maybe_arg_and_view) return null;
+
+  const { view: x_arg_view } = maybe_arg_and_view;
+
+  const starting_arg_code = widget_to_code(x_arg_view.widget);
+
+  return (dx_px, px_per_unit) => {
+    const new_arg_code = `${starting_arg_code} + ${dx_px / px_per_unit}`;
+    change_widget_code(x_arg_view.widget, new_arg_code);
+  };
 }

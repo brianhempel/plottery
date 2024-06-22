@@ -3,16 +3,14 @@ import { create_call_view } from "../sidebar/call/call";
 import { Layer, CallView, CallWithArgs, DynamicCallInfo, State, StaticCallTypeInfo } from "../types";
 import { create_el } from "../utils/misc";
 
-// ✅ Step 1: get everything displayed as text
-// ✅ Step 2: get the the calls to behave as before
-// Step 3: Start over on the example and work from nothing
 
-export function layer_from_typed_node(typed_node: any, calls_with_args: CallWithArgs<DynamicCallInfo>[], state: State)
+export function layer_from_typed_node(typed_node: any, state: State)
   : Layer {
   const layer_el = create_el("div", "snp-layer");
 
   console.log('layer typed node:', typed_node)
 
+  const calls_with_args = state.calls_with_args;
   const calls_at_loc = calls_with_args.filter(call => call.call_info.call.pos.line === typed_node.line);
 
   const call_views: CallView[] =
@@ -33,28 +31,28 @@ export function layer_from_typed_node(typed_node: any, calls_with_args: CallWith
   };
 }
 
-export function layer_from_ast_node(calls: CallWithArgs<StaticCallTypeInfo>[], stmt: P_stmt, state: State) : HTMLElement {
-  const layer_el = create_el("div", "snp-layer");
+// export function layer_from_ast_node(calls: CallWithArgs<StaticCallTypeInfo>[], stmt: P_stmt, state: State) : HTMLElement {
+//   const layer_el = create_el("div", "snp-layer");
 
-  // Find that call that matches stmt
-
-
+//   // Find that call that matches stmt
 
 
-  // Loop through and build the call views for this artist
-  // const call_views: CallView[] = [];
-
-  // calls.forEach(call => {
-  //   const call_view = create_call_view(call, state);
-  //   call_views.push(call_view);
-
-  //   // Add it
-  //   body_el.append(call_view.els.el);
-  // });
 
 
-  return layer_el;
-}
+//   // Loop through and build the call views for this artist
+//   // const call_views: CallView[] = [];
+
+//   // calls.forEach(call => {
+//   //   const call_view = create_call_view(call, state);
+//   //   call_views.push(call_view);
+
+//   //   // Add it
+//   //   body_el.append(call_view.els.el);
+//   // });
+
+
+//   return layer_el;
+// }
 
 
 // export function create_layers_panel(

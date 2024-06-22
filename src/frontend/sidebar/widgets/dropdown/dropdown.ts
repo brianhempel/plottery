@@ -3,6 +3,7 @@ import { LiteralWidget } from "../literal/literal";
 import {
   Widget,
   WidgetKind,
+  change_widget_code,
   get_widget_type_id,
   widget_to_code,
 } from "../widget";
@@ -88,6 +89,11 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
 export function dropdown_widget_to_code(widget: DropdownWidget): string {
   return widget_to_code(widget.selected_item);
 }
+
+export function change_dropdown_widget_code(widget: DropdownWidget, new_code: string) {
+  change_widget_code(widget.selected_item, new_code);
+}
+
 
 /**
  * Adds items in `new_items` to the dropdown.

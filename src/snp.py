@@ -190,6 +190,7 @@ def method_associations(artist):
         case mpl.axes.Axes():
             return [
                 ([".title"], "set_title", 1),
+                ([".xaxis"], "set_xticks", 1),
                 ([".xaxis", ".xaxis.label"], "set_xlabel", 1),
                 ([".yaxis", ".yaxis.label"], "set_ylabel", 1),
                 ([], "bar", float("inf")),
@@ -208,14 +209,26 @@ def method_associations(artist):
 def regions2(artist):
     child_pad = 3
 
+    def get_zorder(artist_or_container):
+        if hasattr(artist_or_container, "zorder"):
+            return artist_or_container.zorder
+        else:
+            return get_zorder(artist_or_container.get_children()[0])
+
     if "get_children" in dir(artist):
         children = artist.get_children()
-        # Axes get_children() flattens its container children. Unflatten.
         if isinstance(artist, mpl.axes.Axes):
+            # For some reason, the background patch is last in the children list when it should be first so it doesn't cover everything.
+            # (It has special handling in Axes.draw() so this isn't any hackier than that is.)
+            children.remove(artist.patch)
+            children.insert(0, artist.patch)
+
+            # Axes get_children() flattens its container children. Unflatten.
             containers = artist.containers
             container_children = flatten([container.get_children() for container in containers])
             children = [child for child in children if child not in container_children]  # remove items in containers
             children += containers  # add the containers instead
+            children = sorted(children, key=get_zorder) # this is also in Axes.draw()
     else:
         children = []
 
@@ -300,12 +313,12 @@ def method_type_json(receiver, method_name, type_graph):
 
 
 # Preserve heirarchical structure so that JS mouseenter events work as intended
-def region2_to_svg_g(artist_methods_geom_children, object_names, type_graph):
+def region2_to_svg_g(artist_methods_geom_children, object_names):
     artist, methods, geom, children = artist_methods_geom_children
     geom_svg = geom.svg()
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0.0"', geom_svg)
-    child_svgs_str = "\n".join([region2_to_svg_g(child, object_names, type_graph) for child in children])
+    child_svgs_str = "\n".join([region2_to_svg_g(child, object_names) for child in children])
 
     perhaps_call_loc = f'data-func-code-and-num="{json_for_attr(artist._snp_came_from_call[0])}" data-pos="{json_for_attr(artist._snp_came_from_call[1])}"' if hasattr(artist, "_snp_came_from_call") else ""
     return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" data-artist-names="{json_for_attr(list(object_names.get(id(artist), (None, {}))[1]))}" {perhaps_call_loc}>
@@ -337,6 +350,7 @@ def _object_names_deep(out, obj, name, max_depth):
                     _object_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
 
 
+# Returns a dict of object to (object, set of names)
 def object_names(locals, user_names=None, max_depth=4):
     if user_names is None:
         user_names = set(locals.keys())
@@ -350,7 +364,81 @@ def object_names(locals, user_names=None, max_depth=4):
     return out
 
 
-class SNP:
+# For when you want quick redraws during mouse manipulations.
+# The front calls this by changing the cell code from SNP(...) to SNPFigureOnly(...) before sending it to the Python kernel.
+class SNPFigureOnly:
+    def __init__(
+        self,
+        figure,
+        locals,
+        cell_lineno,
+        provenance_is_off_by_n_lines,
+        notebook_code_through_cell,
+        user_names=None,
+    ):
+        self.figure = figure
+        self.cached_png = None
+
+    def _repr_png_(self):
+        with Timer("_repr_png_"):
+            if self.cached_png == None:
+                buf = io.BytesIO()
+                self.figure.canvas.print_figure(
+                    buf,
+                    format="png",
+                    dpi="figure",
+                    bbox_inches="tight",
+                    pad_inches=mpl.rcParams["savefig.pad_inches"],
+                )  # tight version
+                self.cached_png = buf.getvalue()
+
+        return self.cached_png
+
+
+class SNPFigureAndHoverRegions(SNPFigureOnly):
+    def __init__(
+        self,
+        figure,
+        locals,
+        cell_lineno,
+        provenance_is_off_by_n_lines,
+        notebook_code_through_cell,
+        user_names=None,
+    ):
+        self.figure = figure
+        self.cached_png = None
+        self.cached_svg_hover_regions = None
+        self.user_names = user_names
+
+        with Timer("object_names"):
+            self.object_names = object_names(locals, user_names=user_names)
+
+    # Note this is the hover regions only.
+    def _repr_svg_(self):
+        with Timer("_repr_svg_"):
+            if self.cached_svg_hover_regions == None:
+                self._repr_png_()  # Ensure elements are laid out.
+
+                fig = self.figure
+                bbox_inches = fig.get_tightbbox(fig.canvas.renderer).padded(mpl.rcParams["savefig.pad_inches"])
+                x0_px = bbox_inches.x0 * fig.get_dpi()
+                y0_px = bbox_inches.y0 * fig.get_dpi()
+                width_px = bbox_inches.width * fig.get_dpi()
+                height_px = bbox_inches.height * fig.get_dpi()
+
+                # fig_regions = flatten_regions(regions(fig))
+                fig_regions2 = regions2(self.figure)
+
+                svg_body = region2_to_svg_g(fig_regions2, self.object_names)
+
+                self.cached_svg_hover_regions = f"""<svg class="hover_regions" style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
+                    {svg_body}
+                </svg>"""
+
+        return self.cached_svg_hover_regions
+
+
+class SNP(SNPFigureAndHoverRegions):
     def __init__(
         self,
         figure,
@@ -362,9 +450,13 @@ class SNP:
     ):
         self.figure = figure
 
+        self.cached_png = None
+        self.cached_svg_hover_regions = None
+
         # Perform type inference
         self.cell_lineno = cell_lineno
         self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
+
         self.notebook_code_through_cell = notebook_code_through_cell
         with Timer("do_inference"):
             self.mypy_result = do_inference(notebook_code_through_cell)
@@ -385,9 +477,12 @@ class SNP:
 
         # Make a map of user code snippets to types, things we could use for autocompleting arguments.
         #
-        # Goes down one level into dicts and lists and tuples.
+        # Goes down one level into dicts and lists and tuples; this requires the concrete values, not just the types.
         with Timer("user_typed_snippets"):
+            # I wish there were a better way.
+            # array_like_type = self.type_graph['matplotlib.axes._axes'].tree.names['Axes'].node.names['bar'].type.arg_types[1]
             self.user_typed_snippets = {}
+            np_arange_ret_type = self.type_graph['numpy'].tree.names['arange'].node.type.items[0].ret_type
             for name, value in locals.items():
                 if name in tree.names and name in user_names and name not in get_trivial_names() and not callable(value):
                     name_type = tree.names[name].type
@@ -406,69 +501,35 @@ class SNP:
                                 for i, _ in enumerate(value):
                                     self.user_typed_snippets[f"{name}[{i}]"] = item_type
 
+                            self.user_typed_snippets[f"np.arange(len({name}))"] = np_arange_ret_type
+                            # Add np.arange(len())
+
                         if isinstance(value, tuple) and isinstance(name_type, mypy.types.TupleType):
                             for i, item_type in enumerate(name_type.items):
                                 if item_type is not None:
                                     self.user_typed_snippets[f"{name}[{i}]"] = item_type
 
+                            self.user_typed_snippets[f"np.arange(len({name}))"] = np_arange_ret_type
+
+
+            # print(self.user_typed_snippets)
+
 
         # Gather all the type information for function calls in the notebook
-        with Timer("GartherTypedCalls"):
+        with Timer("GatherTypedCalls"):
             self.user_call_type_info = None
             if tree is not None:
                 visitor = GatherTypedCalls(self.mypy_result.types, self.user_typed_snippets)
                 visitor.visit_mypy_file(tree)
                 self.user_call_type_info = visitor.out
 
-        self.cached_png = None
-        self.cached_svg_hover_regions = None
-
-    def _repr_png_(self):
-        with Timer("_repr_png_"):
-            if self.cached_png == None:
-                buf = io.BytesIO()
-                self.figure.canvas.print_figure(
-                    buf,
-                    format="png",
-                    dpi="figure",
-                    bbox_inches="tight",
-                    pad_inches=mpl.rcParams["savefig.pad_inches"],
-                )  # tight version
-                self.cached_png = buf.getvalue()
-
-        return self.cached_png
-
-    # Note this is the hover regions only.
-    def _repr_svg_(self):
-        with Timer("_repr_svg_"):
-            if self.cached_svg_hover_regions == None:
-                self._repr_png_()  # Ensure elements are laid out.
-
-                fig = self.figure
-                bbox_inches = fig.get_tightbbox(fig.canvas.renderer).padded(mpl.rcParams["savefig.pad_inches"])
-                x0_px = bbox_inches.x0 * fig.get_dpi()
-                y0_px = bbox_inches.y0 * fig.get_dpi()
-                width_px = bbox_inches.width * fig.get_dpi()
-                height_px = bbox_inches.height * fig.get_dpi()
-
-                # fig_regions = flatten_regions(regions(fig))
-                fig_regions2 = regions2(self.figure)
-
-                svg_body = region2_to_svg_g(fig_regions2, self.object_names, self.type_graph)
-
-                self.cached_svg_hover_regions = f"""<svg style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
-                    {svg_body}
-                </svg>"""
-
-        return self.cached_svg_hover_regions
-
     # This is only the technical info for the front end.
-    def _repr_json_(self):
-        return {
-            "cell_lineno": self.cell_lineno,
-            "provenance_is_off_by_n_lines": self.provenance_is_off_by_n_lines,
-            # "user_call_info": self.user_call_info,
-        }
+    # def _repr_json_(self):
+    #     return {
+    #         "cell_lineno": self.cell_lineno,
+    #         "provenance_is_off_by_n_lines": self.provenance_is_off_by_n_lines,
+    #         # "user_call_info": self.user_call_info,
+    #     }
 
     def _repr_html_(self):
         # ripped the below from ipympl/backend_nbagg.py
@@ -577,13 +638,12 @@ class SNP:
         #     "calls": [],
         # }
 
-        # THIS IS CAUSING A CIRCULAR REFERENCE ERROR
         # print(ast.parse(self.notebook_code_through_cell).)
         # notebook_ast = json.dumps(ast.parse(self.notebook_code_through_cell), default=lambda o: o.__dict__)
-        with Timer("notebook_ast"):
-            ast_v = visitor_ast.MyVisitor()
-            # print(json.dumps(ast_v.visit(ast.parse(self.notebook_code_through_cell)))
-            notebook_ast = ast_v.visit(ast.parse(self.notebook_code_through_cell))
+        # with Timer("notebook_ast"):
+        #     ast_v = visitor_ast.MyVisitor()
+        #     # print(json.dumps(ast_v.visit(ast.parse(self.notebook_code_through_cell)))
+        #     notebook_ast = ast_v.visit(ast.parse(self.notebook_code_through_cell))
 
         notebook_code_lines = self.notebook_code_through_cell.split("\n")
 
@@ -625,10 +685,10 @@ class SNP:
                 <div class="snp_outer" style="position:relative;">
                 <script>{pathlib.Path("../dist/plugin.js").read_text()}</script>
                 <img src='{data_url}'> <!-- the plot -->
-                {self._repr_svg_()} <!-- hover regions -->
+                <div class="hover_regions">{self._repr_svg_()}</div>
                 <div class="stdout_stderr"></div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_ast)}, {json_for_attr(notebook_typed_ast)})">
+                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_typed_ast)})">
                     {frontend_css}
                 </style>
                 </div>
@@ -655,7 +715,7 @@ class SNP:
 # ys = tag_with_provenance(np.sin(xs), 5, 5, 5, 15)
 # lines = tag_with_provenance(ax.plot(xs, ys), 6, 8, 6, 23)
 
-# tag_with_provenance() gives the returned object an `_snp_came_from_call` attribute, which is a tuple of (lineno, col_offset, end_lineno, end_col_offset)
+# tag_with_provenance() gives the returned object an `_snp_came_from_call` attribute, which is a tuple of ((func_code, call_num), (lineno, col_offset, end_lineno, end_col_offset))
 
 # Thanks GPT-4, this works, apparently.
 
@@ -743,22 +803,7 @@ def tag_with_provenance(
         elif isinstance(ret_obj, str):
             return TaggedStr(ret_obj, call_loc)
         elif isinstance(ret_obj, list):
-            return TaggedList(
-                [
-                    tag_with_provenance(
-                        child,
-                        receiver,
-                        func_code,
-                        call_num,
-                        lineno,
-                        col_offset,
-                        end_lineno,
-                        end_col_offset,
-                    )
-                    for child in ret_obj
-                ],
-                call_loc,
-            )
+            return TaggedList([tag_with_provenance(child, receiver, func_code, call_num, lineno, col_offset, end_lineno, end_col_offset) for child in ret_obj], call_loc)
         elif isinstance(ret_obj, dict):
             return TaggedDict(ret_obj, call_loc)
         elif isinstance(ret_obj, int):
@@ -812,7 +857,9 @@ class ProvenanceTagger(ast.NodeTransformer):
 # We need a new ProvenanceTagger each time, to reset call_nums
 class RootProvenanceTagger:
     def visit(self, node):
-        return ProvenanceTagger().visit(node)
+        with Timer("ProvenanceTagger"):
+            out = ProvenanceTagger().visit(node)
+        return out
 
 
 IPython.get_ipython().kernel.shell.ast_transformers = [RootProvenanceTagger()]

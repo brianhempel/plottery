@@ -89,13 +89,13 @@ export function arg_code_matches_literal_widget(
     is_literal_type_a_kind_of(widget.type, "builtins.str") &&
     is_string_like(arg_code)
   ) {
-    widget.el.innerText = arg_code;
+    // widget.el.innerText = arg_code;
     return true;
   } else if (
     is_literal_type_a_kind_of(widget.type, "builtins.float") &&
     is_numeric(arg_code)
   ) {
-    update_slider_val(widget, parseFloat(arg_code));
+    // update_slider_val(widget.slider!, parseFloat(arg_code));
     return true;
   } else if (widget.el.innerText == arg_code) {
     return true;
@@ -109,6 +109,14 @@ export function literal_widget_to_code(widget: LiteralWidget) {
     return widget.slider!.val_el.innerText;
   } else {
     return widget.el.innerText;
+  }
+}
+
+export function change_literal_widget_code(widget: LiteralWidget, new_code: string) {
+  if (widget.slider) {
+    update_slider_val(widget.slider, eval(new_code)); // Eval e.g. "10 + 2" into 12
+  } else {
+    widget.el.innerText = new_code;
   }
 }
 

@@ -76,7 +76,7 @@ export function make_plot_widgets(state: State) {
     const show_on: number[] = target_call.info.show_on; // Python artist object_ids
     console.log("show_on", show_on);
 
-    const hover_regions = Array.from(state.snp_outer.querySelector("svg")?.querySelectorAll('[data-artist-id]') || []).filter(el => show_on.includes(parseInt(el.getAttribute("data-artist-id") || "-1")));
+    const hover_regions = Array.from(state.hover_regions_svg()?.querySelectorAll('[data-artist-id]') || []).filter(el => show_on.includes(parseInt(el.getAttribute("data-artist-id") || "-1")));
 
     // console.log("hover_regions", hover_regions);
 

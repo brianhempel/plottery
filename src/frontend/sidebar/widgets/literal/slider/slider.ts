@@ -1,5 +1,4 @@
 import { create_el } from "../../../../utils/misc";
-import { LiteralWidget } from "../literal";
 import "./slider.css";
 
 export type Slider = {
@@ -24,24 +23,24 @@ export function make_slider(
   val_el.innerText = val.toString();
   val_el.contentEditable = "true";
 
-  let mult = 0.02;
+  let val_per_px = 0.02;
 
   let pressed = false;
-  let ix = 0;
-  let iv = 0;
+  let start_x = 0;
+  let start_val = 0;
   base.addEventListener("mousedown", e => {
     pressed = true;
-    ix = e.x;
-    iv = parseFloat(val_el.innerText);
+    start_x = e.x;
+    start_val = parseFloat(val_el.innerText);
     el.classList.add("pressed");
     document.body.style.cursor = "e-resize";
   });
 
   document.addEventListener("mousemove", e => {
     if (pressed) {
-      const dx = mult * (e.x - ix);
+      const dx = val_per_px * (e.x - start_x);
 
-      const new_value = iv + dx;
+      const new_value = start_val + dx;
       val_el.innerText = new_value.toFixed(2);
 
       e.preventDefault();
@@ -58,22 +57,10 @@ export function make_slider(
     }
   });
 
-  return {
-    val,
-    min,
-    max,
-    val_el,
-    el,
-    base,
-  };
+  return { val, min, max, val_el, el, base };
 }
 
-export function update_slider_val(widget: LiteralWidget, new_value: number) {
-  if (widget.slider == null) {
-    console.warn("No slider found!");
-    return;
-  }
-
-  widget.slider.val = new_value;
-  widget.slider.val_el.innerText = new_value.toString();
+export function update_slider_val(slider: Slider, new_value: number) {
+  slider.val = new_value;
+  slider.val_el.innerText = new_value.toString();
 }
