@@ -179,8 +179,8 @@ def total_bbox(geometries):
 
 
 # returns list of (obj_id, shapley.Geometry)
-def flatten_regions2(objid_methods_geom_children):
-    obj_id, methods, geom, children = objid_methods_geom_children
+def flatten_regions2(objid_methods_dxdy_geom_children):
+    obj_id, methods, dx_dy, geom, children = objid_methods_dxdy_geom_children
     return [(obj_id, geom)] + flatten([flatten_regions2(child) for child in children])
 
 
@@ -205,8 +205,8 @@ def method_associations(artist):
 
 
 # Make sure to render before calling this.
-# returns (artist, list of (artist, method_name), shapley.Geometry, children)
-def regions2(artist):
+# returns (artist, list of (artist, method_name), (units_per_x_px, units_per_y_px), shapley.Geometry, children)
+def regions2(artist, units_per_xy_px):
     child_pad = 3
 
     def get_zorder(artist_or_container):
@@ -218,16 +218,37 @@ def regions2(artist):
     if "get_children" in dir(artist):
         children = artist.get_children()
         if isinstance(artist, mpl.axes.Axes):
+
+            ax = artist
+            ax_bbox = ax.get_window_extent()
+            x_min, x_max = ax.get_xlim()
+            y_min, y_max = ax.get_ylim()
+            units_per_x_px = (x_max - x_min) / ax_bbox.width
+            units_per_y_px = (y_max - y_min) / ax_bbox.height
+            units_per_xy_px = (units_per_x_px, units_per_y_px)
+
             # For some reason, the background patch is last in the children list when it should be first so it doesn't cover everything.
             # (It has special handling in Axes.draw() so this isn't any hackier than that is.)
             children.remove(artist.patch)
             children.insert(0, artist.patch)
 
-            # Axes get_children() flattens its container children. Unflatten.
-            containers = artist.containers
-            container_children = flatten([container.get_children() for container in containers])
-            children = [child for child in children if child not in container_children]  # remove items in containers
-            children += containers  # add the containers instead
+            # Axes get_children() flattens its container children.
+            # But the provenance that the artist is the result of a call is on the container.
+
+            # Two possible solutions.
+
+            # One: Unflatten. This exposes the container on the canvas to select, which can overlap a lot of other objects.
+            # containers = artist.containers
+            # container_children = flatten([container.get_children() for container in containers])
+            # children = [child for child in children if child not in container_children]  # remove items in containers
+            # children += containers  # add the containers instead
+
+            # Two: Transfer the provenance to the artists.
+            for container in artist.containers:
+                for child in container.get_children():
+                    if not hasattr(child, "_snp_came_from_call"): # Don't overwrite if already set.
+                        child._snp_came_from_call = container._snp_came_from_call
+
             children = sorted(children, key=get_zorder) # this is also in Axes.draw()
     else:
         children = []
@@ -237,7 +258,7 @@ def regions2(artist):
             # Remove invisible tick text (i.e. the rarely used label2, which is mispositioned when not actively used.)
             children = [child for child in children if child.get_visible()]
 
-    child_regions = remove_nones([regions2(child) for child in children])
+    child_regions = remove_nones([regions2(child, units_per_xy_px) for child in children])
     child_regions_flat = flatten([flatten_regions2(child_region) for child_region in child_regions])
     child_geoms = [geom for _, geom in child_regions_flat]
 
@@ -290,7 +311,7 @@ def regions2(artist):
 
     my_geom = shapely.buffer(my_geom, child_pad, quad_segs=1, cap_style="square", join_style="mitre")  # expand by 10px
 
-    my_region = (artist, [], my_geom, child_regions)
+    my_region = (artist, [], units_per_xy_px, my_geom, child_regions)
 
     return my_region
 
@@ -313,14 +334,14 @@ def method_type_json(receiver, method_name, type_graph):
 
 
 # Preserve heirarchical structure so that JS mouseenter events work as intended
-def region2_to_svg_g(artist_methods_geom_children, object_names):
-    artist, methods, geom, children = artist_methods_geom_children
+def region2_to_svg_g(artist_methods_dx_dy_geom_children, object_names):
+    artist, methods, (dx_per_px, dy_per_px), geom, children = artist_methods_dx_dy_geom_children
     geom_svg = geom.svg()
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0.0"', geom_svg)
     child_svgs_str = "\n".join([region2_to_svg_g(child, object_names) for child in children])
 
-    perhaps_call_loc = f'data-func-code-and-num="{json_for_attr(artist._snp_came_from_call[0])}" data-pos="{json_for_attr(artist._snp_came_from_call[1])}"' if hasattr(artist, "_snp_came_from_call") else ""
+    perhaps_call_loc = f'data-func-code-and-num="{json_for_attr(artist._snp_came_from_call[0])}" data-pos="{json_for_attr(artist._snp_came_from_call[1])}" data-dx-per-px="{json_for_attr(dx_per_px)}" data-dy-per-px="{json_for_attr(dy_per_px)}"' if hasattr(artist, "_snp_came_from_call") else ""
     return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" data-artist-names="{json_for_attr(list(object_names.get(id(artist), (None, {}))[1]))}" {perhaps_call_loc}>
     {geom_svg}
     {child_svgs_str}
@@ -426,8 +447,8 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
                 width_px = bbox_inches.width * fig.get_dpi()
                 height_px = bbox_inches.height * fig.get_dpi()
 
-                # fig_regions = flatten_regions(regions(fig))
-                fig_regions2 = regions2(self.figure)
+                # I think we initialize to like 1/fig.get_dpi() for dx,dy BUT leaving this as 0,0 to surface if it matters.
+                fig_regions2 = regions2(self.figure, (0,0))
 
                 svg_body = region2_to_svg_g(fig_regions2, self.object_names)
 

@@ -26,7 +26,7 @@ import {
   open_collapsable,
 } from "../collapsable/collapsable";
 import { get_code_and_loc_for_call } from "../sidebar";
-import { change_widget_code, widget_to_code } from "../widgets/widget";
+import { Widget, change_widget_code, widget_to_code } from "../widgets/widget";
 import "./call.css";
 
 /**
@@ -196,39 +196,67 @@ export function call_to_code(
 function number_to_string_not_ugly(n: number) {
   const str = n.toString();
 
-  if (str.match(/9999999999\d\d\d$/)) {
+  if (str.match(/\.\d*9999999999\d\d\d$/)) {
     return number_to_string_not_ugly(n * 1.00000000000001);
   }
   return str.replace(/0+000000000\d\d\d$/, "");
 }
 
-// The handling has to be routed through the layers UI element because all the logic
-// for attaching the arguments to the code is buried there, including adding new args
-// and modifying current args.
-export function perhaps_get_mouse_drag_x_handler(call_view: CallView) : null | ((dx_px: number, px_per_unit: number) => void) {
 
-  const maybe_arg_and_view = call_view.arguments.find(({ arg }) => arg.name == 'x');
 
-  if (!maybe_arg_and_view) return null;
+// The handling for dragging on the plot has to be routed through the layers UI element because all the logic
+// for attaching the arguments to the code is buried there, including adding new args and modifying current args.
 
-  const { view: x_arg_view } = maybe_arg_and_view;
+export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((delta: number) => void) {
 
-  const starting_arg_code = widget_to_code(x_arg_view.widget);
+  let perhaps_widget = call_view.arguments.find(({ arg }) => arg.name == 'x')?.view.widget;
 
-  let code_lhs   = starting_arg_code;
-  let starting_rhs_number = 0;
+  return perhaps_widget ? drag_handler_for_arg_widget(perhaps_widget) : undefined;
+}
 
-  // Match starting_arg_code with WHATEVER + number, so we don't keep adding + x + x + x on every new drag
-  let match = starting_arg_code.match(/^(?<whatever>.*)\s*\+\s*(?<number>-?[0-9\.]+)\s*$/) ||
-              starting_arg_code.match(/^(?<number>-?[0-9\.]+)\s*\+\s*(?<whatever>.*)\s*$/);
-  if (match) {
-    code_lhs = match.groups!["whatever"].trim();
-    starting_rhs_number = parseFloat(match.groups!["number"]);
+
+export function perhaps_get_drag_width_handler(call_view: CallView) : undefined | ((delta: number) => void) {
+
+  let perhaps_widget = call_view.arguments.find(({ arg }) => arg.name == 'width')?.view.widget;
+
+  return perhaps_widget ? drag_handler_for_arg_widget(perhaps_widget) : undefined;
+}
+
+function drag_handler_for_arg_widget(widget: Widget) : ((delta: number) => void) {
+  const starting_arg_code = widget_to_code(widget);
+
+  // The branches below will set these two, based on what kind of code we have
+  let code_lhs: string | undefined = undefined;
+  let starting_number: number = 0;
+
+  // Match literal number
+  let literal_only_match = starting_arg_code.trim().match(/^-?[0-9\.]+$/);
+
+  // Match starting_arg_code with "STUFF + NUMBER" (or flipped) so we don't keep adding + x + x + x on every new drag
+  let stuff_plus_lit_match = starting_arg_code.match(/^(?<stuff>.*)\s*\+\s*(?<number>-?[0-9\.]+)\s*$/) ||
+    starting_arg_code.match(/^\s*(?<number>-?[0-9\.]+)\s*\+\s*(?<stuff>.*)\s*$/);
+
+  if (literal_only_match) {
+    code_lhs = undefined; // there is no non-numeric stuff
+    starting_number = parseFloat(literal_only_match[0]);
+  } else if (stuff_plus_lit_match) {
+    code_lhs = stuff_plus_lit_match.groups!["stuff"].trim();
+    starting_number = parseFloat(stuff_plus_lit_match.groups!["number"]);
+  } else { // code has no number in it yet
+    starting_number = 0;
+    code_lhs = starting_arg_code;
   }
 
-  return (dx_px, px_per_unit) => {
-    const new_number = starting_rhs_number + dx_px / px_per_unit;
-    const new_arg_code = new_number !== 0 ? `${code_lhs} + ${number_to_string_not_ugly(new_number)}` : code_lhs;
-    change_widget_code(x_arg_view.widget, new_arg_code);
+  return (delta) => {
+    const new_number = starting_number + delta;
+    let new_arg_code: string;
+    if (code_lhs === undefined) { // code is bare literal number
+      new_arg_code = number_to_string_not_ugly(new_number);
+    } else if (new_number === 0) {
+      new_arg_code = code_lhs;
+    } else {
+      new_arg_code = `${code_lhs.trimEnd()} + ${number_to_string_not_ugly(new_number)}`;
+    }
+    change_widget_code(widget, new_arg_code);
   };
 }

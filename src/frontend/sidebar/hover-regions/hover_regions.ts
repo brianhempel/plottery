@@ -4,7 +4,7 @@ import {
 } from "../../types";
 import { zip, equalByJSON } from "../../utils/array";
 import { place_centered_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
-import { perhaps_get_mouse_drag_x_handler } from "../call/call";
+import { perhaps_get_drag_x_handler, perhaps_get_drag_width_handler } from "../call/call";
 import { create_method_view } from "../methods/method";
 import "./hover_regions.css";
 
@@ -60,7 +60,8 @@ export function attach_events_to_hover_regions(state: State) {
     zip(layer.calls_with_args, layer.call_views).forEach(([call_with_args, call_view]) => {
       const call_info = call_with_args.call_info;
 
-      const perhaps_drag_x_handler = perhaps_get_mouse_drag_x_handler(call_view);
+      const perhaps_drag_x_handler     = perhaps_get_drag_x_handler(call_view);
+      const perhaps_drag_width_handler = perhaps_get_drag_width_handler(call_view);
 
       const hover_regions_for_call =
         (Array.from(svg_overlay_el.querySelectorAll('[data-func-code-and-num]')) as SVGElement[]).filter(hover_region => {
@@ -68,28 +69,55 @@ export function attach_events_to_hover_regions(state: State) {
         });
 
       hover_regions_for_call.forEach(hover_region => {
-        hover_region.style.cursor = "move";
 
         let pressed = false;
         let start_x = 0;
         let start_y = 0;
 
+        // Separate X and Y handlers is simple but did not scale in Sketch-n-Sketch b/c
+        // some Xs and Ys were dependent on each other and needed to be solved for
+        // together. BUT Sketch-n-Sketch was trying to show off fancy solving, maybe
+        // our use case will not need a complicated solver.
+        let x_handler : ((delta: number) => void) | undefined = undefined;
+        let y_handler : ((delta: number) => void) | undefined = undefined;
+
+        let units_per_x_px = hover_region.dataset.dxPerPx ? parseFloat(hover_region.dataset.dxPerPx) : 0.0;
+        let units_per_y_px = hover_region.dataset.dyPerPx ? parseFloat(hover_region.dataset.dyPerPx) : 0.0;
+
+        const edge_w = 10;
+
+        // Determine whether we are dragging the middle or the edge
+        hover_region.addEventListener("mousemove", evt => {
+          const { x, right } = hover_region.getBoundingClientRect();
+
+          if (perhaps_drag_width_handler && (evt.clientX < x + edge_w || evt.clientX > right - edge_w)) {
+            hover_region.style.cursor = "ew-resize";
+            x_handler = perhaps_drag_width_handler;
+          } else if (perhaps_drag_x_handler) {
+            hover_region.style.cursor = "move";
+            x_handler = perhaps_drag_x_handler;
+          }
+        });
+
         hover_region.addEventListener("mousedown", evt => {
-          console.log(call_with_args)
+          // console.log(call_with_args)
+          // console.log(evt)
+          // console.log(hover_region.getBoundingClientRect())
+          // console.log(hover_region.getClientRects())
           pressed = true;
           state.hover_regions_container.classList.add("hidden");
-          start_x = evt.x;
-          start_y = evt.y;
+          start_x = evt.clientX;
+          start_y = evt.clientY;
           evt.preventDefault();
           evt.stopPropagation();
         });
 
         document.addEventListener("mousemove", evt => {
           if (pressed) {
-            const dx = evt.x - start_x;
-            const dy = evt.y - start_y;
+            const dx = (evt.clientX - start_x) * units_per_x_px;
+            const dy = (evt.clientY - start_y) * units_per_y_px;
             console.log(dx,dy);
-            if (perhaps_drag_x_handler) { perhaps_drag_x_handler(dx, 50); }
+            if (x_handler) { x_handler(dx); }
             evt.preventDefault();
             evt.stopPropagation();
           }
