@@ -21,7 +21,10 @@ export function sync_call_code(
 
   code_mirror.replaceRange(code, from, to);
   ({ from, to } = mark.find()!);
-  code_mirror.setSelection(from, to);
+
+  // Selecting the code leaves a highlight on what has changed, BUT it scrolls
+  // the window which is really jarring when you are doing a direct manipulation.
+  // code_mirror.setSelection(from, to);
 
   redraw_cell(state);
 }
