@@ -10,6 +10,14 @@ export function create_arbitrary_code_widget(code: string): ArbitraryCodeWidget 
   const el = create_el("div", "snp-arg");
   el.innerText = code;
   el.contentEditable = "true";
+  el.addEventListener("keydown", ev => {
+    if (ev.code === "Enter") {
+      ev.stopPropagation();
+      ev.preventDefault();
+      el.closest('.snp-dropdown.expanded')?.classList.remove('expanded');
+      el.blur();
+    }
+  });
 
   return {
     kind: WidgetKind.ArbitraryCode,

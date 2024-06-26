@@ -22,6 +22,14 @@ export function make_slider(
   const val_el = create_el("div", "snp-slider-val", el);
   val_el.innerText = val.toString();
   val_el.contentEditable = "true";
+  val_el.addEventListener("keydown", ev => {
+    if (ev.code === "Enter") {
+      ev.stopPropagation();
+      ev.preventDefault();
+      val_el.closest('.snp-dropdown.expanded')?.classList.remove('expanded');
+      val_el.blur();
+    }
+  });
 
   let val_per_px = 0.02;
 

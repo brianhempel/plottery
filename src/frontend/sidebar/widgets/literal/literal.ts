@@ -26,6 +26,14 @@ export function create_literal_widget(
 
   if ((type as IInstanceType)?.type_ref == "builtins.str") {
     el.contentEditable = "true";
+    el.addEventListener("keydown", ev => {
+      if (ev.code === "Enter") {
+        ev.stopPropagation();
+        ev.preventDefault();
+        el.closest('.snp-dropdown.expanded')?.classList.remove('expanded');
+        el.blur();
+      }
+    });
   }
 
   let slider: Slider | null = null;

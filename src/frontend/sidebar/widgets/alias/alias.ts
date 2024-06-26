@@ -18,6 +18,14 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
 
   // Should be editable
   el.contentEditable = "true";
+  el.addEventListener("keydown", ev => {
+    if (ev.code === "Enter") {
+      ev.stopPropagation();
+      ev.preventDefault();
+      el.closest('.snp-dropdown.expanded')?.classList.remove('expanded');
+      el.blur();
+    }
+  });
 
   return {
     kind: WidgetKind.Alias,

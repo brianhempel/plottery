@@ -57,9 +57,7 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
       !(e.target == el) &&
       !el.contains(e.target as HTMLElement)
     ) {
-      if (el.classList.contains("expanded")) {
-        el.classList.remove("expanded");
-      }
+      el.classList.remove("expanded");
     }
   });
 
