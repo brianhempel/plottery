@@ -16,11 +16,6 @@ import {
   create_dropdown_widget,
   select_dropdown_item,
 } from "../widgets/dropdown/dropdown";
-import {
-  CodeSnippetWidget,
-  create_code_snippet_widget,
-  arg_code_matches_code_snippet_widget,
-} from "../widgets/code_snippet/code_snippet";
 
 import {
   LiteralWidget,
@@ -29,7 +24,7 @@ import {
 } from "../widgets/literal/literal";
 import { Widget, WidgetKind, change_widget_code, widget_to_code } from "../widgets/widget";
 import "./arg.css";
-import { create_arbitrary_code_widget } from "../widgets/arbitrary_code/arbitrary_code";
+import { ArbitraryCodeWidget, arg_code_matches_arbitrary_code_widget, create_arbitrary_code_widget } from "../widgets/arbitrary_code/arbitrary_code";
 
 export function create_arg_view(
   arg: Arg,
@@ -50,7 +45,7 @@ export function create_arg_view(
   let widgets = arg_view_widgets_from_type(arg.type);
 
   // Code snippet widgets
-  widgets = widgets.concat((arg.type_compatible_code_snippets ?? []).map(create_code_snippet_widget));
+  widgets = widgets.concat((arg.type_compatible_code_snippets ?? []).map(create_arbitrary_code_widget));
 
   let widget_to_select = widgets.find(widget => arg_code_matches_widget(widget, arg.code));
 
@@ -124,8 +119,8 @@ export function arg_code_matches_widget(
     return false
   } else if (widget.kind == WidgetKind.Alias) {
     return arg_code_matches_alias_widget(widget as AliasWidget, arg_code);
-  } else if (widget.kind == WidgetKind.CodeSnippet) {
-    return arg_code_matches_code_snippet_widget(widget as CodeSnippetWidget, arg_code);
+  } else if (widget.kind == WidgetKind.ArbitraryCode) {
+    return arg_code_matches_arbitrary_code_widget(widget as ArbitraryCodeWidget, arg_code);
   } else if (widget.kind == WidgetKind.Literal) {
     return arg_code_matches_literal_widget(widget as LiteralWidget, arg_code);
   } else if (widget.kind == WidgetKind.Color) {

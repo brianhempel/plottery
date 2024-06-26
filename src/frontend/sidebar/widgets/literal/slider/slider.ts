@@ -56,7 +56,7 @@ export function make_slider(
     }
   });
 
-  document.addEventListener("mouseup", e => {
+  document.addEventListener("mouseup", _ => {
     if (pressed) {
       pressed = false;
       el.classList.remove("pressed");

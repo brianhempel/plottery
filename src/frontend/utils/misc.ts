@@ -11,6 +11,38 @@ import {
 } from "../types";
 import { get_arg_kind_from_int } from "./types";
 
+// declare global {
+//   interface EventTarget {
+//     snpOrigAddEventListener: EventTarget['addEventListener'];
+//     snpEventListeners: { eventName: string, f: EventListenerOrEventListenerObject | null, opts: boolean | AddEventListenerOptions | undefined }[];
+//     // removeEventListeners: () => void;
+//   }
+// }
+
+// if(!EventTarget.prototype.snpOrigAddEventListener) {
+//   // Keep track of event listeners so we can remove them
+//   // Based on Ivan Castellanos & alex, https://stackoverflow.com/a/6434924
+//   EventTarget.prototype.snpOrigAddEventListener = EventTarget.prototype.addEventListener;
+//   EventTarget.prototype.addEventListener = function (eventName, f, opts) {
+//     this.snpOrigAddEventListener(eventName, f, opts);
+//     this.snpEventListeners = this.snpEventListeners || [];
+//     this.snpEventListeners.push({ eventName: eventName, f: f , opts: opts });
+//   };
+//   // EventTarget.prototype.removeEventListeners = function() {
+//   //   for (const { eventName, f, opts } of (this.snpEventListeners || [])) {
+//   //     this.removeEventListener(eventName, f, opts)
+//   //   }
+//   //   this.snpEventListeners = [];
+//   // };
+// }
+
+// export function copy_event_listeners(from: EventTarget, to: EventTarget) {
+//   for (const { eventName, f, opts } of (from.snpEventListeners || [])) {
+//     to.addEventListener(eventName, f, opts);
+//   }
+// }
+
+
 export function arg_defaults_from_callee_type(
   callee: CallableType & {
     pos: Position;
@@ -53,7 +85,7 @@ export function arg_defaults_from_callee_type(
 }
 
 export function default_code_and_code_type_for_type(
-  type: Type,
+  type: Type | string,
   name?: string
 ): [string, Type] {
   // @TODO: Why is this hardcoded?
@@ -70,6 +102,11 @@ export function default_code_and_code_type_for_type(
   // if (default_code !== undefined) {
   //   return [default_code, type];
   // }
+
+  if (typeof type == "string") {
+    console.error("default_code_and_code_type_for_type: type is a string", type);
+    return ["None", { ".class": "NoneType" }];
+  }
 
   if ((type as IInstanceType)?.type_ref == "builtins.str") {
     return ['"Bananas..."', type];

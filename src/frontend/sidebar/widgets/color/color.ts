@@ -27,6 +27,12 @@ export function create_color_widget(type: TypeAliasType): ColorWidget {
   };
 }
 
+export function clone_color_widget(widget: ColorWidget): ColorWidget {
+  const new_widget = create_color_widget(widget.type);
+  change_color_widget_code(new_widget, color_widget_to_code(widget));
+  return new_widget;
+}
+
 // "(0.90, 0.39, 0.40)" => "#e66465"
 export function code_to_hex(code: string) : string | undefined {
   const match = code.replaceAll(/\s/g, "").match(/^\((-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)\)$/);

@@ -20,7 +20,7 @@ export type LiteralWidget = Widget & {
  * @returns
  */
 export function create_literal_widget(
-  type: LiteralType | IInstanceType | NoneType
+  type: LiteralType | string | IInstanceType | NoneType
 ): LiteralWidget {
   const el = create_el("div", "snp-arg");
 
@@ -55,8 +55,9 @@ export function create_literal_widget(
   if (
     is_literal_type_a_kind_of(type, "builtins.float") ||
     is_literal_type_a_kind_of(type, "builtins.int")
-  )
+  ) {
     el.classList.add("snp-arg-number");
+  }
 
   return {
     kind: WidgetKind.Literal,
@@ -64,6 +65,16 @@ export function create_literal_widget(
     type,
     slider,
   };
+}
+
+export function clone_literal_widget(widget: LiteralWidget): LiteralWidget {
+  const new_widget = create_literal_widget(widget.type);
+  if (widget.slider && new_widget.slider) {
+    update_slider_val(new_widget.slider, widget.slider.val);
+  } else {
+    new_widget.el.innerText = widget.el.innerText;
+  }
+  return new_widget;
 }
 
 export function is_literal_type_a_kind_of(

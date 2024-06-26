@@ -34,6 +34,12 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
   };
 }
 
+export function clone_alias_widget(widget: AliasWidget): AliasWidget {
+  let new_widget = create_alias_widget(widget.a_type);
+  new_widget.el.innerText = widget.el.innerText;
+  return new_widget;
+}
+
 export function arg_code_matches_alias_widget(
   widget: AliasWidget,
   arg_code: string

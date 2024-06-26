@@ -66,7 +66,7 @@
   position: relative;
 }
 
-.snp-dropdown-hidden-item {
+.snp-dropdown-item {
   background: white;
   display: flex;
   cursor: pointer;
@@ -74,19 +74,19 @@
   padding: 2px 4px;
 }
 
-.snp-dropdown-hidden-item:hover {
+.snp-dropdown-item:hover {
   background: #efefef;
 }
 
-.snp-dropdown-hidden-item.selected {
+.snp-dropdown-item.selected {
   background: #dcdcdc;
 }
 
-.snp-dropdown-hidden-item.selected:hover {
+.snp-dropdown-item.selected:hover {
   background: #c9c9c9;
 }
 
-.snp-dropdown-hidden-item > div:first-child {
+.snp-dropdown-item > div:first-child {
   flex-grow: 1;
 }
 
