@@ -27,7 +27,7 @@ import {
   create_literal_widget,
   arg_code_matches_literal_widget,
 } from "../widgets/literal/literal";
-import { Widget, WidgetKind, widget_to_code } from "../widgets/widget";
+import { Widget, WidgetKind, change_widget_code, widget_to_code } from "../widgets/widget";
 import "./arg.css";
 import { create_arbitrary_code_widget } from "../widgets/arbitrary_code/arbitrary_code";
 
@@ -59,6 +59,8 @@ export function create_arg_view(
     var arbitrary_code_widget = create_arbitrary_code_widget(arg.code);
     widgets.unshift(arbitrary_code_widget);
     widget_to_select = arbitrary_code_widget;
+  } else {
+    change_widget_code(widget_to_select, arg.code)
   }
 
   // If there are multiple widgets at this point, create a dropdown

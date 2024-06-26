@@ -84,7 +84,7 @@ export function attach_events_to_hover_regions(state: State) {
         let units_per_x_px = hover_region.dataset.dxPerPx ? parseFloat(hover_region.dataset.dxPerPx) : 0.0;
         let units_per_y_px = hover_region.dataset.dyPerPx ? parseFloat(hover_region.dataset.dyPerPx) : 0.0;
 
-        const edge_w = 10;
+        const edge_w = 6;
 
         // Determine whether we are dragging the middle or the edge
         hover_region.addEventListener("mousemove", evt => {

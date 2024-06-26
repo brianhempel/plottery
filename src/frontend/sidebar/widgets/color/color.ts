@@ -27,11 +27,24 @@ export function create_color_widget(type: TypeAliasType): ColorWidget {
   };
 }
 
+// "(0.90, 0.39, 0.40)" => "#e66465"
+export function code_to_hex(code: string) : string | undefined {
+  const match = code.replaceAll(/\s/g, "").match(/^\((-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)\)$/);
+  if (!match) return undefined;
+  const hex =
+    match.slice(1) // first arg is the whole match, discard
+      .map(Number)
+      .map(channel => Math.round(channel * 255).toString(16))
+      .map(hex => hex.length === 1 ? "0" + hex : hex)
+      .join("");
+  return "#" + hex;
+}
+
 export function arg_code_matches_color_widget(
   widget: ColorWidget,
   arg_code: string
 ): boolean {
-  return false;
+  return code_to_hex(arg_code) !== undefined;
 }
 
 export function color_widget_to_code(widget: ColorWidget) {
@@ -42,7 +55,12 @@ export function color_widget_to_code(widget: ColorWidget) {
 }
 
 export function change_color_widget_code(widget: ColorWidget, new_code: string) {
-  console.error(`change_color_widget_code: not implemented yet, was given code ${new_code}`);
+  let hex = code_to_hex(new_code);
+  if (hex) {
+    widget.color_picker.value = hex;
+  } else {
+    console.error(`change_color_widget_code: don't know how to use ${new_code} as a color.`);
+  }
 }
 
 export function get_color_widget_type_id(widget: ColorWidget) {
