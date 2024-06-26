@@ -84,13 +84,13 @@ export function attach_events_to_hover_regions(state: State) {
         let units_per_x_px = hover_region.dataset.dxPerPx ? parseFloat(hover_region.dataset.dxPerPx) : 0.0;
         let units_per_y_px = hover_region.dataset.dyPerPx ? parseFloat(hover_region.dataset.dyPerPx) : 0.0;
 
-        const edge_w = 6;
+        const ew_edge_w = Math.min(10, hover_region.getBoundingClientRect().width / 4);
 
         // Determine whether we are dragging the middle or the edge
         hover_region.addEventListener("mousemove", evt => {
           const { x, right } = hover_region.getBoundingClientRect();
 
-          if (perhaps_drag_width_handler && (evt.clientX < x + edge_w || evt.clientX > right - edge_w)) {
+          if (perhaps_drag_width_handler && (evt.clientX < x + ew_edge_w || evt.clientX > right - ew_edge_w)) {
             hover_region.style.cursor = "ew-resize";
             x_handler = perhaps_drag_width_handler;
           } else if (perhaps_drag_x_handler) {

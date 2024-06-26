@@ -17,8 +17,8 @@ import {
 import {
   arg_view_to_code,
   create_arg_view,
-  enable_arg_view as enable_arg_view,
-  disable_arg_view as disable_arg_view,
+  enable_arg_view,
+  disable_arg_view,
 } from "../arg/arg";
 import {
   collapse_collapsable,
@@ -87,10 +87,7 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
 
   const add_args = (args: Arg[], positional: boolean, disabled: boolean) => {
     args.forEach(arg => {
-      const arg_view = create_arg_view(arg, {
-        positional,
-        disabled: disabled,
-      });
+      const arg_view = create_arg_view(arg, {positional, disabled: disabled});
       body_el.append(arg_view.el);
       arg_and_views.push({ arg, view: arg_view });
     });
@@ -137,8 +134,6 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
 
   // On clicking on a hidden arg view, unhide it
   arg_and_views.forEach(({ view }) => {
-    if (!view.disabled) return;
-
     view.el.addEventListener("mousedown", e => {
       if (view.disabled) {
         enable_arg_view(view);
@@ -209,21 +204,21 @@ function number_to_string_not_ugly(n: number) {
 
 export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((delta: number) => void) {
 
-  let perhaps_widget = call_view.arguments.find(({ arg }) => arg.name == 'x')?.view.widget;
+  let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'x')?.view;
 
-  return perhaps_widget ? drag_handler_for_arg_widget(perhaps_widget) : undefined;
+  return perhaps_view ? drag_handler_for_arg_view(perhaps_view) : undefined;
 }
 
 
 export function perhaps_get_drag_width_handler(call_view: CallView) : undefined | ((delta: number) => void) {
 
-  let perhaps_widget = call_view.arguments.find(({ arg }) => arg.name == 'width')?.view.widget;
+  let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'width')?.view;
 
-  return perhaps_widget ? drag_handler_for_arg_widget(perhaps_widget) : undefined;
+  return perhaps_view ? drag_handler_for_arg_view(perhaps_view) : undefined;
 }
 
-function drag_handler_for_arg_widget(widget: Widget) : ((delta: number) => void) {
-  const starting_arg_code = widget_to_code(widget);
+function drag_handler_for_arg_view(view: ArgView) : ((delta: number) => void) {
+  const starting_arg_code = widget_to_code(view.widget);
 
   // The branches below will set these two, based on what kind of code we have
   let code_lhs: string | undefined = undefined;
@@ -248,6 +243,8 @@ function drag_handler_for_arg_widget(widget: Widget) : ((delta: number) => void)
   }
 
   return (delta) => {
+    enable_arg_view(view);
+
     const new_number = starting_number + delta;
     let new_arg_code: string;
     if (code_lhs === undefined) { // code is bare literal number
@@ -257,6 +254,6 @@ function drag_handler_for_arg_widget(widget: Widget) : ((delta: number) => void)
     } else {
       new_arg_code = `${code_lhs.trimEnd()} + ${number_to_string_not_ugly(new_number)}`;
     }
-    change_widget_code(widget, new_arg_code);
+    change_widget_code(view.widget, new_arg_code);
   };
 }
