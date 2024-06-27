@@ -1,7 +1,7 @@
-import { layer_from_typed_node } from "./layer_panel/layer_panel";
+import { create_layers_panel, layer_from_typed_node } from "./layer_panel/layer_panel";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
-import { focus_on_call_from_code } from "./sidebar/sidebar";
+// import { focus_on_call_from_code } from "./sidebar/sidebar";
 import "./snp.css";
 import {
   Arg,
@@ -74,7 +74,7 @@ function attach_snp(
     selectable_artists: sidebar_stuff.selectable_artists,
     methods: get_methods(sidebar_stuff.methods, sidebar_stuff.selectable_artists),
 
-    layers: [],
+    layers_panel: create_layers_panel([]),
 
     calls: sidebar_stuff.calls,
     calls_with_args: [],
@@ -86,7 +86,7 @@ function attach_snp(
     hover_regions_svg: () => state.hover_regions_container.querySelector("svg") as SVGElement | undefined,
     set_hover_regions_html: (html_svg_str: string) => { state.hover_regions_container.innerHTML = html_svg_str; },
 
-    sidebar: undefined,
+    sidebar_el: create_el("div", "snp-sidebar", snp_outer),
     stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
   };
 
@@ -111,16 +111,15 @@ function attach_snp(
   state.notebook_typed_defs = deserialize.python_objects_to_js(notebook_typed_defs);
 
   state.calls_with_args = sidebar_stuff.calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror));
-  state.layers = state.notebook_typed_defs.filterMap(typed_node =>
+
+  const layers = state.notebook_typed_defs.filterMap(typed_node =>
     typed_node.line >= cell_lineno ? layer_from_typed_node(typed_node, state) : null
   );
 
-  const sidebar_el = create_el("div", "snp-sidebar");
+  state.layers_panel = create_layers_panel(layers);
 
-  state.layers.forEach(layer => {
-    sidebar_el.append(layer.el);
-  })
-  state.snp_outer.append(sidebar_el);
+  state.sidebar_el.append(state.layers_panel.el);
+
 
   // state.sidebar = create_sidebar(
   //   state.all_calls_and_methods,
@@ -141,11 +140,11 @@ function attach_snp(
 
   // Focus on call (i.e. expand the sidebar to show the call)
   // e.g. when adding a new method, expand it's call
-  const focused_call: string | null = (window as any)["snp_focused_call"];
-  if (focused_call != null) {
-    focus_on_call_from_code(focused_call, state);
-    (window as any)["snp_focused_call"] = null;
-  }
+  // const focused_call: string | null = (window as any)["snp_focused_call"];
+  // if (focused_call != null) {
+  //   focus_on_call_from_code(focused_call, state);
+  //   (window as any)["snp_focused_call"] = null;
+  // }
 
   (window as any)["last_snp_state"] = state;
 

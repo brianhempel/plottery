@@ -52,10 +52,10 @@ export function attach_events_to_hover_regions(state: State) {
 
   // Attach drag handlers to artists that are the result of calls in the code
   //
-  // The handling has to be routed through the layers UI elemnt because all the logic
+  // The handling has to be routed through the layers UI element because all the logic
   // for attaching the arguments to the code is buried there, including adding new args
   // and modifying current args.
-  state.layers.forEach(layer => {
+  state.layers_panel.layers.forEach(layer => {
     // Layers in practice only have zero or one calls, but the types and code allow more.
     zip(layer.calls_with_args, layer.call_views).forEach(([call_with_args, call_view]) => {
       const call_info = call_with_args.call_info;

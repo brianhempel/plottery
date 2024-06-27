@@ -1,22 +1,7 @@
 import {
-  ArtistView,
-  CallView,
-  CallWithArgs,
-  MethodView,
-  MethodWithArgs,
-  PersistantArtist,
   SelectableArtist,
-  SidebarView,
-  State,
 } from "../../types";
-import { create_el, get_shortest_qualified_name } from "../../utils/misc";
-import { create_call_view } from "../call/call";
-import {
-  collapse_collapsable,
-  create_collapsable_els,
-  open_collapsable,
-} from "../collapsable/collapsable";
-import { create_method_view } from "../methods/method";
+import { get_shortest_qualified_name } from "../../utils/misc";
 import "./artist.css";
 
 // /**

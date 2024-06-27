@@ -1,4 +1,5 @@
 import { P_Module } from "./ast_types";
+import { LayersPanel } from "./layer_panel/layer_panel";
 import { Widget } from "./sidebar/widgets/widget";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
@@ -49,8 +50,8 @@ export type State = {
   set_hover_regions_html: (html_svg_str: string) => void;
   hover_regions_container: HTMLElement;
 
-  layers: Layer[];
-  sidebar?: SidebarView;
+  sidebar_el: HTMLElement;
+  layers_panel: LayersPanel;
 
   // hover_regions?: {
   //   el: HTMLElement;
@@ -71,38 +72,32 @@ export type SelectableArtist = {
   parent_id?: number;
 };
 
-export type HoverRegion = {
-  el: HTMLElement;
-  calls: { info: DynamicCallInfo; view: CallView }[];
-  methods: { info: MethodInfo; view: MethodView }[];
-  artist: ArtistView | null;
-};
+// export type HoverRegion = {
+//   el: HTMLElement;
+//   calls: { info: DynamicCallInfo; view: CallView }[];
+//   methods: { info: MethodInfo; view: MethodView }[];
+//   artist: ArtistView | null;
+// };
 
-export type SidebarView = {
-  el: HTMLElement;
-  artists_el: HTMLElement;
-  artists: { [name: string]: ArtistView };
-};
+// export type SidebarView = {
+//   el: HTMLElement;
+//   artists_el: HTMLElement;
+//   artists: { [name: string]: ArtistView };
+// };
 
-export type ArtistView = {
-  els: ArtistViewEls;
+// export type ArtistView = {
+//   els: ArtistViewEls;
 
-  calls: CallView[];
-  methods: MethodView[];
-};
+//   calls: CallView[];
+//   methods: MethodView[];
+// };
 
-export type ArtistViewEls = {
-  el: HTMLElement;
-  header_el: HTMLElement;
-  name_el: HTMLElement;
-  body_el: HTMLElement;
-};
-
-export type Layer = {
-  el: HTMLElement;
-  calls_with_args: CallWithArgs<DynamicCallInfo>[];
-  call_views: CallView[];
-}
+// export type ArtistViewEls = {
+//   el: HTMLElement;
+//   header_el: HTMLElement;
+//   name_el: HTMLElement;
+//   body_el: HTMLElement;
+// };
 
 export type CallView = {
   els: CallViewEls;

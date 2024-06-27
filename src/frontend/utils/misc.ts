@@ -335,7 +335,7 @@ export function find_call_that_satisfies(
   console.log("find_call_that_satisfies state", state);
 
   // Go through all the call views from artists
-  for (const layer of state.layers) {
+  for (const layer of state.layers_panel.layers) {
     for (let i = 0; i < layer.calls_with_args.length; i++) {
       const calls_with_args = layer.calls_with_args[i];
       const call_view = layer.call_views[i];
