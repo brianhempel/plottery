@@ -102,7 +102,7 @@ export type SelectableArtist = {
 export type CallView = {
   els: CallViewEls;
   is_elided: boolean; // (i.e. not collapsed args into ...)
-
+  mark: TextMarker<MarkerRange>;
   arguments: {
     arg: Arg;
     view: ArgView;

@@ -1,4 +1,4 @@
-import { create_layers_panel, layer_from_typed_node } from "./layer_panel/layer_panel";
+import { create_layers_panel, deselect_all_layers, layer_from_typed_node } from "./layer_panel/layer_panel";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
@@ -29,6 +29,7 @@ import {
 import { JupyterType, get_arg_kind_from_int } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
+import { create_sidebar_menu_bar } from "./sidebar/sidebar";
 
 
 // These will already exist where we inject the JS in the notebook.
@@ -101,6 +102,10 @@ function attach_snp(
   // state.calls_and_methods_by_artist = calls_and_methods_by_artist(state);
   console.log("State", state);
 
+  const sidebar_menu_bar = create_sidebar_menu_bar(state);
+
+  state.sidebar_el.append(sidebar_menu_bar);
+
   // const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
   // state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));
 
@@ -117,6 +122,10 @@ function attach_snp(
   );
 
   state.layers_panel = create_layers_panel(layers);
+
+  // Clicks on non-selectable elements on plot should deselect.
+  // (Clicks on selectable elements do not propogate to the container.)
+  state.hover_regions_container.addEventListener("click", _ => { deselect_all_layers(state); });
 
   state.sidebar_el.append(state.layers_panel.el);
 

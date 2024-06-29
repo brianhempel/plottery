@@ -1,30 +1,89 @@
-import {
-  // ArtistView,
-  DynamicCallInfo,
-  CallView,
-  CallWithArgs,
-  MethodInfo,
-  MethodView,
-  MethodWithArgs,
-  PersistantArtist,
-  PersistantCall,
-  SelectableArtist,
-  // SidebarView,
-  State,
-  StaticCallTypeInfo,
-} from "../types";
-import { MarkerRange, TextMarker } from "../utils/codemirror";
-import {
-  create_el,
-  find_call_that_satisfies,
-  get_shortest_qualified_name,
-} from "../utils/misc";
-import { CellMessage } from "../utils/types";
-import {
-  is_collapsable_collapsed,
-  open_collapsable,
-} from "./collapsable/collapsable";
-import "./sidebar.css";
+import { createModuleResolutionCache } from "typescript";
+import { hard_rerun } from "../code_sync/code_sync";
+import { Layer, selected_layers } from "../layer_panel/layer_panel";
+import { State } from "../types";
+import { create_el, item_to_start_pos } from "../utils/misc";
+import { call_to_code } from "./call/call";
+
+
+function close_menu(menu: HTMLElement) {
+  menu.querySelector(".snp-menu-click-to-close-overlay")?.remove();
+  menu.classList.remove("open");
+}
+
+export function create_sidebar_menu_bar(state: State) {
+  const sidebar_menu_bar = create_el("div", "snp-sidebar-menu-bar");
+
+  const edit_menu = create_el("div", "snp-sidebar-menu", sidebar_menu_bar);
+  edit_menu.innerHTML = "<strong>Edit</strong>";
+
+  edit_menu.addEventListener("click", _ => {
+    if (edit_menu.classList.contains("open")) { // This catches clicks from clicking menu items while the menu is open
+      close_menu(edit_menu);
+    } else {
+      edit_menu.classList.add("open");
+      const overlay = create_el("div", "snp-menu-click-to-close-overlay");
+      edit_menu.prepend(overlay);
+      overlay.addEventListener("click", ev => {
+        ev.stopPropagation();
+        close_menu(edit_menu);
+      });
+    }
+  });
+
+  const edit_menu_items = create_el("div", "snp-sidebar-menu-items", edit_menu);
+
+  const edit_menu_duplicate = create_el("div", "snp-sidebar-menu-item", edit_menu_items);
+  edit_menu_duplicate.innerHTML = "Duplicate";
+
+  const cm = state.cell.code_mirror;
+  const old_code = cm.getValue();
+  edit_menu_duplicate.addEventListener("click", _ => {
+    selected_layers(state).forEach((layer : Layer) => {
+      // Duplicate layer
+      layer.call_views.forEach(call_view => {
+        const insert_line = 1 + (call_view.mark.find()?.to.line || cm.getCursor().line);
+
+        cm.replaceRange(call_to_code(call_view) + '\n', {line: insert_line, ch: 0})
+      });
+    });
+    if(cm.getValue() !== old_code) hard_rerun(state);
+  });
+
+  return sidebar_menu_bar;
+}
+
+
+// import {
+//   // ArtistView,
+//   DynamicCallInfo,
+//   CallView,
+//   CallWithArgs,
+//   MethodInfo,
+//   MethodView,
+//   MethodWithArgs,
+//   PersistantArtist,
+//   PersistantCall,
+//   SelectableArtist,
+//   // SidebarView,
+//   State,
+//   StaticCallTypeInfo,
+// } from "../types";
+// import { MarkerRange, TextMarker } from "../utils/codemirror";
+// import {
+//   create_el,
+//   find_call_that_satisfies,
+//   get_shortest_qualified_name,
+// } from "../utils/misc";
+// import { CellMessage } from "../utils/types";
+// import {
+//   is_collapsable_collapsed,
+//   open_collapsable,
+// } from "./collapsable/collapsable";
+// import "./sidebar.css";
+
+
+
 
 // export function create_sidebar(
 //   all_calls_and_methods: {
@@ -170,20 +229,15 @@ import "./sidebar.css";
 //   }
 // }
 
-export function add_temporary_focus(el: HTMLElement) {
-  // Add focus on call view
-  el.classList.add("snp-focused");
+// export function add_temporary_focus(el: HTMLElement) {
+//   // Add focus on call view
+//   el.classList.add("snp-focused");
 
-  // Unfocus on clicking anywhere else
-  const unfocus = () => {
-    el.classList.remove("snp-focused");
-    document.removeEventListener("mousedown", unfocus);
-  };
+//   // Unfocus on clicking anywhere else
+//   const unfocus = () => {
+//     el.classList.remove("snp-focused");
+//     document.removeEventListener("mousedown", unfocus);
+//   };
 
-  document.addEventListener("mousedown", unfocus);
-}
-
-
-export function get_code_and_loc_for_call(call: DynamicCallInfo) {
-  return `${call.loc_via_func_code_and_num[0]}${call.call.pos.line}`;
-}
+//   document.addEventListener("mousedown", unfocus);
+// }

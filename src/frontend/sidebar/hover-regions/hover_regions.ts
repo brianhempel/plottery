@@ -1,4 +1,5 @@
 import { refresh_hover_regions } from "../../code_sync/code_sync";
+import { is_layer_selected, select_layer, selected_layers, toggle_select_layer } from "../../layer_panel/layer_panel";
 import {
   State,
 } from "../../types";
@@ -36,6 +37,41 @@ export function place_add_method_buttons_on_plot(state: State) {
   });
 }
 
+function hover_regions_for_call(loc_via_func_code_and_num: [string, number], state: State): SVGElement[] {
+  const svg_overlay_el = state.hover_regions_svg();
+
+  if (!svg_overlay_el) { return []; }
+
+  return (Array.from(svg_overlay_el.querySelectorAll('[data-func-code-and-num]')) as SVGElement[]).filter(hover_region => {
+    return equalByJSON(JSON.parse(hover_region.dataset.funcCodeAndNum || ""), loc_via_func_code_and_num);
+  });
+}
+
+// export function deselect_hover_regions(loc_via_func_code_and_num: [string, number], state: State) {
+//   hover_regions_for_call(loc_via_func_code_and_num, state).forEach(hover_region => {
+//     hover_region.classList.remove("selected");
+//   });
+// }
+
+export function select_hover_regions(loc_via_func_code_and_num: [string, number], state: State) {
+  hover_regions_for_call(loc_via_func_code_and_num, state).forEach(hover_region => {
+    hover_region.classList.add("selected");
+  });
+}
+
+// Set the selected state of the hover regions based on the layers panel
+export function compute_selected_hover_regions(state: State) {
+  const svg_overlay_el = state.hover_regions_svg();
+
+  if (!svg_overlay_el) { return; }
+
+  svg_overlay_el.querySelectorAll(".selected").forEach(el => el.classList.remove("selected"));
+  selected_layers(state).forEach(layer => {
+    layer.calls_with_args.forEach(call_with_args => {
+      select_hover_regions(call_with_args.call_info.loc_via_func_code_and_num, state);
+    });
+  });
+}
 
 export function attach_events_to_hover_regions(state: State) {
 
@@ -43,11 +79,11 @@ export function attach_events_to_hover_regions(state: State) {
 
   if (!svg_overlay_el) { return; }
 
-  (Array.from(svg_overlay_el.querySelectorAll('[data-artist-id] > [stroke-width]')) as SVGElement[]).forEach(hover_region => {
-    hover_region.dataset.origStrokeWidth = hover_region.getAttribute("stroke-width") || undefined;
-    hover_region.addEventListener("mouseover", () => { hover_region.setAttribute("stroke-width", "2.0"); });
-    hover_region.addEventListener("mouseout", () => { hover_region.setAttribute("stroke-width", hover_region.dataset.origStrokeWidth || "0"); });
-  });
+  // (Array.from(svg_overlay_el.querySelectorAll('[data-artist-id] > [stroke-width]')) as SVGElement[]).forEach(hover_region => {
+  //   hover_region.dataset.origStrokeWidth = hover_region.getAttribute("stroke-width") || undefined;
+  //   // hover_region.addEventListener("mouseover", () => { hover_region.setAttribute("stroke-width", "2.0"); });
+  //   // hover_region.addEventListener("mouseout", () => { hover_region.setAttribute("stroke-width", hover_region.dataset.origStrokeWidth || "0"); });
+  // });
 
 
   // Attach drag handlers to artists that are the result of calls in the code
@@ -71,6 +107,7 @@ export function attach_events_to_hover_regions(state: State) {
       hover_regions_for_call.forEach(hover_region => {
 
         let pressed = false;
+        let click_start: Date = new Date();
         let start_x = 0;
         let start_y = 0;
 
@@ -85,6 +122,19 @@ export function attach_events_to_hover_regions(state: State) {
         let units_per_y_px = hover_region.dataset.dyPerPx ? parseFloat(hover_region.dataset.dyPerPx) : 0.0;
 
         const ew_edge_w = Math.min(10, hover_region.getBoundingClientRect().width / 4);
+
+        hover_region.addEventListener("mouseover", () => {
+          hover_regions_for_call.forEach(hover_region => {
+            // hover_region.querySelectorAll("[stroke-width]").forEach(el => { el.setAttribute("stroke-width", "2.0"); });
+            hover_region.classList.add("hovered");
+          });
+        });
+        hover_region.addEventListener("mouseout", () => {
+          hover_regions_for_call.forEach(hover_region => {
+            // hover_region.querySelectorAll("[stroke-width]").forEach(el => { el.setAttribute("stroke-width", hover_region.dataset.origStrokeWidth || "0"); });
+            hover_region.classList.remove("hovered");
+          });
+        });
 
         // Determine whether we are dragging the middle or the edge
         hover_region.addEventListener("mousemove", evt => {
@@ -105,6 +155,7 @@ export function attach_events_to_hover_regions(state: State) {
           // console.log(hover_region.getBoundingClientRect())
           // console.log(hover_region.getClientRects())
           pressed = true;
+          click_start = new Date();
           state.hover_regions_container.classList.add("hidden");
           start_x = evt.clientX;
           start_y = evt.clientY;
@@ -123,16 +174,26 @@ export function attach_events_to_hover_regions(state: State) {
           }
         });
 
-        document.addEventListener("mouseup", _ => {
+        document.addEventListener("mouseup", evt => {
           if (pressed) {
             pressed = false;
             state.hover_regions_container.classList.remove("hidden");
+
+            // Consider it a click if the mouse didn't move
+            const dx = (evt.clientX - start_x) * units_per_x_px;
+            const dy = (evt.clientY - start_y) * units_per_y_px;
+            if (dx === 0 && dy === 0 && new Date().getTime() - click_start.getTime() < 200) {
+              select_layer(layer, state)
+            }
+
             refresh_hover_regions(state);
           }
         });
       });
     });
   });
+
+  compute_selected_hover_regions(state);
 }
 
 

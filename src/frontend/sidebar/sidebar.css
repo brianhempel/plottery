@@ -11,20 +11,65 @@
 
   padding: 0px;
 
-  top: 0px;
-  left: 0px;
+  /* top: 0px; */
+  /* left: 0px; */
 
 
-  font-family: monospace;
-  font-size: 14px;
-  white-space: pre;
   margin: 10px;
   z-index: 5;
 }
 
-.snp-artists {
+.snp-sidebar-menu-bar {
+  /* position: relative;
+  height: 2em;
+  width: 33em;
+  height: 2.75rem;
+  overflow: visible;
+  border-bottom: solid 1px black;
+  background-color: white;
+  z-index: 3; */
+  background-color: whitesmoke;
+}
+.snp-sidebar-menu {
+  display: inline-block;
+  position: relative;
+  padding: 0.3rem 1rem;
+  cursor: pointer;
+  z-index: 10;
+}
+.snp-sidebar-menu > .snp-sidebar-menu-items {
+  display: none;
+  position: absolute;
+  margin-left: -1rem;
+  /* z-index: 100; */
+  text-align: left;
+}
+.snp-sidebar-menu.open > .snp-sidebar-menu-items {
+  display: block;
+}
+.snp-sidebar-menu > .snp-sidebar-menu-items > div {
+  background: whitesmoke;
+  display: block;
+  margin: 0;
+  padding: 0.3rem 1rem;
+  min-width: 10rem;
+  /* z-index: 101; */
+}
+.snp-sidebar-menu > .snp-sidebar-menu-items > div:hover {
+  background: lightgray;
+}
+.snp-menu-click-to-close-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  cursor: default;
+}
+
+/* .snp-artists {
   padding: 5px 10px;
   display: flex;
   flex-direction: column;
-}
-
+} */

@@ -7,27 +7,20 @@
   place-items: flex-start;
 }
 
-.hover_regions > svg {
-  /* display: none; */
-  /* max-width: 350px!important; */
-  border: none !important;
-  overflow: visible;
-  margin-top: 1em !important;
-}
 
 .hidden {
   display: none;
 }
 
-g > path {
+/* g > path { */
   /* clip-path: inset(0% 0% 0% 0% round 5px); */
-  transition: 0.2s;
-  fill: #00000000;
-}
+  /* transition: 0.2s; */
+  /* fill: #00000000; */
+/* } */
 
-g > path.hovered {
-  fill: #0000002b;
-}
+/* g > path.hovered { */
+  /* fill: #0000002b; */
+/* } */
 
 /* .snp_outer > img {
   max-width: 350px !important;

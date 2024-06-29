@@ -25,9 +25,12 @@ import {
   create_collapsable_els,
   open_collapsable,
 } from "../collapsable/collapsable";
-import { get_code_and_loc_for_call } from "../sidebar";
-import { Widget, change_widget_code, widget_to_code } from "../widgets/widget";
+import { change_widget_code, widget_to_code } from "../widgets/widget";
 import "./call.css";
+
+function get_code_and_loc_for_call(call: DynamicCallInfo) {
+  return `${call.loc_via_func_code_and_num[0]}${call.call.pos.line}`;
+}
 
 /**
  * Creates a call in the sidebar. e.g.
@@ -143,12 +146,24 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
     });
   });
 
+  const call_view: CallView = {
+    els: {
+      el: call_el,
+      header_el,
+      name_el: name_el,
+      body_el,
+    },
+    is_elided: false,
+    mark: mark,
+    arguments: arg_and_views,
+  };
+
   // On change of call, check if its code changed
-  let curr_code = call_to_code(name_el.innerText, arg_and_views);
+  let curr_code = call_to_code(call_view);
 
   // Sync changes
   function keep_synced() {
-    const code = call_to_code(name_el.innerText, arg_and_views);
+    const code = call_to_code(call_view);
 
     if (curr_code != code) {
       sync_call_code(mark, code, state);
@@ -160,27 +175,13 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
   keep_synced();
 
 
-  return {
-    els: {
-      el: call_el,
-      header_el,
-      name_el: name_el,
-      body_el,
-    },
-    is_elided: false,
-    arguments: arg_and_views,
-  };
+  return call_view;
 }
 
-export function call_to_code(
-  call_name: string,
-  arg_and_views: {
-    arg: Arg;
-    view: ArgView;
-  }[]
-) {
+export function call_to_code(call_view: CallView) : string {
+  const call_name = call_view.els.name_el.innerText;
   const args_str =
-    arg_and_views.
+    call_view.arguments.
       filterMap(({ arg, view }) => view.disabled ? null : arg_view_to_code(arg, view)).
       join(", ");
 

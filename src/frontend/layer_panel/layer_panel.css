@@ -1,0 +1,9 @@
+.snp-layer-panel {
+  font-family: monospace;
+  font-size: 14px;
+  white-space: pre;
+}
+
+.snp-layer.selected {
+  background-color: #f8f8f8;
+}
