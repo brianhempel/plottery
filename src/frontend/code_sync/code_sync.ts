@@ -80,7 +80,7 @@ export function redraw_cell(state: State) {
 
   cell.kernel.execute(codeExecuting.replace('SNP(', `SNPFigureOnly(`), callbacks, {
     silent: false,
-    store_history: true,
+    store_history: false,
     stop_on_error: true,
   });
 }
@@ -88,8 +88,6 @@ export function redraw_cell(state: State) {
 
 export function refresh_hover_regions(state: State) {
   const cell = state.cell;
-
-  const img = state.snp_outer.querySelector("img")!;
 
   state.stdout_stderr.innerHTML = "";
 
@@ -121,7 +119,7 @@ export function refresh_hover_regions(state: State) {
 
   cell.kernel.execute(cell.get_text().replace('SNP(', `SNPFigureAndHoverRegions(`), callbacks, {
     silent: false,
-    store_history: true,
+    store_history: false,
     stop_on_error: true,
   });
 }
