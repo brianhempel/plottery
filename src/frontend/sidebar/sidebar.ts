@@ -1,14 +1,39 @@
 import { createModuleResolutionCache } from "typescript";
 import { hard_rerun } from "../code_sync/code_sync";
-import { Layer, selected_layers } from "../layer_panel/layer_panel";
+import { Layer, deselect_all_layers, duplicate_selected_layers, selected_layers } from "../layer_panel/layer_panel";
 import { State } from "../types";
 import { create_el, item_to_start_pos } from "../utils/misc";
 import { call_to_code } from "./call/call";
 
 
+function open_menu(menu: HTMLElement) {
+  menu.classList.add("open");
+  const overlay = create_el("div", "snp-menu-click-to-close-overlay");
+  menu.prepend(overlay);
+  overlay.addEventListener("click", ev => {
+    ev.stopPropagation();
+    close_menu(menu);
+  });
+}
+
 function close_menu(menu: HTMLElement) {
   menu.querySelector(".snp-menu-click-to-close-overlay")?.remove();
   menu.classList.remove("open");
+}
+
+export function close_all_menus(state: State) {
+  state.snp_outer.querySelector(".snp-menu-click-to-close-overlay")?.remove();
+  state.snp_outer.querySelectorAll(".snp-sidebar-menu.open").forEach(menu => {
+    menu.classList.remove("open");
+  });
+}
+
+function enable_menu_item(menu_item: HTMLElement) {
+  menu_item.classList.remove("disabled");
+}
+
+function disable_menu_item(menu_item: HTMLElement) {
+  menu_item.classList.add("disabled");
 }
 
 export function create_sidebar_menu_bar(state: State) {
@@ -17,38 +42,32 @@ export function create_sidebar_menu_bar(state: State) {
   const edit_menu = create_el("div", "snp-sidebar-menu", sidebar_menu_bar);
   edit_menu.innerHTML = "<strong>Edit</strong>";
 
+  const edit_menu_items = create_el("div", "snp-sidebar-menu-items", edit_menu);
+
+  const edit_menu_duplicate = create_el("div", "snp-sidebar-menu-item", edit_menu_items);
+  edit_menu_duplicate.innerHTML = "Duplicate<kbd>⌘D</kbd>";
+  edit_menu_duplicate.addEventListener("click", _ => duplicate_selected_layers(state));
+
+  const edit_menu_deselect_all = create_el("div", "snp-sidebar-menu-item", edit_menu_items);
+  edit_menu_deselect_all.innerHTML = "Deselect All<kbd>⌘⇧A</kbd>";
+  edit_menu_deselect_all.addEventListener("click", _ => deselect_all_layers(state));
+
   edit_menu.addEventListener("click", _ => {
     if (edit_menu.classList.contains("open")) { // This catches clicks from clicking menu items while the menu is open
       close_menu(edit_menu);
     } else {
-      edit_menu.classList.add("open");
-      const overlay = create_el("div", "snp-menu-click-to-close-overlay");
-      edit_menu.prepend(overlay);
-      overlay.addEventListener("click", ev => {
-        ev.stopPropagation();
-        close_menu(edit_menu);
-      });
+      if (selected_layers(state).length > 0) {
+        enable_menu_item(edit_menu_duplicate);
+        enable_menu_item(edit_menu_deselect_all);
+      } else {
+        disable_menu_item(edit_menu_duplicate);
+        disable_menu_item(edit_menu_deselect_all);
+      }
+      open_menu(edit_menu);
     }
   });
 
-  const edit_menu_items = create_el("div", "snp-sidebar-menu-items", edit_menu);
 
-  const edit_menu_duplicate = create_el("div", "snp-sidebar-menu-item", edit_menu_items);
-  edit_menu_duplicate.innerHTML = "Duplicate";
-
-  const cm = state.cell.code_mirror;
-  const old_code = cm.getValue();
-  edit_menu_duplicate.addEventListener("click", _ => {
-    selected_layers(state).forEach((layer : Layer) => {
-      // Duplicate layer
-      layer.call_views.forEach(call_view => {
-        const insert_line = 1 + (call_view.mark.find()?.to.line || cm.getCursor().line);
-
-        cm.replaceRange(call_to_code(call_view) + '\n', {line: insert_line, ch: 0})
-      });
-    });
-    if(cm.getValue() !== old_code) hard_rerun(state);
-  });
 
   return sidebar_menu_bar;
 }

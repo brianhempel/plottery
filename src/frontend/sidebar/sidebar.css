@@ -33,7 +33,7 @@
 .snp-sidebar-menu {
   display: inline-block;
   position: relative;
-  padding: 0.3rem 1rem;
+  padding: 0.4rem 1rem;
   cursor: pointer;
   z-index: 10;
 }
@@ -43,20 +43,31 @@
   margin-left: -1rem;
   /* z-index: 100; */
   text-align: left;
+  border: solid 1px lightgray;
 }
 .snp-sidebar-menu.open > .snp-sidebar-menu-items {
   display: block;
 }
-.snp-sidebar-menu > .snp-sidebar-menu-items > div {
-  background: whitesmoke;
-  display: block;
+.snp-sidebar-menu-item {
+  background: white;
+
   margin: 0;
-  padding: 0.3rem 1rem;
-  min-width: 10rem;
+  padding: 0.4rem 1rem;
+  line-height: 1.5;
+  min-width: 15rem;
   /* z-index: 101; */
+
+  /* This is what Jupyter's menu's use: */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
 }
-.snp-sidebar-menu > .snp-sidebar-menu-items > div:hover {
-  background: lightgray;
+.snp-sidebar-menu-item kbd {
+  margin: 0;
+}
+.snp-sidebar-menu-item:hover:not(.disabled) {
+  background: whitesmoke;
 }
 .snp-menu-click-to-close-overlay {
   position: fixed;
@@ -66,6 +77,13 @@
   height: 100%;
   background-color: transparent;
   cursor: default;
+}
+.snp-sidebar-menu-item.disabled {
+  color: lightgray;
+}
+.snp-sidebar-menu-item.disabled kbd {
+  color: lightgray;
+  border-color: lightgray;
 }
 
 /* .snp-artists {

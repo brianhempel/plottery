@@ -1,4 +1,4 @@
-import { create_layers_panel, deselect_all_layers, layer_from_typed_node } from "./layer_panel/layer_panel";
+import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layer_from_typed_node } from "./layer_panel/layer_panel";
 import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
@@ -29,7 +29,7 @@ import {
 import { JupyterType, get_arg_kind_from_int } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
-import { create_sidebar_menu_bar } from "./sidebar/sidebar";
+import { close_all_menus, create_sidebar_menu_bar } from "./sidebar/sidebar";
 
 
 // These will already exist where we inject the JS in the notebook.
@@ -94,6 +94,7 @@ function attach_snp(
   // Put stdout_stderr at the bottom
   state.stdout_stderr.remove();
   snp_outer.append(state.stdout_stderr);
+  snp_outer.tabIndex = 0; // So it can recieve keyboard events (cmd-d for duplicate, etc)
 
   // Set artist.parent_id on all artists
   set_artist_parent_ids(state.selectable_artists);
@@ -146,6 +147,25 @@ function attach_snp(
 
   attach_events_to_hover_regions(state);
 
+  // Keyboard commands
+  // Tegistered on the parent element that can accept keyboard events (in practice it's the cell)
+  snp_outer.addEventListener("keydown", evt => {
+    const ev = evt as KeyboardEvent;
+    if (ev.metaKey) { // CMD key
+      if (ev.key == "d") {
+        ev.stopPropagation();
+        ev.preventDefault();
+        duplicate_selected_layers(state);
+        close_all_menus(state);
+      }
+      if (ev.key == "a" && ev.shiftKey) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        deselect_all_layers(state);
+        close_all_menus(state);
+      }
+    }
+  });
 
   // Focus on call (i.e. expand the sidebar to show the call)
   // e.g. when adding a new method, expand it's call

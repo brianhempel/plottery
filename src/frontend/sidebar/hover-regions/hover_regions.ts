@@ -1,5 +1,5 @@
 import { refresh_hover_regions } from "../../code_sync/code_sync";
-import { is_layer_selected, select_layer, selected_layers, toggle_select_layer } from "../../layer_panel/layer_panel";
+import { select_layer, selected_layers } from "../../layer_panel/layer_panel";
 import {
   State,
 } from "../../types";
@@ -159,8 +159,11 @@ export function attach_events_to_hover_regions(state: State) {
           state.hover_regions_container.classList.add("hidden");
           start_x = evt.clientX;
           start_y = evt.clientY;
-          evt.preventDefault();
           evt.stopPropagation();
+          evt.preventDefault(); // but still need to gain focus on SNP
+          // Need to focus snp_outer, or whatever has our keyboard command handlers,
+          // so that cmd-d etc work after user clicks the plot
+          state.snp_outer.focus({ preventScroll: true });
         });
 
         document.addEventListener("mousemove", evt => {

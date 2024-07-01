@@ -1,5 +1,6 @@
 import { P_stmt } from "../ast_types";
-import { create_call_view } from "../sidebar/call/call";
+import { hard_rerun } from "../code_sync/code_sync";
+import { call_to_code, create_call_view } from "../sidebar/call/call";
 import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_regions";
 import { CallView, CallWithArgs, DynamicCallInfo, State, StaticCallTypeInfo } from "../types";
 import { create_el } from "../utils/misc";
@@ -83,6 +84,20 @@ export function select_layer(layer: Layer, state: State) {
   deselect_all_layers(state);
   layer.el.classList.add("selected");
   compute_selected_hover_regions(state);
+}
+
+export function duplicate_selected_layers(state: State) {
+  const cm = state.cell.code_mirror;
+  const old_code = cm.getValue();
+  selected_layers(state).forEach((layer : Layer) => {
+    // Duplicate layer
+    layer.call_views.forEach(call_view => {
+      const insert_line = 1 + (call_view.mark.find()?.to.line || cm.getCursor().line);
+
+      cm.replaceRange(call_to_code(call_view) + '\n', {line: insert_line, ch: 0})
+    });
+  });
+  if(cm.getValue() !== old_code) hard_rerun(state);
 }
 
 // function selected_layers(state: State): Layer[] {
