@@ -930,8 +930,12 @@ def unparse_mypy_expr(expr: mypy.nodes.Expression):
     match expr:
         case None | mypy.nodes.EllipsisExpr():
             return None
-        case mypy.nodes.IntExpr() | mypy.nodes.FloatExpr():
-            return str(expr.value)
+        case mypy.nodes.IntExpr() | mypy.nodes.FloatExpr() | mypy.nodes.StrExpr():
+            return repr(expr.value)
+        case mypy.nodes.NameExpr():
+            return expr.name
+        case mypy.nodes.ListExpr():
+            return f"[{', '.join([unparse_mypy_expr(e) for e in expr.items])}]"
         case _:
             return str(expr)
 
