@@ -8,7 +8,9 @@ import {
   State,
   Type,
   UnionType,
+  TupleType,
 } from "../types";
+import { unzip } from "./array";
 import { get_arg_kind_from_int } from "./types";
 
 // declare global {
@@ -133,6 +135,16 @@ export function default_code_and_code_type_for_type(
     type["type_ref"] == "matplotlib._typing.ArrayLike"
   ) {
     return ["[1,2,3]", type];
+  } else if (type[".class"] == "TupleType") {
+    const [item_codes, types] = unzip(type.items.map(t => default_code_and_code_type_for_type(t)));
+    const out_code = `[${item_codes.join(", ")}]`;
+    const out_type: TupleType = {
+      ".class": "TupleType",
+      implicit: type.implicit,
+      items: types,
+      partial_fallback: type.partial_fallback,
+    };
+    return [out_code, out_type];
   }
 
   return ["None", { ".class": "NoneType" }];

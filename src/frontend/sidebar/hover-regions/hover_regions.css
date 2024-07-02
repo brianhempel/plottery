@@ -11,7 +11,11 @@
 .hover_regions > svg {
   border: none !important;
   overflow: visible;
-  margin-top: 1em !important;
+  margin: 0;
+}
+
+.hover_regions.dragging {
+  display: none;
 }
 
 .hover_regions [data-func-code-and-num].selected > path {
@@ -24,10 +28,9 @@
   stroke-width: 2px;
 }
 
-
-.snp-hover-regions:not(.disable):hover {
+/* .snp-hover-regions:not(.disable):hover {
   background: #ffffff94;
-}
+} */
 
 .snp-hover-region {
   position: absolute;

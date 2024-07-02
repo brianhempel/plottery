@@ -37,7 +37,7 @@ export function redraw_cell(state: State) {
   if (state.busy) return;
   if (codeExecuting == state.last_cell_code_executed) return;
 
-  const img = state.snp_outer.querySelector("img")!;
+  const img = state.plot_area.querySelector("img")!;
 
   state.busy = true;
   state.last_cell_code_executed = codeExecuting;
@@ -78,6 +78,7 @@ export function redraw_cell(state: State) {
     }
   };
 
+  state.hover_regions_container.classList.add("hidden");
   cell.kernel.execute(codeExecuting.replace('SNP(', `SNPFigureOnly(`), callbacks, {
     silent: false,
     store_history: false,
@@ -100,9 +101,10 @@ export function refresh_hover_regions(state: State) {
       msg.header.msg_type === "execute_result" &&
       msg.content.data["image/svg+xml"]
     ) {
-      console.log("Replacing hover regions");
+      // console.log("Replacing hover regions");
       state.set_hover_regions_html(msg.content.data["image/svg+xml"]);
       attach_events_to_hover_regions(state);
+      state.hover_regions_container.classList.remove("hidden");
     } else if (msg.header.msg_type == "error") {
       // Display the error, but adjust line number for the lines we added to the top of the cell.
       state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(

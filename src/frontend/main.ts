@@ -1,4 +1,4 @@
-import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layer_from_typed_node } from "./layer_panel/layer_panel";
+import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layer_from_typed_node, load_selected_layers } from "./layer_panel/layer_panel";
 // import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
@@ -83,17 +83,19 @@ function attach_snp(
     busy: false,
 
     snp_outer: snp_outer,
+    plot_area: snp_outer.querySelector(".plot_area")!,
     hover_regions_container: snp_outer.querySelector(".hover_regions")!,
     hover_regions_svg: () => state.hover_regions_container.querySelector("svg") as SVGElement | undefined,
     set_hover_regions_html: (html_svg_str: string) => { state.hover_regions_container.innerHTML = html_svg_str; },
 
-    sidebar_el: create_el("div", "snp-sidebar", snp_outer),
+    sidebar_el: create_el("div", "snp-sidebar", snp_outer.querySelector(".plot_and_sidebar")!),
     stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
   };
 
   // Put stdout_stderr at the bottom
-  state.stdout_stderr.remove();
-  snp_outer.append(state.stdout_stderr);
+  // state.stdout_stderr.remove();
+  // snp_outer.append(state.stdout_stderr);
+
   snp_outer.tabIndex = 0; // So it can recieve keyboard events (cmd-d for duplicate, etc)
 
   // Set artist.parent_id on all artists
@@ -166,6 +168,8 @@ function attach_snp(
       }
     }
   });
+
+  load_selected_layers(state);
 
   // Focus on call (i.e. expand the sidebar to show the call)
   // e.g. when adding a new method, expand it's call

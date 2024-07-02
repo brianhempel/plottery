@@ -29,12 +29,16 @@ export function place_add_method_buttons_on_plot(state: State) {
 
     hover_regions.filter(el => parseInt(el.getAttribute("data-artist-id") || "-1") == show_on).forEach(hover_region => {
       const { el: method_el } = create_method_view(method, state);
-      state.snp_outer.append(method_el); // Have to place in DOM first so it has width/height for centering
-      place_centered_over_shape(hover_region, method_el, state.snp_outer);
-      reposition_to_avoid_overlap(method_el, placed_methods, state.snp_outer);
+      state.plot_area.append(method_el); // Have to place in DOM first so it has width/height for centering
+      place_centered_over_shape(hover_region, method_el, state.plot_area);
+      reposition_to_avoid_overlap(method_el, placed_methods, state.plot_area);
       placed_methods.push(method_el);
     });
   });
+
+  // Can't hide the methods for hover until they've all been repositioned
+  // (if they start hidden then the above repositioning does not work)
+  placed_methods.forEach(method_el => { method_el.classList.add("placed"); });
 }
 
 function hover_regions_for_call(loc_via_func_code_and_num: [string, number], state: State): SVGElement[] {
@@ -156,14 +160,20 @@ export function attach_events_to_hover_regions(state: State) {
           // console.log(hover_region.getClientRects())
           pressed = true;
           click_start = new Date();
-          state.hover_regions_container.classList.add("hidden");
           start_x = evt.clientX;
           start_y = evt.clientY;
           evt.stopPropagation();
-          evt.preventDefault(); // but still need to gain focus on SNP
+          evt.preventDefault();
+          // but still need to gain focus on SNP
           // Need to focus snp_outer, or whatever has our keyboard command handlers,
           // so that cmd-d etc work after user clicks the plot
           state.snp_outer.focus({ preventScroll: true });
+        });
+
+        hover_region.addEventListener("click", evt => {
+          // Prevent hitting the deselection handler on the hover regions container
+          evt.preventDefault();
+          evt.stopPropagation();
         });
 
         document.addEventListener("mousemove", evt => {
@@ -172,6 +182,7 @@ export function attach_events_to_hover_regions(state: State) {
             const dy = (evt.clientY - start_y) * units_per_y_px;
             console.log(dx,dy);
             if (x_handler) { x_handler(dx); }
+            state.hover_regions_container.classList.add("dragging");
             evt.preventDefault();
             evt.stopPropagation();
           }
@@ -180,7 +191,8 @@ export function attach_events_to_hover_regions(state: State) {
         document.addEventListener("mouseup", evt => {
           if (pressed) {
             pressed = false;
-            state.hover_regions_container.classList.remove("hidden");
+            // state.hover_regions_container.classList.remove("hidden");
+            state.hover_regions_container.classList.remove("dragging");
 
             // Consider it a click if the mouse didn't move
             const dx = (evt.clientX - start_x) * units_per_x_px;

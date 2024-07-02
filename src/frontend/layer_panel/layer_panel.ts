@@ -1,8 +1,10 @@
 import { P_stmt } from "../ast_types";
 import { hard_rerun } from "../code_sync/code_sync";
 import { call_to_code, create_call_view } from "../sidebar/call/call";
+import { open_collapsable } from "../sidebar/collapsable/collapsable";
 import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_regions";
 import { CallView, CallWithArgs, DynamicCallInfo, State, StaticCallTypeInfo } from "../types";
+import { equalByJSON } from "../utils/array";
 import { create_el } from "../utils/misc";
 
 
@@ -34,6 +36,7 @@ export function layer_from_typed_node(typed_node: any, state: State): Layer {
     layer_el.append(...call_views.map(call_view => call_view.els.el));
   } else {
     layer_el.innerText = typed_node.unparsed;
+    layer_el.classList.add("snp-code-layer");
   }
 
   const layer = {
@@ -62,6 +65,8 @@ export function selected_layers(state: State): Layer[] {
 
 export function create_layers_panel(layers: Layer[]): LayersPanel {
   const layers_el = create_el("div", "snp-layer-panel");
+  const layers_panel_heading = create_el("h2", [], layers_el);
+  layers_panel_heading.innerText = "Layers";
 
   layers.forEach(layer => layers_el.append(layer.el));
 
@@ -74,6 +79,7 @@ export function create_layers_panel(layers: Layer[]): LayersPanel {
 function deselect_layer(layer: Layer, state: State) {
   layer.el.classList.remove("selected");
   compute_selected_hover_regions(state);
+  save_selected_layers(state);
 }
 
 export function deselect_all_layers(state: State) {
@@ -82,8 +88,12 @@ export function deselect_all_layers(state: State) {
 
 export function select_layer(layer: Layer, state: State) {
   deselect_all_layers(state);
+  console.log(layer.el)
   layer.el.classList.add("selected");
+  open_collapsable(layer.el.querySelector('.snp-collapsable')!);
   compute_selected_hover_regions(state);
+  save_selected_layers(state);
+  console.log(layer.el)
 }
 
 export function duplicate_selected_layers(state: State) {
@@ -98,6 +108,36 @@ export function duplicate_selected_layers(state: State) {
     });
   });
   if(cm.getValue() !== old_code) hard_rerun(state);
+}
+
+// For regeneration after cell rerun
+function save_selected_layers(state: State) {
+  const selected_calls = state.layers_panel.layers.filter(is_layer_selected).flatMap(layer => layer.calls_with_args).map(call_with_args => call_with_args.call_info.loc_via_func_code_and_num);
+
+  console.log(selected_calls)
+
+  // The .output div is persistant between cell runs
+  const cell_output_div: HTMLElement = state.snp_outer.closest('.output')!
+
+  cell_output_div.dataset.selected_calls = JSON.stringify(selected_calls);
+
+  // const selected_layers = state.layers_panel.layers.filter(is_layer_selected);
+  // const selected_calls = selected_layers.map(layer => layer.calls_with_args);
+  // console.log(selected_calls);
+
+}
+
+// For regeneration after cell rerun
+export function load_selected_layers(state: State) {
+  const selected_calls = JSON.parse((state.snp_outer.closest('.output')! as HTMLElement).dataset.selected_calls || '[]') as [number, string][];
+
+  deselect_all_layers(state);
+
+  state.layers_panel.layers.forEach(layer => {
+    if (layer.calls_with_args.some(call_with_args => selected_calls.some(selected_call => equalByJSON(selected_call, call_with_args.call_info.loc_via_func_code_and_num)))) {
+      select_layer(layer, state);
+    }
+  });
 }
 
 // function selected_layers(state: State): Layer[] {

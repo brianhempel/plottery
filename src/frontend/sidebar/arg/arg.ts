@@ -1,6 +1,6 @@
 import { Arg, ArgView, CallWithArgs, Type, UnionType } from "../../types";
 import { MarkerRange, TextMarker } from "../../utils/codemirror";
-import { create_el } from "../../utils/misc";
+import { create_el, default_code_and_code_type_for_type } from "../../utils/misc";
 import {
   AliasWidget,
   create_alias_widget,
@@ -104,6 +104,8 @@ export function arg_view_widgets_from_type(type: Type): Widget[] {
     return type.items.flatMap(arg_view_widgets_from_type);
   } else if (typeof type == "object" && type[".class"] == "TypeAliasType") {
     return [create_alias_widget(type)];
+  } else if (typeof type == "object" && type[".class"] == "TupleType") {
+    return [create_arbitrary_code_widget(default_code_and_code_type_for_type(type)[0])];
   }
 
   console.warn("No type widget implemented!", type);

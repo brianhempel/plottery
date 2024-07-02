@@ -2,8 +2,30 @@
   font-family: monospace;
   font-size: 14px;
   white-space: pre;
+  border: solid 1px gray;
+  padding: 0;
+}
+
+.snp-layer-panel h2 {
+  font-size: 1.3em;
+  padding: 0.5em 0.25em;
+  border: outset #ebebeb 0.25em;
+  background-color: #f8f8f8;
+  margin: 0 !important; /* there's some default stylesheet in the notebook clobbering the top margin */
+}
+
+.snp-layer {
+  margin: 0;
+  padding: 0.5em 0.25em;
+  border: solid gray;
+  border-width: 1px 0;
+}
+
+.snp-layer.snp-code-layer {
+  color: lightgray;
+  display: none;
 }
 
 .snp-layer.selected {
-  background-color: #f8f8f8;
+  background-color: #efefef;
 }

@@ -478,7 +478,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
 
                 svg_body = region2_to_svg_g(fig_regions2, self.object_names)
 
-                self.cached_svg_hover_regions = f"""<svg class="hover_regions" style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
+                self.cached_svg_hover_regions = f"""<svg style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
                     {svg_body}
                 </svg>"""
 
@@ -727,11 +727,17 @@ class SNP(SNPFigureAndHoverRegions):
 
         with Timer("out_html"):
             out_html = f"""
-                <div class="snp_outer" style="position:relative;">
+                <div class="snp_outer">
                 <script>{pathlib.Path("../dist/plugin.js").read_text()}</script>
-                <img src='{data_url}'> <!-- the plot -->
-                <div class="hover_regions">{self._repr_svg_()}</div>
                 <div class="stdout_stderr"></div>
+                <div class="plot_and_sidebar">
+                    <div class="plot_area" style="position:relative;">
+                        <img src='{data_url}'> <!-- the plot -->
+                        <div class="hover_regions">{self._repr_svg_()}</div>
+                        <!-- buttons to add method calls will be added by JS below -->
+                    </div>
+                    <!-- sidebar added here -->
+                </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
                 <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_typed_ast)})">
                     {frontend_css}

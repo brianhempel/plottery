@@ -38,6 +38,18 @@ export function zip<T, U>(arr1: T[], arr2: U[]): [T, U][] {
   return arr1.map((x, i) => [x, arr2[i]]);
 }
 
+export function unzip<T, U>(arr: [T, U][]): [T[], U[]] {
+  const lefts: T[] = [];
+  const rights: U[] = [];
+
+  arr.forEach(([l, r]) => {
+    lefts.push(l);
+    rights.push(r);
+  });
+
+  return [lefts, rights];
+}
+
 /* Partitions array into two based on predicate. */
 if (!Array.prototype.partition) {
   Array.prototype.partition = function<T>(this: T[], predicate: (el: T) => boolean): [T[], T[]] {

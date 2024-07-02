@@ -44,6 +44,7 @@ export type State = {
 
   // hovered_elems: SVGGElement[];
   snp_outer: HTMLElement;
+  plot_area: HTMLElement;
   stdout_stderr: HTMLElement;
 
   hover_regions_svg: () => SVGElement | undefined; // The SVG element not always there (e.g. during drag ops) and is sometimes replaced.
@@ -212,7 +213,15 @@ export type Type =
   | NoneType
   | TypeAliasType
   | IInstanceType
-  | TypedDictType;
+  | TypedDictType
+  | TupleType;
+
+export type TupleType = {
+  ".class": "TupleType";
+  implicit: boolean;
+  items: Type[];
+  partial_fallback: Type;
+}
 
 export type UnionType = {
   ".class": "UnionType";
