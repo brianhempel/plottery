@@ -69,7 +69,7 @@ export type SelectedItem =
 export type SelectableArtist = {
   id: number; // 140533847992896
   names: string[]; // ['ax.yaxis.label', 'ax.axes.yaxis.label'...]
-  parent_id?: number;
+  // parent_id?: number;
 };
 
 // export type HoverRegion = {

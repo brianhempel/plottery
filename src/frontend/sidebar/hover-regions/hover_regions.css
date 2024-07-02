@@ -14,15 +14,14 @@
   margin-top: 1em !important;
 }
 
-.hover_regions [data-func-code-and-num].hovered > path {
-  /* fill: #f8f8f8; */
-  stroke-width: 2px;
-}
-
-
 .hover_regions [data-func-code-and-num].selected > path {
   /* fill: #f8f8f8; */
   stroke-width: 1px;
+}
+
+.hover_regions [data-func-code-and-num].hovered > path {
+  /* fill: #f8f8f8; */
+  stroke-width: 2px;
 }
 
 

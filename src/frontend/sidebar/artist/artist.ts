@@ -92,23 +92,23 @@ import "./artist.css";
 //   };
 // }
 
-export function set_artist_parent_ids(selectable_artists: SelectableArtist[]) {
-  const searched: SelectableArtist[] = [];
+// export function set_artist_parent_ids(selectable_artists: SelectableArtist[]) {
+//   const searched: SelectableArtist[] = [];
 
-  // Exploiting that the list is ordered from root -> root.children -> ... -> leaves
-  for (const artist of selectable_artists) {
-    const name = get_shortest_qualified_name(artist.names);
+//   // Exploiting that the list is ordered from root -> root.children -> ... -> leaves
+//   for (const artist of selectable_artists) {
+//     const name = get_shortest_qualified_name(artist.names);
 
-    // Find its parent
-    for (const other of searched) {
-      const other_name = get_shortest_qualified_name(other.names);
+//     // Find its parent
+//     for (const other of searched) {
+//       const other_name = get_shortest_qualified_name(other.names);
 
-      if (name.split(".").slice(0, -1).join(".") == other_name) {
-        artist.parent_id = other.id;
-        break;
-      }
-    }
+//       if (name.split(".").slice(0, -1).join(".") == other_name) {
+//         artist.parent_id = other.id;
+//         break;
+//       }
+//     }
 
-    searched.push(artist);
-  }
-}
+//     searched.push(artist);
+//   }
+// }

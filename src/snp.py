@@ -206,7 +206,7 @@ def method_associations(artist):
 
 # Make sure to render before calling this.
 # returns (artist, list of (artist, method_name), (units_per_x_px, units_per_y_px), shapley.Geometry, children)
-def regions2(artist, units_per_xy_px):
+def regions2(artist, units_per_xy_px, renderer, artist_ids_that_will_have_a_method_call):
     child_pad = 3
 
     def get_zorder(artist_or_container):
@@ -220,7 +220,7 @@ def regions2(artist, units_per_xy_px):
         if isinstance(artist, mpl.axes.Axes):
 
             ax = artist
-            ax_bbox = ax.get_window_extent()
+            ax_bbox = ax.get_window_extent(renderer)
             x_min, x_max = ax.get_xlim()
             y_min, y_max = ax.get_ylim()
             units_per_x_px = (x_max - x_min) / ax_bbox.width
@@ -258,17 +258,28 @@ def regions2(artist, units_per_xy_px):
             # Remove invisible tick text (i.e. the rarely used label2, which is mispositioned when not actively used.)
             children = [child for child in children if child.get_visible()]
 
-    child_regions = remove_nones([regions2(child, units_per_xy_px) for child in children])
+    # print(artist.__class__.__name__, len(children))
+
+    child_regions = remove_nones([regions2(child, units_per_xy_px, renderer, artist_ids_that_will_have_a_method_call) for child in children])
     child_regions_flat = flatten([flatten_regions2(child_region) for child_region in child_regions])
     child_geoms = [geom for _, geom in child_regions_flat]
 
     match artist:
         case mpl.text.Text() as text:
-            # based on mpl text.py contains
-            bbox = mpl.text.Text.get_window_extent(text)
-            my_geom = mpl_bbox_to_shapely(bbox)
+            # print("text:", repr(text.get_text()))
+
+            # Sometimes empty text elements are mispositioned and mess up the bounding box of their parents.
+            # So only include them if we need a position for a potential call that the user might want to add
+            # (e.g. set_title, set_xlabel, etc.)
+            if text.get_text() == "" and id(artist) not in artist_ids_that_will_have_a_method_call:
+                my_geom = None
+            else:
+                # based on mpl text.py contains
+                # bbox = mpl.text.Text.get_window_extent(text, renderer)
+                bbox = text.get_window_extent(renderer)
+                my_geom = mpl_bbox_to_shapely(bbox)
         case mpl.patches.Rectangle() as rect:
-            bbox = rect.get_window_extent()
+            bbox = rect.get_window_extent(renderer)
             my_geom = mpl_bbox_to_shapely(bbox)
         case mpl.lines.Line2D() as line:
             # based on mpl lines.py contains
@@ -338,7 +349,7 @@ def region2_to_svg_g(artist_methods_dx_dy_geom_children, object_names):
     artist, methods, (dx_per_px, dy_per_px), geom, children = artist_methods_dx_dy_geom_children
     geom_svg = geom.svg()
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
-    geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0.0"', geom_svg)
+    geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
     child_svgs_str = "\n".join([region2_to_svg_g(child, object_names) for child in children])
 
     perhaps_call_loc = f'data-func-code-and-num="{json_for_attr(artist._snp_came_from_call[0])}" data-pos="{json_for_attr(artist._snp_came_from_call[1])}" data-dx-per-px="{json_for_attr(dx_per_px)}" data-dy-per-px="{json_for_attr(dy_per_px)}"' if hasattr(artist, "_snp_came_from_call") else ""
@@ -408,9 +419,7 @@ class SNPFigureOnly:
                     buf,
                     format="png",
                     dpi="figure",
-                    bbox_inches="tight",
-                    pad_inches=mpl.rcParams["savefig.pad_inches"],
-                )  # tight version
+                )
                 self.cached_png = buf.getvalue()
 
         return self.cached_png
@@ -431,8 +440,17 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         self.cached_svg_hover_regions = None
         self.user_names = user_names
 
+        # Make a map of object id to object name (e.g. "fig.axes")
         with Timer("object_names"):
             self.object_names = object_names(locals, user_names=user_names)
+
+        with Timer("artist_ids_that_will_have_a_method_call"):
+            self.artist_ids_that_will_have_a_method_call = set()
+            for obj_id, (obj, _names) in self.object_names.items():
+                for children_paths, _, _ in method_associations(obj):
+                    self.artist_ids_that_will_have_a_method_call.add(obj_id)
+                    for code_to_descendent in children_paths:
+                        self.artist_ids_that_will_have_a_method_call.add(id(eval("obj" + code_to_descendent)))
 
     # Note this is the hover regions only.
     def _repr_svg_(self):
@@ -441,14 +459,22 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
                 self._repr_png_()  # Ensure elements are laid out.
 
                 fig = self.figure
-                bbox_inches = fig.get_tightbbox(fig.canvas.renderer).padded(mpl.rcParams["savefig.pad_inches"])
-                x0_px = bbox_inches.x0 * fig.get_dpi()
-                y0_px = bbox_inches.y0 * fig.get_dpi()
-                width_px = bbox_inches.width * fig.get_dpi()
-                height_px = bbox_inches.height * fig.get_dpi()
+                # bbox_inches = fig.get_tightbbox(fig.canvas.renderer).padded(mpl.rcParams["savefig.pad_inches"])
+                # print(bbox_inches)
+                # x0_px = bbox_inches.x0 * fig.get_dpi()
+                # y0_px = bbox_inches.y0 * fig.get_dpi()
+                # width_px = bbox_inches.width * fig.get_dpi()
+                # height_px = bbox_inches.height * fig.get_dpi()
+
+                bbox_pixels = fig.get_window_extent(fig.canvas.renderer)
+                # print(bbox_pixels)
+                x0_px = bbox_pixels.x0
+                y0_px = bbox_pixels.y0
+                width_px = bbox_pixels.width
+                height_px = bbox_pixels.height
 
                 # I think we initialize to like 1/fig.get_dpi() for dx,dy BUT leaving this as 0,0 to surface if it matters.
-                fig_regions2 = regions2(self.figure, (0,0))
+                fig_regions2 = regions2(self.figure, (0,0), fig.canvas.renderer, self.artist_ids_that_will_have_a_method_call)
 
                 svg_body = region2_to_svg_g(fig_regions2, self.object_names)
 
@@ -474,6 +500,8 @@ class SNP(SNPFigureAndHoverRegions):
         self.cached_png = None
         self.cached_svg_hover_regions = None
 
+        super().__init__(figure, locals, cell_lineno, provenance_is_off_by_n_lines, notebook_code_through_cell, user_names=user_names)
+
         # Perform type inference
         self.cell_lineno = cell_lineno
         self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
@@ -485,10 +513,6 @@ class SNP(SNPFigureAndHoverRegions):
         self.type_tree = self.type_graph[module_name].tree
         tree = self.type_tree
         self.user_names = user_names
-
-        # Make a map of object id to object name (e.g. "fig.axes")
-        with Timer("object_names"):
-            self.object_names = object_names(locals, user_names=user_names)
 
         # print(ast.dump(ast.parse(notebook_code_through_cell)))
 

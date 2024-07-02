@@ -1,5 +1,5 @@
 import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layer_from_typed_node } from "./layer_panel/layer_panel";
-import { set_artist_parent_ids } from "./sidebar/artist/artist";
+// import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
 import "./snp.css";
@@ -97,7 +97,7 @@ function attach_snp(
   snp_outer.tabIndex = 0; // So it can recieve keyboard events (cmd-d for duplicate, etc)
 
   // Set artist.parent_id on all artists
-  set_artist_parent_ids(state.selectable_artists);
+  // set_artist_parent_ids(state.selectable_artists);
 
   // Get all calls and methods for artists
   // state.calls_and_methods_by_artist = calls_and_methods_by_artist(state);
