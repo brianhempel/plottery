@@ -13,6 +13,7 @@ import {
   create_el,
   item_to_end_pos,
   item_to_start_pos,
+  sig_figs,
 } from "../../utils/misc";
 import {
   arg_view_to_code,
@@ -246,7 +247,7 @@ function drag_handler_for_arg_view(view: ArgView) : ((delta: number) => void) {
   return (delta) => {
     enable_arg_view(view);
 
-    const new_number = starting_number + delta;
+    const new_number = delta === 0 ? starting_number : sig_figs(starting_number + delta, 2);
     let new_arg_code: string;
     if (code_lhs === undefined) { // code is bare literal number
       new_arg_code = number_to_string_not_ugly(new_number);

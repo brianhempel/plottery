@@ -379,3 +379,14 @@ export function compare_qualified_names(name1: string, name2: string) {
 export function get_shortest_qualified_name(names: string[]) {
   return names.sort(compare_qualified_names)[0];
 }
+
+// Round to given number of significant figures.
+// A mashup of Brian, GPT-4o, and Sam Mason https://stackoverflow.com/a/56974893
+export function sig_figs(x: number, ndigits: number): number {
+  if (x === 0 || !isFinite(x)) {
+      return x;
+  }
+  const order = Math.ceil(Math.log10(Math.abs(x)));
+  const factor = Math.pow(10, ndigits - order);
+  return Math.round(x * factor) / factor;
+}

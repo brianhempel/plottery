@@ -1,4 +1,4 @@
-import { create_el } from "../../../../utils/misc";
+import { create_el, sig_figs } from "../../../../utils/misc";
 import "./slider.css";
 
 export type Slider = {
@@ -48,8 +48,8 @@ export function make_slider(
     if (pressed) {
       const dx = val_per_px * (e.x - start_x);
 
-      const new_value = start_val + dx;
-      val_el.innerText = new_value.toFixed(2);
+      const new_value = dx === 0 ? start_val : sig_figs(start_val + dx, 2);
+      val_el.innerText = new_value.toString();
 
       e.preventDefault();
       e.stopPropagation();
