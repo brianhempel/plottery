@@ -159,7 +159,7 @@ export function make_plot_widgets(state: State) {
 
 export function reposition_plot_widgets(state: State) {
 
-  console.log("repositioning", state.plot_widgets)
+  // console.log("repositioning", state.plot_widgets)
   for (const { el, input_el, show_on_loc_via_func_code_and_num } of state.plot_widgets) {
 
     // Don't reposition the element while editting

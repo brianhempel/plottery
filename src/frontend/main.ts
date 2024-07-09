@@ -1,4 +1,4 @@
-import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layer_from_typed_node, load_selected_layers, select_layer } from "./layer_panel/layer_panel";
+import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layers_from_typed_node, load_selected_layers, select_layer } from "./layer_panel/layer_panel";
 // import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets, reposition_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
@@ -111,15 +111,15 @@ function attach_snp(
   // state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));
 
   // log the number of keys in notebook_typed_defs
-  console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs).length);
-  console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs));
+  // console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs).length);
+  // console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs));
 
   state.notebook_typed_defs = deserialize.python_objects_to_js(notebook_typed_defs);
 
   state.calls_with_args = sidebar_stuff.calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror));
 
-  const layers = state.notebook_typed_defs.filterMap(typed_node =>
-    typed_node.line >= cell_lineno ? layer_from_typed_node(typed_node, state) : null
+  const layers = state.notebook_typed_defs.flatMap(typed_node =>
+    typed_node.line >= cell_lineno ? layers_from_typed_node(typed_node, state) : []
   );
 
   state.layers_panel = create_layers_panel(layers);

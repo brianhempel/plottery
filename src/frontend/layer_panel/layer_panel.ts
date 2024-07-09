@@ -9,6 +9,7 @@ import { create_el } from "../utils/misc";
 
 
 export type Layer = {
+  parents: Layer[];
   el: HTMLElement;
   calls_with_args: CallWithArgs<DynamicCallInfo>[];
   call_views: CallView[];
@@ -19,7 +20,7 @@ export type LayersPanel = {
   layers: Layer[];
 };
 
-export function layer_from_typed_node(typed_node: any, state: State): Layer {
+export function layers_from_typed_node(typed_node: any, state: State): Layer[] {
   const layer_el = create_el("div", "snp-layer");
 
   // console.log('layer typed node:', typed_node)
@@ -32,17 +33,31 @@ export function layer_from_typed_node(typed_node: any, state: State): Layer {
 
   // console.log('layer call_views:', call_views)
 
-  if (call_views.length > 0) {
-    layer_el.append(...call_views.map(call_view => call_view.els.el));
-  } else {
-    layer_el.innerText = typed_node.unparsed;
-    layer_el.classList.add("snp-code-layer");
-  }
-
   const layer = {
+    parents: [],
     el: layer_el,
     calls_with_args: calls_at_loc,
     call_views,
+  }
+
+  const sublayers: Layer[] = [];
+
+  if (call_views.length > 0) {
+    layer_el.append(...call_views.map(call_view => call_view.els.el));
+  } else if (typed_node['.class'] === 'mypy.nodes.ForStmt') {
+    layer_el.append(
+      "for ",
+      typed_node.index.unparsed.trim(),
+      " in ",
+      typed_node.expr.unparsed.trim(),
+      ":"
+    )
+    sublayers.push(...typed_node.body.body.flatMap(node => layers_from_typed_node(node, state)));
+    sublayers.forEach(sublayer => sublayer.parents.push(layer));
+    sublayers.forEach(sublayer => sublayer.el.prepend(create_el("div", "snp-indent")));
+  } else {
+    layer_el.innerText = typed_node.unparsed;
+    layer_el.classList.add("snp-code-layer");
   }
 
   layer_el.addEventListener("click", ev => {
@@ -51,7 +66,7 @@ export function layer_from_typed_node(typed_node: any, state: State): Layer {
     }
   });
 
-  return layer;
+  return [layer, ...sublayers];
 }
 
 export function is_layer_selected(layer: Layer): boolean {

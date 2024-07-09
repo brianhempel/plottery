@@ -19,6 +19,7 @@
   padding: 0.5em 0.25em;
   border: solid gray;
   border-width: 1px 0;
+  display: flex;
 }
 
 .snp-layer.snp-code-layer {
@@ -28,4 +29,9 @@
 
 .snp-layer.selected {
   background-color: #efefef;
+}
+
+.snp-layer > .snp-indent {
+  display: inline-block;
+  width: 2em;
 }

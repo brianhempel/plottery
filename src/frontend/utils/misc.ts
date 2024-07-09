@@ -344,7 +344,7 @@ export function find_call_that_satisfies(
   pred: (info: DynamicCallInfo, view: CallView) => boolean,
   state: State
 ) : { info: DynamicCallInfo, view: CallView } | undefined {
-  console.log("find_call_that_satisfies state", state);
+  // console.log("find_call_that_satisfies state", state);
 
   // Go through all the call views from artists
   for (const layer of state.layers_panel.layers) {
