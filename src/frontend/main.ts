@@ -1,6 +1,6 @@
-import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layer_from_typed_node, load_selected_layers } from "./layer_panel/layer_panel";
+import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layer_from_typed_node, load_selected_layers, select_layer } from "./layer_panel/layer_panel";
 // import { set_artist_parent_ids } from "./sidebar/artist/artist";
-import { make_plot_widgets } from "./sidebar/plot-widget/plot_widget";
+import { make_plot_widgets, reposition_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
 import "./snp.css";
 import {
@@ -30,6 +30,7 @@ import { JupyterType, get_arg_kind_from_int } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
 import { close_all_menus, create_sidebar_menu_bar } from "./sidebar/sidebar";
+import { get_code_and_loc_for_call } from "./sidebar/call/call";
 
 
 // These will already exist where we inject the JS in the notebook.
@@ -51,12 +52,6 @@ function attach_snp(
 ) {
   console.log("user_call_type_info", user_call_type_info);
   console.log("sidebar_stuff", sidebar_stuff);
-
-  // ...Initialize some globals
-  (window as any)["snp_persistent_artists"] =
-    (window as any)["snp_persistent_artists"] ?? {};
-  (window as any)["snp_persistent_calls"] =
-    (window as any)["snp_persistent_calls"] ?? {};
 
   // Initialize state
   const cell_el = snp_outer.closest(".code_cell");
@@ -81,12 +76,15 @@ function attach_snp(
     calls_with_args: [],
 
     busy: false,
+    persistent_dataset: (snp_outer.closest('.output')! as HTMLElement).dataset,
 
     snp_outer: snp_outer,
     plot_area: snp_outer.querySelector(".plot_area")!,
     hover_regions_container: snp_outer.querySelector(".hover_regions")!,
     hover_regions_svg: () => state.hover_regions_container.querySelector("svg") as SVGElement | undefined,
     set_hover_regions_html: (html_svg_str: string) => { state.hover_regions_container.innerHTML = html_svg_str; },
+
+    plot_widgets: [],
 
     sidebar_el: create_el("div", "snp-sidebar", snp_outer.querySelector(".plot_and_sidebar")!),
     stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
@@ -143,14 +141,16 @@ function attach_snp(
   // state.hover_regions = undefined;
 
   // Make plot widgets on those hover regions
+  // (Populates state.plot_widgets)
   make_plot_widgets(state);
 
   place_add_method_buttons_on_plot(state);
 
   attach_events_to_hover_regions(state);
+  reposition_plot_widgets(state);
 
   // Keyboard commands
-  // Tegistered on the parent element that can accept keyboard events (in practice it's the cell)
+  // Registered on the parent element that can accept keyboard events (in practice it's the cell)
   snp_outer.addEventListener("keydown", evt => {
     const ev = evt as KeyboardEvent;
     if (ev.metaKey) { // CMD key
@@ -169,7 +169,50 @@ function attach_snp(
     }
   });
 
-  load_selected_layers(state);
+
+  const new_calls: string[] = JSON.parse(state.persistent_dataset.new_calls || "[]");
+
+  // Select new call(s) or re-gen the selection state
+  if (new_calls.length > 0) {
+    // select layers whose get_code_and_loc_for_call(call.call_info) appears in new_calls
+    state.layers_panel.layers.forEach(layer => {
+      const codes_and_locs = layer.calls_with_args.map(call_with_args => get_code_and_loc_for_call(call_with_args.call_info));
+      console.log(codes_and_locs)
+      if (codes_and_locs.some(code_and_loc => new_calls.includes(code_and_loc))) {
+        select_layer(layer, state);
+
+        // If there's an associated plot widget, "click" it to start editing
+        for (const { icon_el, show_on_loc_via_func_code_and_num } of state.plot_widgets) {
+          if (layer.calls_with_args.some(call_with_args => call_with_args.call_info.loc_via_func_code_and_num == show_on_loc_via_func_code_and_num)) {
+            icon_el.click();
+          }
+        }
+      }
+    });
+
+    state.persistent_dataset.new_calls = "[]";
+  } else {
+    load_selected_layers(state);
+  }
+
+
+
+  // Re-open the selected calls
+  // state.persistent_dataset
+  // const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
+  //   "snp_persistent_calls"
+  // ];
+  // const code_and_loc = get_code_and_loc_for_call(call.call_info);
+
+  // // If previously expanded, then expand
+  // if (persistent_calls[code_and_loc]) {
+  //   if (persistent_calls[code_and_loc]?.collapsed) {
+  //     collapse_collapsable(call_el);
+  //   } else {
+  //     open_collapsable(call_el);
+  //   }
+  // }
+
 
   // Focus on call (i.e. expand the sidebar to show the call)
   // e.g. when adding a new method, expand it's call

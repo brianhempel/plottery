@@ -1,5 +1,6 @@
 import { P_Module } from "./ast_types";
 import { LayersPanel } from "./layer_panel/layer_panel";
+import { PlotWidget } from "./sidebar/plot-widget/plot_widget";
 import { Widget } from "./sidebar/widgets/widget";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
@@ -38,6 +39,7 @@ export type State = {
 
   canvas_selection: SelectedItem | null;
   busy: boolean;
+  persistent_dataset: DOMStringMap; // stuff to store between reruns, e.g. selected layers, stored in dataset attribute on the .output div
 
 
   // **** View outputs ****
@@ -50,6 +52,7 @@ export type State = {
   hover_regions_svg: () => SVGElement | undefined; // The SVG element not always there (e.g. during drag ops) and is sometimes replaced.
   set_hover_regions_html: (html_svg_str: string) => void;
   hover_regions_container: HTMLElement;
+  plot_widgets: PlotWidget[]; // On-plot UI edit widgets
 
   sidebar_el: HTMLElement;
   layers_panel: LayersPanel;
@@ -131,14 +134,6 @@ export type ArgView = {
   positional: boolean;
 };
 
-export type PersistantArtist = {
-  collapsed: boolean;
-};
-
-export type PersistantCall = {
-  collapsed: boolean;
-  elided: boolean;
-};
 
 /* ----------------- Sidebar call types ----------------- */
 export type Position = {

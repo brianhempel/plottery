@@ -4,16 +4,15 @@
 }
 
 .plot-widget-input {
-  display: none;
+  display: flex;
   position: absolute;
-  top: -20px;
+  top: -1.5em;
 
   box-shadow: 0px 0px 0px 1px #0000005e, 3px 1px 5px 0px #0000003d;
   padding: 0px 3px;
   border-radius: 2px;
   color: #BA2121;
   background: #ffffff;
-  left: -10px;
   font-size: 12px;
 
   white-space: pre;
@@ -24,11 +23,6 @@
   width: calc(100% + 30px) !important;
   flex-direction: row-reverse;
 } */
-
-.plot-widget-input.visible {
-  display: flex;
-
-}
 
 .plot-widget-edit-icon {
   fill: none;
@@ -46,9 +40,5 @@
 }
 
 .plot-widget-edit-icon:hover {
-  stroke: #5b0f88bd;
-}
-
-.plot-widget-edit-icon.toggled {
   stroke: #5b0f88bd;
 }

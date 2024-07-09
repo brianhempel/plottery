@@ -41,7 +41,7 @@ export function place_add_method_buttons_on_plot(state: State) {
   placed_methods.forEach(method_el => { method_el.classList.add("placed"); });
 }
 
-function hover_regions_for_call(loc_via_func_code_and_num: [string, number], state: State): SVGElement[] {
+export function hover_regions_for_call(loc_via_func_code_and_num: [string, number], state: State): SVGElement[] {
   const svg_overlay_el = state.hover_regions_svg();
 
   if (!svg_overlay_el) { return []; }
@@ -79,17 +79,6 @@ export function compute_selected_hover_regions(state: State) {
 
 export function attach_events_to_hover_regions(state: State) {
 
-  const svg_overlay_el = state.hover_regions_svg();
-
-  if (!svg_overlay_el) { return; }
-
-  // (Array.from(svg_overlay_el.querySelectorAll('[data-artist-id] > [stroke-width]')) as SVGElement[]).forEach(hover_region => {
-  //   hover_region.dataset.origStrokeWidth = hover_region.getAttribute("stroke-width") || undefined;
-  //   // hover_region.addEventListener("mouseover", () => { hover_region.setAttribute("stroke-width", "2.0"); });
-  //   // hover_region.addEventListener("mouseout", () => { hover_region.setAttribute("stroke-width", hover_region.dataset.origStrokeWidth || "0"); });
-  // });
-
-
   // Attach drag handlers to artists that are the result of calls in the code
   //
   // The handling has to be routed through the layers UI element because all the logic
@@ -103,12 +92,9 @@ export function attach_events_to_hover_regions(state: State) {
       const perhaps_drag_x_handler     = perhaps_get_drag_x_handler(call_view);
       const perhaps_drag_width_handler = perhaps_get_drag_width_handler(call_view);
 
-      const hover_regions_for_call =
-        (Array.from(svg_overlay_el.querySelectorAll('[data-func-code-and-num]')) as SVGElement[]).filter(hover_region => {
-          return equalByJSON(JSON.parse(hover_region.dataset.funcCodeAndNum || ""), call_info.loc_via_func_code_and_num);
-        });
+      const hover_regions = hover_regions_for_call(call_info.loc_via_func_code_and_num, state);
 
-      hover_regions_for_call.forEach(hover_region => {
+      hover_regions.forEach(hover_region => {
 
         let pressed = false;
         let click_start: Date = new Date();
@@ -128,13 +114,13 @@ export function attach_events_to_hover_regions(state: State) {
         const ew_edge_w = Math.min(10, hover_region.getBoundingClientRect().width / 4);
 
         hover_region.addEventListener("mouseover", () => {
-          hover_regions_for_call.forEach(hover_region => {
+          hover_regions.forEach(hover_region => {
             // hover_region.querySelectorAll("[stroke-width]").forEach(el => { el.setAttribute("stroke-width", "2.0"); });
             hover_region.classList.add("hovered");
           });
         });
         hover_region.addEventListener("mouseout", () => {
-          hover_regions_for_call.forEach(hover_region => {
+          hover_regions.forEach(hover_region => {
             // hover_region.querySelectorAll("[stroke-width]").forEach(el => { el.setAttribute("stroke-width", hover_region.dataset.origStrokeWidth || "0"); });
             hover_region.classList.remove("hovered");
           });

@@ -25,8 +25,6 @@ export function create_method_view(
   const el = create_el("div", "snp-method-view");
   el.innerText = code_prefix;
 
-  // @TODO: Don't add if max calls is 1 and has already
-  // been called.
   el.addEventListener("click", _ => {
     add_method_code(mark, method.code, state);
   });
@@ -46,8 +44,9 @@ export function add_method_code(
   state.cell.code_mirror.replaceRange(code, from, to);
   ({ from, to } = mark.find()!);
   const prefix = code.split("(")[0];
-  const loc = to.line + state.provenance_is_off_by_n_lines + 1;
-  (window as any)["snp_focused_call"] = `${prefix}${loc}`;
+  const loc = to.line + state.cell_lineno - 1;
+
+  state.persistent_dataset.new_calls = `["${prefix}${loc}"]`;
 
   hard_rerun(state);
 }

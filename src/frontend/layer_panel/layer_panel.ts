@@ -88,12 +88,12 @@ export function deselect_all_layers(state: State) {
 
 export function select_layer(layer: Layer, state: State) {
   deselect_all_layers(state);
-  console.log(layer.el)
+  // console.log(layer.el)
   layer.el.classList.add("selected");
   open_collapsable(layer.el.querySelector('.snp-collapsable')!);
   compute_selected_hover_regions(state);
   save_selected_layers(state);
-  console.log(layer.el)
+  // console.log(layer.el)
 }
 
 export function duplicate_selected_layers(state: State) {
@@ -107,19 +107,18 @@ export function duplicate_selected_layers(state: State) {
       cm.replaceRange(call_to_code(call_view) + '\n', {line: insert_line, ch: 0})
     });
   });
-  if(cm.getValue() !== old_code) hard_rerun(state);
+  if(cm.getValue() !== old_code) {
+    hard_rerun(state);
+  }
 }
 
 // For regeneration after cell rerun
 function save_selected_layers(state: State) {
   const selected_calls = state.layers_panel.layers.filter(is_layer_selected).flatMap(layer => layer.calls_with_args).map(call_with_args => call_with_args.call_info.loc_via_func_code_and_num);
 
-  console.log(selected_calls)
+  // console.log(selected_calls)
 
-  // The .output div is persistant between cell runs
-  const cell_output_div: HTMLElement = state.snp_outer.closest('.output')!
-
-  cell_output_div.dataset.selected_calls = JSON.stringify(selected_calls);
+  state.persistent_dataset.selected_calls = JSON.stringify(selected_calls);
 
   // const selected_layers = state.layers_panel.layers.filter(is_layer_selected);
   // const selected_calls = selected_layers.map(layer => layer.calls_with_args);
@@ -129,7 +128,7 @@ function save_selected_layers(state: State) {
 
 // For regeneration after cell rerun
 export function load_selected_layers(state: State) {
-  const selected_calls = JSON.parse((state.snp_outer.closest('.output')! as HTMLElement).dataset.selected_calls || '[]') as [number, string][];
+  const selected_calls = JSON.parse(state.persistent_dataset.selected_calls || '[]') as [number, string][];
 
   deselect_all_layers(state);
 

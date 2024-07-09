@@ -1,4 +1,5 @@
 import { attach_events_to_hover_regions } from "../sidebar/hover-regions/hover_regions";
+import { reposition_plot_widgets } from "../sidebar/plot-widget/plot_widget";
 import { State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
 import { CellMessage } from "../utils/types";
@@ -105,6 +106,7 @@ export function refresh_hover_regions(state: State) {
       state.set_hover_regions_html(msg.content.data["image/svg+xml"]);
       attach_events_to_hover_regions(state);
       state.hover_regions_container.classList.remove("hidden");
+      reposition_plot_widgets(state);
     } else if (msg.header.msg_type == "error") {
       // Display the error, but adjust line number for the lines we added to the top of the cell.
       state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(

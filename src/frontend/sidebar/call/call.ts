@@ -6,7 +6,6 @@ import {
   CallViewEls,
   CallWithArgs,
   DynamicCallInfo,
-  PersistantCall,
   State,
 } from "../../types";
 import {
@@ -29,7 +28,8 @@ import {
 import { change_widget_code, widget_to_code } from "../widgets/widget";
 import "./call.css";
 
-function get_code_and_loc_for_call(call: DynamicCallInfo) {
+// by name and line number
+export function get_code_and_loc_for_call(call: DynamicCallInfo) {
   return `${call.loc_via_func_code_and_num[0]}${call.call.pos.line}`;
 }
 
@@ -62,19 +62,6 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
 
   name_el.innerText = call.call_info.loc_via_func_code_and_num[0];
 
-  const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
-    "snp_persistent_calls"
-  ];
-  const code_and_loc = get_code_and_loc_for_call(call.call_info);
-
-  // If previously expanded, then expand
-  if (persistent_calls[code_and_loc]) {
-    if (persistent_calls[code_and_loc]?.collapsed) {
-      collapse_collapsable(call_el);
-    } else {
-      open_collapsable(call_el);
-    }
-  }
 
   // Arguments
   const {
