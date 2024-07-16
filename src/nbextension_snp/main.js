@@ -1,3 +1,19 @@
+// Notebook extension to get information about the notebook environment to the
+// Python kernel. The IPython protocol is stateful and only sends code chunks so
+// it does not have a concept of "the entire notebok", but we need the prior
+// notebook code for e.g. type inference. So here we send info about the notebook
+// over to the Python kernel.
+//
+// Namely, whenever you run a non-magic code cell, it prepends the code with:
+//
+//   provenance_is_off_by_n_lines = 4 // count of lines prepended
+//   cell_lineno = (cell position in notebook_code_through_cell below)
+//   cell_code = "code of the cell"
+//   notebook_code_through_cell = "the code of the notebook up through the cell"
+//
+// Consequently, notebook_code_through_cell is what we run type inference on.
+// The line number info is ultimately used to correlate parsed code locations to
+// cell locations in the front-end editor.
 define(["require", "base/js/namespace", "base/js/events"], function (
   requirejs,
   Jupyter,
@@ -32,7 +48,14 @@ define(["require", "base/js/namespace", "base/js/events"], function (
     return [cell_lineno, notebook_code_through_cell];
   }
 
-  function setup() {
+  function load_extension() {
+    // Inject css, unused for now
+    const link = document.createElement("link");
+    link.type = "text/css";
+    link.rel = "stylesheet";
+    link.href = requirejs.toUrl("./style.css");
+    document.getElementsByTagName("head")[0].appendChild(link);
+
     console.log("Setting up...");
 
     Jupyter.notebook.events.on(
@@ -52,22 +75,6 @@ define(["require", "base/js/namespace", "base/js/events"], function (
         }
       }
     );
-  }
-
-  function load_extension() {
-    // Inject css
-    const link = document.createElement("link");
-    link.type = "text/css";
-    link.rel = "stylesheet";
-    link.href = requirejs.toUrl("./style.css");
-    document.getElementsByTagName("head")[0].appendChild(link);
-
-    // Load when the kernel's ready
-    if (Jupyter.notebook.kernel) {
-      setup();
-    } else {
-      events.on("kernel_ready.Kernel", setup);
-    }
   }
 
   return {
