@@ -1,16 +1,22 @@
 import { P_stmt } from "../ast_types";
-import { hard_rerun } from "../code_sync/code_sync";
+import { add_sync_code_on_change_watcher, hard_rerun } from "../code_sync/code_sync";
+import { add_menu_item, create_menu_el } from "../menus/menus";
 import { call_to_code, create_call_view } from "../sidebar/call/call";
 import { open_collapsable } from "../sidebar/collapsable/collapsable";
 import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_regions";
-import { CallView, CallWithArgs, DynamicCallInfo, State, StaticCallTypeInfo } from "../types";
+import { create_arbitrary_code_widget } from "../sidebar/widgets/arbitrary_code/arbitrary_code";
+import { make_widget_for_code_and_type, widget_to_code } from "../sidebar/widgets/widget";
+import { CallView, CallWithArgs, DynamicCallInfo, IInstanceType, State, StaticCallTypeInfo } from "../types";
 import { equalByJSON } from "../utils/array";
-import { create_el } from "../utils/misc";
+import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
+import { create_el, cm_end_pos, cm_start_pos, add_line_of_code } from "../utils/misc";
 
 
 export type Layer = {
-  parents: Layer[];
+  // parents: Layer[];
   el: HTMLElement;
+  mark: TextMarker<MarkerRange>;
+  target_mark: TextMarker<MarkerRange>;
   calls_with_args: CallWithArgs<DynamicCallInfo>[];
   call_views: CallView[];
 }
@@ -20,7 +26,7 @@ export type LayersPanel = {
   layers: Layer[];
 };
 
-export function layers_from_typed_node(typed_node: any, state: State): Layer[] {
+export function layers_from_typed_node(typed_node: any, state: State, indent_level: number = 0): Layer[] {
   const layer_el = create_el("div", "snp-layer");
 
   // console.log('layer typed node:', typed_node)
@@ -33,31 +39,82 @@ export function layers_from_typed_node(typed_node: any, state: State): Layer[] {
 
   // console.log('layer call_views:', call_views)
 
-  const layer = {
-    parents: [],
-    el: layer_el,
-    calls_with_args: calls_at_loc,
-    call_views,
-  }
-
   const sublayers: Layer[] = [];
+
+  const cm = state.cell.code_mirror;
+  const mark = cm.markText(
+    cm_start_pos(typed_node, state.cell_lineno),
+    cm_end_pos(typed_node, state.cell_lineno),
+    { inclusiveLeft: false, inclusiveRight: true }
+  );
+  let target_mark = mark;
 
   if (call_views.length > 0) {
     layer_el.append(...call_views.map(call_view => call_view.els.el));
   } else if (typed_node['.class'] === 'mypy.nodes.ForStmt') {
+    // const arg_view = create_arg_view(arg, {positional, disabled: disabled});
+
+    const pattern_code = typed_node.index.unparsed.trim();
+    let iterable_code = typed_node.expr.unparsed.trim()
+
+    const is_enumerate = typed_node.expr.callee?.name === 'enumerate' && typed_node.expr.args.length === 1;
+    if (is_enumerate) {
+      iterable_code = typed_node.expr.args[0].unparsed.trim()
+    }
+
+    const pattern_widget = create_arbitrary_code_widget(pattern_code);
+    const iterable_type: IInstanceType = {
+      ".class": "Instance",
+      "type_ref": "typing.Iterable",
+      "args": [{".class": "AnyType", "type_of_any": 2, "source_any": null, "missing_import_name": null}]
+    }
+    const iterator_widget = make_widget_for_code_and_type(iterable_code, iterable_type, state.user_iterables);
+
     layer_el.append(
       "for ",
-      typed_node.index.unparsed.trim(),
+      pattern_widget.el,
       " in ",
-      typed_node.expr.unparsed.trim(),
+      is_enumerate ? "enumerate(" : "",
+      iterator_widget.el,
+      is_enumerate ? ")" : "",
       ":"
     )
-    sublayers.push(...typed_node.body.body.flatMap(node => layers_from_typed_node(node, state)));
-    sublayers.forEach(sublayer => sublayer.parents.push(layer));
-    sublayers.forEach(sublayer => sublayer.el.prepend(create_el("div", "snp-indent")));
+    const expr_end = cm_end_pos(typed_node.expr, state.cell_lineno)
+    const edit_mark = cm.markText(
+      cm_start_pos(typed_node.index, state.cell_lineno),
+      expr_end,
+      { inclusiveLeft: true, inclusiveRight: true }
+    );
+    const end_of_for_line = {
+      line: expr_end.line,
+      ch: expr_end.ch + 1000
+    }
+    target_mark = cm.markText(
+      cm_start_pos(typed_node, state.cell_lineno),
+      end_of_for_line,
+      { inclusiveLeft: false, inclusiveRight: true }
+    );
+    add_sync_code_on_change_watcher(
+      () => `${widget_to_code(pattern_widget)} in ${is_enumerate ? "enumerate(" : ""}${widget_to_code(iterator_widget)}${is_enumerate ? ")" : ""}`,
+      edit_mark, state
+    );
+    layer_el.classList.add(`indentbelow-${indent_level+1}`)
+
+    sublayers.push(...typed_node.body.body.flatMap(node => layers_from_typed_node(node, state, indent_level + 1)));
+    // sublayers.forEach(sublayer => sublayer.parents.push(layer));
   } else {
     layer_el.innerText = typed_node.unparsed;
     layer_el.classList.add("snp-code-layer");
+  }
+  layer_el.classList.add(`indent-${indent_level}`)
+
+  const layer = {
+    // parents: [],
+    el: layer_el,
+    calls_with_args: calls_at_loc,
+    call_views,
+    mark,        // the whole AST node
+    target_mark, // the displayed layer code, so dropping below e.g. a for-loop adds to beginning of loop
   }
 
   layer_el.addEventListener("click", ev => {
@@ -66,7 +123,136 @@ export function layers_from_typed_node(typed_node: any, state: State): Layer[] {
     }
   });
 
+  layer_el.draggable = true;
+  layer_el.addEventListener("dragstart", ev => dragstart(ev, layer, state));
+  layer_el.addEventListener("dragend", dragend);
+  layer_el.addEventListener("dragover", dragover);
+  layer_el.addEventListener("dragleave", dragleave);
+  layer_el.addEventListener("drop", ev => drop(ev, layer, state));
+
   return [layer, ...sublayers];
+}
+
+function replace_indentation(code: string, indentation: string) {
+  return code.replaceAll(/^[ \t]*/mg, indentation)
+}
+
+function drop(ev: DragEvent, target_layer: Layer, state: State) {
+  ev.preventDefault();
+  ev.stopImmediatePropagation();
+
+  const drop_target = target_layer.el;
+
+  const is_above = drop_target.classList.contains("dragover-top");
+
+  let indent_level = 0;
+  for (let i = 0; i < 10; i++) {
+    if (drop_target.classList.contains(`drag-indent-${i}`)) {
+      indent_level = i;
+    }
+  }
+  const indentation = '    '.repeat(indent_level)
+
+  const cm = state.cell.code_mirror;
+  let source_code = ''
+  for (const source_layer of state.dragging_layers) {
+    let source_range = source_layer.mark.find()!;
+    const layer_code = cm.getRange(source_range.from, source_range.to);
+    source_code += replace_indentation(layer_code.trim(), indentation) + '\n'
+  }
+  console.log(source_code);
+
+  const target_range = target_layer.target_mark.find()!;
+  const target_pos = {
+    line: is_above ? target_range.from.line : 1 + target_range.to.line,
+    ch: 0
+  }
+  cm.replaceRange(source_code, target_pos);
+
+  for (const source_layer of state.dragging_layers) {
+    let source_range = source_layer.mark.find()!;
+    cm.replaceRange('', { line: source_range.from.line, ch: 0 }, { line: source_range.to.line + 1, ch: 0 })
+  }
+
+  clean_up_passes(cm);
+
+  hard_rerun(state);
+}
+
+// Remove unecessary "pass" statements
+// Add missing "pass" statements
+function clean_up_passes(cm: DocOrEditor) {
+  let code = cm.getValue();
+
+  cm.setValue(
+    code
+      .replaceAll(/(^[ \t]*)((for|def|if|elif|else|try|except)\b.*:\s*)^/mg, '$1$2$1    pass\n') // add passes everywhere...not perfect but we'll roll with it
+      .replaceAll(/(^[ \t]*)pass\s*\n(\1\S)/mg,     '$2')   // remove passes with stuff after
+      .replaceAll(/(^[ \t]*)(\S.*\n)\1pass.*\n?/mg, '$1$2') // remove passes with stuff before
+  )
+}
+
+function dragstart(ev: DragEvent, layer: Layer, state: State) {
+  state.dragging_layers = [layer];
+  ev.stopImmediatePropagation();
+}
+
+function dragend(ev: DragEvent) {
+  document.querySelectorAll(".dragover-top").forEach(el => el.classList.remove("dragover-top"));
+  document.querySelectorAll(".dragover-bottom").forEach(el => el.classList.remove("dragover-bottom"));
+  for (let i = 0; i < 10; i++) {
+    document.querySelectorAll(`drag-indent-${i}`).forEach(el => el.classList.remove(`drag-indent-${i}`));
+  }
+  // let node = ev.currentTarget;
+  ev.stopImmediatePropagation();
+}
+
+function dragover(ev: DragEvent) {
+  // ev.dataTransfer.dropEffect = "copy";
+  // highlightDropTarget(ev.currentTarget);
+
+  const drop_target = ev.currentTarget! as Element;
+
+  console.log(drop_target.classList.toString())
+
+  const indent_class_match = drop_target.classList.toString().match(/(?:^|\s)indent-(\d+)\b/)!;
+  const indent_level = parseInt(indent_class_match[1]);
+  const indent_below_level = parseInt((drop_target.classList.toString().match(/(?:^|\s)indentbelow-(\d+)\b/) || indent_class_match)[1])
+
+
+  const rect = drop_target.getBoundingClientRect();
+  const mouseX = ev.clientX - rect.left;
+  const mouseY = ev.clientY - rect.top;
+  // const relativeX = mouseX / rect.width;
+  const relativeY = mouseY / rect.height;
+
+
+  drop_target.classList.remove("dragover-top");
+  drop_target.classList.remove("dragover-bottom");
+  for (let i = 0; i < 10; i++) {
+    drop_target.classList.remove(`drag-indent-${i}`);
+  }
+
+  if (relativeY < 0.5) {
+    drop_target.classList.add("dragover-top");
+    const drag_indent_level = Math.min(indent_level, Math.floor(mouseX / 29));
+    drop_target.classList.add(`drag-indent-${drag_indent_level}`);
+  } else {
+    drop_target.classList.add("dragover-bottom");
+    const drag_indent_level = Math.min(indent_below_level, Math.floor(mouseX / 27));
+    drop_target.classList.add(`drag-indent-${drag_indent_level}`);
+  }
+
+  ev.preventDefault();
+  ev.stopImmediatePropagation();
+}
+
+function dragleave(ev: DragEvent) {
+  const drop_target = ev.currentTarget! as Element;
+  drop_target.classList.remove("dragover-top");
+  drop_target.classList.remove("dragover-bottom");
+  ev.preventDefault();
+  ev.stopImmediatePropagation();
 }
 
 export function is_layer_selected(layer: Layer): boolean {
@@ -78,10 +264,27 @@ export function selected_layers(state: State): Layer[] {
   return state.layers_panel.layers.filter(is_layer_selected);
 }
 
-export function create_layers_panel(layers: Layer[]): LayersPanel {
-  const layers_el = create_el("div", "snp-layer-panel");
+export function create_layers_panel(layers: Layer[], state: State): LayersPanel {
+  const layers_el = create_el("div", "snp-layers-panel");
   const layers_panel_heading = create_el("h2", [], layers_el);
-  layers_panel_heading.innerText = "Layers";
+  layers_panel_heading.append("Layers")
+
+  const add_layer_menu = create_menu_el('<span class="snp-add-layer-button">＋ Add Layer</span>', layers_panel_heading)
+
+  add_menu_item(
+    add_layer_menu,
+    'For-loop', null,
+    (state => {
+      const code = "for i, x in enumerate([1, 2, 3]):\n    pass\n";
+      add_line_of_code(code, state);
+      // const prefix = code.split("(")[0];
+      // const loc = mark.find()!.to.line + state.cell_lineno - 1;
+      // state.persistent_dataset.new_calls = `["${prefix}${loc}"]`;
+      hard_rerun(state);
+    }),
+    _ => true, // Enabled?
+    state
+  )
 
   layers.forEach(layer => layers_el.append(layer.el));
 

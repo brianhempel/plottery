@@ -11,7 +11,27 @@ export function hard_rerun(state: State) {
   state.cell.execute();
 }
 
-export function sync_call_code(
+export function add_sync_code_on_change_watcher(
+  get_code: () => string,
+  mark: TextMarker<MarkerRange>,
+  state: State
+) {
+  let curr_code = get_code();
+
+  function keep_synced() {
+    const code = get_code();
+
+    if (curr_code != code) {
+      sync_code_range(mark, code, state);
+      curr_code = code;
+    }
+
+    requestAnimationFrame(keep_synced);
+  }
+  keep_synced();
+}
+
+export function sync_code_range(
   mark: TextMarker<MarkerRange>,
   code: string,
   state: State
@@ -21,10 +41,10 @@ export function sync_call_code(
   const code_mirror = state.cell.code_mirror;
 
   code_mirror.replaceRange(code, from, to);
-  ({ from, to } = mark.find()!);
 
   // Selecting the code leaves a highlight on what has changed, BUT it scrolls
   // the window which is really jarring when you are doing a direct manipulation.
+  // ({ from, to } = mark.find()!);
   // code_mirror.setSelection(from, to);
 
   redraw_cell(state);

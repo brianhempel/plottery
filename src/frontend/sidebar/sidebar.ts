@@ -1,77 +1,32 @@
-import { createModuleResolutionCache } from "typescript";
-import { hard_rerun } from "../code_sync/code_sync";
-import { Layer, deselect_all_layers, duplicate_selected_layers, selected_layers } from "../layer_panel/layer_panel";
+import { deselect_all_layers, duplicate_selected_layers, selected_layers } from "../layer_panel/layer_panel";
 import { State } from "../types";
-import { create_el, item_to_start_pos } from "../utils/misc";
-import { call_to_code } from "./call/call";
+import { create_el } from "../utils/misc";
+import { add_menu_item, create_menu_el } from "../menus/menus";
 
-
-function open_menu(menu: HTMLElement) {
-  menu.classList.add("open");
-  const overlay = create_el("div", "snp-menu-click-to-close-overlay");
-  menu.prepend(overlay);
-  overlay.addEventListener("click", ev => {
-    ev.stopPropagation();
-    close_menu(menu);
-  });
-}
-
-function close_menu(menu: HTMLElement) {
-  menu.querySelector(".snp-menu-click-to-close-overlay")?.remove();
-  menu.classList.remove("open");
-}
-
-export function close_all_menus(state: State) {
-  state.snp_outer.querySelector(".snp-menu-click-to-close-overlay")?.remove();
-  state.snp_outer.querySelectorAll(".snp-sidebar-menu.open").forEach(menu => {
-    menu.classList.remove("open");
-  });
-}
-
-function enable_menu_item(menu_item: HTMLElement) {
-  menu_item.classList.remove("disabled");
-}
-
-function disable_menu_item(menu_item: HTMLElement) {
-  menu_item.classList.add("disabled");
-}
 
 export function create_sidebar_menu_bar(state: State) {
   const sidebar_menu_bar = create_el("div", "snp-sidebar-menu-bar");
 
-  const edit_menu = create_el("div", "snp-sidebar-menu", sidebar_menu_bar);
-  edit_menu.innerHTML = "<strong>Edit</strong>";
+  const edit_menu = create_menu_el("<strong>Edit</strong>", sidebar_menu_bar)
 
-  const edit_menu_items = create_el("div", "snp-sidebar-menu-items", edit_menu);
+  add_menu_item(
+    edit_menu,
+    'Duplicate', 'D',
+    duplicate_selected_layers,
+    (_item: HTMLElement, state: State) => selected_layers(state).length > 0, // Enabled?
+    state
+  )
 
-  const edit_menu_duplicate = create_el("div", "snp-sidebar-menu-item", edit_menu_items);
-  edit_menu_duplicate.innerHTML = "Duplicate<kbd>⌘D</kbd>";
-  edit_menu_duplicate.addEventListener("click", _ => duplicate_selected_layers(state));
-
-  const edit_menu_deselect_all = create_el("div", "snp-sidebar-menu-item", edit_menu_items);
-  edit_menu_deselect_all.innerHTML = "Deselect All<kbd>⌘⇧A</kbd>";
-  edit_menu_deselect_all.addEventListener("click", _ => deselect_all_layers(state));
-
-  edit_menu.addEventListener("click", _ => {
-    if (edit_menu.classList.contains("open")) { // This catches clicks from clicking menu items while the menu is open
-      close_menu(edit_menu);
-    } else {
-      if (selected_layers(state).length > 0) {
-        enable_menu_item(edit_menu_duplicate);
-        enable_menu_item(edit_menu_deselect_all);
-      } else {
-        disable_menu_item(edit_menu_duplicate);
-        disable_menu_item(edit_menu_deselect_all);
-      }
-      open_menu(edit_menu);
-    }
-  });
-
-
+  add_menu_item(
+    edit_menu,
+    'Deselect All', '⇧A',
+    deselect_all_layers,
+    (_item: HTMLElement, state: State) => selected_layers(state).length > 0, // Enabled?
+    state
+  )
 
   return sidebar_menu_bar;
 }
-
 
 // import {
 //   // ArtistView,

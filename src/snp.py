@@ -526,33 +526,53 @@ class SNP(SNPFigureAndHoverRegions):
         with Timer("user_typed_snippets"):
             # I wish there were a better way.
             # array_like_type = self.type_graph['matplotlib.axes._axes'].tree.names['Axes'].node.names['bar'].type.arg_types[1]
+            # iterable_type
             self.user_typed_snippets = {}
+            self.user_iterables = [] # but exclude strings
+            string_type = mypy.types.Instance(self.type_graph['builtins'].tree.names['str'].node, [])
             np_arange_ret_type = self.type_graph['numpy'].tree.names['arange'].node.type.items[0].ret_type
+            explicit_any_type = mypy.types.AnyType(mypy.types.TypeOfAny.explicit)
+            iterable_type = mypy.types.Instance(self.type_graph['collections.abc'].tree.names['Iterable'].node, [explicit_any_type])
+            dict_keys_node = self.type_graph['_collections_abc'].tree.names['dict_keys'].node # <TypeInfo _collections_abc.dict_keys>
             for name, value in locals.items():
                 if name in tree.names and name in user_names and name not in get_trivial_names() and not callable(value):
                     name_type = tree.names[name].type
                     if name_type is not None:
                         self.user_typed_snippets[name] = name_type
+                        is_subtype(name_type, iterable_type) and not is_subtype(name_type, string_type) and self.user_iterables.append(name)
 
                         if isinstance(value, dict) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.dict':
-                            key_type = name_type.args[1]
-                            if key_type is not None:
+                            val_type = name_type.args[1]
+                            if val_type is not None:
                                 for key, _ in value.items():
-                                    self.user_typed_snippets[f"{name}[{repr(key)}]"] = key_type
+                                    code = f"{name}[{repr(key)}]"
+                                    self.user_typed_snippets[code] = val_type
+                                    is_subtype(val_type, iterable_type) and not is_subtype(val_type, string_type) and self.user_iterables.append(code)
+
+                            # type of item.keys()
+                            # I don't know why dict_keys takes two args, rather than just the type of the keys, but that's how mypy does it.
+                            dot_keys_type = mypy.types.Instance(dict_keys_node, [name_type.args[0], name_type.args[1]])
+                            code = f"{name}.keys()"
+                            self.user_typed_snippets[code] = dot_keys_type
+                            is_subtype(dot_keys_type, iterable_type) and not is_subtype(dot_keys_type, string_type) and self.user_iterables.append(code)
 
                         if isinstance(value, list) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.list':
                             item_type = name_type.args[0]
                             if item_type is not None:
                                 for i, _ in enumerate(value):
-                                    self.user_typed_snippets[f"{name}[{i}]"] = item_type
+                                    code = f"{name}[{i}]"
+                                    self.user_typed_snippets[code] = item_type
+                                    is_subtype(item_type, iterable_type) and not is_subtype(item_type, string_type) and self.user_iterables.append(code)
 
+                            # Add np.arange(len(...))
                             self.user_typed_snippets[f"np.arange(len({name}))"] = np_arange_ret_type
-                            # Add np.arange(len())
 
                         if isinstance(value, tuple) and isinstance(name_type, mypy.types.TupleType):
                             for i, item_type in enumerate(name_type.items):
                                 if item_type is not None:
-                                    self.user_typed_snippets[f"{name}[{i}]"] = item_type
+                                    code = f"{name}[{i}]"
+                                    self.user_typed_snippets[code] = item_type
+                                    is_subtype(item_type, iterable_type) and not is_subtype(item_type, string_type) and self.user_iterables.append(code)
 
                             self.user_typed_snippets[f"np.arange(len({name}))"] = np_arange_ret_type
 
@@ -614,6 +634,7 @@ class SNP(SNPFigureAndHoverRegions):
                     loc_via_func_code_and_nums = []
                     method_call_positions = []
 
+                # print(names, loc_via_func_code_and_nums)
                 # n^2!
                 #
                 # Correlate to the call info from the type checker, which only know about code positions, not object names or ids
@@ -698,12 +719,12 @@ class SNP(SNPFigureAndHoverRegions):
             if end_line is None or end_line > len(notebook_code_lines) or line < 1:
                 return None
             if line == end_line:
-                return notebook_code_lines[line-1][column:end_column+1]
+                return notebook_code_lines[line-1][column:end_column]
             else:
                 return "\n".join(
                     [notebook_code_lines[line-1][column:]] +
                     notebook_code_lines[line:end_line-1] +
-                    [notebook_code_lines[end_line-1][:end_column+1]]
+                    [notebook_code_lines[end_line-1][:end_column]]
                 )
 
         def type_node_to_json(node):
@@ -739,7 +760,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- sidebar added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_typed_ast)})">
+                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.user_iterables)})">
                     {frontend_css}
                 </style>
                 </div>
@@ -910,6 +931,7 @@ class RootProvenanceTagger:
     def visit(self, node):
         with Timer("ProvenanceTagger"):
             out = ProvenanceTagger().visit(node)
+        # print(ast.unparse(out))
         return out
 
 

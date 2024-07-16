@@ -1,4 +1,4 @@
-import { sync_call_code } from "../../code_sync/code_sync";
+import { add_sync_code_on_change_watcher, sync_code_range } from "../../code_sync/code_sync";
 import {
   Arg,
   ArgView,
@@ -10,8 +10,8 @@ import {
 } from "../../types";
 import {
   create_el,
-  item_to_end_pos,
-  item_to_start_pos,
+  cm_end_pos,
+  cm_start_pos,
   sig_figs,
 } from "../../utils/misc";
 import {
@@ -46,12 +46,9 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
 
   // Mark the range of code in cell for when user changes the call
   const mark = code_mirror.markText(
-    item_to_start_pos(call.call_info.call, cell_lineno),
-    item_to_end_pos(call.call_info.call, cell_lineno),
-    {
-      inclusiveLeft: true,
-      inclusiveRight: true,
-    }
+    cm_start_pos(call.call_info.call.pos, cell_lineno),
+    cm_end_pos(call.call_info.call.pos, cell_lineno),
+    { inclusiveLeft: true, inclusiveRight: true }
   );
 
   // Call container
@@ -146,22 +143,7 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
     arguments: arg_and_views,
   };
 
-  // On change of call, check if its code changed
-  let curr_code = call_to_code(call_view);
-
-  // Sync changes
-  function keep_synced() {
-    const code = call_to_code(call_view);
-
-    if (curr_code != code) {
-      sync_call_code(mark, code, state);
-      curr_code = code;
-    }
-
-    requestAnimationFrame(keep_synced);
-  }
-  keep_synced();
-
+  add_sync_code_on_change_watcher(() => call_to_code(call_view), mark, state);
 
   return call_view;
 }

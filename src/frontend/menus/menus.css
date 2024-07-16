@@ -1,0 +1,54 @@
+
+.snp-menu {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  z-index: 10;
+}
+.snp-menu > .snp-menu-items {
+  display: none;
+  position: absolute;
+  /* z-index: 100; */
+  text-align: left;
+  border: solid 1px lightgray;
+}
+.snp-menu.open > .snp-menu-items {
+  display: block;
+}
+.snp-menu-item {
+  background: white;
+
+  margin: 0;
+  padding: 0.4rem 1rem;
+  line-height: 1.5;
+  min-width: 15rem;
+  /* z-index: 101; */
+
+  /* This is what Jupyter's menu's use: */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.snp-menu-item kbd {
+  margin: 0;
+}
+.snp-menu-item:hover:not(.disabled) {
+  background: whitesmoke;
+}
+.snp-menu-click-to-close-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  cursor: default;
+}
+.snp-menu-item.disabled {
+  color: lightgray;
+}
+.snp-menu-item.disabled kbd {
+  color: lightgray;
+  border-color: lightgray;
+}

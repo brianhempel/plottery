@@ -23,13 +23,14 @@ import {
   arg_defaults_from_callee_type,
   create_el,
   get_shortest_qualified_name,
-  item_to_end_pos,
-  item_to_start_pos,
+  cm_start_pos,
+  cm_end_pos,
 } from "./utils/misc";
 import { JupyterType, get_arg_kind_from_int } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
-import { close_all_menus, create_sidebar_menu_bar } from "./sidebar/sidebar";
+import { create_sidebar_menu_bar } from "./sidebar/sidebar";
+import { close_all_menus } from "./menus/menus";
 import { get_code_and_loc_for_call } from "./sidebar/call/call";
 
 
@@ -48,7 +49,8 @@ function attach_snp(
     methods: MethodInfoWithType[];
     calls: DynamicCallInfo[];
   },
-  notebook_typed_defs: Type[]
+  notebook_typed_defs: Type[],
+  user_iterables: string[],
 ) {
   console.log("user_call_type_info", user_call_type_info);
   console.log("sidebar_stuff", sidebar_stuff);
@@ -66,17 +68,19 @@ function attach_snp(
     provenance_is_off_by_n_lines,
 
     notebook_typed_defs: [],
+    user_iterables: user_iterables,
 
     selectable_artists: sidebar_stuff.selectable_artists,
     methods: get_methods(sidebar_stuff.methods, sidebar_stuff.selectable_artists),
 
-    layers_panel: create_layers_panel([]),
+    layers_panel: { el: create_el("div"), layers: [] }, // Dummy, replaced immediately below.
 
     calls: sidebar_stuff.calls,
     calls_with_args: [],
 
     busy: false,
     persistent_dataset: (snp_outer.closest('.output')! as HTMLElement).dataset,
+    dragging_layers: [],
 
     snp_outer: snp_outer,
     plot_area: snp_outer.querySelector(".plot_area")!,
@@ -88,6 +92,8 @@ function attach_snp(
 
     sidebar_el: create_el("div", "snp-sidebar", snp_outer.querySelector(".plot_and_sidebar")!),
     stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
+
+    command_shortcuts: {}, // Added by menu items in menus.ts
   };
 
   // Put stdout_stderr at the bottom
@@ -122,7 +128,7 @@ function attach_snp(
     typed_node.line >= cell_lineno ? layers_from_typed_node(typed_node, state) : []
   );
 
-  state.layers_panel = create_layers_panel(layers);
+  state.layers_panel = create_layers_panel(layers, state);
 
   // Clicks on non-selectable elements on plot should deselect.
   // (Clicks on selectable elements do not propogate to the container.)
@@ -150,20 +156,18 @@ function attach_snp(
   reposition_plot_widgets(state);
 
   // Keyboard commands
-  // Registered on the parent element that can accept keyboard events (in practice it's the cell)
+  // Registered on the outer element that can accept keyboard events
   snp_outer.addEventListener("keydown", evt => {
     const ev = evt as KeyboardEvent;
-    if (ev.metaKey) { // CMD key
-      if (ev.key == "d") {
+    const isMac = window.navigator.platform.match(/Mac|iPhone/);
+
+    if ((isMac && ev.metaKey) || (!isMac && ev.ctrlKey)) { // CMD or CNTRL key
+      let keys = (ev.shiftKey ? '⇧' : '') + ev.key.toUpperCase();
+
+      if (state.command_shortcuts[keys]) {
         ev.stopPropagation();
         ev.preventDefault();
-        duplicate_selected_layers(state);
-        close_all_menus(state);
-      }
-      if (ev.key == "a" && ev.shiftKey) {
-        ev.stopPropagation();
-        ev.preventDefault();
-        deselect_all_layers(state);
+        state.command_shortcuts[keys](state);
         close_all_menus(state);
       }
     }
@@ -363,8 +367,8 @@ export function get_args(
       given_arg["name"] ? call_info.callee.arg_names.indexOf(given_arg.name) : (callee_has_self_arg ? arg_i + 1 : arg_i);
 
     const arg_val_code = code_mirror.getRange(
-      item_to_start_pos(given_arg, cell_lineno),
-      item_to_end_pos(given_arg, cell_lineno)
+      cm_start_pos(given_arg.pos, cell_lineno),
+      cm_end_pos(given_arg.pos, cell_lineno)
     );
 
     return {

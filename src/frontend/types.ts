@@ -1,5 +1,5 @@
 import { P_Module } from "./ast_types";
-import { LayersPanel } from "./layer_panel/layer_panel";
+import { Layer, LayersPanel } from "./layer_panel/layer_panel";
 import { PlotWidget } from "./sidebar/plot-widget/plot_widget";
 import { Widget } from "./sidebar/widgets/widget";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
@@ -33,6 +33,7 @@ export type State = {
     };
   };
   notebook_typed_defs: Type[],
+  user_iterables: string[];
 
 
   // **** Actual state ****
@@ -40,7 +41,7 @@ export type State = {
   canvas_selection: SelectedItem | null;
   busy: boolean;
   persistent_dataset: DOMStringMap; // stuff to store between reruns, e.g. selected layers, stored in dataset attribute on the .output div
-
+  dragging_layers: Layer[]
 
   // **** View outputs ****
 
@@ -56,6 +57,8 @@ export type State = {
 
   sidebar_el: HTMLElement;
   layers_panel: LayersPanel;
+
+  command_shortcuts: { [keys: string]: (state: State) => void };
 
   // hover_regions?: {
   //   el: HTMLElement;
@@ -122,7 +125,6 @@ export type CallViewEls = {
 
 export type MethodView = {
   el: HTMLElement;
-  mark: TextMarker<MarkerRange>;
 };
 
 export type ArgView = {

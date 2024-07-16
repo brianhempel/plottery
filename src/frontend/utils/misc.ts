@@ -11,6 +11,7 @@ import {
   TupleType,
 } from "../types";
 import { unzip } from "./array";
+import { TextMarker, MarkerRange } from "./codemirror";
 import { get_arg_kind_from_int } from "./types";
 
 // declare global {
@@ -221,15 +222,12 @@ export function reposition_to_avoid_overlap(el: HTMLElement, avoid_els: Element[
   }
 }
 
-export function item_to_start_pos(
-  item: { pos: Position },
-  cell_lineno: number
-) {
-  return { line: item.pos.line - cell_lineno, ch: item.pos.column };
+export function cm_start_pos(pos: Position, cell_lineno: number) {
+  return { line: pos.line - cell_lineno, ch: pos.column };
 }
 
-export function item_to_end_pos(item: { pos: Position }, cell_lineno: number) {
-  return { line: item.pos.end_line - cell_lineno, ch: item.pos.end_column };
+export function cm_end_pos(pos: Position, cell_lineno: number) {
+  return { line: pos.end_line - cell_lineno, ch: pos.end_column };
 }
 
 export function create_dropdown_arrow() {
@@ -401,4 +399,22 @@ export function sig_figs(x: number, ndigits: number): number {
   const order = Math.ceil(Math.log10(Math.abs(x)));
   const factor = Math.pow(10, ndigits - order);
   return Math.round(x * factor) / factor;
+}export function add_line_of_code(
+  code: string,
+  state: State
+): TextMarker<MarkerRange> {
+  const cm = state.cell.code_mirror;
+
+  let line_count = cm.getValue().split("\n").length;
+  let mark = cm.markText(
+    { line: line_count - 2, ch: 0 },
+    { line: line_count - 2, ch: 0 },
+    { inclusiveRight: true, inclusiveLeft: true, clearWhenEmpty: false }
+  ); // insert at end, for now...
+
+  let { from, to } = mark.find()!;
+  cm.replaceRange(code, from, to);
+
+  return mark;
 }
+
