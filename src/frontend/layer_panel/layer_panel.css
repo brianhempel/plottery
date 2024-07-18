@@ -2,6 +2,7 @@
   font-size: 14px;
   border: solid 1px gray;
   padding: 0;
+  min-width: 300px;
 }
 
 .snp-layers-panel h2 {
@@ -38,6 +39,10 @@
   --indent-spacing: 2em;
 }
 
+.for-loop > div {
+  border: solid 1px lightgray;
+}
+
 .snp-layer.snp-code-layer {
   color: lightgray;
   display: none;
@@ -49,6 +54,18 @@
 
 .snp-layer.indent-1 {
   padding-left: var(--indent-spacing);
+}
+.snp-layer.indent-2 {
+  padding-left: calc(var(--indent-spacing) * 2);
+}
+.snp-layer.indent-3 {
+  padding-left: calc(var(--indent-spacing) * 3);
+}
+.snp-layer.indent-4 {
+  padding-left: calc(var(--indent-spacing) * 4);
+}
+.snp-layer.indent-5 {
+  padding-left: calc(var(--indent-spacing) * 5);
 }
 
 .snp-layer.dragover-top {

@@ -1,9 +1,10 @@
 import { P_stmt } from "../ast_types";
 import { add_sync_code_on_change_watcher, hard_rerun } from "../code_sync/code_sync";
-import { add_menu_item, create_menu_el } from "../menus/menus";
+import { add_menu_item, add_submenu, create_menu_el } from "../menus/menus";
 import { call_to_code, create_call_view } from "../sidebar/call/call";
 import { open_collapsable } from "../sidebar/collapsable/collapsable";
 import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_regions";
+import { add_method_call } from "../sidebar/methods/method";
 import { create_arbitrary_code_widget } from "../sidebar/widgets/arbitrary_code/arbitrary_code";
 import { make_widget_for_code_and_type, widget_to_code } from "../sidebar/widgets/widget";
 import { CallView, CallWithArgs, DynamicCallInfo, IInstanceType, State, StaticCallTypeInfo } from "../types";
@@ -99,6 +100,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
       edit_mark, state
     );
     layer_el.classList.add(`indentbelow-${indent_level+1}`)
+    layer_el.classList.add(`for-loop`)
 
     sublayers.push(...typed_node.body.body.flatMap(node => layers_from_typed_node(node, state, indent_level + 1)));
     // sublayers.forEach(sublayer => sublayer.parents.push(layer));
@@ -277,14 +279,43 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
     (state => {
       const code = "for i, x in enumerate([1, 2, 3]):\n    pass\n";
       add_line_of_code(code, state);
-      // const prefix = code.split("(")[0];
-      // const loc = mark.find()!.to.line + state.cell_lineno - 1;
-      // state.persistent_dataset.new_calls = `["${prefix}${loc}"]`;
       hard_rerun(state);
     }),
     _ => true, // Enabled?
     state
   )
+
+  const user_iterables_menu =
+    add_submenu(
+      add_layer_menu,
+      'For-loop over...',
+      _ => true, // Enabled?
+      state
+    )
+  state.user_iterables.forEach(iterable => {
+    add_menu_item(
+      user_iterables_menu,
+      iterable, null,
+      (state => {
+        const code = `for i, x in enumerate(${iterable}):\n    pass\n`;
+        add_line_of_code(code, state);
+        hard_rerun(state);
+      }),
+      _ => true, // Enabled?
+      state
+    )
+  });
+
+  // Add possible method calls to the menu
+  state.methods.forEach(method => {
+    add_menu_item(
+      add_layer_menu,
+      method.receiver_dot_name, null,
+      (state => add_method_call(method, state)),
+      _ => true, // Enabled?
+      state
+    )
+  });
 
   layers.forEach(layer => layers_el.append(layer.el));
 
@@ -356,69 +387,3 @@ export function load_selected_layers(state: State) {
     }
   });
 }
-
-// function selected_layers(state: State): Layer[] {
-//   return state.layers_panel.layers.filter(is_layer_selected);
-// }
-
-// export function selected_call_locs(state: State) : [number, string][] {
-
-// }
-
-
-
-// export function toggle_select_layer(layer: Layer, layers_panel: LayersPanel) {
-//   is_layer_selected(layer) ? deselect_layer(layer) : select_layer(layer, layers_panel);
-// }
-
-
-// export function layer_from_ast_node(calls: CallWithArgs<StaticCallTypeInfo>[], stmt: P_stmt, state: State) : HTMLElement {
-//   const layer_el = create_el("div", "snp-layer");
-
-//   // Find that call that matches stmt
-
-
-
-
-//   // Loop through and build the call views for this artist
-//   // const call_views: CallView[] = [];
-
-//   // calls.forEach(call => {
-//   //   const call_view = create_call_view(call, state);
-//   //   call_views.push(call_view);
-
-//   //   // Add it
-//   //   body_el.append(call_view.els.el);
-//   // });
-
-
-//   return layer_el;
-// }
-
-
-// export function create_layers_panel(
-
-//   ): LayersPanel {
-
-//   const layers_el = create_el("div", "snp-layers");
-
-//   // const sidebar_view: LayersPanel = {
-//   //   el:         sidebar_el,
-//   //   artists_el: create_el("div", "snp-artists", sidebar_el),
-//   //   // artists: {},
-//   // };
-
-//   // selectable_artists.forEach(artist => {
-//   //   const artist_view = create_artist_view(
-//   //     artist,
-//   //     sidebar_view,
-//   //     all_calls_and_methods[artist.id],
-//   //     state
-//   //   );
-
-//   //   sidebar_view.artists[artist.id] = artist_view;
-//   // });
-
-//   return layers_el;
-// }
-

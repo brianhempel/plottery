@@ -17,10 +17,9 @@ export type State = {
   cell: Cell;
   cell_lineno: number;
 
-  last_cell_code_executed: string;
   provenance_is_off_by_n_lines: number;
 
-  selectable_artists: SelectableArtist[];
+  selectable_artists: SelectableArtist[]; // I *think* the only thing this is used for right now is to find the shortest qualified name for a method reciever
 
   methods: MethodWithArgs[];
   calls: DynamicCallInfo[];
@@ -38,10 +37,12 @@ export type State = {
 
   // **** Actual state ****
 
+  last_cell_code_executed: string;
   canvas_selection: SelectedItem | null;
   busy: boolean;
   persistent_dataset: DOMStringMap; // stuff to store between reruns, e.g. selected layers, stored in dataset attribute on the .output div
   dragging_layers: Layer[]
+
 
   // **** View outputs ****
 
@@ -196,10 +197,10 @@ export type CallWithArgs<call_info_type> = {
 
 export type MethodWithArgs = {
   method_info: MethodInfoWithType;
+  receiver_dot_name: string; // "ax.bar"
   code: string;
   required_positional_arg: Arg[];
   required_keyword_args: Arg[];
-  receiver_name: string;
 };
 
 export type Type =

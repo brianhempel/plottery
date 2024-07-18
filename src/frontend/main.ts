@@ -8,7 +8,6 @@ import {
   DynamicCallInfo,
   CallWithArgs,
   CallableType,
-  MethodWithArgs,
   Position,
   SelectableArtist,
   State,
@@ -22,7 +21,6 @@ import "./utils/array";
 import {
   arg_defaults_from_callee_type,
   create_el,
-  get_shortest_qualified_name,
   cm_start_pos,
   cm_end_pos,
 } from "./utils/misc";
@@ -32,6 +30,7 @@ import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from
 import { create_sidebar_menu_bar } from "./sidebar/sidebar";
 import { close_all_menus } from "./menus/menus";
 import { get_code_and_loc_for_call } from "./sidebar/call/call";
+import { get_methods } from "./sidebar/methods/method";
 
 
 // These will already exist where we inject the JS in the notebook.
@@ -235,90 +234,6 @@ function attach_snp(
 }
 
 (window as any)["attach_snp"] = attach_snp;
-
-// export function calls_and_methods_by_artist(state: State): {
-//   [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
-// } {
-//   let all_calls_and_methods: {
-//     [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
-//   } = {};
-
-//   state.selectable_artists.forEach(artist => {
-//     const artist_call_infos = state.calls.filter(call_info => {
-//       return call_info.show_on.at(-1) == artist.id;
-//     });
-
-//     let artist_method_infos = state.methods.filter(method => {
-//       return method.show_on.at(-1) == artist.id;
-//     });
-
-//     const artist_calls = artist_call_infos.map(
-//       call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror)
-//     )
-
-//     let artist_methods = get_methods(
-//       artist_method_infos,
-//       state.selectable_artists
-//     );
-
-//     // Filter out methods that're already called
-//     artist_methods = artist_methods.filter(method => {
-//       const is_already_called = artist_calls.find(
-//         call =>
-//           call.call_info.loc_via_func_code_and_num[0] ==
-//           `${method.receiver_name}.${method.method_info.name}`
-//       );
-
-//       return !(method.method_info.max_calls == 1 && is_already_called);
-//     });
-
-//     all_calls_and_methods[artist.id] = {
-//       calls: artist_calls,
-//       methods: artist_methods,
-//     };
-//   });
-
-//   return all_calls_and_methods;
-// }
-
-export function get_methods(
-  method_infos: MethodInfoWithType[],
-  artists: SelectableArtist[],
-): MethodWithArgs[] {
-  return method_infos.map(method_info => {
-    let receiver_name = get_shortest_qualified_name(
-      artists.find(other_artist => other_artist.id == method_info.receiver)?.names || [""]
-    );
-
-    let arg_defaults = arg_defaults_from_callee_type(method_info.type);
-
-    let [required_positional_arg, required_keyword_args] =
-      arg_defaults.filter(
-        arg => arg.kind == "ARG_POS" || arg.kind == "ARG_NAMED"
-      ).partition(arg => arg.kind == "ARG_POS");
-
-    let required_positional_arg_codes = required_positional_arg.map(
-      arg => arg.code
-    );
-
-    let required_keyword_arg_codes = required_keyword_args.map(
-      arg => `${arg.name}=${arg.code}`
-    );
-
-    let code_prefix = `${receiver_name}.${method_info.name}`;
-    let code = `${code_prefix}(${required_positional_arg_codes
-      .concat(required_keyword_arg_codes)
-      .join(",")})\n`;
-
-    return {
-      method_info,
-      code,
-      required_positional_arg,
-      required_keyword_args,
-      receiver_name,
-    };
-  });
-}
 
 export function call_info_to_call_with_args<call_info_type extends (DynamicCallInfo | StaticCallTypeInfo)>(
   call_info: call_info_type,

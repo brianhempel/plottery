@@ -20,13 +20,11 @@ export function create_menu_el(innerHTML: string, parent: HTMLElement): HTMLElem
   return menu;
 }
 
-// If command is provided, the action is registered as a keyboard shortcut
-// e.g. 'D' registers cmd-D and '⇧A' registers cmd-shift-A
 // enabled_predicate is a function that takes the menu item and state and returns whether it should be enabled
 export function add_menu_item(
   menu: HTMLElement,
   name: string,
-  command: string | null,
+  command: string | null, // e.g. 'D' registers the shortcut cmd-D and '⇧A' registers cmd-shift-A
   action: (state: State) => void,
   enabled_predicate: (item: HTMLElement, state: State) => boolean,
   state: State
@@ -46,6 +44,26 @@ export function add_menu_item(
   menu.addEventListener("click", _ => {
     enabled_predicate(menu_item, state) ? enable_menu_item(menu_item) : disable_menu_item(menu_item);
   })
+
+  return menu_item;
+}
+
+
+export function add_submenu(
+  menu: HTMLElement,
+  name: string,
+  enabled_predicate: (item: HTMLElement, state: State) => boolean,
+  state: State
+) {
+  const menu_items = menu.querySelector(".snp-menu-items")!;
+  const menu_item = create_el("div", ["snp-menu-item", "snp-submenu"], menu_items);
+
+  menu.addEventListener("click", _ => {
+    enabled_predicate(menu_item, state) ? enable_menu_item(menu_item) : disable_menu_item(menu_item);
+  })
+
+  menu_item.innerText = name;
+  create_el("div", "snp-menu-items", menu_item);
 
   return menu_item;
 }

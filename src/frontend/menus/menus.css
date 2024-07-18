@@ -5,16 +5,27 @@
   cursor: pointer;
   z-index: 10;
 }
-.snp-menu > .snp-menu-items {
+.snp-submenu {
+  display: inline-block;
+  position: relative;
+}
+.snp-menu > .snp-menu-items,
+.snp-submenu > .snp-menu-items {
   display: none;
   position: absolute;
   /* z-index: 100; */
   text-align: left;
   border: solid 1px lightgray;
 }
-.snp-menu.open > .snp-menu-items {
+.snp-submenu > .snp-menu-items {
+  top: 0;
+  right: -100%;
+}
+.snp-menu.open > .snp-menu-items,
+.snp-submenu:hover > .snp-menu-items {
   display: block;
 }
+
 .snp-menu-item {
   background: white;
 
