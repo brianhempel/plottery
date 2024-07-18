@@ -25,6 +25,7 @@ import {
   create_collapsable_els,
   open_collapsable,
 } from "../collapsable/collapsable";
+import { Boundses } from "../hover-regions/hover_regions";
 import { change_widget_code, widget_to_code } from "../widgets/widget";
 import "./call.css";
 
@@ -173,22 +174,74 @@ function number_to_string_not_ugly(n: number) {
 // The handling for dragging on the plot has to be routed through the layers UI element because all the logic
 // for attaching the arguments to the code is buried there, including adding new args and modifying current args.
 
-export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((delta: number) => void) {
+
+export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | ((fig_px: [number, number], delta_px: [number, number], boundses: Boundses) => void) {
+
+  // move legend handler
+  //
+  // changed legend loc to e.g. (0.5, 0.5) which is the bot left corner, relative to the axes bounds
+  if(call_view.els.name_el.innerText.endsWith(".legend")) {
+    let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'loc')?.view;
+
+    if (perhaps_view) {
+      const view = perhaps_view;
+      // const starting_arg_code = widget_to_code(view.widget);
+      // let [starting_x, starting_y] = starting_arg_code.replaceAll(/\(\[\]\)\s/g,'').split(",").map(parseFloat);
+      // if (starting_x === undefined || starting_y === undefined || isNaN(starting_x) || isNaN(starting_y)) {
+      //   [starting_x, starting_y] = [NaN, NaN];
+      // }
+
+      return (fig_px, delta_px, boundses: Boundses) => {
+        enable_arg_view(view);
+
+        const [fig_x0,  fig_y0,  fig_x1,  fig_y1]  = boundses.fig_px_bounds;
+        const [axes_x0, axes_y0, axes_x1, axes_y1] = boundses.axes_px_bounds;
+
+        const [mouse_fig_x, mouse_fig_y] = fig_px;
+        // const [mouse_dx,    mouse_dy]    = delta_px;
+
+        // Relative mouse position inside of axes, from 0 to 1
+        const mouse_x = (mouse_fig_x - (axes_x0 - fig_x0)) / (axes_x1 - axes_x0) - 0.05; // Not quite the corner
+        const mouse_y = (mouse_fig_y - (axes_y0 - fig_y0)) / (axes_y1 - axes_y0) - 0.05; // Not quite the corner
+
+        change_widget_code(view.widget, `(${number_to_string_not_ugly(sig_figs(mouse_x, 2))}, ${number_to_string_not_ugly(sig_figs(mouse_y, 2))})`);
+      };
+    }
+  }
+  return undefined;
+}
+
+
+export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
 
   let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'x')?.view;
 
-  return perhaps_view ? drag_handler_for_arg_view(perhaps_view) : undefined;
+  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'x') : undefined;
 }
 
+export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
 
-export function perhaps_get_drag_width_handler(call_view: CallView) : undefined | ((delta: number) => void) {
+  let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'y')?.view;
+
+  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y') : undefined;
+}
+
+export function perhaps_get_drag_width_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
 
   let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'width')?.view;
 
-  return perhaps_view ? drag_handler_for_arg_view(perhaps_view) : undefined;
+  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'x') : undefined;
 }
 
-function drag_handler_for_arg_view(view: ArgView) : ((delta: number) => void) {
+export function perhaps_get_drag_height_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
+
+  let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'height')?.view;
+
+  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y') : undefined;
+}
+
+
+function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y') : ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
   const starting_arg_code = widget_to_code(view.widget);
 
   // The branches below will set these two, based on what kind of code we have
@@ -213,10 +266,16 @@ function drag_handler_for_arg_view(view: ArgView) : ((delta: number) => void) {
     code_lhs = starting_arg_code;
   }
 
-  return (delta) => {
+  return (_fig_px, delta_px, boundses: Boundses) => {
     enable_arg_view(view);
 
-    const new_number = delta === 0 ? starting_number : sig_figs(starting_number + delta, 2);
+    // Convert pixels to the units of the axes
+    const [x_min,    y_min,    x_max,    y_max]    = boundses.axes_unit_bounds;
+    const [x_min_px, y_min_px, x_max_px, y_max_px] = boundses.axes_px_bounds;
+
+    const units_per_px = x_or_y == 'x' ? (x_max - x_min) / (x_max_px - x_min_px) : (y_max - y_min) / (y_max_px - y_min_px);
+
+    const new_number = delta_px === 0 ? starting_number : sig_figs(starting_number + delta_px*units_per_px, 2);
     let new_arg_code: string;
     if (code_lhs === undefined) { // code is bare literal number
       new_arg_code = number_to_string_not_ugly(new_number);

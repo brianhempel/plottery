@@ -5,7 +5,7 @@ import {
 } from "../../types";
 import { zip, equalByJSON } from "../../utils/array";
 import { place_centered_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
-import { perhaps_get_drag_x_handler, perhaps_get_drag_width_handler } from "../call/call";
+import { perhaps_get_drag_x_handler, perhaps_get_drag_width_handler, perhaps_get_drag_height_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler } from "../call/call";
 import { create_method_view } from "../methods/method";
 import "./hover_regions.css";
 
@@ -22,7 +22,7 @@ export function place_add_method_buttons_on_plot(state: State) {
   const placed_methods: HTMLElement[] = [];
   state.methods.forEach(method => {
     // Skip if already called
-    const dont_show = method.method_info.max_calls == 1 && state.calls.some(call => call.loc_via_func_code_and_num[0] == `${method.receiver_name}.${method.method_info.name}`);
+    const dont_show = method.method_info.max_calls == 1 && state.calls.some(call => call.loc_via_func_code_and_num[0] == method.receiver_dot_name);
     if (dont_show) { return; }
 
     const show_on = method.method_info.show_on.at(-1);
@@ -77,6 +77,14 @@ export function compute_selected_hover_regions(state: State) {
   });
 }
 
+// (x0, y0, x1, y1)
+export type Boundses = {
+  fig_px_bounds:    [number, number, number, number];
+  axes_px_bounds:   [number, number, number, number];
+  axes_unit_bounds: [number, number, number, number];
+  region_px_bounds: [number, number, number, number];
+};
+
 export function attach_events_to_hover_regions(state: State) {
 
   // Attach drag handlers to artists that are the result of calls in the code
@@ -89,8 +97,11 @@ export function attach_events_to_hover_regions(state: State) {
     zip(layer.calls_with_args, layer.call_views).forEach(([call_with_args, call_view]) => {
       const call_info = call_with_args.call_info;
 
-      const perhaps_drag_x_handler     = perhaps_get_drag_x_handler(call_view);
-      const perhaps_drag_width_handler = perhaps_get_drag_width_handler(call_view);
+      const perhaps_drag_xy_handler     = perhaps_get_drag_xy_handler(call_view);
+      const perhaps_drag_x_handler      = perhaps_get_drag_x_handler(call_view);
+      const perhaps_drag_y_handler      = perhaps_get_drag_y_handler(call_view);
+      const perhaps_drag_width_handler  = perhaps_get_drag_width_handler(call_view);
+      const perhaps_drag_height_handler = perhaps_get_drag_height_handler(call_view);
 
       const hover_regions = hover_regions_for_call(call_info.loc_via_func_code_and_num, state);
 
@@ -100,18 +111,21 @@ export function attach_events_to_hover_regions(state: State) {
         let click_start: Date = new Date();
         let start_x = 0;
         let start_y = 0;
+        let fig_bb: DOMRect = new DOMRect();
 
-        // Separate X and Y handlers is simple but did not scale in Sketch-n-Sketch b/c
-        // some Xs and Ys were dependent on each other and needed to be solved for
-        // together. BUT Sketch-n-Sketch was trying to show off fancy solving, maybe
-        // our use case will not need a complicated solver.
-        let x_handler : ((delta: number) => void) | undefined = undefined;
-        let y_handler : ((delta: number) => void) | undefined = undefined;
+        let xy_handler : ((fig_px: [number, number], delta_px: [number, number], boundses: Boundses) => void) | undefined = undefined; // Preferred over the below if present.
+        let x_handler  : ((fig_px: number,           delta_px: number,           boundses: Boundses) => void) | undefined = undefined;
+        let y_handler  : ((fig_px: number,           delta_px: number,           boundses: Boundses) => void) | undefined = undefined;
 
-        let units_per_x_px = hover_region.dataset.dxPerPx ? parseFloat(hover_region.dataset.dxPerPx) : 0.0;
-        let units_per_y_px = hover_region.dataset.dyPerPx ? parseFloat(hover_region.dataset.dyPerPx) : 0.0;
+        let fig_px_bounds    : [number, number, number, number] = hover_region.dataset.figPxBounds    ? (JSON.parse(hover_region.dataset.figPxBounds)    || [0, 0, 0, 0]) : [0, 0, 0, 0];
+        let axes_px_bounds   : [number, number, number, number] = hover_region.dataset.axesPxBounds   ? (JSON.parse(hover_region.dataset.axesPxBounds)   || [0, 0, 0, 0]) : [0, 0, 0, 0];
+        let axes_unit_bounds : [number, number, number, number] = hover_region.dataset.axesUnitBounds ? (JSON.parse(hover_region.dataset.axesUnitBounds) || [0, 0, 0, 0]) : [0, 0, 0, 0];
+        let region_px_bounds : [number, number, number, number] = hover_region.dataset.regionPxBounds ? (JSON.parse(hover_region.dataset.regionPxBounds) || [0, 0, 0, 0]) : [0, 0, 0, 0];
 
-        const ew_edge_w = Math.min(10, hover_region.getBoundingClientRect().width / 4);
+        let boundses: Boundses = { fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds };
+
+        const ew_edge_w = Math.min(10, hover_region.getBoundingClientRect().width  / 4);
+        const ns_edge_w = Math.min(10, hover_region.getBoundingClientRect().height / 4);
 
         hover_region.addEventListener("mouseover", () => {
           hover_regions.forEach(hover_region => {
@@ -128,14 +142,41 @@ export function attach_events_to_hover_regions(state: State) {
 
         // Determine whether we are dragging the middle or the edge
         hover_region.addEventListener("mousemove", evt => {
-          const { x, right } = hover_region.getBoundingClientRect();
+          if (pressed) { return; }
 
+          const { x, y, right, bottom } = hover_region.getBoundingClientRect();
+
+          // For checking edges, we already know the mouse is over the hover region so we don't have to check the outer bounds.
           if (perhaps_drag_width_handler && (evt.clientX < x + ew_edge_w || evt.clientX > right - ew_edge_w)) {
             hover_region.style.cursor = "ew-resize";
             x_handler = perhaps_drag_width_handler;
-          } else if (perhaps_drag_x_handler) {
+            y_handler = undefined;
+            xy_handler = undefined;
+          } else if (perhaps_drag_height_handler && (evt.clientY < y + ns_edge_w || evt.clientY > bottom - ns_edge_w)) {
+            hover_region.style.cursor = "ns-resize";
+            y_handler = perhaps_drag_height_handler;
+            x_handler = undefined;
+            xy_handler = undefined;
+          } else if (perhaps_drag_xy_handler) {
             hover_region.style.cursor = "move";
+            xy_handler = perhaps_drag_xy_handler;
+            x_handler = undefined;
+            y_handler = undefined;
+          } else if (perhaps_drag_x_handler) {
+            hover_region.style.cursor = perhaps_drag_y_handler ? "move" : "ew-resize";
             x_handler = perhaps_drag_x_handler;
+            y_handler = undefined;
+            xy_handler = undefined;
+          } else if (perhaps_drag_y_handler) {
+            hover_region.style.cursor = "ns-resize";
+            y_handler = perhaps_drag_y_handler;
+            x_handler = undefined;
+            xy_handler = undefined;
+          } else {
+            hover_region.style.cursor = "default";
+            x_handler = undefined;
+            y_handler = undefined;
+            xy_handler = undefined;
           }
         });
 
@@ -148,6 +189,7 @@ export function attach_events_to_hover_regions(state: State) {
           click_start = new Date();
           start_x = evt.clientX;
           start_y = evt.clientY;
+          fig_bb = state.hover_regions_svg()!.getBoundingClientRect();
           evt.stopPropagation();
           evt.preventDefault();
           // but still need to gain focus on SNP
@@ -164,10 +206,12 @@ export function attach_events_to_hover_regions(state: State) {
 
         document.addEventListener("mousemove", evt => {
           if (pressed) {
-            const dx = (evt.clientX - start_x) * units_per_x_px;
-            const dy = (evt.clientY - start_y) * units_per_y_px;
-            console.log(dx,dy);
-            if (x_handler) { x_handler(dx); }
+            const dx = evt.clientX - start_x;
+            const dy = evt.clientY - start_y;
+            const fig_px: [number, number] = [evt.clientX - fig_bb.x, fig_bb.bottom - evt.clientY];
+            if (xy_handler) { xy_handler(fig_px, [dx, dy], boundses); }
+            if (x_handler)  { x_handler(fig_px[0], dx, boundses); }
+            if (y_handler)  { y_handler(fig_px[1], dy, boundses); }
             state.hover_regions_container.classList.add("dragging");
             evt.preventDefault();
             evt.stopPropagation();
@@ -181,8 +225,8 @@ export function attach_events_to_hover_regions(state: State) {
             state.hover_regions_container.classList.remove("dragging");
 
             // Consider it a click if the mouse didn't move
-            const dx = (evt.clientX - start_x) * units_per_x_px;
-            const dy = (evt.clientY - start_y) * units_per_y_px;
+            const dx = evt.clientX - start_x;
+            const dy = evt.clientY - start_y;
             if (dx === 0 && dy === 0 && new Date().getTime() - click_start.getTime() < 200) {
               select_layer(layer, state)
             }

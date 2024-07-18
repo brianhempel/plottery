@@ -179,8 +179,8 @@ def total_bbox(geometries):
 
 
 # returns list of (obj_id, shapley.Geometry)
-def flatten_regions2(objid_methods_dxdy_geom_children):
-    obj_id, methods, dx_dy, geom, children = objid_methods_dxdy_geom_children
+def flatten_regions2(objid_methods_bounds_geom_children):
+    obj_id, methods, bounds, geom, children = objid_methods_bounds_geom_children
     return [(obj_id, geom)] + flatten([flatten_regions2(child) for child in children])
 
 
@@ -204,10 +204,19 @@ def method_associations(artist):
             return []
 
 
+
+def tuple_or_none(iterable_or_none):
+    return tuple(iterable_or_none) if iterable_or_none is not None else None
+
 # Make sure to render before calling this.
-# returns (artist, list of (artist, method_name), (units_per_x_px, units_per_y_px), shapley.Geometry, children)
-def regions2(artist, units_per_xy_px, renderer, artist_ids_that_will_have_a_method_call):
+# returns (artist, list of (artist, method_name), (fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds), shapley.Geometry, children)
+def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_will_have_a_method_call):
     child_pad = 3
+
+    # These are used for computing the scale for mouse movements.
+    # bounds are (x0, y0, x1, y1)
+    fig_px_bounds, axes_px_bounds, axes_unit_bounds = fig_px_axes_px_axes_unit_bounds
+    region_px_bounds = artist.get_window_extent(renderer).extents
 
     def get_zorder(artist_or_container):
         if hasattr(artist_or_container, "zorder"):
@@ -220,12 +229,12 @@ def regions2(artist, units_per_xy_px, renderer, artist_ids_that_will_have_a_meth
         if isinstance(artist, mpl.axes.Axes):
 
             ax = artist
-            ax_bbox = ax.get_window_extent(renderer)
+            axes_px_bounds = ax.patch.get_window_extent(renderer).extents
             x_min, x_max = ax.get_xlim()
             y_min, y_max = ax.get_ylim()
-            units_per_x_px = (x_max - x_min) / ax_bbox.width
-            units_per_y_px = (y_max - y_min) / ax_bbox.height
-            units_per_xy_px = (units_per_x_px, units_per_y_px)
+
+            axes_unit_bounds = (x_min, y_min, x_max, y_max)
+
 
             # For some reason, the background patch is last in the children list when it should be first so it doesn't cover everything.
             # (It has special handling in Axes.draw() so this isn't any hackier than that is.)
@@ -260,7 +269,7 @@ def regions2(artist, units_per_xy_px, renderer, artist_ids_that_will_have_a_meth
 
     # print(artist.__class__.__name__, len(children))
 
-    child_regions = remove_nones([regions2(child, units_per_xy_px, renderer, artist_ids_that_will_have_a_method_call) for child in children])
+    child_regions = remove_nones([regions2(child, (fig_px_bounds, axes_px_bounds, axes_unit_bounds), renderer, artist_ids_that_will_have_a_method_call) for child in children])
     child_regions_flat = flatten([flatten_regions2(child_region) for child_region in child_regions])
     child_geoms = [geom for _, geom in child_regions_flat]
 
@@ -322,7 +331,13 @@ def regions2(artist, units_per_xy_px, renderer, artist_ids_that_will_have_a_meth
 
     my_geom = shapely.buffer(my_geom, child_pad, quad_segs=1, cap_style="square", join_style="mitre")  # expand by 10px
 
-    my_region = (artist, [], units_per_xy_px, my_geom, child_regions)
+    my_region = (
+        artist,
+        [],
+        (tuple_or_none(fig_px_bounds), tuple_or_none(axes_px_bounds), tuple_or_none(axes_unit_bounds), tuple_or_none(region_px_bounds)),
+        my_geom,
+        child_regions
+    )
 
     return my_region
 
@@ -345,14 +360,14 @@ def method_type_json(receiver, method_name, type_graph):
 
 
 # Preserve heirarchical structure so that JS mouseenter events work as intended
-def region2_to_svg_g(artist_methods_dx_dy_geom_children, object_names):
-    artist, methods, (dx_per_px, dy_per_px), geom, children = artist_methods_dx_dy_geom_children
+def region2_to_svg_g(artist_methods_bounds_geom_children, object_names):
+    artist, methods, (fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds), geom, children = artist_methods_bounds_geom_children
     geom_svg = geom.svg()
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
     child_svgs_str = "\n".join([region2_to_svg_g(child, object_names) for child in children])
 
-    perhaps_call_loc = f'data-func-code-and-num="{json_for_attr(artist._snp_came_from_call[0])}" data-pos="{json_for_attr(artist._snp_came_from_call[1])}" data-dx-per-px="{json_for_attr(dx_per_px)}" data-dy-per-px="{json_for_attr(dy_per_px)}"' if hasattr(artist, "_snp_came_from_call") else ""
+    perhaps_call_loc = f'data-func-code-and-num="{json_for_attr(artist._snp_came_from_call[0])}" data-pos="{json_for_attr(artist._snp_came_from_call[1])}" data-fig-px-bounds="{json_for_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_attr(region_px_bounds)}"' if hasattr(artist, "_snp_came_from_call") else ""
     return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" data-artist-names="{json_for_attr(list(object_names.get(id(artist), (None, {}))[1]))}" {perhaps_call_loc}>
     {geom_svg}
     {child_svgs_str}
@@ -473,8 +488,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
                 width_px = bbox_pixels.width
                 height_px = bbox_pixels.height
 
-                # I think we initialize to like 1/fig.get_dpi() for dx,dy BUT leaving this as 0,0 to surface if it matters.
-                fig_regions2 = regions2(self.figure, (0,0), fig.canvas.renderer, self.artist_ids_that_will_have_a_method_call)
+                fig_regions2 = regions2(self.figure, (bbox_pixels.extents, None, None), fig.canvas.renderer, self.artist_ids_that_will_have_a_method_call)
 
                 svg_body = region2_to_svg_g(fig_regions2, self.object_names)
 
@@ -534,6 +548,8 @@ class SNP(SNPFigureAndHoverRegions):
             explicit_any_type = mypy.types.AnyType(mypy.types.TypeOfAny.explicit)
             iterable_type = mypy.types.Instance(self.type_graph['collections.abc'].tree.names['Iterable'].node, [explicit_any_type])
             dict_keys_node = self.type_graph['_collections_abc'].tree.names['dict_keys'].node # <TypeInfo _collections_abc.dict_keys>
+            dict_values_node = self.type_graph['_collections_abc'].tree.names['dict_values'].node # <TypeInfo _collections_abc.dict_values>
+            dict_items_node = self.type_graph['_collections_abc'].tree.names['dict_items'].node # <TypeInfo _collections_abc.dict_items>
             for name, value in locals.items():
                 if name in tree.names and name in user_names and name not in get_trivial_names() and not callable(value):
                     name_type = tree.names[name].type
@@ -555,6 +571,18 @@ class SNP(SNPFigureAndHoverRegions):
                             code = f"{name}.keys()"
                             self.user_typed_snippets[code] = dot_keys_type
                             is_subtype(dot_keys_type, iterable_type) and not is_subtype(dot_keys_type, string_type) and self.user_iterables.append(code)
+
+                            # I don't know why dict_values takes two args, rather than just the type of the values, but that's how mypy does it.
+                            dot_values_type = mypy.types.Instance(dict_values_node, [name_type.args[0], name_type.args[1]])
+                            code = f"{name}.values()"
+                            self.user_typed_snippets[code] = dot_values_type
+                            is_subtype(dot_values_type, iterable_type) and not is_subtype(dot_values_type, string_type) and self.user_iterables.append(code)
+
+                            # I don't know why dict_values takes two args, rather than just the type of the values, but that's how mypy does it.
+                            dot_items_type = mypy.types.Instance(dict_items_node, [name_type.args[0], name_type.args[1]])
+                            code = f"{name}.items()"
+                            self.user_typed_snippets[code] = dot_items_type
+                            is_subtype(dot_items_type, iterable_type) and not is_subtype(dot_items_type, string_type) and self.user_iterables.append(code)
 
                         if isinstance(value, list) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.list':
                             item_type = name_type.args[0]
@@ -1176,7 +1204,6 @@ def serialize_type(_type: mypy.types.Type) -> JsonDict:
             "unpack_kwargs": _type.unpack_kwargs,
         }
 
-    print("Error type not implemented!", type(_type))
+    # print("Error type not implemented!", _type.__class__.__name__)
 
-    return {}
-
+    return { ".class": _type.__class__.__name__ }
