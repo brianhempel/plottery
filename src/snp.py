@@ -27,6 +27,11 @@ import serialize
 import visitor_ast
 
 
+# Suppress extra figure, speeds up responsiveness during direct manipulation
+mpl.pyplot.switch_backend('module://matplotlib_inline.backend_inline') # register the display hook now rather than on creation of the first figure
+mpl.pyplot.ioff() # turn off that display hook
+
+
 # thanks GPT-4
 class Timer:
     def __init__(self, message=""):
@@ -467,6 +472,8 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         provenance_is_off_by_n_lines,
         notebook_code_through_cell
     ):
+        mpl.pyplot.close('all') # Suppress "RuntimeWarning: More than 20 figures have been opened"
+
         self.figure = figure
         self.cached_png = None
         self.cached_svg_hover_regions = None
