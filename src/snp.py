@@ -407,6 +407,11 @@ def _object_names_deep(out, obj, name, max_depth):
                 prop = getattr(obj, prop_name)
                 _object_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
 
+    # Need this to get plt.subplots() to show up in the layers panel
+    elif obj is mpl.pyplot:
+        out[id(obj)] = (obj, set())
+
+
 
 # Returns a dict of object to (object, set of names)
 def object_names(locals, user_nameset, max_depth=4):
@@ -436,7 +441,7 @@ def get_user_nameset(code):
 
 
 # For when you want quick redraws during mouse manipulations.
-# The front calls this by changing the cell code from SNP(...) to SNPFigureOnly(...) before sending it to the Python kernel.
+# The frontend calls this by changing the cell code from SNP(...) to SNPFigureOnly(...) before sending it to the Python kernel.
 class SNPFigureOnly:
     def __init__(
         self,
@@ -953,7 +958,7 @@ def tag_with_provenance(
         return ret_obj
     except:
         if isinstance(ret_obj, tuple):
-            return TaggedTuple(ret_obj, call_loc)
+            return TaggedTuple(tuple(tag_with_provenance(child, receiver, func_code, call_num, lineno, col_offset, end_lineno, end_col_offset) for child in ret_obj), call_loc)
         elif isinstance(ret_obj, str):
             return TaggedStr(ret_obj, call_loc)
         elif isinstance(ret_obj, list):
@@ -1106,6 +1111,10 @@ class GatherTypedCalls(TraverserVisitor):
 
         callee_type = self.types_dict.get(node.callee)
 
+        # For overloads, assume first.
+        while isinstance(callee_type, mypy.types.Overloaded):
+            callee_type = callee_type.items[0]
+
         if isinstance(callee_type, mypy.types.CallableType):
             # loc = (node.line, node.column, node.end_line, node.end_column)
             given_args = []
@@ -1118,17 +1127,18 @@ class GatherTypedCalls(TraverserVisitor):
             # The callee_type here is partially applied (self is already removed from the argument list).
             # For consistency with places where where that is not the case, let us unapply it
             if callee_type.definition is not None:
-                callee_type_unapplied = callee_type.definition.type
-                callee = callable_type_json(callee_type_unapplied, self.user_typed_snippets)
-                add_pos_json(callee, node.callee)
+                callee_type = callee_type.definition.type
 
-                self.out.append(
-                    {
-                        "call": to_json_dict(node, self.types_dict.get(node)),
-                        "callee": callee,
-                        "given_args": given_args,
-                    }
-                )
+            callee = callable_type_json(callee_type, self.user_typed_snippets)
+            add_pos_json(callee, node.callee)
+
+            self.out.append(
+                {
+                    "call": to_json_dict(node, self.types_dict.get(node)),
+                    "callee": callee,
+                    "given_args": given_args,
+                }
+            )
 
     # def visit_member_expr(self, node: mypy.nodes.MemberExpr) -> None:
     #     super().visit_member_expr(node)
