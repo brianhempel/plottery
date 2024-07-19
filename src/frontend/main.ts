@@ -129,8 +129,19 @@ function attach_snp(
     typed_node.line >= cell_lineno ? layers_from_typed_node(typed_node, state) : []
   );
 
-  notebook_parseable_comments.forEach(comment => {
-    layers.push(...layers_from_parseable_comment(comment, state));
+  notebook_parseable_comments.filter(comment => comment.line >= cell_lineno).forEach(comment => {
+    const layers_from_comment = layers_from_parseable_comment(comment, state);
+
+    // Put the layer in the right location
+    layers_from_comment.forEach(comment_layer => {
+      const comment_layer_line = comment_layer.mark.find()!.to.line; // Not sure why mark is sometimes not found.
+      const insert_i = layers.findIndex(layer => layer.mark.find()!.to.line > comment_layer_line);
+      if (insert_i) {
+        layers.splice(insert_i, 0, comment_layer);
+      } else {
+        layers.push(comment_layer);
+      }
+    })
   })
 
   state.layers_panel = create_layers_panel(layers, state);

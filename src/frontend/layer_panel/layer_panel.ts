@@ -47,7 +47,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   const mark = cm.markText(
     cm_start_pos(typed_node, state.cell_lineno),
     cm_end_pos(typed_node, state.cell_lineno),
-    { inclusiveLeft: false, inclusiveRight: true }
+    { inclusiveLeft: true, inclusiveRight: true }
   );
   let target_mark = mark;
 
@@ -94,7 +94,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
     target_mark = cm.markText(
       cm_start_pos(typed_node, state.cell_lineno),
       end_of_for_line,
-      { inclusiveLeft: false, inclusiveRight: true }
+      { inclusiveLeft: true, inclusiveRight: true }
     );
     add_sync_code_on_change_watcher(
       () => `${widget_to_code(pattern_widget)} in ${is_enumerate ? "enumerate(" : ""}${widget_to_code(iterator_widget)}${is_enumerate ? ")" : ""}`,
@@ -125,7 +125,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   return [layer, ...sublayers];
 }
 
-function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked: boolean = true) {
+function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked: boolean = true, hard_run_on_enable: boolean = false) {
   const cm = state.cell.code_mirror;
   const { el: layer_el, mark } = layer;
 
@@ -150,15 +150,17 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
     const layer_range = layer.mark.find()!;
     const layer_code = cm.getRange(layer_range.from, layer_range.to);
 
-    mark.inclusiveLeft = true; // need replacement to stay inside the mark
     if (!visible_checkbox.checked) {
       cm.replaceRange(layer_code.replaceAll(/^/mg, '# '), layer_range.from, layer_range.to)
     } else {
       cm.replaceRange(layer_code.replaceAll(/^# /mg, ''), layer_range.from, layer_range.to)
     }
-    mark.inclusiveLeft = false; // this seems to work better for moving layers around
 
-    redraw_cell(state);
+    if (visible_checkbox.checked && hard_run_on_enable) {
+      hard_rerun(state); // Layers rendered as plain text need a full rerun to generate their full UI.
+    } else {
+      redraw_cell(state);
+    }
   })
 }
 
@@ -168,7 +170,7 @@ export function layers_from_parseable_comment(comment: ParseableComment, state: 
   const mark = state.cell.code_mirror.markText(
     cm_start_pos(comment, state.cell_lineno),
     cm_end_pos(comment, state.cell_lineno),
-    { inclusiveLeft: false, inclusiveRight: true }
+    { inclusiveLeft: true, inclusiveRight: true }
   );
 
   layer_el.innerText = comment.uncommented;
@@ -186,7 +188,7 @@ export function layers_from_parseable_comment(comment: ParseableComment, state: 
     target_mark: mark // the displayed layer code, so that drag-dropping below e.g. a for-loop adds to beginning of loop
   }
 
-  add_listeners_and_checkbox_to_layer(layer, state, false);
+  add_listeners_and_checkbox_to_layer(layer, state, false, true);
 
   return [layer]
 }
@@ -225,6 +227,17 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
     line: is_above ? target_range.from.line : 1 + target_range.to.line,
     ch: 0
   }
+
+  state.layers_panel.layers.forEach(layer => {
+    // this seems to work better for moving layers around
+    // otherwise a layer might be moved into another layer,
+    // or into itself and deleted below
+    // hard_rerun() below will reset this.
+    layer.mark.inclusiveLeft = false;
+    layer.target_mark.inclusiveLeft = false;
+    // layer.mark.inclusiveRight = false;
+    // layer.target_mark.inclusiveRight = false;
+  });
   cm.replaceRange(source_code, target_pos);
 
   for (const source_layer of state.dragging_layers) {
