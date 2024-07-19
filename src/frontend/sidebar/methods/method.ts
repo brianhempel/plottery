@@ -71,12 +71,9 @@ export function add_method_call(
 
 export function get_methods(
   method_infos: MethodInfoWithType[],
-  artists: SelectableArtist[]
 ): MethodWithArgs[] {
   return method_infos.map(method_info => {
-    let receiver_name = get_shortest_qualified_name(
-      artists.find(other_artist => other_artist.id == method_info.receiver)?.names || [""]
-    );
+    let receiver_name = get_shortest_qualified_name(method_info.receiver_names);
 
     let arg_defaults = arg_defaults_from_callee_type(method_info.type);
 

@@ -1,8 +1,6 @@
-import { P_Module } from "./ast_types";
 import { Layer, LayersPanel } from "./layer_panel/layer_panel";
 import { PlotWidget } from "./sidebar/plot-widget/plot_widget";
 import { Widget } from "./sidebar/widgets/widget";
-import { Position } from "./types";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
 
@@ -19,8 +17,6 @@ export type State = {
   cell_lineno: number;
 
   provenance_is_off_by_n_lines: number;
-
-  selectable_artists: SelectableArtist[]; // I *think* the only thing this is used for right now is to find the shortest qualified name for a method reciever
 
   methods: MethodWithArgs[];
   calls: DynamicCallInfo[];
@@ -151,6 +147,7 @@ export type MethodInfo = {
   max_calls: number; // 1, Infinity, etc.
   name: string; // "set_title"
   receiver: number; // 140533847992896
+  receiver_names: string[]; // ["ax.bar"]
   show_on: number[]; // [140533847992896, 140533885438224]
 };
 
@@ -168,7 +165,7 @@ export type Arg = {
   is_positional: boolean;
 };
 
-export type StaticCallTypeInfo = MethodInfo & {
+export type StaticCallTypeInfo = {
   call: { pos: Position };
   callee: CallableType & { pos: Position };
 
@@ -182,6 +179,7 @@ export type StaticCallTypeInfo = MethodInfo & {
 };
 
 export type DynamicCallInfo =  StaticCallTypeInfo & {
+  name: string;
   loc_via_func_code_and_num: [string, number]; // ["ax.bar", 1]
 };
 

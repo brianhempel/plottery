@@ -653,7 +653,7 @@ class SNP(SNPFigureAndHoverRegions):
             base64_image = base64.b64encode(self._repr_png_()).decode("utf-8")
             data_url = f"data:image/png;base64,{base64_image}"
 
-        selectable_artists = []
+        # selectable_artists = []
 
         # data_methods = json.dumps([{"receiver_id": id(receiver), "receiver_names": list(object_names.get(id(receiver), (None, {}))[1]), "method_name": method_name, "method_type": method_type_json(receiver, method_name, type_graph)} for receiver, method_name in methods])
 
@@ -672,6 +672,7 @@ class SNP(SNPFigureAndHoverRegions):
                         {
                             "name": method_name,
                             "receiver": obj_id,
+                            "receiver_names": list(names),
                             "show_on": show_on,
                             "type": method_type_json(obj, method_name, self.type_graph),
                             "max_calls": max_calls,
@@ -708,45 +709,45 @@ class SNP(SNPFigureAndHoverRegions):
                                 call_info
                                 | {
                                     "name": method_name,
-                                    "receiver": id(obj),
+                                    # "receiver": id(obj),
                                     "loc_via_func_code_and_num": loc_via_func_code_and_num,
                                 }
                             )
 
-                selectable_artists.append(
-                    {
-                        "id": obj_id,
-                        "names": list(names),
-                    }
-                )
+                # selectable_artists.append(
+                #     {
+                #         "id": obj_id,
+                #         "names": list(names),
+                #     }
+                # )
 
         # Add show_on to each call
-        with Timer("Add show_on to each call"):
-            for call in calls:
-                # Apparently, this is how you find the first elem of a list by predicate in Python.
-                method = next(
-                    (m for m in methods if (m["name"], m["receiver"]) == (call["name"], call["receiver"])),
-                    None,
-                )
-                if method is not None:
-                    call["show_on"] = method["show_on"]
-                    call["max_calls"] = method["max_calls"]
-                else:
-                    call["show_on"] = [call["receiver"]]
-                    call["max_calls"] = float("inf")
+        # with Timer("Add show_on to each call"):
+        #     for call in calls:
+        #         # Apparently, this is how you find the first elem of a list by predicate in Python.
+        #         method = next(
+        #             (m for m in methods if (m["name"], m["receiver"]) == (call["name"], call["receiver"])),
+        #             None,
+        #         )
+        #         if method is not None:
+        #             call["show_on"] = method["show_on"]
+        #             call["max_calls"] = method["max_calls"]
+        #         else:
+        #             call["show_on"] = [call["receiver"]]
+        #             call["max_calls"] = float("inf")
 
         # Now, trim down to only objects that have something worth showing.
-        all_show_on = flatten([method["show_on"] for method in methods])
-        all_show_on_set = set(all_show_on)
+        # all_show_on = flatten([method["show_on"] for method in methods])
+        # all_show_on_set = set(all_show_on)
 
-        selectable_artists = [artist for artist in selectable_artists if artist["id"] in all_show_on_set]
+        # selectable_artists = [artist for artist in selectable_artists if artist["id"] in all_show_on_set]
 
         sidebar_stuff = {
-            "selectable_artists": selectable_artists,
+            # "selectable_artists": selectable_artists,
             "methods": methods,
             "calls": calls,
         }
-        self.selectable_artists = selectable_artists
+        # self.selectable_artists = selectable_artists
         self.methods = methods
         self.calls = calls
         # sidebar_stuff = {

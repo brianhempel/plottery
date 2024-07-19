@@ -45,7 +45,6 @@ function attach_snp(
   provenance_is_off_by_n_lines: number,
   user_call_type_info: StaticCallTypeInfo[],
   sidebar_stuff: {
-    selectable_artists: SelectableArtist[];
     methods: MethodInfoWithType[];
     calls: DynamicCallInfo[];
   },
@@ -71,8 +70,7 @@ function attach_snp(
     notebook_typed_defs: [],
     user_iterables: user_iterables,
 
-    selectable_artists: sidebar_stuff.selectable_artists,
-    methods: get_methods(sidebar_stuff.methods, sidebar_stuff.selectable_artists),
+    methods: get_methods(sidebar_stuff.methods),
 
     layers_panel: { el: create_el("div"), layers: [] }, // Dummy, replaced immediately below.
 
@@ -103,11 +101,6 @@ function attach_snp(
 
   snp_outer.tabIndex = 0; // So it can recieve keyboard events (cmd-d for duplicate, etc)
 
-  // Set artist.parent_id on all artists
-  // set_artist_parent_ids(state.selectable_artists);
-
-  // Get all calls and methods for artists
-  // state.calls_and_methods_by_artist = calls_and_methods_by_artist(state);
   console.log("State", state);
 
   const sidebar_menu_bar = create_sidebar_menu_bar(state);
@@ -151,16 +144,6 @@ function attach_snp(
   state.hover_regions_container.addEventListener("click", _ => { deselect_all_layers(state); });
 
   state.sidebar_el.append(state.layers_panel.el);
-
-
-  // state.sidebar = create_sidebar(
-  //   state.all_calls_and_methods,
-  //   state.selectable_artists,
-  //   state
-  // );
-  // state.snp_outer.append(state.sidebar.el);
-
-  // state.hover_regions = undefined;
 
   // Make plot widgets on those hover regions
   // (Populates state.plot_widgets)
