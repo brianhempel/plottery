@@ -2,6 +2,7 @@ import { P_Module } from "./ast_types";
 import { Layer, LayersPanel } from "./layer_panel/layer_panel";
 import { PlotWidget } from "./sidebar/plot-widget/plot_widget";
 import { Widget } from "./sidebar/widgets/widget";
+import { Position } from "./types";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
 
@@ -291,4 +292,5 @@ export type TypedDictType = {
   fallback: Type; // "builtins.dict"
   items: [string, Type][];
   required_keys: string[];
-};
+};export type ParseableComment = Position & { uncommented: string; };
+

@@ -1,4 +1,4 @@
-import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layers_from_typed_node, load_selected_layers, select_layer } from "./layer_panel/layer_panel";
+import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layers_from_parseable_comment, layers_from_typed_node, load_selected_layers, select_layer } from "./layer_panel/layer_panel";
 // import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets, reposition_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
@@ -31,6 +31,7 @@ import { create_sidebar_menu_bar } from "./sidebar/sidebar";
 import { close_all_menus } from "./menus/menus";
 import { get_code_and_loc_for_call } from "./sidebar/call/call";
 import { get_methods } from "./sidebar/methods/method";
+import { ParseableComment } from "./types";
 
 
 // These will already exist where we inject the JS in the notebook.
@@ -49,6 +50,7 @@ function attach_snp(
     calls: DynamicCallInfo[];
   },
   notebook_typed_defs: Type[],
+  notebook_parseable_comments: ParseableComment[],
   user_iterables: string[],
 ) {
   console.log("user_call_type_info", user_call_type_info);
@@ -127,6 +129,10 @@ function attach_snp(
     typed_node.line >= cell_lineno ? layers_from_typed_node(typed_node, state) : []
   );
 
+  notebook_parseable_comments.forEach(comment => {
+    layers.push(...layers_from_parseable_comment(comment, state));
+  })
+
   state.layers_panel = create_layers_panel(layers, state);
 
   // Clicks on non-selectable elements on plot should deselect.
@@ -180,7 +186,7 @@ function attach_snp(
     // select layers whose get_code_and_loc_for_call(call.call_info) appears in new_calls
     state.layers_panel.layers.forEach(layer => {
       const codes_and_locs = layer.calls_with_args.map(call_with_args => get_code_and_loc_for_call(call_with_args.call_info));
-      console.log(codes_and_locs)
+      // console.log(codes_and_locs)
       if (codes_and_locs.some(code_and_loc => new_calls.includes(code_and_loc))) {
         select_layer(layer, state);
 

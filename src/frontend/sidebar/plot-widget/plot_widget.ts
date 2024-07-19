@@ -9,6 +9,7 @@ import {
   find_call_that_satisfies,
   relativeBoundingRect,
 } from "../../utils/misc";
+import { enable_arg_view } from "../arg/arg";
 import { hover_regions_for_call } from "../hover-regions/hover_regions";
 import { WidgetKind, change_widget_code, widget_to_code } from "../widgets/widget";
 import "./plot_widget.css";
@@ -132,6 +133,7 @@ export function make_plot_widgets(state: State) {
     });
 
     plot_widget_el.addEventListener("input", () => {
+      enable_arg_view(target_arg.view);
       change_widget_code(widget, plot_widget_el.innerText);
     });
 
@@ -175,6 +177,8 @@ export function reposition_plot_widgets(state: State) {
       el.style.top = `${top}px`;
       el.style.left = `${right}px`;
       input_el.style.left = `-${width}px`;
+    } else {
+      console.log("can't position", show_on_loc_via_func_code_and_num, el)
     }
   }
 

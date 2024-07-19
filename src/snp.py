@@ -264,7 +264,7 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
 
     match artist:
         case mpl.axis.Tick():
-            # Remove invisible tick text (i.e. the rarely used label2, which is mispositioned when not actively used.)
+            # Remove invisible tick text (i.e. the labels for the opposite axes, which is mispositioned when not actively used.)
             children = [child for child in children if child.get_visible()]
 
     # print(artist.__class__.__name__, len(children))
@@ -359,6 +359,8 @@ def method_type_json(receiver, method_name, type_graph):
     return typ and callable_type_json(typ, {})
 
 
+# data-func-code-and-num indicates the artist was returned from a call, so that artist on the canvas should be associated with that call in the layers panel.
+
 # Preserve heirarchical structure so that JS mouseenter events work as intended
 def region2_to_svg_g(artist_methods_bounds_geom_children, object_names):
     artist, methods, (fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds), geom, children = artist_methods_bounds_geom_children
@@ -367,8 +369,10 @@ def region2_to_svg_g(artist_methods_bounds_geom_children, object_names):
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
     child_svgs_str = "\n".join([region2_to_svg_g(child, object_names) for child in children])
 
+    artist_names = object_names.get(id(artist), (None, {}))[1]
+
     perhaps_call_loc = f'data-func-code-and-num="{json_for_attr(artist._snp_came_from_call[0])}" data-pos="{json_for_attr(artist._snp_came_from_call[1])}" data-fig-px-bounds="{json_for_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_attr(region_px_bounds)}"' if hasattr(artist, "_snp_came_from_call") else ""
-    return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" data-artist-names="{json_for_attr(list(object_names.get(id(artist), (None, {}))[1]))}" {perhaps_call_loc}>
+    return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" data-artist-names="{json_for_attr(list(artist_names))}" {perhaps_call_loc}>
     {geom_svg}
     {child_svgs_str}
     </g>"""
@@ -376,12 +380,14 @@ def region2_to_svg_g(artist_methods_bounds_geom_children, object_names):
 
 # Mutates out
 def _object_names_deep(out, obj, name, max_depth):
-    if max_depth <= 0:
+    if max_depth <= 0 or callable(obj):
         return
 
     if isinstance(obj, list):
         for i, item in enumerate(obj):
             _object_names_deep(out, item, f"{name}[{str(i)}]", max_depth)
+        if len(obj) >= 1:
+            _object_names_deep(out, obj[-1], f"{name}[-1]", max_depth)
     elif isinstance(obj, mpl.artist.Artist):
         key = id(obj)
         _obj, names = out.get(key, (obj, set()))
@@ -390,25 +396,38 @@ def _object_names_deep(out, obj, name, max_depth):
         if max_depth <= 1:
             return
 
+        trivial_names = get_trivial_names()
         for prop_name in dir(obj):
-            if prop_name not in get_trivial_names():
+            if prop_name not in trivial_names:
                 prop = getattr(obj, prop_name)
-                if not callable(prop):
-                    _object_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
+                _object_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
 
 
 # Returns a dict of object to (object, set of names)
-def object_names(locals, user_names=None, max_depth=4):
-    if user_names is None:
-        user_names = set(locals.keys())
-
+def object_names(locals, user_nameset, max_depth=4):
     out = {}
+    trivial_names = get_trivial_names()
 
     with mpl._api.deprecation.suppress_matplotlib_deprecation_warning():
-        for name, value in [(name, value) for name, value in locals.items() if name in user_names and name not in get_trivial_names() and not callable(value)]:
+        for name, value in [(name, value) for name, value in locals.items() if name in user_nameset and name not in trivial_names]:
             _object_names_deep(out, value, f"{name}", max_depth)
 
     return out
+
+# Get all the names in the AST (thanks GPT-4o)
+class NameExtractor(ast.NodeVisitor):
+    def __init__(self):
+        self.nameset = set()
+
+    def visit_Name(self, node):
+        self.nameset.add(node.id)
+        self.generic_visit(node)
+
+
+def get_user_nameset(code):
+    name_extractor = NameExtractor()
+    name_extractor.visit(ast.parse(code))
+    return name_extractor.nameset
 
 
 # For when you want quick redraws during mouse manipulations.
@@ -420,8 +439,7 @@ class SNPFigureOnly:
         locals,
         cell_lineno,
         provenance_is_off_by_n_lines,
-        notebook_code_through_cell,
-        user_names=None,
+        notebook_code_through_cell
     ):
         self.figure = figure
         self.cached_png = None
@@ -447,17 +465,16 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         locals,
         cell_lineno,
         provenance_is_off_by_n_lines,
-        notebook_code_through_cell,
-        user_names=None,
+        notebook_code_through_cell
     ):
         self.figure = figure
         self.cached_png = None
         self.cached_svg_hover_regions = None
-        self.user_names = user_names
+        self.user_nameset = get_user_nameset(notebook_code_through_cell)
 
         # Make a map of object id to object name (e.g. "fig.axes")
         with Timer("object_names"):
-            self.object_names = object_names(locals, user_names=user_names)
+            self.object_names = object_names(locals, self.user_nameset)
 
         with Timer("artist_ids_that_will_have_a_method_call"):
             self.artist_ids_that_will_have_a_method_call = set()
@@ -506,15 +523,9 @@ class SNP(SNPFigureAndHoverRegions):
         locals,
         cell_lineno,
         provenance_is_off_by_n_lines,
-        notebook_code_through_cell,
-        user_names=None,
+        notebook_code_through_cell
     ):
-        self.figure = figure
-
-        self.cached_png = None
-        self.cached_svg_hover_regions = None
-
-        super().__init__(figure, locals, cell_lineno, provenance_is_off_by_n_lines, notebook_code_through_cell, user_names=user_names)
+        super().__init__(figure, locals, cell_lineno, provenance_is_off_by_n_lines, notebook_code_through_cell)
 
         # Perform type inference
         self.cell_lineno = cell_lineno
@@ -526,7 +537,7 @@ class SNP(SNPFigureAndHoverRegions):
         self.type_graph = self.mypy_result.graph
         self.type_tree = self.type_graph[module_name].tree
         tree = self.type_tree
-        self.user_names = user_names
+
 
         # print(ast.dump(ast.parse(notebook_code_through_cell)))
 
@@ -551,7 +562,7 @@ class SNP(SNPFigureAndHoverRegions):
             dict_values_node = self.type_graph['_collections_abc'].tree.names['dict_values'].node # <TypeInfo _collections_abc.dict_values>
             dict_items_node = self.type_graph['_collections_abc'].tree.names['dict_items'].node # <TypeInfo _collections_abc.dict_items>
             for name, value in locals.items():
-                if name in tree.names and name in user_names and name not in get_trivial_names() and not callable(value):
+                if name in tree.names and name in self.user_nameset and name not in get_trivial_names() and not callable(value):
                     name_type = tree.names[name].type
                     if name_type is not None:
                         self.user_typed_snippets[name] = name_type
@@ -770,6 +781,42 @@ class SNP(SNPFigureAndHoverRegions):
         with Timer("notebook_typed_ast"):
             notebook_typed_ast = type_node_to_json(self.type_tree.defs)
 
+        with Timer("notebook_parseable_comments"):
+            self.notebook_parseable_comments = []
+            # find contiguous # comment chunks in notebook_code_through_cell
+            chunks = []
+            cur_chunk = None
+            for line_no, line in enumerate(notebook_code_lines):
+                if not cur_chunk:
+                    # If the line includes #, start a new chunk
+                    hash_idx = line.find('#')
+                    if hash_idx != -1:
+                        cur_chunk = (line_no + 1, hash_idx, [line[hash_idx:]])
+                elif line.strip().startswith('#'):
+                    cur_chunk[2].append(line)
+                else:
+                    chunks.append(cur_chunk)
+                    cur_chunk = None
+            if cur_chunk:
+                chunks.append(cur_chunk)
+
+            for chunk in chunks:
+                # Replace /# ?/ at the beginning of each line with "" and then join them
+                chunk_as_code = '\n'.join([re.sub(r'^(\s*)# ?', '\\1', line) for line in chunk[2]])
+                try:
+                    ast.parse(chunk_as_code.strip())
+                except SyntaxError:
+                    continue
+                line_no, col_offset, raw_lines = chunk
+                self.notebook_parseable_comments.append({
+                    'line': line_no,
+                    'end_line': line_no + len(raw_lines) - 1,
+                    'column': col_offset,
+                    'end_column': (col_offset + len(raw_lines[0]) if len(raw_lines) == 1 else len(raw_lines[-1])),
+                    'uncommented': chunk_as_code
+                })
+
+
         # Walk all the files in the frontend folder, and append all the contents of the .css files
         with Timer("frontend_css"):
             frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path("frontend").rglob("*.css")])
@@ -788,7 +835,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- sidebar added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.user_iterables)})">
+                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)})">
                     {frontend_css}
                 </style>
                 </div>

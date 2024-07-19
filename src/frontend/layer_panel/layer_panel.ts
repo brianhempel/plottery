@@ -1,5 +1,5 @@
 import { P_stmt } from "../ast_types";
-import { add_sync_code_on_change_watcher, hard_rerun } from "../code_sync/code_sync";
+import { add_sync_code_on_change_watcher, hard_rerun, redraw_cell } from "../code_sync/code_sync";
 import { add_menu_item, add_submenu, create_menu_el } from "../menus/menus";
 import { call_to_code, create_call_view } from "../sidebar/call/call";
 import { open_collapsable } from "../sidebar/collapsable/collapsable";
@@ -11,6 +11,7 @@ import { CallView, CallWithArgs, DynamicCallInfo, IInstanceType, State, StaticCa
 import { equalByJSON } from "../utils/array";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
 import { create_el, cm_end_pos, cm_start_pos, add_line_of_code } from "../utils/misc";
+import { ParseableComment } from "../types";
 
 
 export type Layer = {
@@ -116,8 +117,17 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
     calls_with_args: calls_at_loc,
     call_views,
     mark,        // the whole AST node
-    target_mark, // the displayed layer code, so dropping below e.g. a for-loop adds to beginning of loop
+    target_mark, // the displayed layer code, so that drag-dropping below e.g. a for-loop adds to beginning of loop
   }
+
+  add_listeners_and_checkbox_to_layer(layer, state);
+
+  return [layer, ...sublayers];
+}
+
+function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked: boolean = true) {
+  const cm = state.cell.code_mirror;
+  const { el: layer_el, mark } = layer;
 
   layer_el.addEventListener("click", ev => {
     if (ev.target == layer_el) {
@@ -132,7 +142,53 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   layer_el.addEventListener("dragleave", dragleave);
   layer_el.addEventListener("drop", ev => drop(ev, layer, state));
 
-  return [layer, ...sublayers];
+  // Show/hide layers
+  const visible_checkbox = create_el("input", "snp-layer-checkbox", layer_el) as HTMLInputElement;
+  visible_checkbox.type = "checkbox";
+  visible_checkbox.checked = checked;
+  visible_checkbox.addEventListener("change", ev => {
+    const layer_range = layer.mark.find()!;
+    const layer_code = cm.getRange(layer_range.from, layer_range.to);
+
+    mark.inclusiveLeft = true; // need replacement to stay inside the mark
+    if (!visible_checkbox.checked) {
+      cm.replaceRange(layer_code.replaceAll(/^/mg, '# '), layer_range.from, layer_range.to)
+    } else {
+      cm.replaceRange(layer_code.replaceAll(/^# /mg, ''), layer_range.from, layer_range.to)
+    }
+    mark.inclusiveLeft = false; // this seems to work better for moving layers around
+
+    redraw_cell(state);
+  })
+}
+
+export function layers_from_parseable_comment(comment: ParseableComment, state: State): Layer[] {
+  const layer_el = create_el("div", "snp-layer");
+
+  const mark = state.cell.code_mirror.markText(
+    cm_start_pos(comment, state.cell_lineno),
+    cm_end_pos(comment, state.cell_lineno),
+    { inclusiveLeft: false, inclusiveRight: true }
+  );
+
+  layer_el.innerText = comment.uncommented;
+  // layer_el.classList.add("snp-code-layer");
+
+  const indent_level = Math.floor(comment.uncommented.match(/^ */)![0].length / 4);
+  layer_el.classList.add(`indent-${indent_level}`)
+
+  const layer = {
+    // parents: [],
+    el: layer_el,
+    calls_with_args: [],
+    call_views: [],
+    mark,             // the whole AST node
+    target_mark: mark // the displayed layer code, so that drag-dropping below e.g. a for-loop adds to beginning of loop
+  }
+
+  add_listeners_and_checkbox_to_layer(layer, state, false);
+
+  return [layer]
 }
 
 function replace_indentation(code: string, indentation: string) {

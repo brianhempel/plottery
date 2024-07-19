@@ -30,6 +30,9 @@
 }
 
 .snp-layer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-family: monospace;
   white-space: pre;
   margin: 0;
@@ -39,13 +42,23 @@
   --indent-spacing: 2em;
 }
 
-.for-loop > div {
+.for-loop > .snp-arg,
+.for-loop > .snp-dropdown {
   border: solid 1px lightgray;
 }
 
 .snp-layer.snp-code-layer {
   color: lightgray;
   display: none;
+}
+
+.snp-layer-checkbox {
+  cursor: pointer;
+}
+
+/* Unchecked layers */
+.snp-layer:has(> .snp-layer-checkbox:not(:checked)) > *:not(.snp-layer-checkbox) {
+  opacity: 0.2;
 }
 
 .snp-layer.selected {
