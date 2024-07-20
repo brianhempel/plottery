@@ -156,6 +156,8 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
       cm.replaceRange(layer_code.replaceAll(/^# /mg, ''), layer_range.from, layer_range.to)
     }
 
+    clean_up_passes(cm);
+
     if (visible_checkbox.checked && hard_run_on_enable) {
       hard_rerun(state); // Layers rendered as plain text need a full rerun to generate their full UI.
     } else {
@@ -250,17 +252,49 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
   hard_rerun(state);
 }
 
+// This mechanism is still not perfect because the only way to start a new regexp
+// search at a location in Javascript is to .slice the string first, but that *will*
+// mess up lookbehinds. So keep that in mind.
+//
+// Also the replacement here can only reference numbered (not named) capture groups.
+function replace_all_preserving_marks(cm: DocOrEditor, target: RegExp, replacement: string) {
+  let search_i = 0;
+
+  // match will only give us the match index if the regexp is non-global
+  const non_global_regexp = new RegExp(target.source, target.flags.replace('g', ''));
+
+  while (true) {
+    const match = cm.getValue().slice(search_i).match(non_global_regexp);
+
+    if (!match) break;
+
+    const startPos = cm.posFromIndex(search_i + match.index!);
+    const endPos   = cm.posFromIndex(search_i + match.index! + match[0].length);
+
+    // have to handle $0 $1 $2 replacement refs ourself because lookaheads/lookbehinds
+    // won't match the substring if we were to dimply do match[0].replace(target, replacement)
+    //
+    // Only supports numbered capture groups for now
+    const new_str  = replacement.replaceAll(/(?<!\\)\$(\d+)/g, (_, n) => match[parseInt(n)]);
+
+    cm.replaceRange(new_str, startPos, endPos);
+
+    search_i += match.index! + new_str.length;
+  }
+}
+
+
 // Remove unecessary "pass" statements
 // Add missing "pass" statements
 function clean_up_passes(cm: DocOrEditor) {
-  let code = cm.getValue();
+  // Add passes everywhere...not perfect but we'll roll with it
+  replace_all_preserving_marks(cm, /(^[ \t]*)((for|def|if|elif|else|try|except)\b.*:[ \t]*\n)^/mg, '$1$2$1    pass\n')
 
-  cm.setValue(
-    code
-      .replaceAll(/(^[ \t]*)((for|def|if|elif|else|try|except)\b.*:\s*)^/mg, '$1$2$1    pass\n') // add passes everywhere...not perfect but we'll roll with it
-      .replaceAll(/(^[ \t]*)pass\s*\n(\1\S)/mg,     '$2')   // remove passes with stuff after
-      .replaceAll(/(^[ \t]*)(\S.*\n)\1pass.*\n?/mg, '$1$2') // remove passes with stuff before
-  )
+  // Using lookahead/lookbehind so that replacements don't mess up existing layer mark ranges.
+  replace_all_preserving_marks(cm, /(^[ \t]*)pass\s*\n(?=\1[^#\s])/mg,      '') // remove passes with stuff after
+  replace_all_preserving_marks(cm, /(?<=(^[ \t]*)[^#\s].*\n)\1pass.*\n?/mg, '') // remove passes with stuff before
+  replace_all_preserving_marks(cm, /(^[ \t]*)pass\s*\n(?=\1[^#\s])/mg,      '') // remove passes with stuff after
+  replace_all_preserving_marks(cm, /(?<=(^[ \t]*)[^#\s].*\n)\1pass.*\n?/mg, '') // remove passes with stuff before
 }
 
 function dragstart(ev: DragEvent, layer: Layer, state: State) {

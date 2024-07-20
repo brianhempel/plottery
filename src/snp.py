@@ -760,37 +760,45 @@ class SNP(SNPFigureAndHoverRegions):
         with Timer("notebook_parseable_comments"):
             self.notebook_parseable_comments = []
             # find contiguous # comment chunks in notebook_code_through_cell
-            chunks = []
-            cur_chunk = None
+            multiline_comments = [] # list of (start_line_no, start_col, [lines])
+            cur_comment = None
             for line_no, line in enumerate(notebook_code_lines):
-                if not cur_chunk:
-                    # If the line includes #, start a new chunk
+                if not cur_comment:
+                    # If the line includes #, start a new multiline_comment
                     hash_idx = line.find('#')
                     if hash_idx != -1:
-                        cur_chunk = (line_no + 1, hash_idx, [line[hash_idx:]])
+                        cur_comment = (line_no + 1, hash_idx, [line[hash_idx:]])
                 elif line.strip().startswith('#'):
-                    cur_chunk[2].append(line)
+                    cur_comment[2].append(line)
                 else:
-                    chunks.append(cur_chunk)
-                    cur_chunk = None
-            if cur_chunk:
-                chunks.append(cur_chunk)
+                    multiline_comments.append(cur_comment)
+                    cur_comment = None
+            if cur_comment:
+                multiline_comments.append(cur_comment)
 
-            for chunk in chunks:
+            # A multiline comment might have multiple expression lines, each of which
+            # should be a separate layer. So, parse the comment into an expression list
+            # to split the comment into sub-comments.
+            for multiline_comment in multiline_comments:
                 # Replace /# ?/ at the beginning of each line with "" and then join them
-                chunk_as_code = '\n'.join([re.sub(r'^(\s*)# ?', '\\1', line) for line in chunk[2]])
+                comment_as_code = '\n'.join([re.sub(r'^(\s*)# ?', '\\1', line) for line in multiline_comment[2]])
+
                 try:
-                    ast.parse(chunk_as_code.strip())
+                    chunks_in_comment = ast.parse(comment_as_code).body # list of expressions
                 except SyntaxError:
-                    continue
-                line_no, col_offset, raw_lines = chunk
-                self.notebook_parseable_comments.append({
-                    'line': line_no,
-                    'end_line': line_no + len(raw_lines) - 1,
-                    'column': col_offset,
-                    'end_column': (col_offset + len(raw_lines[0]) if len(raw_lines) == 1 else len(raw_lines[-1])),
-                    'uncommented': chunk_as_code
-                })
+                    chunks_in_comment = []
+
+                for chunk_in_comment in chunks_in_comment:
+                    line_no, col_offset, raw_lines = multiline_comment
+                    (chunk_lineno, chunk_col, chunk_endlineno, chunk_endcol) = ast_loc(chunk_in_comment)
+                    chunk_lines = raw_lines[chunk_lineno-1:chunk_endlineno]
+                    self.notebook_parseable_comments.append({
+                        'line':        line_no + chunk_lineno - 1,
+                        'end_line':    line_no + chunk_lineno - 1 + len(chunk_lines) - 1,
+                        'column':      (col_offset if chunk_lineno == 1 else chunk_col),
+                        'end_column':  len(chunk_lines[-1]) + (col_offset if chunk_endlineno == 1 else 0),
+                        'uncommented': "\n".join(comment_as_code.split('\n')[chunk_lineno-1:chunk_endlineno])
+                    })
 
 
         # Walk all the files in the frontend folder, and append all the contents of the .css files
@@ -936,6 +944,9 @@ def tag_with_provenance(
         return ret_obj
 
 
+def ast_loc(node):
+    return (node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
 class ProvenanceTagger(ast.NodeTransformer):
     def __init__(self) -> None:
         self.call_nums = {}
@@ -947,12 +958,7 @@ class ProvenanceTagger(ast.NodeTransformer):
         # When the form is receiver.attribute(...), log that there is call on this receiver.
         match node:
             case ast.Call(func=ast.Attribute(value)):
-                loc = (
-                    node.lineno,
-                    node.col_offset,
-                    node.end_lineno,
-                    node.end_col_offset,
-                )
+                loc = ast_loc(node)
                 func_code = ast.unparse(node.func)
                 receiver = value
                 call_num = self.call_nums.get(func_code, 0) + 1
