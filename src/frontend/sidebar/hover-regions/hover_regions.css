@@ -19,13 +19,13 @@
 }
 
 .hover_regions [data-func-code-and-num].selected > path {
-  /* fill: #f8f8f8; */
-  stroke-width: 1px;
+  stroke-width: 2px;
+  stroke: #009dff;
 }
 
-.hover_regions [data-func-code-and-num].hovered > path {
-  /* fill: #f8f8f8; */
-  stroke-width: 2px;
+.hover_regions [data-func-code-and-num].hovered:not(.selected) > path {
+  stroke-width: 1px;
+  stroke: #009dff;
 }
 
 /* .snp-hover-regions:not(.disable):hover {

@@ -17,9 +17,18 @@
 
   margin: 10px;
   z-index: 5;
+
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.sketch-n-plot-logo {
+  margin: 0 0.5em;
 }
 
 .snp-sidebar-menu-bar {
+  display: flex;
+  align-items: center;
+
   /* position: relative;
   height: 2em;
   width: 33em;
@@ -29,6 +38,10 @@
   background-color: white;
   z-index: 3; */
   background-color: whitesmoke;
+
+  border: 1px solid lightgray;
+  border-radius: 1px;
+  margin-bottom: 0.5em;
 }
 
 .snp-sidebar-menu-bar > .snp-menu > .snp-menu-name {

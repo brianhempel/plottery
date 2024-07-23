@@ -9,11 +9,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 1.3em;
-  padding: 0.5em 0.25em;
-  border: outset #ebebeb 0.25em;
-  background-color: #f8f8f8;
+  /* font-size: 1.3em; */
+  font-size: 15px;
+  padding: 0.5em 0.5em;
+  color: #f2f2f2;
   margin: 0 !important; /* there's some default stylesheet in the notebook clobbering the top margin */
+}
+
+.snp-layers-panel h2,
+.snp-layers-panel .snp-menu-item {
+  background-color: #656565;
+}
+.snp-layers-panel .snp-menu-item:hover {
+  background-color: #929292;
 }
 
 .snp-layers-panel .snp-menu {
