@@ -269,6 +269,19 @@ export function call_info_to_call_with_args<call_info_type extends (DynamicCallI
   };
 }
 
+// # Positional argument
+// ARG_POS = 0
+// # Positional, optional argument (functions only, not calls)
+// ARG_OPT = 1
+// # *arg argument
+// ARG_STAR = 2
+// # Keyword argument x=y in call, or keyword-only function arg
+// ARG_NAMED = 3
+// # **arg argument
+// ARG_STAR2 = 4
+// # In an argument list, keyword-only and also optional
+// ARG_NAMED_OPT = 5
+
 export function get_args(
   call_info: StaticCallTypeInfo | DynamicCallInfo,
   cell_lineno: number,
@@ -287,7 +300,7 @@ export function get_args(
     );
 
     return {
-      name: call_info.callee.arg_names[arg_i_at_func_def],
+      name: given_arg["name"] || call_info.callee.arg_names[arg_i_at_func_def],
       is_positional: given_arg.name == null,
       kind: arg_kind,
       code: arg_val_code,
