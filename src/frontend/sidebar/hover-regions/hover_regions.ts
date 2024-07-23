@@ -127,17 +127,21 @@ export function attach_events_to_hover_regions(state: State) {
         const ew_edge_w = Math.min(10, hover_region.getBoundingClientRect().width  / 4);
         const ns_edge_w = Math.min(10, hover_region.getBoundingClientRect().height / 4);
 
-        hover_region.addEventListener("mouseover", () => {
+        hover_region.addEventListener("mouseover", ev => {
           hover_regions.forEach(hover_region => {
             // hover_region.querySelectorAll("[stroke-width]").forEach(el => { el.setAttribute("stroke-width", "2.0"); });
             hover_region.classList.add("hovered");
           });
+          ev.stopPropagation();
+          ev.preventDefault();
         });
-        hover_region.addEventListener("mouseout", () => {
+        hover_region.addEventListener("mouseout", ev => {
           hover_regions.forEach(hover_region => {
             // hover_region.querySelectorAll("[stroke-width]").forEach(el => { el.setAttribute("stroke-width", hover_region.dataset.origStrokeWidth || "0"); });
             hover_region.classList.remove("hovered");
           });
+          ev.stopPropagation();
+          ev.preventDefault();
         });
 
         // Determine whether we are dragging the middle or the edge
