@@ -42,6 +42,10 @@ export function make_slider(
     start_val = parseFloat(val_el.innerText);
     el.classList.add("pressed");
     document.body.style.cursor = "e-resize";
+
+    // Don't also drag the layer
+    e.preventDefault();
+    e.stopPropagation();
   });
 
   document.addEventListener("mousemove", e => {
