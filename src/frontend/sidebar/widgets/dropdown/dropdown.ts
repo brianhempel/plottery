@@ -1,17 +1,9 @@
 import { create_el } from "../../../utils/misc";
-import { LiteralWidget } from "../literal/literal";
-import {
-  Widget,
-  WidgetKind,
-  change_widget_code,
-  clone_widget,
-  get_widget_type_id,
-  widget_to_code,
-} from "../widget";
+import { Widget } from "../widget";
 import "./dropdown.css";
 
 export type DropdownWidget = Widget & {
-  kind: WidgetKind.Dropdown;
+  kind: "Dropdown"; // not really used
   items: Widget[];
   selected_item: Widget | undefined;
   selected_item_holder_el: HTMLElement;
@@ -62,8 +54,13 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
 
   // Create a dropdown with an empty drawer
   const dropdown: DropdownWidget = {
-    kind: WidgetKind.Dropdown,
+    kind: "Dropdown",
     el,
+    kind_label_for_dropdown: "hmm shouldn't have dropdowns in dropdowns",
+    does_match_arg_code: (arg_code) => { console.warn("We don't support nested arg dropdowns right now", dropdown, arg_code); return false },
+    to_code:             ()         => dropdown.selected_item?.to_code() || "",
+    set_code:            (new_code) => { if (!dropdown.selected_item) { throw new Error("dropdown.set_code(): No selected item!") } else { dropdown.selected_item.set_code(new_code); } },
+    clone:               ()         => { throw new Error("dropdown.clone(): should not be cloning dropdown widgets because we don't have nested dropdowns") },
     items: [],
     selected_item: undefined,
     selected_item_holder_el,
@@ -79,14 +76,6 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
   return dropdown;
 }
 
-export function dropdown_widget_to_code(widget: DropdownWidget): string {
-  return widget.selected_item ? widget_to_code(widget.selected_item) : "";
-}
-
-export function change_dropdown_widget_code(widget: DropdownWidget, new_code: string) {
-  if (!widget.selected_item) throw new Error("change_dropdown_widget_code: No selected item in dropdown!");
-  change_widget_code(widget.selected_item, new_code);
-}
 
 function add_item_to_dropdown_widget(
   dropdown: DropdownWidget,
@@ -105,7 +94,7 @@ function add_item_to_dropdown_widget(
 
   // The id is a thing to the right of the item, like "str", or "int"
   const id = create_el("div", "snp-widget-id", item_holder);
-  id.innerHTML = get_widget_type_id(widget);
+  id.innerHTML = widget.kind_label_for_dropdown;
 
   item_holder.addEventListener("click", () => {
     // Close the dropdown
@@ -131,8 +120,8 @@ export function select_dropdown_item(
   // add it to the dropdown
   const old_selected_item = dropdown.selected_item;
   if (old_selected_item) {
-    const old_code = widget_to_code(old_selected_item);
-    if (!dropdown.items.some(item => widget_to_code(item) == old_code)) {
+    const old_code = old_selected_item.to_code();
+    if (!dropdown.items.some(item => item.to_code() == old_code)) {
       add_item_to_dropdown_widget(dropdown, old_selected_item);
       // Move it from the last to the first in the list
       dropdown.items.unshift(dropdown.items.pop()!);
@@ -148,7 +137,7 @@ export function select_dropdown_item(
   new_selected_item.el.parentElement!.classList.add("selected");
 
   // Create a new clone
-  const selected_item_clone = clone_widget(new_selected_item);
+  const selected_item_clone = new_selected_item.clone();
 
   // Add clone to the dropdown selected area
   dropdown.selected_item_holder_el.append(selected_item_clone.el);

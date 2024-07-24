@@ -1,6 +1,6 @@
 import { Arg, ArgView, CallWithArgs, Type, UnionType } from "../../types";
 import { create_el } from "../../utils/misc";
-import { Widget, make_widget_for_code_and_type, widget_to_code } from "../widgets/widget";
+import { Widget, make_widget_for_code_and_type } from "../widgets/widget";
 import "./arg.css";
 
 export function create_arg_view(
@@ -66,6 +66,6 @@ export function disable_arg_view(arg_view: ArgView) {
 }
 
 export function arg_view_to_code(arg: Arg, arg_view: ArgView): string {
-  const value_code = widget_to_code(arg_view.widget);
+  const value_code = arg_view.widget.to_code();
   return arg_view.positional ? value_code : `${arg.name}=${value_code}`;
 }

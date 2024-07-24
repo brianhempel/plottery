@@ -6,7 +6,7 @@ import { open_collapsable } from "../sidebar/collapsable/collapsable";
 import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_regions";
 import { add_method_call } from "../sidebar/methods/method";
 import { create_arbitrary_code_widget } from "../sidebar/widgets/arbitrary_code/arbitrary_code";
-import { make_widget_for_code_and_type, widget_to_code } from "../sidebar/widgets/widget";
+import { make_widget_for_code_and_type } from "../sidebar/widgets/widget";
 import { CallView, CallWithArgs, DynamicCallInfo, IInstanceType, State, StaticCallTypeInfo } from "../types";
 import { equalByJSON } from "../utils/array";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
@@ -97,7 +97,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
       { inclusiveLeft: true, inclusiveRight: true }
     );
     add_sync_code_on_change_watcher(
-      () => `${widget_to_code(pattern_widget)} in ${is_enumerate ? "enumerate(" : ""}${widget_to_code(iterator_widget)}${is_enumerate ? ")" : ""}`,
+      () => `${pattern_widget.to_code()} in ${is_enumerate ? "enumerate(" : ""}${iterator_widget.to_code()}${is_enumerate ? ")" : ""}`,
       edit_mark, state
     );
     layer_el.classList.add(`indentbelow-${indent_level+1}`)

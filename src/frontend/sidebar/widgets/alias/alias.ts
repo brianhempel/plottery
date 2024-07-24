@@ -4,10 +4,10 @@ import {
   default_code_and_code_type_for_type,
   is_array_like,
 } from "../../../utils/misc";
-import { Widget, WidgetKind } from "../widget";
+import { Widget } from "../widget";
 
 export type AliasWidget = Widget & {
-  kind: WidgetKind.Alias;
+  kind: "Alias";
   a_type: TypeAliasType;
 };
 
@@ -27,11 +27,18 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
     }
   });
 
-  return {
-    kind: WidgetKind.Alias,
+  const widget: AliasWidget = {
+    kind: "Alias",
     el,
+    kind_label_for_dropdown: a_type.type_ref == "matplotlib._typing.ArrayLike" ? "list" : "???",
+    does_match_arg_code: (arg_code: string) => arg_code_matches_alias_widget(widget, arg_code),
+    to_code: () => widget.el.innerText,
+    set_code: (new_code: string) => { widget.el.innerText = new_code },
+    clone: () => clone_alias_widget(widget),
     a_type
   };
+
+  return widget;
 }
 
 export function clone_alias_widget(widget: AliasWidget): AliasWidget {
@@ -48,19 +55,3 @@ export function arg_code_matches_alias_widget(
   return widget.a_type.type_ref == "matplotlib._typing.ArrayLike" && is_array_like(arg_code)
 }
 
-export function alias_widget_to_code(widget: AliasWidget) {
-  return widget.el.innerText;
-}
-
-export function change_alias_widget_code(widget: AliasWidget, new_code: string) {
-  widget.el.innerText = new_code;
-}
-
-export function get_alias_widget_type_id(widget: AliasWidget) {
-  // @TODO: Make more robust
-  if (widget.a_type.type_ref == "matplotlib._typing.ArrayLike") {
-    return "list";
-  } else {
-    return "???";
-  }
-}

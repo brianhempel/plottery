@@ -26,7 +26,6 @@ import {
   open_collapsable,
 } from "../collapsable/collapsable";
 import { Boundses } from "../hover-regions/hover_regions";
-import { change_widget_code, widget_to_code } from "../widgets/widget";
 import "./call.css";
 
 // by name and line number
@@ -188,7 +187,7 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
         const mouse_x = (mouse_fig_x - (axes_x0 - fig_x0)) / (axes_x1 - axes_x0) - 0.05; // Not quite the corner
         const mouse_y = (mouse_fig_y - (axes_y0 - fig_y0)) / (axes_y1 - axes_y0) - 0.05; // Not quite the corner
 
-        change_widget_code(view.widget, `(${number_to_string_not_ugly(sig_figs(mouse_x, 2))}, ${number_to_string_not_ugly(sig_figs(mouse_y, 2))})`);
+        view.widget.set_code(`(${number_to_string_not_ugly(sig_figs(mouse_x, 2))}, ${number_to_string_not_ugly(sig_figs(mouse_y, 2))})`);
       };
     }
   }
@@ -226,7 +225,7 @@ export function perhaps_get_drag_height_handler(call_view: CallView) : undefined
 
 
 function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y') : ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
-  const starting_arg_code = widget_to_code(view.widget);
+  const starting_arg_code = view.widget.to_code();
 
   // The branches below will set these two, based on what kind of code we have
   let code_lhs: string | undefined = undefined;
@@ -268,6 +267,6 @@ function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y') : ((fig_px:
     } else {
       new_arg_code = `${code_lhs.trimEnd()} + ${number_to_string_not_ugly(new_number)}`;
     }
-    change_widget_code(view.widget, new_arg_code);
+    view.widget.set_code(new_arg_code);
   };
 }
