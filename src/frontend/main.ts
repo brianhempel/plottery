@@ -246,10 +246,9 @@ export function call_info_to_call_with_args<call_info_type extends (DynamicCallI
     args.filter(arg => arg.name != "kwargs").partition(arg => arg.is_positional);
 
   const {
-    missing_positional_args,
-    missing_keyword_args,
     needed_positional_args,
     missing_optional_positional_args,
+    missing_keyword_args,
     kwargs,
   } = segment_args(
     call_info.callee,
@@ -272,10 +271,9 @@ export function call_info_to_call_with_args<call_info_type extends (DynamicCallI
     call_info,
     given_positional_args,
     given_keyword_args,
-    missing_positional_args,
-    missing_keyword_args,
     needed_positional_args,
     missing_optional_positional_args,
+    missing_keyword_args,
     kwargs,
   };
 }
@@ -293,7 +291,7 @@ export function call_info_to_call_with_args<call_info_type extends (DynamicCallI
 // # In an argument list, keyword-only and also optional
 // ARG_NAMED_OPT = 5
 
-export function get_args(
+function get_args(
   call_info: StaticCallTypeInfo | DynamicCallInfo,
   cell_lineno: number,
   code_mirror: CodeMirror.DocOrEditor
@@ -306,9 +304,11 @@ export function get_args(
   }
 
   return call_info.given_args.map((given_arg, arg_i: number) => {
-    const arg_kind = get_arg_kind_from_int(given_arg.kind);
     const arg_i_at_func_def =
       given_arg["name"] ? arg_names.indexOf(given_arg.name) : (callee_has_self_arg ? arg_i + 1 : arg_i);
+
+    const arg_kind_i = call_info.callee.arg_kinds[arg_i_at_func_def]
+    const arg_kind = get_arg_kind_from_int(arg_kind_i);
 
     const arg_val_code = code_mirror.getRange(
       cm_start_pos(given_arg.pos, cell_lineno),
@@ -317,6 +317,7 @@ export function get_args(
 
     return {
       name: given_arg["name"] || arg_names[arg_i_at_func_def],
+      required: arg_kind == "ARG_POS" || arg_kind == "ARG_NAMED", // For args given by keyword, we'd have to look up the original definition to know if the keyword arg is required. Required keyword args are rare, so let's not worry about it.
       is_positional: given_arg.name == null,
       kind: arg_kind,
       code: arg_val_code,
@@ -353,16 +354,14 @@ export function segment_args(
           code_type: kwargs_alias!.code_type,
           type_compatible_code_snippets: [],
           is_positional: false,
+          required: false,
         };
       })
     : null;
 
   arg_defaults = arg_defaults.filter(arg => arg.name != "kwargs");
 
-  const missing_positional_args =
-    arg_defaults.slice(given_positional_args.length).takeWhile(arg => arg.kind === "ARG_POS");
-      // we could also look for arg.kind === "ARG_OPT" here,
-      // but optional positional args look nicer when given as keyword args
+  const missing_positional_args = arg_defaults.slice(given_positional_args.length).takeWhile(arg => arg.is_positional);
 
   const missing_keyword_args = arg_defaults
     .slice(given_positional_args.length)
@@ -373,18 +372,13 @@ export function segment_args(
   // .filter(arg => arg.kind !== "ARG_STAR2"); // ignore **kwargs
 
   // if used for a new call, required args need to be generated
-  let needed_positional_args =
-    missing_positional_args.takeWhile(arg => arg.kind === "ARG_POS");
-
-  let missing_optional_positional_args = missing_positional_args.slice(
-    needed_positional_args.length
-  );
+  let [needed_positional_args, missing_optional_positional_args] =
+    missing_positional_args.partition(arg => arg.kind === "ARG_POS");
 
   return {
-    missing_positional_args,
-    missing_keyword_args,
     needed_positional_args,
     missing_optional_positional_args,
+    missing_keyword_args,
     kwargs,
   };
 }

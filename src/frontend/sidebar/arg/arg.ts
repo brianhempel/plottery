@@ -5,7 +5,7 @@ import "./arg.css";
 
 export function create_arg_view(
   arg: Arg,
-  options: { positional: boolean; disabled: boolean }
+  options: { disabled: boolean }
 ): ArgView {
   const arg_el = create_el("div", "snp-arg-view");
 
@@ -13,6 +13,10 @@ export function create_arg_view(
   const prefixEl = create_el("div", "snp-arg-name", arg_el);
   // prefixEl.innerHTML = `${arg.name}<span class="snp-arg-colon">:</span>`;
   prefixEl.innerHTML = `${arg.name}`;
+
+  if (options.disabled && arg.required) {
+    console.warn("Arg is required but disabled!", arg, options);
+  }
 
   if (options.disabled) {
     arg_el.classList.add("snp-arg-disabled");
@@ -23,12 +27,32 @@ export function create_arg_view(
 
   arg_el.append(widget.el);
 
-  return {
+  const view: ArgView = {
     el: arg_el,
     widget,
-    positional: options.positional,
+    positional: arg.is_positional,
     disabled: options.disabled,
-  };
+  }
+
+  // On clicking on a hidden arg view, unhide it
+  arg_el.addEventListener("mousedown", ev => {
+    if (view.disabled) {
+      enable_arg_view(view);
+      ev.stopPropagation();
+      ev.preventDefault();
+    }
+  });
+
+  // On clicking the arg name, hide it
+  prefixEl.addEventListener("mousedown", ev => {
+    if (!view.disabled && !arg.required) {
+      disable_arg_view(view);
+      ev.stopPropagation();
+      ev.preventDefault();
+    }
+  });
+
+  return view;
 }
 
 export function enable_arg_view(arg_view: ArgView) {

@@ -1105,7 +1105,7 @@ class GatherTypedCalls(TraverserVisitor):
             for arg, name, kind in zip(node.args, node.arg_names, node.arg_kinds):
                 given_arg = to_json_dict(arg, self.types_dict.get(arg))
                 given_arg["name"] = name
-                given_arg["kind"] = kind.value
+                # given_arg["kind"] = kind.value
                 given_args.append(given_arg)
 
             # The callee_type here is partially applied (self is already removed from the argument list).

@@ -64,37 +64,35 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
   // Arguments
   const {
     given_positional_args,
-    given_keyword_args,
-    missing_positional_args,
-    missing_keyword_args,
     needed_positional_args,
     missing_optional_positional_args,
+    given_keyword_args,
+    missing_keyword_args,
     kwargs,
   } = call;
 
   const arg_and_views: { arg: Arg; view: ArgView }[] = [];
 
-  const add_args = (args: Arg[], positional: boolean, disabled: boolean) => {
+  const add_args = (args: Arg[], disabled: boolean) => {
     args.forEach(arg => {
-      const arg_view = create_arg_view(arg, {positional, disabled: disabled});
+      const arg_view = create_arg_view(arg, {disabled});
       body_el.append(arg_view.el);
       arg_and_views.push({ arg, view: arg_view });
     });
   };
 
   // Positional args
-  add_args(given_positional_args, true, false);
-  add_args(needed_positional_args, true, false);
+  add_args(given_positional_args, false);
+  add_args(needed_positional_args, false);
 
   // Positional args (optional)
-  add_args(missing_optional_positional_args, true, true);
-  add_args(missing_positional_args, true, true);
+  add_args(missing_optional_positional_args, true);
 
   // Keyword args
-  add_args(given_keyword_args, false, false);
+  add_args(given_keyword_args, false);
 
   // Keyword args (optional)
-  add_args(missing_keyword_args, false, true);
+  add_args(missing_keyword_args, true);
 
   // TODO: Store kwargs_collapsable in call els
   if (kwargs != null) {
@@ -112,25 +110,11 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
     kwargs_label.innerText = "See more";
 
     kwargs.forEach(arg => {
-      const arg_view = create_arg_view(arg, {
-        positional: false,
-        disabled: true,
-      });
+      const arg_view = create_arg_view(arg, {disabled: true});
       kwargs_collapsable.body_el.append(arg_view.el);
       arg_and_views.push({ arg, view: arg_view });
     });
   }
-
-  // On clicking on a hidden arg view, unhide it
-  arg_and_views.forEach(({ view }) => {
-    view.el.addEventListener("mousedown", e => {
-      if (view.disabled) {
-        enable_arg_view(view);
-      } else if (e.ctrlKey) {
-        disable_arg_view(view);
-      }
-    });
-  });
 
   const call_view: CallView = {
     els: {

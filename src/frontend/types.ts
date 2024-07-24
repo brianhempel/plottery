@@ -162,6 +162,7 @@ export type Arg = {
   type: Type;
   code_type: Type | null;
   type_compatible_code_snippets: string[];
+  required: boolean;
   is_positional: boolean;
 };
 
@@ -172,7 +173,7 @@ export type StaticCallTypeInfo = {
   // It's either a Type with { kind, name, pos }, OR
   // its just { kind, name, pos }.
   given_args: ((Type | {}) & {
-    kind: number; // 3
+    // kind: number; // 3
     name: string | null; // "align"
     pos: Position;
   })[];
@@ -187,10 +188,9 @@ export type CallWithArgs<call_info_type> = {
   call_info: call_info_type;
   given_positional_args: Arg[];
   given_keyword_args: Arg[];
-  missing_positional_args: Arg[];
-  missing_keyword_args: Arg[];
   needed_positional_args: Arg[];
   missing_optional_positional_args: Arg[];
+  missing_keyword_args: Arg[];
   kwargs: Arg[] | null;
 };
 

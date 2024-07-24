@@ -77,17 +77,25 @@ export function get_methods(
 
     let arg_defaults = arg_defaults_from_callee_type(method_info.type);
 
-    let [required_positional_arg, required_keyword_args] = arg_defaults.filter(
-      arg => arg.kind == "ARG_POS" || arg.kind == "ARG_NAMED"
-    ).partition(arg => arg.kind == "ARG_POS");
+    // # Positional argument
+    // ARG_POS = 0
+    // # Positional, optional argument (functions only, not calls)
+    // ARG_OPT = 1
+    // # *arg argument
+    // ARG_STAR = 2
+    // # Keyword argument x=y in call, or keyword-only function arg
+    // ARG_NAMED = 3
+    // # **arg argument
+    // ARG_STAR2 = 4
+    // # In an argument list, keyword-only and also optional
+    // ARG_NAMED_OPT = 5
 
-    let required_positional_arg_codes = required_positional_arg.map(
-      arg => arg.code
-    );
+    let [required_positional_arg, required_keyword_args] =
+      arg_defaults.filter(arg => arg.required).partition(arg => arg.kind == "ARG_POS");
 
-    let required_keyword_arg_codes = required_keyword_args.map(
-      arg => `${arg.name}=${arg.code}`
-    );
+    let required_positional_arg_codes = required_positional_arg.map(arg => arg.code);
+
+    let required_keyword_arg_codes = required_keyword_args.map(arg => `${arg.name}=${arg.code}`);
 
     let receiver_dot_name = `${receiver_name}.${method_info.name}`;
     let code = `${receiver_dot_name}(${required_positional_arg_codes
