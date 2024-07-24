@@ -257,6 +257,17 @@ export function call_info_to_call_with_args<call_info_type extends (DynamicCallI
     given_keyword_args
   );
 
+  // console.log("call_info_to_call_with_args",{
+  //   call_info,
+  //   given_positional_args,
+  //   given_keyword_args,
+  //   missing_positional_args,
+  //   missing_keyword_args,
+  //   needed_positional_args,
+  //   missing_optional_positional_args,
+  //   kwargs,
+  // })
+
   return {
     call_info,
     given_positional_args,
@@ -289,10 +300,15 @@ export function get_args(
 ): Arg[] {
   let callee_has_self_arg = call_info.callee.def_extras.first_arg !== undefined;
 
+  let arg_names = call_info.callee.arg_names_at_definition ? call_info.callee.arg_names_at_definition : call_info.callee.arg_names;
+  if (arg_names === call_info.callee.arg_names) {
+    console.warn("arg_names_at_definition not found for ", call_info, " likely meaning the type def for it is missing an import or is otherwise missing or malformed. Lack of definition access can can mess up positional-only arguments.");
+  }
+
   return call_info.given_args.map((given_arg, arg_i: number) => {
     const arg_kind = get_arg_kind_from_int(given_arg.kind);
     const arg_i_at_func_def =
-      given_arg["name"] ? call_info.callee.arg_names.indexOf(given_arg.name) : (callee_has_self_arg ? arg_i + 1 : arg_i);
+      given_arg["name"] ? arg_names.indexOf(given_arg.name) : (callee_has_self_arg ? arg_i + 1 : arg_i);
 
     const arg_val_code = code_mirror.getRange(
       cm_start_pos(given_arg.pos, cell_lineno),
@@ -300,7 +316,7 @@ export function get_args(
     );
 
     return {
-      name: given_arg["name"] || call_info.callee.arg_names[arg_i_at_func_def],
+      name: given_arg["name"] || arg_names[arg_i_at_func_def],
       is_positional: given_arg.name == null,
       kind: arg_kind,
       code: arg_val_code,

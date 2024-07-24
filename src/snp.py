@@ -1053,6 +1053,19 @@ def is_subtype(subtype, type):
     return mypy.subtypes.is_subtype(subtype, type)
 
 
+# # Positional argument
+# ARG_POS = 0
+# # Positional, optional argument (functions only, not calls)
+# ARG_OPT = 1
+# # *arg argument
+# ARG_STAR = 2
+# # Keyword argument x=y in call, or keyword-only function arg
+# ARG_NAMED = 3
+# # **arg argument
+# ARG_STAR2 = 4
+# # In an argument list, keyword-only and also optional
+# ARG_NAMED_OPT = 5
+
 def callable_type_json(callable_type: mypy.types.CallableType, user_typed_snippets):
     type_json_dict = serialize_type(callable_type)  # <- Custom serializer
 
@@ -1061,6 +1074,7 @@ def callable_type_json(callable_type: mypy.types.CallableType, user_typed_snippe
 
     if hasattr(callable_type, "definition") and callable_type.definition and callable_type.definition.arguments:
         type_json_dict["default_code_by_arg_idx"] = [unparse_mypy_expr(arg.initializer) for arg in callable_type.definition.arguments]
+        type_json_dict["arg_names_at_definition"] = [arg.variable.name for arg in callable_type.definition.arguments] # for positional arguments, mypy doesn't store the names in the arg_names list so we need to re-gen
 
     type_json_dict["type_compatible_code_snippets_by_arg_i"] = []
     for arg_type in callable_type.arg_types:

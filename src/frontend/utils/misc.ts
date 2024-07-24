@@ -51,8 +51,11 @@ export function arg_defaults_from_callee_type(
     pos: Position;
   }
 ): Arg[] {
-  return callee.arg_names
-    .map((arg_name: string, arg_i: number) => {
+  let arg_names = callee.arg_names_at_definition ? callee.arg_names_at_definition : callee.arg_names;
+  if (arg_names === callee.arg_names) {
+    console.warn("arg_names_at_definition not found for ", callee, " likely meaning the type def for it is missing an import or is otherwise missing or malformed. Lack of definition access can can mess up positional-only arguments.");
+  }
+  return arg_names.map((arg_name: string, arg_i: number) => {
       const arg_kind = get_arg_kind_from_int(callee.arg_kinds[arg_i]);
       const arg_type = callee.arg_types[arg_i];
 
@@ -74,7 +77,7 @@ export function arg_defaults_from_callee_type(
       }
 
       return {
-        is_positional: false,
+        is_positional: callee.arg_names[arg_i] == null || arg_kind == "ARG_POS",
         name: arg_name,
         kind: arg_kind,
         code: arg_default_code,

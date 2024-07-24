@@ -3,7 +3,7 @@ import { State } from "../types";
 import { create_el } from "../utils/misc";
 import { add_menu_item, create_menu_el } from "../menus/menus";
 
-const snp_logo = `
+var snp_logo = `
 <svg x="0px" y="0px" width="170px" height="17px" viewBox="0 0 170 17" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <g id="Layer 1">
     <g id="Text">

@@ -242,7 +242,8 @@ export type CallableType = {
   ".class": "CallableType";
 
   arg_kinds: number[]; // [0, 0, 1, ...]
-  arg_names: string[]; // ['self', 'label', 'fontdict', 'loc', ...]
+  arg_names: string[];                      // [null,  null, 'label', 'fontdict', 'loc', ...] // null means positional-only (i.e. before a slash)
+  arg_names_at_definition: null | string[]; // ['self', 'x', 'label', 'fontdict', 'loc', ...] // so we have to use this list in that case
   type_compatible_code_snippets_by_arg_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
   arg_types: Type[];
 
