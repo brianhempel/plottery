@@ -8,6 +8,7 @@ export type DropdownWidget = Widget & {
   selected_item: Widget | undefined;
   selected_item_holder_el: HTMLElement;
   drawer_el: HTMLElement;
+  previewing_code: string | undefined;
 };
 
 /**
@@ -52,19 +53,21 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
   // Drawer items
   const drawer_el = create_el("div", "snp-dropdown-drawer", el);
 
+
   // Create a dropdown with an empty drawer
   const dropdown: DropdownWidget = {
     kind: "Dropdown",
     el,
     kind_label_for_dropdown: "hmm shouldn't have dropdowns in dropdowns",
     does_match_arg_code: (arg_code) => { console.warn("We don't support nested arg dropdowns right now", dropdown, arg_code); return false },
-    to_code:             ()         => dropdown.selected_item?.to_code() || "",
+    to_code:             ()         => dropdown.previewing_code || dropdown.selected_item?.to_code() || "",
     set_code:            (new_code) => { if (!dropdown.selected_item) { throw new Error("dropdown.set_code(): No selected item!") } else { dropdown.selected_item.set_code(new_code); } },
     clone:               ()         => { throw new Error("dropdown.clone(): should not be cloning dropdown widgets because we don't have nested dropdowns") },
     items: [],
     selected_item: undefined,
     selected_item_holder_el,
     drawer_el,
+    previewing_code: undefined,
   };
 
   // Populate the dropdown
@@ -72,6 +75,8 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
 
   // Select the first item
   select_dropdown_item(dropdown, items[0]);
+
+  drawer_el.addEventListener("mouseout", () => { dropdown.previewing_code = undefined; });
 
   return dropdown;
 }
@@ -95,6 +100,10 @@ function add_item_to_dropdown_widget(
   // The id is a thing to the right of the item, like "str", or "int"
   const id = create_el("div", "snp-widget-id", item_holder);
   id.innerHTML = widget.kind_label_for_dropdown;
+
+  item_holder.addEventListener("mouseover", () => {
+    dropdown.previewing_code = widget.to_code();
+  });
 
   item_holder.addEventListener("click", () => {
     // Close the dropdown
