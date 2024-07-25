@@ -809,11 +809,11 @@ class SNP(SNPFigureAndHoverRegions):
             out_html = f"""
                 <div class="snp_outer">
                 <script>{pathlib.Path("../dist/plugin.js").read_text()}</script>
-                <div class="stdout_stderr"></div>
                 <div class="plot_and_sidebar">
                     <div class="plot_area" style="position:relative;">
                         <img src='{data_url}'> <!-- the plot -->
                         <div class="hover_regions">{self._repr_svg_()}</div>
+                        <div class="stdout_stderr" style="max-width: {self.figure.get_window_extent(self.figure.canvas.renderer).width}px"></div>
                         <!-- buttons to add method calls will be added by JS below -->
                     </div>
                     <!-- sidebar added here -->
