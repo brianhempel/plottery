@@ -70,7 +70,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
       "type_ref": "typing.Iterable",
       "args": [{".class": "AnyType", "type_of_any": 2, "source_any": null, "missing_import_name": null}]
     }
-    const iterator_widget = make_widget_for_code_and_type(iterable_code, iterable_type, state.user_iterables);
+    const iterator_widget = make_widget_for_code_and_type(iterable_code, iterable_type, null, state.user_iterables);
 
     layer_el.append(
       "for ",

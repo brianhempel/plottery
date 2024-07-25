@@ -302,18 +302,37 @@ function get_args(
   if (arg_names === call_info.callee.arg_names) {
     console.warn("arg_names_at_definition not found for ", call_info, " likely meaning the type def for it is missing an import or is otherwise missing or malformed. Lack of definition access can can mess up positional-only arguments.");
   }
+  if (!call_info.callee.default_code_by_arg_idx) {
+    console.warn("default_code_by_arg_idx not found for ", call_info, " likely meaning the type def for it is malformed");
+  }
 
   return call_info.given_args.map((given_arg, arg_i: number) => {
-    const arg_i_at_func_def =
-      given_arg["name"] ? arg_names.indexOf(given_arg.name) : (callee_has_self_arg ? arg_i + 1 : arg_i);
-
-    const arg_kind_i = call_info.callee.arg_kinds[arg_i_at_func_def]
-    const arg_kind = get_arg_kind_from_int(arg_kind_i);
 
     const arg_val_code = code_mirror.getRange(
       cm_start_pos(given_arg.pos, cell_lineno),
       cm_end_pos(given_arg.pos, cell_lineno)
     );
+
+    const arg_i_at_func_def =
+      given_arg.name ? arg_names.indexOf(given_arg.name) : (callee_has_self_arg ? arg_i + 1 : arg_i);
+
+    // We've been given a named argument that's not in the type definition.
+    if (arg_i_at_func_def == -1 || arg_i_at_func_def >= arg_names.length) {
+      return {
+        name: given_arg.name || "unknown",
+        required: false,
+        is_positional: given_arg.name == null,
+        kind: arg_i_at_func_def == -1 ? "ARG_NAMED" : "ARG_OPT",
+        code: arg_val_code,
+        type: null, // Could use the given arg type, `given_arg`
+        // code_type: null,
+        default_code: null,
+        type_compatible_code_snippets: [],
+      };
+    }
+
+    const arg_kind_i = call_info.callee.arg_kinds[arg_i_at_func_def]
+    const arg_kind = get_arg_kind_from_int(arg_kind_i);
 
     return {
       name: given_arg["name"] || arg_names[arg_i_at_func_def],
@@ -322,7 +341,8 @@ function get_args(
       kind: arg_kind,
       code: arg_val_code,
       type: call_info.callee.arg_types[arg_i_at_func_def],
-      code_type: null,
+      // code_type: null,
+      default_code: call_info.callee.default_code_by_arg_idx ? call_info.callee.default_code_by_arg_idx[arg_i_at_func_def] : null,
       type_compatible_code_snippets:
         call_info.callee.type_compatible_code_snippets_by_arg_i[arg_i_at_func_def],
     };
@@ -351,7 +371,8 @@ export function segment_args(
           kind: "ARG_NAMED",
           code: kwargs_alias!.code,
           type: item,
-          code_type: kwargs_alias!.code_type,
+          // code_type: kwargs_alias!.code_type,
+          default_code: null, // TypedDicts don't support defaults
           type_compatible_code_snippets: [],
           is_positional: false,
           required: false,

@@ -1,7 +1,7 @@
 import { TypeAliasType } from "../../../types";
 import {
   create_el,
-  default_code_and_code_type_for_type,
+  default_code_for_type,
   is_array_like,
 } from "../../../utils/misc";
 import { Widget } from "../widget";
@@ -13,7 +13,7 @@ export type AliasWidget = Widget & {
 
 export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
   const el = create_el("div", ["snp-arg", "snp-arg-alias"]);
-  const value = default_code_and_code_type_for_type(a_type)[0];
+  const value = default_code_for_type(a_type);
   el.innerText = value;
 
   // Should be editable

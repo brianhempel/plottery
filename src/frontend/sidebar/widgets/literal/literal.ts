@@ -1,7 +1,7 @@
 import { IInstanceType, LiteralType, NoneType } from "../../../types";
 import {
   create_el,
-  default_code_and_code_type_for_type,
+  default_code_for_type,
   is_numeric,
   is_string_like,
 } from "../../../utils/misc";
@@ -38,7 +38,7 @@ export function create_literal_widget(
 
   let slider: Slider | null = null;
 
-  const default_value = default_code_and_code_type_for_type(type)[0];
+  const default_value = default_code_for_type(type);
 
   if (is_literal_type_a_kind_of(type, "builtins.float")) {
     // ...make a slider

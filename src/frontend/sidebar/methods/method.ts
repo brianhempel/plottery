@@ -1,4 +1,4 @@
-import { MethodInfoWithType, MethodView, MethodWithArgs, SelectableArtist, State } from "../../types";
+import { MethodInfoWithType, MethodView, MethodWithArgs, State } from "../../types";
 import { arg_defaults_from_callee_type, create_el, get_shortest_qualified_name } from "../../utils/misc";
 import { hard_rerun } from "../../code_sync/code_sync";
 import "./method.css";
@@ -31,43 +31,6 @@ export function add_method_call(
   state.persistent_dataset.new_calls = `["${method.receiver_dot_name}${loc}"]`;
   hard_rerun(state);
 }
-
-// export function calls_and_methods_by_artist(state: State): {
-//   [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
-// } {
-//   let all_calls_and_methods: {
-//     [key: string]: { calls: CallWithArgs[]; methods: MethodWithArgs[] };
-//   } = {};
-//   state.selectable_artists.forEach(artist => {
-//     const artist_call_infos = state.calls.filter(call_info => {
-//       return call_info.show_on.at(-1) == artist.id;
-//     });
-//     let artist_method_infos = state.methods.filter(method => {
-//       return method.show_on.at(-1) == artist.id;
-//     });
-//     const artist_calls = artist_call_infos.map(
-//       call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror)
-//     )
-//     let artist_methods = get_methods(
-//       artist_method_infos,
-//       state.selectable_artists
-//     );
-//     // Filter out methods that're already called
-//     artist_methods = artist_methods.filter(method => {
-//       const is_already_called = artist_calls.find(
-//         call =>
-//           call.call_info.loc_via_func_code_and_num[0] ==
-//           `${method.receiver_name}.${method.method_info.name}`
-//       );
-//       return !(method.method_info.max_calls == 1 && is_already_called);
-//     });
-//     all_calls_and_methods[artist.id] = {
-//       calls: artist_calls,
-//       methods: artist_methods,
-//     };
-//   });
-//   return all_calls_and_methods;
-// }
 
 export function get_methods(
   method_infos: MethodInfoWithType[],

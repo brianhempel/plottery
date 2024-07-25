@@ -1,18 +1,20 @@
-import { Arg, ArgView, CallWithArgs, Type, UnionType } from "../../types";
+import { Arg, ArgView } from "../../types";
 import { create_el } from "../../utils/misc";
 import { Widget, make_widget_for_code_and_type } from "../widgets/widget";
 import "./arg.css";
+
+// Arg handling needs to support int versus float sliders, colors, booleans, and e.g. fontdicts.
 
 export function create_arg_view(
   arg: Arg,
   options: { disabled: boolean }
 ): ArgView {
   const arg_el = create_el("div", "snp-arg-view");
+  arg_el.title = JSON.stringify(arg.type);
 
   // Prefix with the argument name
   const prefixEl = create_el("div", "snp-arg-name", arg_el);
-  // prefixEl.innerHTML = `${arg.name}<span class="snp-arg-colon">:</span>`;
-  prefixEl.innerHTML = `${arg.name}`;
+  prefixEl.innerText = arg.name;
 
   if (options.disabled && arg.required) {
     console.warn("Arg is required but disabled!", arg, options);
@@ -23,7 +25,7 @@ export function create_arg_view(
   }
 
   // Get the widgets based on the type
-  var widget: Widget = make_widget_for_code_and_type(arg.code, arg.type, arg.type_compatible_code_snippets);
+  var widget: Widget = make_widget_for_code_and_type(arg.code, arg.type, arg.default_code, arg.type_compatible_code_snippets);
 
   arg_el.append(widget.el);
 

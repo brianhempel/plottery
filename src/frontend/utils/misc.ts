@@ -9,6 +9,7 @@ import {
   Type,
   UnionType,
   TupleType,
+  LiteralType,
 } from "../types";
 import { unzip } from "./array";
 import { TextMarker, MarkerRange } from "./codemirror";
@@ -55,26 +56,23 @@ export function arg_defaults_from_callee_type(
   if (arg_names === callee.arg_names) {
     console.warn("arg_names_at_definition not found for ", callee, " likely meaning the type def for it is missing an import or is otherwise missing or malformed. Lack of definition access can can mess up positional-only arguments.");
   }
+  if (!callee.default_code_by_arg_idx) {
+    console.warn("default_code_by_arg_idx not found for ", callee, " likely meaning the type def for it is malformed");
+  }
   return arg_names.map((arg_name: string, arg_i: number) => {
       const arg_kind = get_arg_kind_from_int(callee.arg_kinds[arg_i]);
       const arg_type = callee.arg_types[arg_i];
 
       // Since the function parameter could be a union type, we need to indicate which of the types the actual code is.
       let arg_default_code: string;
-      let arg_default_type: Type | null;
+      // let arg_default_type: Type | null;
       if (callee.default_code_by_arg_idx == null) {
         console.warn("No defaults found for", callee);
       }
 
-      if (callee.default_code_by_arg_idx?.at(arg_i)) {
-        arg_default_code = callee.default_code_by_arg_idx[
-          arg_i
-        ] as string;
-        arg_default_type = null; // We don't know.
-      } else {
-        [arg_default_code, arg_default_type] =
-          default_code_and_code_type_for_type(arg_type, arg_name);
-      }
+      const default_at_definition = callee.default_code_by_arg_idx ? callee.default_code_by_arg_idx[arg_i] : null
+
+      arg_default_code = default_at_definition != null ? default_at_definition : default_code_for_type(arg_type, arg_name);
 
       return {
         is_positional: callee.arg_names[arg_i] == null || arg_kind == "ARG_POS",
@@ -83,7 +81,8 @@ export function arg_defaults_from_callee_type(
         kind: arg_kind,
         code: arg_default_code,
         type: arg_type,
-        code_type: arg_default_type,
+        // code_type: arg_default_type,
+        default_code: default_at_definition,
         type_compatible_code_snippets:
           callee.type_compatible_code_snippets_by_arg_i[arg_i],
       };
@@ -91,10 +90,11 @@ export function arg_defaults_from_callee_type(
     .slice(callee.def_extras.first_arg !== undefined ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined
 }
 
-export function default_code_and_code_type_for_type(
+
+export function default_code_for_type(
   type: Type | string,
   name?: string
-): [string, Type] {
+): string {
   // @TODO: Why is this hardcoded?
   // const default_value_from_name = [
   //   ["width", "builtins.float", "1.0"],
@@ -111,49 +111,125 @@ export function default_code_and_code_type_for_type(
   // }
 
   if (typeof type == "string") {
-    console.error("default_code_and_code_type_for_type: type is a string", type);
-    return ["None", { ".class": "NoneType" }];
+    console.error("default_code_for_type: type is a string", type);
+    return `no default code for ${JSON.stringify(type)}`;
   }
 
-  if ((type as IInstanceType)?.type_ref == "builtins.str") {
-    return ['"Bananas..."', type];
+  // Try to find a literal first; if that fails, use a default for the first type.
+  const first_literal = find_first_literal_type(type);
+  if (first_literal) {
+    return JSON.stringify(first_literal.value);
+  } else if ((type as IInstanceType)?.type_ref == "builtins.str") {
+    return '"Bananas..."';
   } else if ((type as IInstanceType)?.type_ref == "builtins.float") {
-    return ["0.5", type];
+    return "0.5";
+  } else if ((type as IInstanceType)?.type_ref == "builtins.int") {
+    return "1";
   } else if (
     type[".class"] == "Instance" &&
     type["type_ref"] == "builtins.dict"
   ) {
-    return ["{}", type];
+    return "{}";
   } else if (type[".class"] == "UnionType") {
-    return default_code_and_code_type_for_type(
-      (type as UnionType).items[0],
-      name
-    );
-  } else if (
-    type[".class"] == "LiteralType" // &&
-    // (type["fallback"] as IInstanceType)?.type_ref == "builtins.str"
-  ) {
-    // const ltype = type as LiteralType;
-    return [JSON.stringify(type.value), type.fallback];
+    return default_code_for_type(type.items[0], name);
   } else if (
     "type_ref" in type &&
     type["type_ref"] == "matplotlib._typing.ArrayLike"
   ) {
-    return ["[1,2,3]", type];
+    return "[1,2,3]";
   } else if (type[".class"] == "TupleType") {
-    const [item_codes, types] = unzip(type.items.map(t => default_code_and_code_type_for_type(t)));
-    const out_code = `[${item_codes.join(", ")}]`;
-    const out_type: TupleType = {
-      ".class": "TupleType",
-      implicit: type.implicit,
-      items: types,
-      partial_fallback: type.partial_fallback,
-    };
-    return [out_code, out_type];
+    const item_codes = type.items.map(t => default_code_for_type(t));
+    return `[${item_codes.join(", ")}]`;
+  } else if (type[".class"] == "TypeAliasType" && type.resolved) {
+    return default_code_for_type(type.resolved);
+  } else if (type[".class"] == "NoneType") {
+    return "None";
   }
 
-  return ["None", { ".class": "NoneType" }];
+  return `no default code for ${JSON.stringify(type)}`;
 }
+
+function find_first_literal_type(type: Type | string): LiteralType | null {
+  if (typeof type == "string") {
+    return null;
+  } else if (type[".class"] == "LiteralType") {
+    return type;
+  } else if (type[".class"] == "UnionType") {
+    for (const t of type.items) {
+      const literal_type = find_first_literal_type(t);
+      if (literal_type) {
+        return literal_type;
+      }
+    }
+  } else if (type[".class"] == "TypeAliasType") {
+    return find_first_literal_type(type.resolved);
+  }
+  return null;
+}
+
+// export function default_code_and_code_type_for_type(
+//   type: Type | string,
+//   name?: string
+// ): [string, Type] {
+//   // @TODO: Why is this hardcoded?
+//   // const default_value_from_name = [
+//   //   ["width", "builtins.float", "1.0"],
+//   //   ["height", "builtins.float", "1.0"],
+//   // ];
+
+//   // const [_, __, default_code] = default_value_from_name.find(
+//   //   ([default_name, default_type, default_code]) =>
+//   //     name == default_name && type == default_type
+//   // ) || [undefined, undefined, undefined];
+
+//   // if (default_code !== undefined) {
+//   //   return [default_code, type];
+//   // }
+
+//   if (typeof type == "string") {
+//     console.error("default_code_and_code_type_for_type: type is a string", type);
+//     return ["None", { ".class": "NoneType" }];
+//   }
+
+//   if ((type as IInstanceType)?.type_ref == "builtins.str") {
+//     return ['"Bananas..."', type];
+//   } else if ((type as IInstanceType)?.type_ref == "builtins.float") {
+//     return ["0.5", type];
+//   } else if (
+//     type[".class"] == "Instance" &&
+//     type["type_ref"] == "builtins.dict"
+//   ) {
+//     return ["{}", type];
+//   } else if (type[".class"] == "UnionType") {
+//     return default_code_and_code_type_for_type(
+//       (type as UnionType).items[0],
+//       name
+//     );
+//   } else if (
+//     type[".class"] == "LiteralType" // &&
+//     // (type["fallback"] as IInstanceType)?.type_ref == "builtins.str"
+//   ) {
+//     // const ltype = type as LiteralType;
+//     return [JSON.stringify(type.value), type.fallback];
+//   } else if (
+//     "type_ref" in type &&
+//     type["type_ref"] == "matplotlib._typing.ArrayLike"
+//   ) {
+//     return ["[1,2,3]", type];
+//   } else if (type[".class"] == "TupleType") {
+//     const [item_codes, types] = unzip(type.items.map(t => default_code_and_code_type_for_type(t)));
+//     const out_code = `[${item_codes.join(", ")}]`;
+//     const out_type: TupleType = {
+//       ".class": "TupleType",
+//       implicit: type.implicit,
+//       items: types,
+//       partial_fallback: type.partial_fallback,
+//     };
+//     return [out_code, out_type];
+//   }
+
+//   return ["None", { ".class": "NoneType" }];
+// }
 
 export function create_el(
   tag: string,

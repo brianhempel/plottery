@@ -159,8 +159,9 @@ export type Arg = {
   name: string;
   kind: string;
   code: string;
-  type: Type;
-  code_type: Type | null;
+  type: Type | null; // Sometimes users provide an argument that's not in the type definition.
+  // code_type: Type | null; // unused
+  default_code: string | null;
   type_compatible_code_snippets: string[];
   required: boolean;
   is_positional: boolean;
@@ -252,7 +253,7 @@ export type CallableType = {
     first_arg: string; // 'self'
   };
 
-  default_code_by_arg_idx: (number | string | null)[];
+  default_code_by_arg_idx: (string | null)[];
   fallback: string; // "builtins.str"
 
   from_concatenate: boolean;
