@@ -22,7 +22,7 @@ export type LiteralWidget = Widget & {
 export function create_literal_widget(
   type: LiteralType | string | IInstanceType | NoneType
 ): LiteralWidget {
-  const el = create_el("div", "snp-arg");
+  const el = create_el("div", "snp-widget");
 
   if ((type as IInstanceType)?.type_ref == "builtins.str") {
     el.contentEditable = "true";

@@ -6,7 +6,7 @@ export type ArbitraryCodeWidget = Widget & {
 };
 
 export function create_arbitrary_code_widget(code: string): ArbitraryCodeWidget {
-  const el = create_el("div", "snp-arg");
+  const el = create_el("div", ["snp-widget", "arbitrary-code-widget"]);
   el.innerText = code;
   el.contentEditable = "true";
   el.addEventListener("keydown", ev => {

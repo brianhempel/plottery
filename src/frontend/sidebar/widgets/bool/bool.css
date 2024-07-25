@@ -1,0 +1,30 @@
+.snp-bool-switch {
+  display: inline-block;
+  width: 33px;
+  height: 20px;
+  border-radius: 10px;
+  line-height: 18px;
+  padding: 1px;
+  border: 1px solid darkgray;
+  cursor: pointer;
+}
+
+.snp-bool-switch > .switch-knob {
+  display: inline-block;
+  height: 16px;
+  width: 16px;
+  border-radius: 8px;
+  background-color: whitesmoke;
+  border: 1px solid darkgray;
+}
+
+.snp-bool-switch {
+  padding-left: 1px;
+  background-color: lightgray;
+  transition: all 80ms;
+}
+.snp-bool-switch.on {
+  padding-left: 14px;
+  background-color: rgb(69, 231, 69);
+  transition: all 80ms;
+}

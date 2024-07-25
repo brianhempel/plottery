@@ -10,7 +10,7 @@ export type ColorWidget = Widget & {
 };
 
 export function create_color_widget(type: TypeAliasType): ColorWidget {
-  const el = create_el("div", "snp-arg");
+  const el = create_el("div", "snp-widget");
 
   // Color picker
   const color_picker = create_el("input", "snp-arg-color") as HTMLInputElement;
@@ -30,6 +30,11 @@ export function create_color_widget(type: TypeAliasType): ColorWidget {
     clone:               ()                 => clone_color_widget(widget),
     color_picker,
   };
+
+  // Don't open dropdown when clicking on the color picker
+  color_picker.addEventListener("click", ev => {
+    ev.stopPropagation();
+  });
 
   return widget
 }

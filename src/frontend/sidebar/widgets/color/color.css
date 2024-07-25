@@ -1,7 +1,19 @@
 input.snp-arg-color {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: none;
   outline: none;
   background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input.snp-arg-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input.snp-arg-color::-webkit-color-swatch {
+  width: 16px;
+  height: 16px;
+  border: 1px solid darkgray; /* same as the bool controls */
 }

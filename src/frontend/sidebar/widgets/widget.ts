@@ -5,6 +5,8 @@ import { DropdownWidget, create_dropdown_widget, select_dropdown_item } from "./
 import { create_literal_widget } from "./literal/literal";
 import { create_arbitrary_code_widget } from "./arbitrary_code/arbitrary_code";
 import { default_code_for_type } from "../../utils/misc";
+import { create_bool_widget } from "./bool/bool";
+import { create_code_and_control_widget } from "./code_and_control/code_and_control";
 
 export type Widget = {
   el: HTMLElement;
@@ -15,13 +17,21 @@ export type Widget = {
   clone: () => Widget;
 };
 
-export function make_widget_for_code_and_type(code: string, type: Type | null, default_code: string | null, type_compatible_code_snippets: string[] | undefined): Widget {
+// Always returns a dropdown widget. So if you edit the code, you can revert to the original.
+export function make_widget_for_code_and_type(code: string, type: Type | null, default_code: string | null, type_compatible_code_snippets: string[] | undefined): DropdownWidget {
 
   let widgets: Widget[] = type ? widgets_from_type(type) : [];
 
-  // Add default if it's not represented by a type-derived widget
-  if (default_code && !widgets.find(w => w.does_match_arg_code(default_code))) {
-    widgets.unshift(create_arbitrary_code_widget(default_code));
+  // Add default if it's not already represented
+  if (default_code && !widgets.find(w => w.to_code() == default_code)) {
+    // Use a non-arbitrary widget kind if possible
+    const rich_widget = widgets.find(w => w.does_match_arg_code(default_code))?.clone();
+    if (rich_widget) {
+      rich_widget.set_code(default_code);
+      widgets.unshift(rich_widget);
+    } else {
+      widgets.unshift(create_arbitrary_code_widget(default_code));
+    }
   }
 
   // Code snippet widgets
@@ -34,17 +44,14 @@ export function make_widget_for_code_and_type(code: string, type: Type | null, d
     var arbitrary_code_widget = create_arbitrary_code_widget(code);
     widgets.unshift(arbitrary_code_widget);
     widget_to_select = arbitrary_code_widget;
-  } else {
-    widget_to_select.set_code(code);
   }
 
   // If there are multiple widgets at this point, create a dropdown
-  if (widgets.length > 1 && widget_to_select) {
-    var widget: Widget = create_dropdown_widget(widgets);
-    select_dropdown_item(widget as DropdownWidget, widget_to_select);
-  } else {
-    var widget: Widget = widgets[0];
-  }
+  const widget: DropdownWidget = create_dropdown_widget(widgets);
+  select_dropdown_item(widget as DropdownWidget, widget_to_select || widgets[0]);
+
+  widget.selected_item?.set_code(code);
+
   return widget;
 }
 
@@ -54,18 +61,25 @@ function widgets_from_type(type: Type): Widget[] {
     type[".class"] == "TypeAliasType" &&
     type.type_ref == "matplotlib._typing.ColorType"
   ) {
-    return [create_color_widget(type)];
+    // return [create_color_widget(type)];
+    return [create_code_and_control_widget("(0.90, 0.39, 0.40)", type)];
   } else if (typeof type == "string") {
     return [create_literal_widget(type)];
   } else if (type[".class"] == "LiteralType") {
     return [create_literal_widget(type)];
   } else if (type[".class"] == "Instance" && type.type_ref == "builtins.bool") {
     return [
-      create_arbitrary_code_widget("True"),
-      create_arbitrary_code_widget("False"),
+      create_code_and_control_widget("True",  type),
+      create_code_and_control_widget("False", type),
+      // create_bool_widget("True"),
+      // create_bool_widget("False"),
     ];
+    // return [
+    //   create_arbitrary_code_widget("True"),
+    //   create_arbitrary_code_widget("False"),
+    // ];
   } else if (type[".class"] == "UnionType") {
-    return type.items.flatMap(widgets_from_type);
+    return type.items.flatMap(t => widgets_from_type(t));
   } else if (type[".class"] == "TypeAliasType") {
     return [create_alias_widget(type)];
   } else if ((type[".class"] == "Instance" && type.type_ref == "builtins.str") ||

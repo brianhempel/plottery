@@ -24,12 +24,12 @@
 
 .snp-arg-disabled {
   opacity: 0.5;
-  filter: saturate(0);
+  filter: saturate(0.15);
 }
 
 .snp-arg-disabled:hover {
   opacity: 0.66;
-  filter: saturate(0);
+  filter: saturate(0.3);
 }
 
 

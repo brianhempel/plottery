@@ -35,7 +35,7 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
     to_code: () => widget.el.innerText,
     set_code: (new_code: string) => { widget.el.innerText = new_code },
     clone: () => clone_alias_widget(widget),
-    a_type
+    a_type,
   };
 
   return widget;
