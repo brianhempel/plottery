@@ -38,9 +38,11 @@
 }
 
 .snp-layer {
+  /* these flex params put the layer checkbox at the top right */
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: start;
+
   font-family: monospace;
   white-space: pre;
   margin: 0;
