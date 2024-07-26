@@ -43,7 +43,26 @@ export function create_float_widget(code: string): FloatWidget {
   slider.addEventListener('mouseenter', () => slider.closest(".snp-layer")?.setAttribute("draggable", "false") );
   slider.addEventListener('mouseleave', () => slider.closest(".snp-layer")?.setAttribute("draggable", "true")  );
 
-  slider.addEventListener("mouseup", () => {
+  // Prevent click from opening dropdown
+  slider.addEventListener("click", ev => { ev.stopPropagation(); });
+
+
+  // Lock the size of the neighbor code box to prevent it from moving the slider while dragging
+  slider.addEventListener("mousedown", ev => {
+    const sibling = el.parentElement?.children[0]
+    if (sibling) {
+      (sibling as HTMLElement).style.width = sibling.getBoundingClientRect().width + "px";
+    }
+  });
+
+  slider.addEventListener("mouseup", ev => {
+    // Unlock the size of the neighbor code box
+    const sibling = el.parentElement?.children[0]
+    if (sibling) {
+      (sibling as HTMLElement).style.width = ''
+    }
+
+    // Reset the slider to the middle and adjust its range
     widget.base = position_to_float(widget.slider, widget.base);
     widget.slider.value = "0";
   });
@@ -58,10 +77,13 @@ function position_to_float(slider: HTMLInputElement, base: number): number {
   const delta_pos = position;
   const dir       = Math.sign(delta_pos);
 
-  const base_pow_10 = Math.log10(Math.max(0.1, Math.abs(base)));
+  // Default to 10^-0.48 if base is 0 (i.e. slider range -10 to 10)
+  // if base is non-zero, use the same order of magnitude.
+  const base_pow_10 = base == 0 ? -0.48 : Math.log10(Math.abs(base));
   const offset      = Math.pow(10, base_pow_10);
 
-  const delta = Math.pow(10, Math.abs(delta_pos)*2 + base_pow_10) - offset; // Two powers of 10 from the starting number.
+  // Range is ±1.5 powers of 10 from the starting number.
+  const delta = Math.pow(10, Math.abs(delta_pos)*1.5 + base_pow_10) - offset;
 
   return sig_figs(base + dir*delta, 2);
 }
