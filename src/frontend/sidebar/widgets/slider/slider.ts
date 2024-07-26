@@ -1,4 +1,4 @@
-import { create_el, sig_figs } from "../../../../utils/misc";
+import { create_el, sig_figs } from "../../../utils/misc";
 import "./slider.css";
 
 export type Slider = {

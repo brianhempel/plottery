@@ -12,6 +12,7 @@ import {
   create_el,
   cm_end_pos,
   cm_start_pos,
+  number_to_string_not_ugly,
   sig_figs,
 } from "../../utils/misc";
 import {
@@ -142,21 +143,8 @@ export function call_to_code(call_view: CallView) : string {
   return `${call_name}(${args_str})`;
 }
 
-// So that 0.1 + 0.2 actually prints 0.3
-function number_to_string_not_ugly(n: number) {
-  const str = n.toString();
-
-  if (str.match(/\.\d*9999999999\d\d\d$/)) {
-    return number_to_string_not_ugly(n * 1.00000000000001);
-  }
-  return str.replace(/0+000000000\d\d\d$/, "");
-}
-
-
-
 // The handling for dragging on the plot has to be routed through the layers UI element because all the logic
 // for attaching the arguments to the code is buried there, including adding new args and modifying current args.
-
 
 export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | ((fig_px: [number, number], delta_px: [number, number], boundses: Boundses) => void) {
 

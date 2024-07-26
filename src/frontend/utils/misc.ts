@@ -562,4 +562,14 @@ export function sig_figs(x: number, ndigits: number): number {
 
   return mark;
 }
+// So that 0.1 + 0.2 actually prints 0.3
+
+export function number_to_string_not_ugly(n: number) {
+  const str = n.toString();
+
+  if (str.match(/\.\d*99999999\d\d\d$/)) {
+    return number_to_string_not_ugly(n * 1.000000000001);
+  }
+  return str.replace(/0+0000000\d\d\d$/, "").replace(/\.$/, "");
+}
 

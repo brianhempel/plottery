@@ -6,7 +6,7 @@ import {
   is_string_like,
 } from "../../../utils/misc";
 import { Widget } from "../widget";
-import { Slider, make_slider, update_slider_val } from "./slider/slider";
+import { Slider, make_slider, update_slider_val } from "../slider/slider";
 
 export type LiteralWidget = Widget & {
   kind: "Literal";
