@@ -562,14 +562,45 @@ export function sig_figs(x: number, ndigits: number): number {
 
   return mark;
 }
+
 // So that 0.1 + 0.2 actually prints 0.3
-
+//
+// BUT this does limit us to 12 digits of precision
 export function number_to_string_not_ugly(n: number) {
-  const str = n.toString();
-
-  if (str.match(/\.\d*99999999\d\d\d$/)) {
-    return number_to_string_not_ugly(n * 1.000000000001);
+  if (n === 0) {
+    return "0";
   }
-  return str.replace(/0+0000000\d\d\d$/, "").replace(/\.$/, "");
-}
 
+  // Convert to 12 digits left of the decimal point
+  const precision = 12
+
+  const base10 = Math.floor(Math.log10(Math.abs(n)));
+  const sign = n < 0 ? "-" : "";
+  const nnn_nnn_nnn_nnn = Math.abs(n) * Math.pow(10, precision - base10);
+
+  // Round it off
+  const rounded_nnn_nnn_nnn_nnn = Math.round(nnn_nnn_nnn_nnn);
+
+  // Division still sometimes produces the wonky .999999 or .0000001 so
+  // we will place the decimal point manually
+
+  let before_decimal = rounded_nnn_nnn_nnn_nnn.toString()
+  let after_decimal  = ""
+  let cur_base10 = precision
+  while (cur_base10 != base10) {
+    if (cur_base10 > base10) {
+      after_decimal  = before_decimal.slice(-1) + after_decimal
+      before_decimal = before_decimal.slice(0, -1)
+      if (before_decimal.length == 0) {
+        before_decimal = "0"
+      }
+      cur_base10 -= 1
+    } else if (cur_base10 < base10) {
+      before_decimal += "0"
+      cur_base10 += 1
+    }
+  }
+
+  // This will use e notation if base10 >= 21 or base10 <= -7
+  return parseFloat(sign + before_decimal + "." + after_decimal).toString();
+}
