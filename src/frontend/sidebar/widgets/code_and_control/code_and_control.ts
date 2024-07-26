@@ -4,6 +4,7 @@ import { ArbitraryCodeWidget, create_arbitrary_code_widget } from "../arbitrary_
 import { create_bool_widget } from "../bool/bool";
 import { create_color_widget } from "../color/color";
 import { create_float_widget } from "../float/float";
+import { create_int_widget } from "../int/int";
 import { Widget } from "../widget";
 
 // A text box next to a GUI control.
@@ -75,8 +76,7 @@ export function perhaps_make_control_widget(code: string, type: Type): Widget | 
   } else if (type[".class"] == "Instance" && type.type_ref == "builtins.float") {
     return create_float_widget(code);
   } else if (type[".class"] == "Instance" && type.type_ref == "builtins.int") {
-    // return create_int_widget(code);
-    return null;
+    return create_int_widget(code);
   }
 
   return null;

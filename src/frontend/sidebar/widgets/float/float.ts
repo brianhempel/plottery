@@ -1,6 +1,5 @@
 import { create_el, is_numeric, number_to_string_not_ugly, sig_figs } from "../../../utils/misc";
 import { Widget } from "../widget";
-import { Slider, make_slider, update_slider_val } from "../slider/slider";
 
 export type FloatWidget = Widget & {
   kind: "FloatWidget";
@@ -49,7 +48,7 @@ export function create_float_widget(code: string): FloatWidget {
 
   // Lock the size of the neighbor code box to prevent it from moving the slider while dragging
   slider.addEventListener("mousedown", ev => {
-    const sibling = el.parentElement?.children[0]
+    const sibling = el.previousElementSibling
     if (sibling) {
       (sibling as HTMLElement).style.width = sibling.getBoundingClientRect().width + "px";
     }
@@ -57,9 +56,9 @@ export function create_float_widget(code: string): FloatWidget {
 
   slider.addEventListener("mouseup", ev => {
     // Unlock the size of the neighbor code box
-    const sibling = el.parentElement?.children[0]
+    const sibling = el.previousElementSibling
     if (sibling) {
-      (sibling as HTMLElement).style.width = ''
+      (sibling as HTMLElement).style.width = '';
     }
 
     // Reset the slider to the middle and adjust its range

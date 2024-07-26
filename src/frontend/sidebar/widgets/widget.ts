@@ -82,6 +82,10 @@ function widgets_from_type(type: Type): Widget[] {
     return [
       create_code_and_control_widget(default_code_for_type(type), type),
     ]
+  } else if (type[".class"] == "Instance" && type.type_ref == "builtins.int") {
+    return [
+      create_code_and_control_widget(default_code_for_type(type), type),
+    ]
   } else if (type[".class"] == "UnionType") {
     return type.items.flatMap(t => widgets_from_type(t));
   } else if (type[".class"] == "TypeAliasType") {
