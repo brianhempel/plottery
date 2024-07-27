@@ -47,11 +47,13 @@ export function create_float_widget(code: string): FloatWidget {
 
 
   // Lock the size of the neighbor code box to prevent it from moving the slider while dragging
+  // Also, don't show the selected layer while dragging
   slider.addEventListener("mousedown", ev => {
     const sibling = el.previousElementSibling
     if (sibling) {
       (sibling as HTMLElement).style.width = sibling.getBoundingClientRect().width + "px";
     }
+    slider.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.add("hide_during_interaction");
   });
 
   slider.addEventListener("mouseup", ev => {
@@ -60,6 +62,8 @@ export function create_float_widget(code: string): FloatWidget {
     if (sibling) {
       (sibling as HTMLElement).style.width = '';
     }
+    // Show selected layer again
+    slider.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
 
     // Reset the slider to the middle and adjust its range
     widget.base = position_to_float(widget.slider, widget.base);

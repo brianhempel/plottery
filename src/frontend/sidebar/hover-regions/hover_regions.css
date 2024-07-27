@@ -14,7 +14,7 @@
   margin: 0;
 }
 
-.hover_regions.dragging {
+.hover_regions.hide_during_interaction {
   display: none;
 }
 

@@ -38,6 +38,12 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
   // On clicking the selected item, open up the dropdown
   selected_item_holder_el.addEventListener("click", () => {
     el.classList.toggle("expanded");
+    if (el.classList.contains("expanded")) {
+      // And hide the selected layer while previewing dropdown items
+      el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.add("hide_during_interaction");
+    } else {
+      el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
+    }
   });
 
   document.body.addEventListener("click", e => {
@@ -46,7 +52,10 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
       !(e.target == el) &&
       !el.contains(e.target as HTMLElement)
     ) {
-      el.classList.remove("expanded");
+      if (el.classList.contains("expanded")) {
+        el.classList.remove("expanded");
+        el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
+      }
     }
   });
 
@@ -112,6 +121,7 @@ function add_item_to_dropdown_widget(
   item_overlay_el.addEventListener("click", ev => {
     // Close the dropdown
     dropdown.el.classList.remove("expanded");
+    dropdown.el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
     select_dropdown_item(dropdown, widget);
     ev.stopPropagation();
     ev.preventDefault();

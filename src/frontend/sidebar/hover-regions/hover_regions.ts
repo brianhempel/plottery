@@ -216,7 +216,7 @@ export function attach_events_to_hover_regions(state: State) {
             if (xy_handler) { xy_handler(fig_px, [dx, dy], boundses); }
             if (x_handler)  { x_handler(fig_px[0], dx, boundses); }
             if (y_handler)  { y_handler(fig_px[1], dy, boundses); }
-            state.hover_regions_container.classList.add("dragging");
+            state.hover_regions_container.classList.add("hide_during_interaction");
             evt.preventDefault();
             evt.stopPropagation();
           }
@@ -226,7 +226,7 @@ export function attach_events_to_hover_regions(state: State) {
           if (pressed) {
             pressed = false;
             // state.hover_regions_container.classList.remove("hidden");
-            state.hover_regions_container.classList.remove("dragging");
+            state.hover_regions_container.classList.remove("hide_during_interaction");
 
             // Consider it a click if the mouse didn't move
             const dx = evt.clientX - start_x;

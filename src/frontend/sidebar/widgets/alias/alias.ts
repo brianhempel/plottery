@@ -23,6 +23,7 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
       ev.stopPropagation();
       ev.preventDefault();
       el.closest('.snp-dropdown.expanded')?.classList.remove('expanded');
+      el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
       el.blur();
     }
   });
