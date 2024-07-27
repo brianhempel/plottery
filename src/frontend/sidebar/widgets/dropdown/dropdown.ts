@@ -101,14 +101,20 @@ function add_item_to_dropdown_widget(
   const id = create_el("div", "snp-widget-id", item_holder);
   id.innerHTML = widget.kind_label_for_dropdown;
 
-  item_holder.addEventListener("mouseover", () => {
+  const item_overlay_el = create_el("div", "snp-dropdown-item-overlay", item_holder);
+
+  item_overlay_el.addEventListener("mouseover", ev => {
     dropdown.previewing_code = widget.to_code();
+    ev.stopPropagation();
+    ev.preventDefault();
   });
 
-  item_holder.addEventListener("click", () => {
+  item_overlay_el.addEventListener("click", ev => {
     // Close the dropdown
     dropdown.el.classList.remove("expanded");
     select_dropdown_item(dropdown, widget);
+    ev.stopPropagation();
+    ev.preventDefault();
   });
 
   dropdown.items.push(widget);

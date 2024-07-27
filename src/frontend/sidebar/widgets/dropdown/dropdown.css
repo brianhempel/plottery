@@ -67,6 +67,7 @@
 }
 
 .snp-dropdown-item {
+  position: relative;
   background: white;
   display: flex;
   cursor: pointer;
@@ -96,4 +97,14 @@
   font-style: italic;
   font-size: 0.8em;
   font-weight: bold;
+}
+
+.snp-dropdown-item-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  pointer-events: all; /* Ensure it intercepts all mouse events */
 }
