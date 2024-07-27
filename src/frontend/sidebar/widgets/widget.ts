@@ -56,6 +56,9 @@ export function make_widget_for_code_and_type(code: string, type: Type | null, d
 }
 
 function widgets_from_type(type: Type): Widget[] {
+  if (typeof type == "string") {
+    throw new Error("widgets_from_type() called with string type: " + type);
+  }
   if (
     typeof type == "object" &&
     type[".class"] == "TypeAliasType" &&
@@ -63,8 +66,6 @@ function widgets_from_type(type: Type): Widget[] {
   ) {
     // return [create_color_widget(type)];
     return [create_code_and_control_widget("(0.90, 0.39, 0.40)", type)];
-  } else if (typeof type == "string") {
-    return [create_literal_widget(type)];
   } else if (type[".class"] == "LiteralType") {
     return [create_literal_widget(type)];
   } else if (type[".class"] == "Instance" && type.type_ref == "builtins.bool") {

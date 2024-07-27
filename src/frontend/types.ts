@@ -229,6 +229,7 @@ export type UnionType = {
 export type LiteralType = {
   ".class": "LiteralType";
   value: string | number; // "left"
+  value_unparsed: string; // "'left'"
   fallback: Type;
 };
 

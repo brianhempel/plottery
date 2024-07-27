@@ -118,9 +118,9 @@ export function default_code_for_type(
   // Try to find a literal first; if that fails, use a default for the first type.
   const first_literal = find_first_literal_type(type);
   if (first_literal) {
-    return JSON.stringify(first_literal.value);
+    return first_literal.value_unparsed;
   } else if ((type as IInstanceType)?.type_ref == "builtins.str") {
-    return '"Bananas..."';
+    return "'Bananas...'";
   } else if ((type as IInstanceType)?.type_ref == "builtins.float") {
     return "0.5";
   } else if ((type as IInstanceType)?.type_ref == "builtins.int") {

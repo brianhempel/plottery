@@ -39,7 +39,7 @@ export function create_code_and_control_widget(code: string, type: Type): CodeAn
   };
 
   attach_dom_change_handler(code_widget.el, () => {
-    console.log('code widget changed');
+    // console.log('code widget changed');
     const new_code = code_widget.to_code();
     widget.control_widget?.to_code() != new_code && perhaps_set_control_widget_code(widget, new_code);
   });
@@ -62,7 +62,7 @@ function attach_dom_change_handler(el: HTMLElement, callback: () => void): Mutat
 
 function attach_control_widget_change_handler(widget: CodeAndControlWidget, control_widget: Widget) {
   widget.control_widget_observer = attach_dom_change_handler(control_widget.el, () => {
-    console.log('control widget changed');
+    // console.log('control widget changed');
     const new_code = control_widget.to_code();
     widget.code_widget.to_code() != new_code && widget.code_widget.set_code(new_code);
   });

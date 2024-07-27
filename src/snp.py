@@ -1191,6 +1191,7 @@ def serialize_type(_type: mypy.types.Type) -> JsonDict:
         return {
             ".class": "LiteralType",
             "value": _type.value,
+            "value_unparsed": repr(_type.value),
             "fallback": serialize_type(_type.fallback),
         }
 
