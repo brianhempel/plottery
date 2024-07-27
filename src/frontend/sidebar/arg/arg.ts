@@ -40,8 +40,8 @@ export function create_arg_view(
   arg_el.addEventListener("mousedown", ev => {
     if (view.disabled) {
       enable_arg_view(view);
-      ev.stopPropagation();
-      ev.preventDefault();
+      // ev.stopPropagation();
+      // ev.preventDefault();
     }
   });
 
@@ -53,6 +53,31 @@ export function create_arg_view(
       ev.preventDefault();
     }
   });
+
+  const arg_name_width = 120;
+  prefixEl.style.minWidth = `${arg_name_width}px`;
+
+  // If the item name is too long (112px), make it smaller.
+  // But we can't do this until the actual width is known.
+  const resizeObserver = new ResizeObserver((entries) => {
+    // console.log("resizeObserver", entries);
+    for (const entry of entries) {
+      if (entry.borderBoxSize) {
+        const width = (entry.borderBoxSize[0] || entry.borderBoxSize).inlineSize;
+        if (width > 0) {
+          if (width > arg_name_width) {
+            prefixEl.style.width = `${arg_name_width}px`;
+            const xscale = arg_name_width / width;
+            const dx     = (width - arg_name_width) / 2;
+            prefixEl.style.transform = `scale(${xscale}, 1) translate(-${dx}px, 0)`;
+          }
+          resizeObserver.disconnect();
+          break;
+        }
+      }
+    }
+  });
+  resizeObserver.observe(prefixEl);
 
   return view;
 }

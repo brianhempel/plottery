@@ -50,10 +50,7 @@
   color: #2f67ac;
   font-weight: bold;
   margin-right: 5px;
-  min-width: 100px;
-  max-width: 100px;
-  text-overflow: ellipsis;
-  overflow: auto;
+  /* Width is set in JS because we do some fancy resizing if the name is too long */
   cursor: pointer;
 }
 
