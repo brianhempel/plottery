@@ -10,7 +10,7 @@ import { make_widget_for_code_and_type } from "../sidebar/widgets/widget";
 import { CallView, CallWithArgs, DynamicCallInfo, IInstanceType, State, StaticCallTypeInfo } from "../types";
 import { equalByJSON } from "../utils/array";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
-import { create_el, cm_end_pos, cm_start_pos, add_line_of_code } from "../utils/misc";
+import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type } from "../utils/misc";
 import { ParseableComment } from "../types";
 
 
@@ -376,11 +376,12 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
 
   const add_layer_menu = create_menu_el('<span class="snp-add-layer-button">＋ Add Layer</span>', layers_panel_heading)
 
+  const default_iterable = default_code_for_type({".class": "Instance", "type_ref": "matplotlib._typing.ArrayLike", "args": []});
   add_menu_item(
     add_layer_menu,
     'For-loop', null,
     (state => {
-      const code = "for i, x in enumerate([1, 2, 3]):\n    pass\n";
+      const code = `for i, x in enumerate(${default_iterable}):\n    pass\n`;
       add_line_of_code(code, state);
       hard_rerun(state);
     }),
@@ -394,8 +395,8 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
       'For-loop over...',
       _ => true, // Enabled?
       state
-    )
-  state.user_iterables.forEach(iterable => {
+    );
+  [default_iterable, ...state.user_iterables].forEach(iterable => {
     add_menu_item(
       user_iterables_menu,
       iterable, null,
