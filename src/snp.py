@@ -1019,6 +1019,9 @@ def unparse_mypy_expr(expr: mypy.nodes.Expression):
             return repr(expr.value)
         case mypy.nodes.NameExpr():
             return expr.name
+        case mypy.nodes.TupleExpr():
+            perhaps_trailing_comma = "," if len(expr.items) == 1 else ""
+            return f"({', '.join([unparse_mypy_expr(e) for e in expr.items])}{perhaps_trailing_comma})"
         case mypy.nodes.ListExpr():
             return f"[{', '.join([unparse_mypy_expr(e) for e in expr.items])}]"
         case _:

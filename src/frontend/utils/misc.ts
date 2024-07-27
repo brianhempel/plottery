@@ -139,7 +139,8 @@ export function default_code_for_type(
     return "[1,2,3]";
   } else if (type[".class"] == "TupleType") {
     const item_codes = type.items.map(t => default_code_for_type(t));
-    return `[${item_codes.join(", ")}]`;
+    const perhaps_trailing_comma = type.items.length == 1 ? "," : "";
+    return `(${item_codes.join(", ")}${perhaps_trailing_comma})`;
   } else if (type[".class"] == "TypeAliasType" && type.resolved) {
     return default_code_for_type(type.resolved);
   } else if (type[".class"] == "NoneType") {
