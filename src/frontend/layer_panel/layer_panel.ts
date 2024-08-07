@@ -8,7 +8,7 @@ import { add_method_call } from "../sidebar/methods/method";
 import { create_arbitrary_code_widget } from "../sidebar/widgets/arbitrary_code/arbitrary_code";
 import { make_widget_for_code_and_type } from "../sidebar/widgets/widget";
 import { CallView, CallWithArgs, DynamicCallInfo, IInstanceType, State, StaticCallTypeInfo } from "../types";
-import { equalByJSON } from "../utils/array";
+import { equalByJSON, zip } from "../utils/array";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
 import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type } from "../utils/misc";
 import { ParseableComment } from "../types";
@@ -454,10 +454,15 @@ export function duplicate_selected_layers(state: State) {
   const old_code = cm.getValue();
   selected_layers(state).forEach((layer : Layer) => {
     // Duplicate layer
-    layer.call_views.forEach(call_view => {
+    zip(layer.call_views, layer.calls_with_args).forEach(([call_view, call_with_args]) => {
       const insert_line = 1 + (call_view.mark.find()?.to.line || cm.getCursor().line);
 
-      cm.replaceRange(call_to_code(call_view) + '\n', {line: insert_line, ch: 0})
+      const code = call_to_code(call_view);
+      cm.replaceRange(code + '\n', {line: insert_line, ch: 0})
+
+      const receiver_dot_name = code.split('(')[0];
+      const loc = insert_line + state.cell_lineno;
+      state.persistent_dataset.new_calls = `["${receiver_dot_name}${loc}"]`;
     });
   });
   if(cm.getValue() !== old_code) {

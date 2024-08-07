@@ -52,7 +52,7 @@
   --indent-spacing: 2em;
 }
 
-.for-loop > .snp-arg,
+.for-loop > .snp-widget,
 .for-loop > .snp-dropdown {
   border: solid 1px lightgray;
 }

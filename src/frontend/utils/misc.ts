@@ -553,8 +553,8 @@ export function sig_figs(x: number, ndigits: number): number {
 
   let line_count = cm.getValue().split("\n").length;
   let mark = cm.markText(
-    { line: line_count - 2, ch: 0 },
-    { line: line_count - 2, ch: 0 },
+    { line: line_count - 3, ch: 0 },
+    { line: line_count - 3, ch: 0 },
     { inclusiveRight: true, inclusiveLeft: true, clearWhenEmpty: false }
   ); // insert at end, for now...
 
