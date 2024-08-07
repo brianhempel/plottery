@@ -29,5 +29,17 @@ export function create_arbitrary_code_widget(code: string): ArbitraryCodeWidget 
     clone:               ()                 => create_arbitrary_code_widget(widget.to_code()),
   };
 
+  // Prevent layer drag by @mech https://stackoverflow.com/a/34588661
+  el.addEventListener('mouseenter', () => el.closest(".snp-layer")?.setAttribute("draggable", "false") );
+  el.addEventListener('mouseleave', () => el.closest(".snp-layer")?.setAttribute("draggable", "true")  );
+
+  // When el is clicked, select its text
+  el.addEventListener("focus", ev => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+  });
+
   return widget
 }
