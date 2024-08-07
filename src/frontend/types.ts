@@ -158,7 +158,7 @@ export type MethodInfoWithType = MethodInfo & {
 
 export type Arg = {
   name: string;
-  kind: string;
+  kind: "ARG_POS" | "ARG_OPT" | "ARG_STAR" | "ARG_NAMED" | "ARG_STAR2" | "ARG_NAMED_OPT";
   code: string;
   type: Type | null; // Sometimes users provide an argument that's not in the type definition.
   // code_type: Type | null; // unused
@@ -193,7 +193,6 @@ export type CallWithArgs<call_info_type> = {
   needed_positional_args: Arg[];
   missing_optional_positional_args: Arg[];
   missing_keyword_args: Arg[];
-  kwargs: Arg[] | null;
 };
 
 export type MethodWithArgs = {
@@ -293,6 +292,10 @@ export type TypedDictType = {
   ".class": "TypedDictType";
   fallback: Type; // "builtins.dict"
   items: [string, Type][];
+  type_compatible_code_snippets_by_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
   required_keys: string[];
-};export type ParseableComment = Position & { uncommented: string; };
+  default_codes: { [arg_name: string]: string };
+};
+
+export type ParseableComment = Position & { uncommented: string; };
 

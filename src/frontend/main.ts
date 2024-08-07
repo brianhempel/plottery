@@ -201,8 +201,6 @@ function attach_snp(
     load_selected_layers(state);
   }
 
-
-
   // Re-open the selected calls
   // state.persistent_dataset
   // const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
@@ -229,57 +227,10 @@ function attach_snp(
   // }
 
   (window as any)["last_snp_state"] = state;
-
-  // Suppress additional plot
-  // setTimeout(() => {
-  //   snp_outer.parentElement?.parentElement?.nextElementSibling?.remove();
-  // }, 200);
 }
 
 (window as any)["attach_snp"] = attach_snp;
 
-export function call_info_to_call_with_args<call_info_type extends (DynamicCallInfo | StaticCallTypeInfo)>(
-  call_info: call_info_type,
-  cell_lineno: number,
-  code_mirror: CodeMirror.DocOrEditor
-): CallWithArgs<call_info_type> {
-  const args = get_args(call_info, cell_lineno, code_mirror);
-
-  const [given_positional_args, given_keyword_args] =
-    args.filter(arg => arg.name != "kwargs").partition(arg => arg.is_positional);
-
-  const {
-    needed_positional_args,
-    missing_optional_positional_args,
-    missing_keyword_args,
-    kwargs,
-  } = segment_args(
-    call_info.callee,
-    given_positional_args,
-    given_keyword_args
-  );
-
-  // console.log("call_info_to_call_with_args",{
-  //   call_info,
-  //   given_positional_args,
-  //   given_keyword_args,
-  //   missing_positional_args,
-  //   missing_keyword_args,
-  //   needed_positional_args,
-  //   missing_optional_positional_args,
-  //   kwargs,
-  // })
-
-  return {
-    call_info,
-    given_positional_args,
-    given_keyword_args,
-    needed_positional_args,
-    missing_optional_positional_args,
-    missing_keyword_args,
-    kwargs,
-  };
-}
 
 // # Positional argument
 // ARG_POS = 0
@@ -293,39 +244,31 @@ export function call_info_to_call_with_args<call_info_type extends (DynamicCallI
 // ARG_STAR2 = 4
 // # In an argument list, keyword-only and also optional
 // ARG_NAMED_OPT = 5
-
-function get_args(
-  call_info: StaticCallTypeInfo | DynamicCallInfo,
+export function call_info_to_call_with_args<call_info_type extends (DynamicCallInfo | StaticCallTypeInfo)>(
+  call_info: call_info_type,
   cell_lineno: number,
   code_mirror: CodeMirror.DocOrEditor
-): Arg[] {
-  let callee_has_self_arg = call_info.callee.def_extras.first_arg !== undefined;
+): CallWithArgs<call_info_type> {
+  const callee = call_info.callee;
 
-  let arg_names = call_info.callee.arg_names_at_definition ? call_info.callee.arg_names_at_definition : call_info.callee.arg_names;
-  if (arg_names === call_info.callee.arg_names) {
-    console.warn("arg_names_at_definition not found for ", call_info, " likely meaning the type def for it is missing an import or is otherwise missing or malformed. Lack of definition access can can mess up positional-only arguments.");
-  }
-  if (!call_info.callee.default_code_by_arg_idx) {
-    console.warn("default_code_by_arg_idx not found for ", call_info, " likely meaning the type def for it is malformed");
-  }
+  let arg_defaults = arg_defaults_from_callee_type(callee);
 
-  return call_info.given_args.map((given_arg, arg_i: number) => {
-
+  const given_args: Arg[] = call_info.given_args.map((given_arg, arg_i: number) => {
     const arg_val_code = code_mirror.getRange(
       cm_start_pos(given_arg.pos, cell_lineno),
       cm_end_pos(given_arg.pos, cell_lineno)
     );
 
-    const arg_i_at_func_def =
-      given_arg.name ? arg_names.indexOf(given_arg.name) : (callee_has_self_arg ? arg_i + 1 : arg_i);
+    // Find the corresponding default arg template based on namr or position
+    const arg_template = given_arg.name ? arg_defaults.find(arg => given_arg.name === arg.name) : arg_defaults[arg_i];
 
     // We've been given a named argument that's not in the type definition.
-    if (arg_i_at_func_def == -1 || arg_i_at_func_def >= arg_names.length) {
+    if (!arg_template) {
       return {
         name: given_arg.name || "unknown",
         required: false,
         is_positional: given_arg.name == null,
-        kind: arg_i_at_func_def == -1 ? "ARG_NAMED" : "ARG_OPT",
+        kind: given_arg.name ? "ARG_NAMED" : "ARG_OPT",
         code: arg_val_code,
         type: null, // Could use the given arg type, `given_arg`
         // code_type: null,
@@ -334,56 +277,14 @@ function get_args(
       };
     }
 
-    const arg_kind_i = call_info.callee.arg_kinds[arg_i_at_func_def]
-    const arg_kind = get_arg_kind_from_int(arg_kind_i);
-
     return {
-      name: given_arg["name"] || arg_names[arg_i_at_func_def],
-      required: arg_kind == "ARG_POS" || arg_kind == "ARG_NAMED", // For args given by keyword, we'd have to look up the original definition to know if the keyword arg is required. Required keyword args are rare, so let's not worry about it.
+      ...arg_template,
       is_positional: given_arg.name == null,
-      kind: arg_kind,
       code: arg_val_code,
-      type: call_info.callee.arg_types[arg_i_at_func_def],
-      // code_type: null,
-      default_code: call_info.callee.default_code_by_arg_idx ? call_info.callee.default_code_by_arg_idx[arg_i_at_func_def] : null,
-      type_compatible_code_snippets:
-        call_info.callee.type_compatible_code_snippets_by_arg_i[arg_i_at_func_def],
     };
   });
-}
 
-export function segment_args(
-  callee: CallableType & {
-    pos: Position;
-  },
-  given_positional_args: Arg[],
-  given_keyword_args: Arg[]
-) {
-  let arg_defaults = arg_defaults_from_callee_type(callee);
-
-  const kwargs_alias = arg_defaults.find(arg => arg.name == "kwargs");
-
-  const kwargs_items = (
-    (kwargs_alias?.type as TypeAliasType)?.resolved as TypedDictType
-  )?.items;
-
-  const kwargs: Arg[] | null = kwargs_items
-    ? kwargs_items.map(([name, item]) => {
-        return {
-          name,
-          kind: "ARG_NAMED",
-          code: kwargs_alias!.code,
-          type: item,
-          // code_type: kwargs_alias!.code_type,
-          default_code: null, // TypedDicts don't support defaults
-          type_compatible_code_snippets: [],
-          is_positional: false,
-          required: false,
-        };
-      })
-    : null;
-
-  arg_defaults = arg_defaults.filter(arg => arg.name != "kwargs");
+  const [given_positional_args, given_keyword_args] = given_args.partition(arg => arg.is_positional);
 
   const missing_positional_args = arg_defaults.slice(given_positional_args.length).takeWhile(arg => arg.is_positional);
 
@@ -400,9 +301,11 @@ export function segment_args(
     missing_positional_args.partition(arg => arg.kind === "ARG_POS");
 
   return {
+    call_info,
+    given_positional_args,
+    given_keyword_args,
     needed_positional_args,
     missing_optional_positional_args,
     missing_keyword_args,
-    kwargs,
   };
 }

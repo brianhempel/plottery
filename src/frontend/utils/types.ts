@@ -47,7 +47,7 @@ export type CellOutput = {
   };
 };
 
-export function get_arg_kind_from_int(arg_int: number) {
+export function get_arg_kind_from_int(arg_int: number) : "ARG_POS" | "ARG_OPT" | "ARG_STAR" | "ARG_NAMED" | "ARG_STAR2" | "ARG_NAMED_OPT" {
   const int_to_arg_kind = [
     "ARG_POS", // Positional argument
     "ARG_OPT", // Positional, optional argument (functions only, not calls)
@@ -57,7 +57,7 @@ export function get_arg_kind_from_int(arg_int: number) {
     "ARG_NAMED_OPT", // In an argument list, keyword-only and also optional
   ];
 
-  return int_to_arg_kind[arg_int];
+  return int_to_arg_kind[arg_int] as "ARG_POS" | "ARG_OPT" | "ARG_STAR" | "ARG_NAMED" | "ARG_STAR2" | "ARG_NAMED_OPT";
 }
 
 // Cell callbacks from:

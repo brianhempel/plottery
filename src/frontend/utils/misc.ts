@@ -10,6 +10,7 @@ import {
   UnionType,
   TupleType,
   LiteralType,
+  TypedDictType,
 } from "../types";
 import { unzip } from "./array";
 import { TextMarker, MarkerRange } from "./codemirror";
@@ -46,7 +47,46 @@ import { get_arg_kind_from_int } from "./types";
 //   }
 // }
 
+function get_proper_type(type: Type): Type {
+  return type[".class"] == "TypeAliasType" && type.resolved ? get_proper_type(type.resolved) : type;
+}
 
+function arg_defaults_for_star2_arg(arg_type: Type): Arg[] {
+  arg_type = get_proper_type(arg_type);
+  if (arg_type[".class"] != "TypedDictType") return [];
+  const typed_dict = arg_type as TypedDictType;
+
+  const { items, default_codes } = typed_dict;
+  // const items: undefined | [string, Type][] = typed_dict?.items;
+  // const default_codes: undefined | { [arg_name: string]: string; } = typed_dict?.default_codes;
+
+  return items.map(([name, type], item_i) => {
+    return {
+      name,
+      required: false,
+      kind: "ARG_NAMED",
+      code: default_codes[name] || default_code_for_type(type, name),
+      type: type,
+      // code_type: kwargs_alias!.code_type,
+      default_code: default_codes[name] || null, // TypedDicts don't support defaults
+      type_compatible_code_snippets: typed_dict.type_compatible_code_snippets_by_i[item_i],
+      is_positional: false,
+    };
+  })
+}
+
+// # Positional argument
+// ARG_POS = 0
+// # Positional, optional argument (functions only, not calls)
+// ARG_OPT = 1
+// # *arg argument
+// ARG_STAR = 2
+// # Keyword argument x=y in call, or keyword-only function arg
+// ARG_NAMED = 3
+// # **arg argument
+// ARG_STAR2 = 4
+// # In an argument list, keyword-only and also optional
+// ARG_NAMED_OPT = 5
 export function arg_defaults_from_callee_type(
   callee: CallableType & {
     pos: Position;
@@ -59,9 +99,15 @@ export function arg_defaults_from_callee_type(
   if (!callee.default_code_by_arg_idx) {
     console.warn("default_code_by_arg_idx not found for ", callee, " likely meaning the type def for it is malformed");
   }
-  return arg_names.map((arg_name: string, arg_i: number) => {
+  return arg_names.flatMap((arg_name: string, arg_i: number) => {
       const arg_kind = get_arg_kind_from_int(callee.arg_kinds[arg_i]);
       const arg_type = callee.arg_types[arg_i];
+
+      if (arg_kind == "ARG_STAR2") {
+        const prior_arg_names = arg_names.slice(0, arg_i);
+        // Keyword args before the **args will never never be globbed into the **args.
+        return arg_defaults_for_star2_arg(arg_type).filter(arg => !prior_arg_names.includes(arg.name));
+      }
 
       // Since the function parameter could be a union type, we need to indicate which of the types the actual code is.
       let arg_default_code: string;
@@ -74,7 +120,7 @@ export function arg_defaults_from_callee_type(
 
       arg_default_code = default_at_definition != null ? default_at_definition : default_code_for_type(arg_type, arg_name);
 
-      return {
+      return [{
         is_positional: callee.arg_names[arg_i] == null || arg_kind == "ARG_POS",
         required: arg_kind == "ARG_POS" || arg_kind == "ARG_NAMED",
         name: arg_name,
@@ -85,7 +131,7 @@ export function arg_defaults_from_callee_type(
         default_code: default_at_definition,
         type_compatible_code_snippets:
           callee.type_compatible_code_snippets_by_arg_i[arg_i],
-      };
+      }];
     })
     .slice(callee.def_extras.first_arg !== undefined ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined
 }

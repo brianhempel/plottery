@@ -68,7 +68,6 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
     missing_optional_positional_args,
     given_keyword_args,
     missing_keyword_args,
-    kwargs,
   } = call;
 
   const arg_and_views: { arg: Arg; view: ArgView }[] = [];
@@ -94,27 +93,27 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
   // Keyword args (optional)
   add_args(missing_keyword_args, true);
 
-  // TODO: Store kwargs_collapsable in call els
-  if (kwargs != null) {
-    const kwargs_collapsable = create_collapsable_els();
-    kwargs_collapsable.el.classList.add("snp-kwargs");
+  // Don't need the below, **args are flattened into the keyword args
+  // if (kwargs != null) {
+  //   const kwargs_collapsable = create_collapsable_els();
+  //   kwargs_collapsable.el.classList.add("snp-kwargs");
 
-    collapse_collapsable(kwargs_collapsable.el);
+  //   collapse_collapsable(kwargs_collapsable.el);
 
-    body_el.append(kwargs_collapsable.el);
-    const kwargs_label = create_el(
-      "div",
-      "snp-call-kwargs-label",
-      kwargs_collapsable.header_el
-    );
-    kwargs_label.innerText = "See more";
+  //   body_el.append(kwargs_collapsable.el);
+  //   const kwargs_label = create_el(
+  //     "div",
+  //     "snp-call-kwargs-label",
+  //     kwargs_collapsable.header_el
+  //   );
+  //   kwargs_label.innerText = "See more";
 
-    kwargs.forEach(arg => {
-      const arg_view = create_arg_view(arg, {disabled: true});
-      kwargs_collapsable.body_el.append(arg_view.el);
-      arg_and_views.push({ arg, view: arg_view });
-    });
-  }
+  //   kwargs.forEach(arg => {
+  //     const arg_view = create_arg_view(arg, {disabled: true});
+  //     kwargs_collapsable.body_el.append(arg_view.el);
+  //     arg_and_views.push({ arg, view: arg_view });
+  //   });
+  // }
 
   const call_view: CallView = {
     els: {

@@ -8,6 +8,7 @@ import pathlib
 import re
 import ast
 import time
+from typing import Dict, List, Tuple
 
 import IPython
 
@@ -20,6 +21,8 @@ import mypy.types
 import mypy.server.update
 
 import matplotlib as mpl
+
+import numpy
 
 import shapely
 
@@ -198,12 +201,15 @@ def method_associations(artist):
                 ([".xaxis"], "set_xticks", 1),
                 ([".xaxis", ".xaxis.label"], "set_xlabel", 1),
                 ([".yaxis", ".yaxis.label"], "set_ylabel", 1),
+                ([".yaxis.majorTicks[0].label1"], "set_ylim", 1),
+                ([".yaxis.majorTicks[0].label2"], "set_ylim", 1),
                 ([], "bar", float("inf")),
                 ([], "barh", float("inf")),
                 ([], "plot", float("inf")),
                 ([], "legend", float("inf")),
                 ([], "axhline", float("inf")),
                 ([], "axvline", float("inf")),
+                ([], "bar_label", float("inf")),
             ]
         case _:
             return []
@@ -361,7 +367,7 @@ def method_type(receiver, method_name, type_graph):
 
 def method_type_json(receiver, method_name, type_graph):
     typ = method_type(receiver, method_name, type_graph)
-    return typ and callable_type_json(typ, {})
+    return typ and serialize_type(typ, {})
 
 
 # data-func-code-and-num indicates the artist was returned from a call, so that artist on the canvas should be associated with that call in the layers panel.
@@ -468,6 +474,8 @@ class SNPFigureOnly:
         return self.cached_png
 
 
+# When there's a free moment during manipulation, re-gen the hover regions too.
+# Frontend calls this by changing the cell code from SNP(...) to SNPFigureAndHoverRegions(...) before sending it to the Python kernel.
 class SNPFigureAndHoverRegions(SNPFigureOnly):
     def __init__(
         self,
@@ -578,7 +586,7 @@ class SNP(SNPFigureAndHoverRegions):
                     name_type = tree.names[name].type
                     if name_type is not None:
                         self.user_typed_snippets[name] = name_type
-                        is_subtype(name_type, iterable_type) and not is_subtype(name_type, string_type) and self.user_iterables.append(name)
+                        (is_subtype(name_type, iterable_type) and not is_subtype(name_type, string_type) or (isinstance(value, numpy.ndarray) and value.ndim == 1) or isinstance(value, list)) and self.user_iterables.append(name) # include dynamic checks too because grrrr
 
                         if isinstance(value, dict) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.dict':
                             val_type = name_type.args[1]
@@ -1038,8 +1046,8 @@ def add_pos_json(type_json_dict, node):
     return type_json_dict
 
 
-def to_json_dict(node, type):
-    type_json_dict = serialize_type(type)
+def type_json_with_node_loc(node, type, user_typed_snippets):
+    type_json_dict = serialize_type(type, user_typed_snippets)
     return add_pos_json(type_json_dict, node)
 
 
@@ -1054,37 +1062,6 @@ def is_subtype(subtype, type):
         return False
 
     return mypy.subtypes.is_subtype(subtype, type)
-
-
-# # Positional argument
-# ARG_POS = 0
-# # Positional, optional argument (functions only, not calls)
-# ARG_OPT = 1
-# # *arg argument
-# ARG_STAR = 2
-# # Keyword argument x=y in call, or keyword-only function arg
-# ARG_NAMED = 3
-# # **arg argument
-# ARG_STAR2 = 4
-# # In an argument list, keyword-only and also optional
-# ARG_NAMED_OPT = 5
-
-def callable_type_json(callable_type: mypy.types.CallableType, user_typed_snippets):
-    type_json_dict = serialize_type(callable_type)  # <- Custom serializer
-
-    if not isinstance(type_json_dict, dict):  # IDK why we sometimes get a string
-        type_json_dict = dict()
-
-    if hasattr(callable_type, "definition") and callable_type.definition and callable_type.definition.arguments:
-        type_json_dict["default_code_by_arg_idx"] = [unparse_mypy_expr(arg.initializer) for arg in callable_type.definition.arguments]
-        type_json_dict["arg_names_at_definition"] = [arg.variable.name for arg in callable_type.definition.arguments] # for positional arguments, mypy doesn't store the names in the arg_names list so we need to re-gen
-
-    type_json_dict["type_compatible_code_snippets_by_arg_i"] = []
-    for arg_type in callable_type.arg_types:
-        compatible_snippets = [name for name, snippet_type in user_typed_snippets.items() if is_subtype(snippet_type, arg_type)]
-        type_json_dict["type_compatible_code_snippets_by_arg_i"].append(compatible_snippets)
-
-    return type_json_dict
 
 
 class GatherTypedCalls(TraverserVisitor):
@@ -1106,23 +1083,23 @@ class GatherTypedCalls(TraverserVisitor):
             # loc = (node.line, node.column, node.end_line, node.end_column)
             given_args = []
             for arg, name, kind in zip(node.args, node.arg_names, node.arg_kinds):
-                given_arg = to_json_dict(arg, self.types_dict.get(arg))
+                given_arg = type_json_with_node_loc(arg, self.types_dict.get(arg), self.user_typed_snippets)
                 given_arg["name"] = name
                 # given_arg["kind"] = kind.value
                 given_args.append(given_arg)
 
             # The callee_type here is partially applied (self is already removed from the argument list).
             # For consistency with places where where that is not the case, let us unapply it
-            if callee_type.definition is not None:
+            if callee_type.definition is not None and callee_type.definition.type is not None:
                 callee_type = callee_type.definition.type
 
-            callee = callable_type_json(callee_type, self.user_typed_snippets)
-            add_pos_json(callee, node.callee)
+            # callee = callable_type_json(callee_type, self.user_typed_snippets)
+            # add_pos_json(callee, node.callee)
 
             self.out.append(
                 {
-                    "call": to_json_dict(node, self.types_dict.get(node)),
-                    "callee": callee,
+                    "call": type_json_with_node_loc(node, self.types_dict.get(node), self.user_typed_snippets),
+                    "callee": type_json_with_node_loc(node.callee, callee_type, self.user_typed_snippets),
                     "given_args": given_args,
                 }
             )
@@ -1142,21 +1119,25 @@ class JsonDict:
         return self.dict
 
 
+def typed_dict_default_codes(typed_dict_type: mypy.types.TypedDictType) -> Dict[Tuple[str, str]]:
+    return {stmt.lvalues[0].name: unparse_mypy_expr(stmt.rvalue) for stmt in typed_dict_type.fallback.type.defn.defs.body if isinstance(stmt, mypy.nodes.AssignmentStmt) and not isinstance(stmt.rvalue, mypy.nodes.TempNode) and len(stmt.lvalues) == 1}
+
+
 # Custom serialize copied from mypy but that expands out the type alias...
 # https://github.com/python/mypy/blob/16abf5cbe08c8b399381fc38220586cf2e49c2bc/mypy/types.py
-def serialize_type(_type: mypy.types.Type) -> JsonDict:
+def serialize_type(_type: mypy.types.Type, user_typed_snippets: Dict[str, mypy.types.Type]) -> JsonDict:
 
     if isinstance(_type, mypy.types.Overloaded):
         return {
             ".class": "Overloaded",
-            "items": [serialize_type(t) for t in _type.items],
+            "items": [serialize_type(t, user_typed_snippets) for t in _type.items],
         }
 
     if isinstance(_type, mypy.types.UnboundType):
         return {
             ".class": "UnboundType",
             "name": _type.name,
-            "args": [serialize_type(a) for a in _type.args],
+            "args": [serialize_type(a, user_typed_snippets) for a in _type.args],
             "expr": _type.original_str_expr,
             "expr_fallback": _type.original_str_fallback,
         }
@@ -1168,25 +1149,32 @@ def serialize_type(_type: mypy.types.Type) -> JsonDict:
             "fullname": _type.fullname,
             "id": _type.id.raw_id,
             "namespace": _type.id.namespace,
-            "values": [serialize_type(v) for v in _type.values],
-            "upper_bound": serialize_type(_type.upper_bound),
-            "default": serialize_type(_type.default),
+            "values": [serialize_type(v, user_typed_snippets) for v in _type.values],
+            "upper_bound": serialize_type(_type.upper_bound, user_typed_snippets),
+            "default": serialize_type(_type.default, user_typed_snippets),
             "variance": _type.variance,
         }
 
     if isinstance(_type, mypy.types.TypedDictType):
+        type_compatible_code_snippets_by_i = []
+        for _, item_type in _type.items.items():
+            compatible_snippets = [name for name, snippet_type in user_typed_snippets.items() if is_subtype(snippet_type, item_type)]
+            type_compatible_code_snippets_by_i.append(compatible_snippets)
+
         return {
             ".class": "TypedDictType",
-            "items": [[n, serialize_type(t)] for (n, t) in _type.items.items()],
+            "items": [[n, serialize_type(t, user_typed_snippets)] for (n, t) in _type.items.items()],
+            "type_compatible_code_snippets_by_i": type_compatible_code_snippets_by_i,
             "required_keys": sorted(_type.required_keys),
-            "fallback": serialize_type(_type.fallback),
+            "fallback": serialize_type(_type.fallback, user_typed_snippets),
+            "default_codes": typed_dict_default_codes(_type),
         }
 
     if isinstance(_type, mypy.types.TupleType):
         return {
             ".class": "TupleType",
-            "items": [serialize_type(t) for t in _type.items],
-            "partial_fallback": serialize_type(_type.partial_fallback),
+            "items": [serialize_type(t, user_typed_snippets) for t in _type.items],
+            "partial_fallback": serialize_type(_type.partial_fallback, user_typed_snippets),
             "implicit": _type.implicit,
         }
 
@@ -1195,7 +1183,7 @@ def serialize_type(_type: mypy.types.Type) -> JsonDict:
             ".class": "LiteralType",
             "value": _type.value,
             "value_unparsed": repr(_type.value),
-            "fallback": serialize_type(_type.fallback),
+            "fallback": serialize_type(_type.fallback, user_typed_snippets),
         }
 
     if isinstance(_type, mypy.types.NoneType):
@@ -1205,14 +1193,14 @@ def serialize_type(_type: mypy.types.Type) -> JsonDict:
         return {
             ".class": "AnyType",
             "type_of_any": _type.type_of_any,
-            "source_any": (serialize_type(_type.source_any.serialize) if _type.source_any is not None else None),
+            "source_any": (serialize_type(_type.source_any.serialize, user_typed_snippets) if _type.source_any is not None else None),
             "missing_import_name": _type.missing_import_name,
         }
 
     if isinstance(_type, mypy.types.UnionType):
         return {
             ".class": "UnionType",
-            "items": [serialize_type(t) for t in _type.items],
+            "items": [serialize_type(t, user_typed_snippets) for t in _type.items],
         }
 
     if isinstance(_type, mypy.types.Instance):
@@ -1222,34 +1210,63 @@ def serialize_type(_type: mypy.types.Type) -> JsonDict:
 
         data: JsonDict = {".class": "Instance"}
         data["type_ref"] = type_ref
-        data["args"] = [serialize_type(arg) for arg in _type.args]
+        data["args"] = [serialize_type(arg, user_typed_snippets) for arg in _type.args]
         if _type.last_known_value is not None:
-            data["last_known_value"] = serialize_type(_type.last_known_value)
+            data["last_known_value"] = serialize_type(_type.last_known_value, user_typed_snippets)
         return data
 
     if isinstance(_type, mypy.types.TypeAliasType):
         return {
             ".class": "TypeAliasType",
             "type_ref": _type.alias.fullname,
-            "resolved": serialize_type(mypy.types.get_proper_type(_type)),
-            "args": [serialize_type(arg) for arg in _type.args],
+            "resolved": serialize_type(mypy.types.get_proper_type(_type), user_typed_snippets),
+            "args": [serialize_type(arg, user_typed_snippets) for arg in _type.args],
         }
 
     if isinstance(_type, mypy.types.CallableType):
+
+        # # Positional argument
+        # ARG_POS = 0
+        # # Positional, optional argument (functions only, not calls)
+        # ARG_OPT = 1
+        # # *arg argument
+        # ARG_STAR = 2
+        # # Keyword argument x=y in call, or keyword-only function arg
+        # ARG_NAMED = 3
+        # # **arg argument
+        # ARG_STAR2 = 4
+        # # In an argument list, keyword-only and also optional
+        # ARG_NAMED_OPT = 5
+
+        default_code_by_arg_idx = None
+        arg_names_at_definition = None
+        type_compatible_code_snippets_by_arg_i = []
+
+        if hasattr(_type, "definition") and _type.definition and _type.definition.arguments:
+            default_code_by_arg_idx = [unparse_mypy_expr(arg.initializer) for arg in _type.definition.arguments]
+            arg_names_at_definition = [arg.variable.name for arg in _type.definition.arguments] # for positional arguments, mypy doesn't store the names in the arg_names list so we need to re-gen
+
+        for arg_type in _type.arg_types:
+            compatible_snippets = [name for name, snippet_type in user_typed_snippets.items() if is_subtype(snippet_type, arg_type)]
+            type_compatible_code_snippets_by_arg_i.append(compatible_snippets)
+
         return {
             ".class": "CallableType",
-            "arg_types": [serialize_type(t) for t in _type.arg_types],
+            "arg_types": [serialize_type(t, user_typed_snippets) for t in _type.arg_types],
             "arg_kinds": [int(x.value) for x in _type.arg_kinds],
             "arg_names": _type.arg_names,
-            "ret_type": serialize_type(_type.ret_type),
-            "fallback": serialize_type(_type.fallback),
+            "default_code_by_arg_idx": default_code_by_arg_idx,
+            "arg_names_at_definition": arg_names_at_definition,
+            "type_compatible_code_snippets_by_arg_i": type_compatible_code_snippets_by_arg_i,
+            "ret_type": serialize_type(_type.ret_type, user_typed_snippets),
+            "fallback": serialize_type(_type.fallback, user_typed_snippets),
             "name": _type.name,
-            "variables": [serialize_type(v) for v in _type.variables],
+            "variables": [serialize_type(v, user_typed_snippets) for v in _type.variables],
             "is_ellipsis_args": _type.is_ellipsis_args,
             "implicit": _type.implicit,
-            "bound_args": [(None if t is None else serialize_type(t)) for t in _type.bound_args],
+            "bound_args": [(None if t is None else serialize_type(t, user_typed_snippets)) for t in _type.bound_args],
             "def_extras": dict(_type.def_extras),
-            "type_guard": (serialize_type(_type.type_guard) if _type.type_guard is not None else None),
+            "type_guard": (serialize_type(_type.type_guard, user_typed_snippets) if _type.type_guard is not None else None),
             # "type_is": (serialize(_type.type_is) if _type.type_is is not None else None),
             "from_concatenate": _type.from_concatenate,
             "imprecise_arg_kinds": _type.imprecise_arg_kinds,
@@ -1259,3 +1276,83 @@ def serialize_type(_type: mypy.types.Type) -> JsonDict:
     # print("Error type not implemented!", _type.__class__.__name__)
 
     return { ".class": _type.__class__.__name__ }
+
+
+# Generic object inspector that's waaaay better than repr()
+#
+# Usage: See('code')
+class See():
+    def __init__(self, code):
+        self.obj = eval(code)
+        self.code = code
+
+    def _repr_html_(self):
+        obj, code = self.obj, self.code
+        trival_names = get_trivial_names()
+        names = [name for name in dir(self.obj) if name not in trival_names]
+
+        return """
+            <div style="font-family: monospace; overflow-x: auto">
+                <h3 style="color: darkblue">""" + escape_html(code) + ' ' + escape_html(repr(obj)) + """</h3>
+                <ul style="list-style-type: none">
+                """ + "\n".join([self.field_to_html(name) for name in names]) + """
+                </ul>
+                <script>
+                document.querySelectorAll("[data-click-to-open-code]").forEach(el => {
+                    const code = el.dataset.clickToOpenCode;
+                    el.removeAttribute("data-click-to-open-code"); // So opening a field doesn't add the event handlers again
+
+                    el.addEventListener("click", ev => {
+                        ev.stopPropagation();
+
+                        const expanded_child = el.querySelector("div");
+                        if (expanded_child) {
+                            expanded_child.remove()
+                        } else {
+                            const callbacks = {
+                                iopub: { output: (msg) => {
+                                    if (
+                                        msg.header.msg_type === "execute_result" &&
+                                        msg.content.data["text/html"]
+                                    ) {
+                                        el.innerHTML += msg.content.data["text/html"]
+                                        // Run the script tags
+                                        el.querySelectorAll("script").forEach(script => { eval(script.innerText) });
+                                    } else if (msg.header.msg_type == "error") {
+                                        console.error(`[error running ${code}]`, msg.content.evalue);
+                                    } else if (msg.header.msg_type == "stream") {
+                                        console.error(`[error running ${code}]`, msg.content.text);
+                                    } else {
+                                        console.warn(`[unhandlable output message running ${code}]`, arguments);
+                                    }
+                                }}
+                            };
+
+                            Jupyter.notebook.kernel.execute(code, callbacks, { silent: false, store_history: false, stop_on_error: true });
+                        }
+                    });
+                });
+                </script>
+            </div>
+        """
+
+    def field_to_html(self, name):
+        val = getattr(self.obj, name)
+        field_code = f"{self.code}.{name}"
+        if callable(val):
+            try:
+                arg_count = val.__code__.co_argcount
+            except AttributeError:
+                arg_count = float("inf")
+            if arg_count == 1:
+                field_code += "()"
+                name += "()"
+                val_str = "..."
+            else:
+                # field_code = None
+                val_str = repr(val)
+        else:
+            val_str = repr(val)[:200]
+
+        perhaps_click_to_open_code = f' data-click-to-open-code="See({json_for_attr(field_code)})" style="cursor: pointer"' if field_code is not None else ' style="cursor: default"'
+        return f"""<li {perhaps_click_to_open_code}><span style="white-space: pre"><strong style="color: darkgreen">{name}</strong> {escape_html(val_str)}</span></li>"""

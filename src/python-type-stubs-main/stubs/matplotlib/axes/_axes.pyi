@@ -6,7 +6,7 @@ from matplotlib.patheffects import AbstractPathEffect
 from font_manager import FontProperties
 import mlab
 import numpy as np
-from typing import Any, Callable, Dict, Generic, Iterable, Literal, Optional, Sequence, Tuple, TypeVar, Union, overload
+from typing import Annotated, Any, Callable, Dict, Generic, Iterable, Literal, Optional, Sequence, Tuple, TypeVar, Union, overload
 from typing_extensions import Unpack
 
 # from matplotlib._typing import * seems not to work, need the explicit imports:
@@ -85,7 +85,7 @@ class Axes(_AxesBase):
     ) -> tuple[list, list]: ...
     def legend(
         self,
-        labels: list[str] | None = None,
+        labels: Iterable[str] | None = None,
         loc: (
             Literal[
                 "best",
@@ -449,9 +449,8 @@ class Axes(_AxesBase):
         *,  # What does the star mean?
         align: Literal["center", "edge"] = "center",
         color: ColorType | list[ColorType] = ...,
-        # color: ColorType | list[ColorType] = ...,
         edgecolor: ColorType | list[ColorType] = ...,
-        linewidth: float | ArrayLike = ...,
+        linewidth: float | ArrayLike = 0.0,
         tick_label: str | list[str] = ...,
         label: str | list[str] = ...,
         xerr: float | ArrayLike = ...,
