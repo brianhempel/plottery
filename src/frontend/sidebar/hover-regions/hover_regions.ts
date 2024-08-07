@@ -124,9 +124,6 @@ export function attach_events_to_hover_regions(state: State) {
 
         let boundses: Boundses = { fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds };
 
-        const ew_edge_w = Math.min(10, hover_region.getBoundingClientRect().width  / 4);
-        const ns_edge_w = Math.min(10, hover_region.getBoundingClientRect().height / 4);
-
         hover_region.addEventListener("mouseover", ev => {
           hover_regions.forEach(hover_region => {
             // hover_region.querySelectorAll("[stroke-width]").forEach(el => { el.setAttribute("stroke-width", "2.0"); });
@@ -148,7 +145,10 @@ export function attach_events_to_hover_regions(state: State) {
         hover_region.addEventListener("mousemove", evt => {
           if (pressed) { return; }
 
-          const { x, y, right, bottom } = hover_region.getBoundingClientRect();
+          const { x, y, right, bottom, width, height } = hover_region.getBoundingClientRect();
+
+          const ew_edge_w = Math.min(10, width  / 4);
+          const ns_edge_w = Math.min(10, height / 4);
 
           // For checking edges, we already know the mouse is over the hover region so we don't have to check the outer bounds.
           if (perhaps_drag_width_handler && (evt.clientX < x + ew_edge_w || evt.clientX > right - ew_edge_w)) {

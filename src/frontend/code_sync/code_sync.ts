@@ -6,7 +6,6 @@ import { CellMessage } from "../utils/types";
 
 
 export function hard_rerun(state: State) {
-  state.busy = false;
   state.cell.code_mirror.getAllMarks().forEach(mark => mark.clear());
   state.cell.execute();
 }
@@ -26,7 +25,7 @@ export function add_sync_code_on_change_watcher(
       curr_code = code;
     }
 
-    requestAnimationFrame(keep_synced);
+    state.is_in_dom() && requestAnimationFrame(keep_synced);
   }
   keep_synced();
 }
@@ -50,29 +49,41 @@ export function sync_code_range(
   redraw_cell(state);
 }
 
+function kernel_is_busy(state: State): boolean {
+  const kernel = state.cell.kernel;
+  const any_pending_messages = kernel._pending_messages.length > 0;
+  const iopub_not_done = kernel.last_msg_callbacks && !kernel.last_msg_callbacks.iopub_done;
+  return any_pending_messages || iopub_not_done;
+}
 
-export function redraw_cell(state: State) {
+export function redraw_cell(state: State, ignore_busy: boolean = false) {
   const cell = state.cell;
-  const codeExecuting = cell.get_text();
 
-  if (state.busy) return;
-  if (codeExecuting == state.last_cell_code_executed) return;
+  if (!ignore_busy && kernel_is_busy(state)) return;
 
-  const img = state.plot_area.querySelector("img")!;
+  const code_executing = cell.get_text();
+  if (code_executing == state.last_cell_code_executed) return;
+  state.last_cell_code_executed = code_executing;
 
-  state.busy = true;
-  state.last_cell_code_executed = codeExecuting;
   state.stdout_stderr.innerHTML = "";
 
   // Hacktastic way to get live feedback
   const callbacks = cell.get_callbacks();
 
+  // const old_clear_output = callbacks.iopub!.clear_output;
+  // callbacks.iopub!.clear_output = function (msg: CellMessage) {
+  //   console.log("clear_output callback", msg);
+  //   old_clear_output(msg);
+  // }
+
   callbacks.iopub!.output = function (msg: CellMessage) {
+    // console.log("output callback", msg);
     if (
       msg.header.msg_type == "execute_result" &&
       msg.content.data["image/png"]
     ) {
       // Replace background image
+      const img = state.plot_area.querySelector("img")!;
       img.src = "data:image/png;base64," + msg.content.data["image/png"];
     } else {
       if (msg.header.msg_type == "error") {
@@ -85,22 +96,21 @@ export function redraw_cell(state: State) {
       } else if (msg.header.msg_type == "stream") {
         state.stdout_stderr.innerText += msg.content.text;
       } else {
-        console.warn("[redraw cell]", arguments);
+        console.warn("[redraw cell unhandlable output message]", arguments);
       }
     }
 
-    if (codeExecuting != cell.get_text()) {
-      state.busy = false;
-      redraw_cell(state);
+    if (code_executing != cell.get_text()) {
+      // console.log("iopub done", state.cell.kernel.last_msg_callbacks.iopub_done);
+      redraw_cell(state, true);
     } else {
       // Wait to refresh hover regions until the cell is not changing value.
-      state.busy = false;
       refresh_hover_regions(state);
     }
   };
 
   state.hover_regions_container.classList.add("hidden");
-  cell.kernel.execute(codeExecuting.replace('SNP(', `SNPFigureOnly(`), callbacks, {
+  cell.kernel.execute(code_executing.replace('SNP(', `SNPFigureOnly(`), callbacks, {
     silent: false,
     store_history: false,
     stop_on_error: true,
@@ -124,8 +134,8 @@ export function refresh_hover_regions(state: State) {
     ) {
       // console.log("Replacing hover regions");
       state.set_hover_regions_html(msg.content.data["image/svg+xml"]);
-      attach_events_to_hover_regions(state);
       state.hover_regions_container.classList.remove("hidden");
+      attach_events_to_hover_regions(state);
       reposition_plot_widgets(state);
     } else if (msg.header.msg_type == "error") {
       // Display the error, but adjust line number for the lines we added to the top of the cell.
@@ -137,8 +147,11 @@ export function refresh_hover_regions(state: State) {
     } else if (msg.header.msg_type == "stream") {
       state.stdout_stderr.innerText += msg.content.text;
     } else {
-      console.warn("[refresh_hover_regions]", arguments);
+      console.warn("[refresh_hover_regions unhandlable output message]", arguments);
     }
+
+    // In case there was a change in the meantime
+    redraw_cell(state, true);
   };
 
   cell.kernel.execute(cell.get_text().replace('SNP(', `SNPFigureAndHoverRegions(`), callbacks, {

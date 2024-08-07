@@ -3,6 +3,8 @@
   display: inline-block;
   position: relative;
   cursor: pointer;
+}
+.snp-menu.open {
   z-index: 10;
 }
 .snp-submenu {

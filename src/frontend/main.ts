@@ -77,7 +77,6 @@ function attach_snp(
     calls: sidebar_stuff.calls,
     calls_with_args: [],
 
-    busy: false,
     persistent_dataset: (snp_outer.closest('.output')! as HTMLElement).dataset,
     dragging_layers: [],
 
@@ -86,6 +85,8 @@ function attach_snp(
     hover_regions_container: snp_outer.querySelector(".hover_regions")!,
     hover_regions_svg: () => state.hover_regions_container.querySelector("svg") as SVGElement | undefined,
     set_hover_regions_html: (html_svg_str: string) => { state.hover_regions_container.innerHTML = html_svg_str; },
+
+    is_in_dom: () => !!(state.snp_outer.parentElement?.parentElement?.parentElement),
 
     plot_widgets: [],
 
@@ -174,6 +175,8 @@ function attach_snp(
 
 
   const new_calls: string[] = JSON.parse(state.persistent_dataset.new_calls || "[]");
+
+  // console.log("new_calls", new_calls);
 
   // Select new call(s) or re-gen the selection state
   if (new_calls.length > 0) {
