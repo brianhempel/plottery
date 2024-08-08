@@ -1119,10 +1119,6 @@ class JsonDict:
         return self.dict
 
 
-def typed_dict_default_codes(typed_dict_type: mypy.types.TypedDictType) -> Dict[Tuple[str, str]]:
-    return {stmt.lvalues[0].name: unparse_mypy_expr(stmt.rvalue) for stmt in typed_dict_type.fallback.type.defn.defs.body if isinstance(stmt, mypy.nodes.AssignmentStmt) and not isinstance(stmt.rvalue, mypy.nodes.TempNode) and len(stmt.lvalues) == 1}
-
-
 # Custom serialize copied from mypy but that expands out the type alias...
 # https://github.com/python/mypy/blob/16abf5cbe08c8b399381fc38220586cf2e49c2bc/mypy/types.py
 def serialize_type(_type: mypy.types.Type, user_typed_snippets: Dict[str, mypy.types.Type]) -> JsonDict:
@@ -1161,13 +1157,16 @@ def serialize_type(_type: mypy.types.Type, user_typed_snippets: Dict[str, mypy.t
             compatible_snippets = [name for name, snippet_type in user_typed_snippets.items() if is_subtype(snippet_type, item_type)]
             type_compatible_code_snippets_by_i.append(compatible_snippets)
 
+        # dict from key name to default code
+        default_codes_by_name = {stmt.lvalues[0].name: unparse_mypy_expr(stmt.rvalue) for stmt in _type.fallback.type.defn.defs.body if isinstance(stmt, mypy.nodes.AssignmentStmt) and not isinstance(stmt.rvalue, mypy.nodes.TempNode) and len(stmt.lvalues) == 1}
+
         return {
             ".class": "TypedDictType",
             "items": [[n, serialize_type(t, user_typed_snippets)] for (n, t) in _type.items.items()],
             "type_compatible_code_snippets_by_i": type_compatible_code_snippets_by_i,
             "required_keys": sorted(_type.required_keys),
             "fallback": serialize_type(_type.fallback, user_typed_snippets),
-            "default_codes": typed_dict_default_codes(_type),
+            "default_codes_by_name": default_codes_by_name,
         }
 
     if isinstance(_type, mypy.types.TupleType):

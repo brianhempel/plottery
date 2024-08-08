@@ -294,7 +294,7 @@ export type TypedDictType = {
   items: [string, Type][];
   type_compatible_code_snippets_by_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
   required_keys: string[];
-  default_codes: { [arg_name: string]: string };
+  default_codes_by_name: { [arg_name: string]: string };
 };
 
 export type ParseableComment = Position & { uncommented: string; };

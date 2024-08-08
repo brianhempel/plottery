@@ -56,19 +56,17 @@ function arg_defaults_for_star2_arg(arg_type: Type): Arg[] {
   if (arg_type[".class"] != "TypedDictType") return [];
   const typed_dict = arg_type as TypedDictType;
 
-  const { items, default_codes } = typed_dict;
-  // const items: undefined | [string, Type][] = typed_dict?.items;
-  // const default_codes: undefined | { [arg_name: string]: string; } = typed_dict?.default_codes;
+  const { items, default_codes_by_name } = typed_dict;
 
   return items.map(([name, type], item_i) => {
     return {
       name,
       required: false,
       kind: "ARG_NAMED",
-      code: default_codes[name] || default_code_for_type(type, name),
+      code: default_codes_by_name[name] || default_code_for_type(type, name),
       type: type,
       // code_type: kwargs_alias!.code_type,
-      default_code: default_codes[name] || null, // TypedDicts don't support defaults
+      default_code: default_codes_by_name[name] || null, // TypedDicts don't support defaults
       type_compatible_code_snippets: typed_dict.type_compatible_code_snippets_by_i[item_i],
       is_positional: false,
     };
