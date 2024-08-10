@@ -4,7 +4,7 @@ import { create_color_widget } from "./color/color";
 import { DropdownWidget, create_dropdown_widget, select_dropdown_item } from "./dropdown/dropdown";
 import { create_literal_widget } from "./literal/literal";
 import { create_arbitrary_code_widget } from "./arbitrary_code/arbitrary_code";
-import { default_code_for_type } from "../../utils/misc";
+import { default_code_for_type, get_proper_type } from "../../utils/misc";
 import { create_bool_widget } from "./bool/bool";
 import { create_code_and_control_widget } from "./code_and_control/code_and_control";
 
@@ -59,14 +59,14 @@ function widgets_from_type(type: Type): Widget[] {
   if (typeof type == "string") {
     throw new Error("widgets_from_type() called with string type: " + type);
   }
-  if (
-    typeof type == "object" &&
-    type[".class"] == "TypeAliasType" &&
-    type.type_ref == "matplotlib._typing.ColorType"
-  ) {
-    // return [create_color_widget(type)];
+
+  if (type[".class"] == "TypeAliasType" && type.type_ref == "matplotlib._typing.ColorType") {
     return [create_code_and_control_widget("(0.90, 0.39, 0.40)", type)];
-  } else if (type[".class"] == "LiteralType") {
+  }
+
+  type = get_proper_type(type);
+
+  if (type[".class"] == "LiteralType") {
     return [create_literal_widget(type)];
   } else if (type[".class"] == "Instance" && type.type_ref == "builtins.bool") {
     return [
@@ -101,3 +101,4 @@ function widgets_from_type(type: Type): Widget[] {
   console.warn("No type widget implemented!", type);
   return [];
 }
+

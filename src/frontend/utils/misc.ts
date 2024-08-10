@@ -1,6 +1,5 @@
 import {
   Arg,
-  DynamicCallInfo,
   CallView,
   CallableType,
   IInstanceType,
@@ -11,8 +10,9 @@ import {
   TupleType,
   LiteralType,
   TypedDictType,
+  CallInfo,
 } from "../types";
-import { unzip } from "./array";
+import { unzip } from "./stdlib";
 import { TextMarker, MarkerRange } from "./codemirror";
 import { get_arg_kind_from_int } from "./types";
 
@@ -47,10 +47,11 @@ import { get_arg_kind_from_int } from "./types";
 //   }
 // }
 
-function get_proper_type(type: Type): Type {
+export function get_proper_type(type: Type): Type {
   return type[".class"] == "TypeAliasType" && type.resolved ? get_proper_type(type.resolved) : type;
 }
 
+// Can only handle TypedDictType
 function arg_defaults_for_star2_arg(arg_type: Type): Arg[] {
   arg_type = get_proper_type(arg_type);
   if (arg_type[".class"] != "TypedDictType") return [];
@@ -85,11 +86,8 @@ function arg_defaults_for_star2_arg(arg_type: Type): Arg[] {
 // ARG_STAR2 = 4
 // # In an argument list, keyword-only and also optional
 // ARG_NAMED_OPT = 5
-export function arg_defaults_from_callee_type(
-  callee: CallableType & {
-    pos: Position;
-  }
-): Arg[] {
+export function arg_defaults_from_callee_type(callee: CallableType): Arg[] {
+
   let arg_names = callee.arg_names_at_definition ? callee.arg_names_at_definition : callee.arg_names;
   if (arg_names === callee.arg_names) {
     console.warn("arg_names_at_definition not found for ", callee, " likely meaning the type def for it is missing an import or is otherwise missing or malformed. Lack of definition access can can mess up positional-only arguments.");
@@ -134,25 +132,18 @@ export function arg_defaults_from_callee_type(
     .slice(callee.def_extras.first_arg !== undefined ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined
 }
 
+var instance_defaults = {
+  'builtins.str':   "'My String'",
+  'builtins.float': "0.5",
+  'builtins.int':   "1",
+  'builtins.bool':  "True",
+  'builtins.dict':  "{}",
+} as { [instance_name: string]: string };
 
 export function default_code_for_type(
   type: Type | string,
   name?: string
 ): string {
-  // @TODO: Why is this hardcoded?
-  // const default_value_from_name = [
-  //   ["width", "builtins.float", "1.0"],
-  //   ["height", "builtins.float", "1.0"],
-  // ];
-
-  // const [_, __, default_code] = default_value_from_name.find(
-  //   ([default_name, default_type, default_code]) =>
-  //     name == default_name && type == default_type
-  // ) || [undefined, undefined, undefined];
-
-  // if (default_code !== undefined) {
-  //   return [default_code, type];
-  // }
 
   if (typeof type == "string") {
     console.error("default_code_for_type: type is a string", type);
@@ -163,17 +154,10 @@ export function default_code_for_type(
   const first_literal = find_first_literal_type(type);
   if (first_literal) {
     return first_literal.value_unparsed;
-  } else if ((type as IInstanceType)?.type_ref == "builtins.str") {
-    return "'Bananas...'";
-  } else if ((type as IInstanceType)?.type_ref == "builtins.float") {
-    return "0.5";
-  } else if ((type as IInstanceType)?.type_ref == "builtins.int") {
-    return "1";
-  } else if (
-    type[".class"] == "Instance" &&
-    type["type_ref"] == "builtins.dict"
-  ) {
-    return "{}";
+  } else if (type[".class"] == "Instance" && name && type.type_ref == "builtins.str") { // Use arg name as default string
+    return `'${name.capitalize()}'`;
+  } else if (type[".class"] == "Instance" && type.type_ref in instance_defaults) {
+    return instance_defaults[type.type_ref] as string;
   } else if (type[".class"] == "UnionType") {
     return default_code_for_type(type.items[0], name);
   } else if (
@@ -495,18 +479,18 @@ export function is_array_like(val: string) {
 }
 
 // @TODO: Make more robust (e.g. check f strings)
-export function is_string_like(val: string) {
-  const v = val.trim();
-  if (v.startsWith(`"`) && v.endsWith(`"`)) {
-    return true;
-  } else if (v.startsWith(`'`) && v.endsWith(`'`)) {
-    return true;
-  } else if (v.startsWith("`") && v.endsWith("`")) {
-    return true;
-  }
+// export function is_string_like(val: string) {
+//   const v = val.trim();
+//   if (v.startsWith(`"`) && v.endsWith(`"`)) {
+//     return true;
+//   } else if (v.startsWith(`'`) && v.endsWith(`'`)) {
+//     return true;
+//   } else if (v.startsWith("`") && v.endsWith("`")) {
+//     return true;
+//   }
 
-  return false;
-}
+//   return false;
+// }
 
 export function syntax_highlight(code: string, container: HTMLElement) {
   const CodeMirror = window["CodeMirror"];
@@ -529,9 +513,9 @@ export function insert_to_beginning_of_el(
 }
 
 export function find_call_that_satisfies(
-  pred: (info: DynamicCallInfo, view: CallView) => boolean,
+  pred: (info: CallInfo, view: CallView) => boolean,
   state: State
-) : { info: DynamicCallInfo, view: CallView } | undefined {
+) : { info: CallInfo, view: CallView } | undefined {
   // console.log("find_call_that_satisfies state", state);
 
   // Go through all the call views from artists
@@ -589,7 +573,9 @@ export function sig_figs(x: number, ndigits: number): number {
   const order = Math.ceil(Math.log10(Math.abs(x)));
   const factor = Math.pow(10, ndigits - order);
   return Math.round(x * factor) / factor;
-}export function add_line_of_code(
+}
+
+export function add_line_of_code(
   code: string,
   state: State
 ): TextMarker<MarkerRange> {
@@ -611,8 +597,8 @@ export function sig_figs(x: number, ndigits: number): number {
 // So that 0.1 + 0.2 actually prints 0.3
 //
 // BUT this does limit us to 12 digits of precision
-export function number_to_string_not_ugly(n: number) {
-  if (n === 0) {
+export function number_to_string_not_ugly(n: number): string {
+  if (n == 0) {
     return "0";
   }
 
@@ -629,23 +615,62 @@ export function number_to_string_not_ugly(n: number) {
   // Division still sometimes produces the wonky .999999 or .0000001 so
   // we will place the decimal point manually
 
-  let before_decimal = rounded_nnn_nnn_nnn_nnn.toString()
-  let after_decimal  = ""
-  let cur_base10 = precision
-  while (cur_base10 != base10) {
-    if (cur_base10 > base10) {
-      after_decimal  = before_decimal.slice(-1) + after_decimal
-      before_decimal = before_decimal.slice(0, -1)
-      if (before_decimal.length == 0) {
-        before_decimal = "0"
-      }
-      cur_base10 -= 1
-    } else if (cur_base10 < base10) {
-      before_decimal += "0"
-      cur_base10 += 1
-    }
+  // let before_decimal = rounded_nnn_nnn_nnn_nnn.toString()
+  // let after_decimal  = ""
+  // let cur_base10 = precision
+  // while (cur_base10 != base10) {
+  //   if (cur_base10 > base10) {
+  //     after_decimal  = before_decimal.slice(-1) + after_decimal
+  //     before_decimal = before_decimal.slice(0, -1)
+  //     if (before_decimal.length == 0) {
+  //       before_decimal = "0"
+  //     }
+  //     cur_base10 -= 1
+  //   } else if (cur_base10 < base10) {
+  //     before_decimal += "0"
+  //     cur_base10 += 1
+  //   }
+  // }
+
+  // Division still sometimes produces the wonky .999999 or .0000001 so
+  // we will place the decimal point manually
+
+  let as_str = rounded_nnn_nnn_nnn_nnn.toString();
+  let before_decimal, after_decimal: string;
+  let base10_shift = base10 - precision;
+  if (base10_shift < 0) {
+    before_decimal = as_str.slice(0, base10_shift); // could be ''
+    let padding    = '0'.repeat(-base10_shift) // ensure enough leading zeros for moving the decimal point
+    after_decimal  = (padding + as_str).slice(base10_shift);
+  } else {
+    before_decimal = as_str + '0'.repeat(base10_shift);
+    after_decimal  = '0'
   }
 
   // This will use e notation if base10 >= 21 or base10 <= -7
   return parseFloat(sign + before_decimal + "." + after_decimal).toString();
 }
+
+export function selectCodeText(code_el: HTMLElement) {
+  const code = code_el.innerText;
+
+  const selection = window.getSelection();
+  if (selection) {
+    const range = document.createRange();
+
+    let [start_i, end_i] = [0, code.length];
+
+    // If a literal string, select inside the string.
+    if ((code.startsWith(`'`) && code.endsWith(`'`)) || (code.startsWith(`"`) && code.endsWith(`"`))) {
+      start_i = 1;
+      end_i = code.length - 1;
+    }
+
+    range.setStart(code_el.firstChild!, start_i);
+    range.setEnd(code_el.firstChild!, end_i);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+}
+

@@ -99,6 +99,8 @@ def do_inference(code):
         # options.follow_imports = "silent"
         options.follow_imports_for_stubs = True
         options.export_types = True
+        options.check_untyped_defs = True # Otherwise the bodies of user functions will not get inferred.
+        options.ignore_errors = True
 
         fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
         mypy_result = mypy.build.build(sources, options=options, fscache=fscache)
@@ -192,30 +194,6 @@ def flatten_regions2(objid_methods_bounds_geom_children):
     return [(obj_id, geom)] + flatten([flatten_regions2(child) for child in children])
 
 
-# Return list of (descendants that should also expose this method, method name on the root artist, number of times method could be called)
-def method_associations(artist):
-    match artist:
-        case mpl.axes.Axes():
-            return [
-                ([".title"], "set_title", 1),
-                ([".xaxis"], "set_xticks", 1),
-                ([".xaxis", ".xaxis.label"], "set_xlabel", 1),
-                ([".yaxis", ".yaxis.label"], "set_ylabel", 1),
-                ([".yaxis.majorTicks[0].label1"], "set_ylim", 1),
-                ([".yaxis.majorTicks[0].label2"], "set_ylim", 1),
-                ([], "bar", float("inf")),
-                ([], "barh", float("inf")),
-                ([], "plot", float("inf")),
-                ([], "legend", float("inf")),
-                ([], "axhline", float("inf")),
-                ([], "axvline", float("inf")),
-                ([], "bar_label", float("inf")),
-            ]
-        case _:
-            return []
-
-
-
 def tuple_or_none(iterable_or_none):
     return tuple(iterable_or_none) if iterable_or_none is not None else None
 
@@ -266,8 +244,8 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
             # Two: Transfer the provenance to the artists.
             for container in artist.containers:
                 for child in container.get_children():
-                    if not hasattr(child, "_snp_came_from_call"): # Don't overwrite if already set.
-                        child._snp_came_from_call = container._snp_came_from_call
+                    if not hasattr(child, "_snp_came_from_call_id"): # Don't overwrite if already set.
+                        child._snp_came_from_call_id = container._snp_came_from_call_id
 
             children = sorted(children, key=get_zorder) # this is also in Axes.draw()
     else:
@@ -370,35 +348,35 @@ def method_type_json(receiver, method_name, type_graph):
     return typ and serialize_type(typ, {})
 
 
-# data-func-code-and-num indicates the artist was returned from a call, so that artist on the canvas should be associated with that call in the layers panel.
+# data-call-id indicates the artist was returned from a call, so that artist on the canvas should be associated with that call in the layers panel.
 
 # Preserve heirarchical structure so that JS mouseenter events work as intended
-def region2_to_svg_g(artist_methods_bounds_geom_children, object_names):
+def region2_to_svg_g(artist_methods_bounds_geom_children):
     artist, methods, (fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds), geom, children = artist_methods_bounds_geom_children
     geom_svg = geom.svg()
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
-    child_svgs_str = "\n".join([region2_to_svg_g(child, object_names) for child in children])
+    child_svgs_str = "\n".join([region2_to_svg_g(child) for child in children])
 
-    artist_names = object_names.get(id(artist), (None, {}))[1]
+    # names = artist_names.get(id(artist), (None, {}))[1]
 
-    perhaps_call_loc = f'data-func-code-and-num="{json_for_attr(artist._snp_came_from_call[0])}" data-pos="{json_for_attr(artist._snp_came_from_call[1])}" data-fig-px-bounds="{json_for_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_attr(region_px_bounds)}"' if hasattr(artist, "_snp_came_from_call") else ""
-    return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" data-artist-names="{json_for_attr(list(artist_names))}" {perhaps_call_loc}>
+    perhaps_call_loc = f'data-call-id="{escape_html(artist._snp_came_from_call_id)}" data-fig-px-bounds="{json_for_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_attr(region_px_bounds)}"' if hasattr(artist, "_snp_came_from_call_id") else ""
+    return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" {perhaps_call_loc}>
     {geom_svg}
     {child_svgs_str}
     </g>"""
 
 
 # Mutates out
-def _object_names_deep(out, obj, name, max_depth):
+def _artist_names_deep(out, obj, name, max_depth):
     if max_depth <= 0 or callable(obj):
         return
 
     if isinstance(obj, list):
         for i, item in enumerate(obj):
-            _object_names_deep(out, item, f"{name}[{str(i)}]", max_depth)
+            _artist_names_deep(out, item, f"{name}[{str(i)}]", max_depth)
         if len(obj) >= 1:
-            _object_names_deep(out, obj[-1], f"{name}[-1]", max_depth)
+            _artist_names_deep(out, obj[-1], f"{name}[-1]", max_depth)
     elif isinstance(obj, mpl.artist.Artist):
         key = id(obj)
         _obj, names = out.get(key, (obj, set()))
@@ -411,22 +389,47 @@ def _object_names_deep(out, obj, name, max_depth):
         for prop_name in dir(obj):
             if prop_name not in trivial_names:
                 prop = getattr(obj, prop_name)
-                _object_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
+                _artist_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
 
-    # Need this to get plt.subplots() to show up in the layers panel
-    elif obj is mpl.pyplot:
-        out[id(obj)] = (obj, set())
+    # # Need this to get plt.subplots() to show up in the layers panel
+    # elif obj is mpl.pyplot:
+    #     out[id(obj)] = (obj, set())
 
+
+# Return list of (descendants that should also expose this method, method name on the root artist, number of times method could be called)
+def method_associations(artist):
+    match artist:
+        case mpl.axes.Axes():
+            return [
+                ([".title"], "set_title", 1),
+                ([".xaxis"], "set_xticks", 1),
+                ([".xaxis", ".xaxis.label"], "set_xlabel", 1),
+                ([".yaxis", ".yaxis.label"], "set_ylabel", 1),
+                ([".yaxis.majorTicks[0].label1"], "set_ylim", 1),
+                ([".yaxis.majorTicks[0].label2"], "set_ylim", 1),
+                ([], "bar", float("inf")),
+                ([], "barh", float("inf")),
+                ([], "plot", float("inf")),
+                ([], "legend", 1),
+                ([], "axhline", float("inf")),
+                ([], "axvline", float("inf")),
+                ([], "bar_label", float("inf")),
+            ]
+        case _:
+            return []
 
 
 # Returns a dict of object to (object, set of names)
-def object_names(locals, user_nameset, max_depth=4):
+#
+# Used to find receivers for possible new method calls, which are all currently
+# hard-coded in method_associations()
+def artist_names(locals, user_nameset, max_depth=4):
     out = {}
     trivial_names = get_trivial_names()
 
     with mpl._api.deprecation.suppress_matplotlib_deprecation_warning():
         for name, value in [(name, value) for name, value in locals.items() if name in user_nameset and name not in trivial_names]:
-            _object_names_deep(out, value, f"{name}", max_depth)
+            _artist_names_deep(out, value, f"{name}", max_depth)
 
     return out
 
@@ -493,16 +496,16 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         self.user_nameset = get_user_nameset(notebook_code_through_cell)
 
         # Make a map of object id to object name (e.g. "fig.axes")
-        with Timer("object_names"):
-            self.object_names = object_names(locals, self.user_nameset)
+        with Timer("artist_names"):
+            self.artist_names = artist_names(locals, self.user_nameset)
 
         with Timer("artist_ids_that_will_have_a_method_call"):
             self.artist_ids_that_will_have_a_method_call = set()
-            for obj_id, (obj, _names) in self.object_names.items():
-                for children_paths, _, _ in method_associations(obj):
-                    self.artist_ids_that_will_have_a_method_call.add(obj_id)
+            for artist_id, (artist, _names) in self.artist_names.items():
+                for children_paths, _, _ in method_associations(artist):
+                    self.artist_ids_that_will_have_a_method_call.add(artist_id)
                     for code_to_descendent in children_paths:
-                        self.artist_ids_that_will_have_a_method_call.add(id(eval("obj" + code_to_descendent)))
+                        self.artist_ids_that_will_have_a_method_call.add(id(eval("artist" + code_to_descendent)))
 
     # Note this is the hover regions only.
     def _repr_svg_(self):
@@ -527,7 +530,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
 
                 fig_regions2 = regions2(self.figure, (bbox_pixels.extents, None, None), fig.canvas.renderer, self.artist_ids_that_will_have_a_method_call)
 
-                svg_body = region2_to_svg_g(fig_regions2, self.object_names)
+                svg_body = region2_to_svg_g(fig_regions2)
 
                 self.cached_svg_hover_regions = f"""<svg style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
                     {svg_body}
@@ -551,7 +554,8 @@ class SNP(SNPFigureAndHoverRegions):
         self.cell_lineno = cell_lineno
         self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
 
-        self.notebook_code_through_cell = notebook_code_through_cell
+        # self.notebook_code_through_cell = notebook_code_through_cell
+        self.notebook_code_lines        = notebook_code_through_cell.split("\n")
         with Timer("do_inference"):
             self.mypy_result = do_inference(notebook_code_through_cell)
         self.type_graph = self.mypy_result.graph
@@ -563,7 +567,7 @@ class SNP(SNPFigureAndHoverRegions):
 
         # print(dir(ast.parse(notebook_code_through_cell).body[0]))
 
-        # print([v[1] for k,v in self.object_names.items()])
+        # print([v[1] for k,v in self.artist_names.items()])
 
         # Make a map of user code snippets to types, things we could use for autocompleting arguments.
         #
@@ -641,11 +645,12 @@ class SNP(SNPFigureAndHoverRegions):
 
         # Gather all the type information for function calls in the notebook
         with Timer("GatherTypedCalls"):
-            self.user_call_type_info = None
             if tree is not None:
-                visitor = GatherTypedCalls(self.mypy_result.types, self.user_typed_snippets)
+                visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets)
                 visitor.visit_mypy_file(tree)
-                self.user_call_type_info = visitor.out
+                self.calls = visitor.out
+            else:
+                self.calls = []
 
     # This is only the technical info for the front end.
     # def _repr_json_(self):
@@ -661,71 +666,31 @@ class SNP(SNPFigureAndHoverRegions):
             base64_image = base64.b64encode(self._repr_png_()).decode("utf-8")
             data_url = f"data:image/png;base64,{base64_image}"
 
-        # data_methods = json.dumps([{"receiver_id": id(receiver), "receiver_names": list(object_names.get(id(receiver), (None, {}))[1]), "method_name": method_name, "method_type": method_type_json(receiver, method_name, type_graph)} for receiver, method_name in methods])
+        # data_methods = json.dumps([{"receiver_id": id(receiver), "receiver_names": list(artist_names.get(id(receiver), (None, {}))[1]), "method_name": method_name, "method_type": method_type_json(receiver, method_name, type_graph)} for receiver, method_name in methods])
 
-        methods = []
-        calls = []
+        self.methods = []
 
-        with Timer("associate method calls on named objects"):
-            # Find method calls on each of the named objects.
-            for obj_id, (obj, names) in self.object_names.items():
-                for children_paths, method_name, max_calls in method_associations(obj):
-                    show_on = [obj_id]
+        with Timer("associate method calls on named artists"):
+            # Find method calls on each of the named artists.
+            for artist_id, (artist, names) in self.artist_names.items():
+                for children_paths, method_name, max_calls in method_associations(artist):
+                    show_on = [artist_id]
                     for code_to_descendent in children_paths:
-                        show_on.append(id(eval("obj" + code_to_descendent)))  # This can't be in a comprehension because eval() can't find "obj" when it is
+                        show_on.append(id(eval("artist" + code_to_descendent)))  # This can't be in a comprehension because eval() can't find "artist" when it is
 
-                    methods.append(
+                    type_json = method_type_json(artist, method_name, self.type_graph)
+
+                    type_json is not None and self.methods.append(
                         {
                             "name": method_name,
-                            "receiver": obj_id,
+                            "receiver": artist_id,
                             "receiver_names": list(names),
                             "show_on": show_on,
-                            "type": method_type_json(obj, method_name, self.type_graph),
+                            "type": type_json,
                             "max_calls": max_calls,
                         }
                     )
 
-                try:
-                    loc_via_func_code_and_nums = [loc_via_func_code_and_num for loc_via_func_code_and_num, position in obj._snp_method_call_locs]
-                    method_call_positions = [position for loc_via_func_code_and_num, position in obj._snp_method_call_locs]
-                except:
-                    loc_via_func_code_and_nums = []
-                    method_call_positions = []
-
-                # print(names, loc_via_func_code_and_nums)
-                # n^2!
-                #
-                # Correlate to the call info from the type checker, which only know about code positions, not object names or ids
-                if len(method_call_positions) > 0:
-                    for call_info in self.user_call_type_info:
-                        call_pos_dict = call_info["call"]["pos"]
-                        # Convert from loc in current_notebook.py to loc in the executed cell
-                        call_pos = (
-                            call_pos_dict["line"] - self.cell_lineno + self.provenance_is_off_by_n_lines + 1,
-                            call_pos_dict["column"],
-                            call_pos_dict["end_line"] - self.cell_lineno + self.provenance_is_off_by_n_lines + 1,
-                            call_pos_dict["end_column"],
-                        )
-
-                        if call_pos in method_call_positions:
-                            i = method_call_positions.index(call_pos)
-                            loc_via_func_code_and_num = loc_via_func_code_and_nums[i]
-                            method_name = call_info["callee"]["name"].split(" ")[0]  # "set_title of Axes" => "set_title"
-                            calls.append(
-                                call_info
-                                | {
-                                    "name": method_name,
-                                    # "receiver": id(obj),
-                                    "loc_via_func_code_and_num": loc_via_func_code_and_num,
-                                }
-                            )
-
-        sidebar_stuff = {
-            "methods": methods,
-            "calls": calls,
-        }
-        self.methods = methods
-        self.calls = calls
 
         # print(ast.parse(self.notebook_code_through_cell).)
         # notebook_ast = json.dumps(ast.parse(self.notebook_code_through_cell), default=lambda o: o.__dict__)
@@ -734,26 +699,10 @@ class SNP(SNPFigureAndHoverRegions):
         #     # print(json.dumps(ast_v.visit(ast.parse(self.notebook_code_through_cell)))
         #     notebook_ast = ast_v.visit(ast.parse(self.notebook_code_through_cell))
 
-        notebook_code_lines = self.notebook_code_through_cell.split("\n")
-
-        # This assumes the typed node is in the notebook.
-        # The nodes do not specify which file they actually came from.
-        def extract(line, column, end_line, end_column):
-            if end_line is None or end_line > len(notebook_code_lines) or line < 1:
-                return None
-            if line == end_line:
-                return notebook_code_lines[line-1][column:end_column]
-            else:
-                return "\n".join(
-                    [notebook_code_lines[line-1][column:]] +
-                    notebook_code_lines[line:end_line-1] +
-                    [notebook_code_lines[end_line-1][:end_column]]
-                )
-
         def type_node_to_json(node):
             def extra_attrs(obj):
                 try:
-                    unparsed = extract(obj.line, obj.column, obj.end_line, obj.end_column)
+                    unparsed = code_at_range(self.notebook_code_lines, obj.line, obj.column, obj.end_line, obj.end_column)
                 except AttributeError:
                     unparsed = None
                 return { 'unparsed': unparsed } if unparsed is not None else {}
@@ -770,7 +719,7 @@ class SNP(SNPFigureAndHoverRegions):
             # find contiguous # comment chunks in notebook_code_through_cell
             multiline_comments = [] # list of (start_line_no, start_col, [lines])
             cur_comment = None
-            for line_no, line in enumerate(notebook_code_lines):
+            for line_no, line in enumerate(self.notebook_code_lines):
                 if not cur_comment:
                     # If the line includes #, start a new multiline_comment
                     hash_idx = line.find('#')
@@ -827,7 +776,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- sidebar added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.user_call_type_info)}, {json_for_attr(sidebar_stuff)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)})">
+                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)})">
                     {frontend_css}
                 </style>
                 </div>
@@ -840,6 +789,10 @@ class SNP(SNPFigureAndHoverRegions):
 #                   Provenance Tracking                    #
 # -------------------------------------------------------- #
 
+# Tag the matplotlib output artists etc. with the call that created them.
+
+# Then when we generate the hover regions, we can associate the regions with the appropriate user code.
+
 # Input:
 # fig, ax = plt.subplots()
 # ax.set_title("My Plot")
@@ -848,108 +801,126 @@ class SNP(SNPFigureAndHoverRegions):
 # lines = ax.plot(xs, ys)
 
 # Output:
-# (fig, ax) = tag_with_provenance(plt.subplots(), 2, 10, 2, 24)
-# tag_with_provenance(ax.set_title('My Plot'), 3, 0, 3, 23)
-# xs = tag_with_provenance(np.linspace(0, 2 * np.pi, 20), 4, 5, 4, 34)
-# ys = tag_with_provenance(np.sin(xs), 5, 5, 5, 15)
-# lines = tag_with_provenance(ax.plot(xs, ys), 6, 8, 6, 23)
+# fig, ax = tag_with_provenance(plt.subplots(), 'plt.subplots #1')
+# tag_with_provenance(ax.set_title('My Plot'), 'ax.set_title #1')
+# xs = tag_with_provenance(np.linspace(0, 2 * np.pi, 20), 'np.linspace #1')
+# ys = tag_with_provenance(np.sin(xs), 'np.sin #1')
+# lines = tag_with_provenance(ax.plot(xs, ys), 'ax.plot #1')
 
-# tag_with_provenance() gives the returned object an `_snp_came_from_call` attribute, which is a tuple of ((func_code, call_num), (lineno, col_offset, end_lineno, end_col_offset))
+# tag_with_provenance() gives the returned object an `_snp_came_from_call_id` attribute, which references calls by code and occurance number in the code, e.g. "ax.bar #1"
+
+
+# "ax.bar #1"
+def make_call_id(func_code, call_num):
+    return f"{func_code} #{call_num}"
+
 
 # Thanks GPT-4, this works, apparently.
-
-
 class TaggedTuple(tuple):
-    def __new__(cls, iterable, call_loc):
+    def __new__(cls, iterable, call_id):
         out = tuple.__new__(cls, iterable)
-        out._snp_came_from_call = call_loc
+        out._snp_came_from_call_id = call_id
         return out
 
 
 class TaggedStr(str):
-    def __new__(cls, string, call_loc):
+    def __new__(cls, string, call_id):
         out = str.__new__(cls, string)
-        out._snp_came_from_call = call_loc
+        out._snp_came_from_call_id = call_id
         return out
 
 
 class TaggedList(list):
-    def __init__(self, iterable, call_loc):
-        self._snp_came_from_call = call_loc
+    def __init__(self, iterable, call_id):
+        self._snp_came_from_call_id = call_id
         super().__init__(iterable)
 
 
 class TaggedDict(dict):
-    def __init__(self, dictionary, call_loc):
-        self._snp_came_from_call = call_loc
+    def __init__(self, dictionary, call_id):
+        self._snp_came_from_call_id = call_id
         super().__init__(dictionary)
 
 
 class TaggedInt(int):
-    def __new__(cls, x, call_loc):
+    def __new__(cls, x, call_id):
         out = int.__new__(cls, x)
-        out._snp_came_from_call = call_loc
+        out._snp_came_from_call_id = call_id
         return out
 
 
 class TaggedFloat(float):
-    def __new__(cls, x, call_loc):
+    def __new__(cls, x, call_id):
         out = float.__new__(cls, x)
-        out._snp_came_from_call = call_loc
+        out._snp_came_from_call_id = call_id
         return out
 
 
 def tag_with_provenance(
     ret_obj,
-    receiver,
-    func_code,
-    call_num,
-    lineno,
-    col_offset,
-    end_lineno,
-    end_col_offset,
+    # receiver,
+    call_id,
+    # lineno,
+    # col_offset,
+    # end_lineno,
+    # end_col_offset,
 ):
     # Two methods for referring to the same call:
     # 1. call code and number e.g. ("ax.set_title", 3) for the front end selection state, to be somewhat robust to code changes
     # 2. code location e.g.(7,0,7,23) for matching with call information from the type checker
 
-    call_loc = (
-        (func_code, call_num),
-        (lineno, col_offset, end_lineno, end_col_offset),
-    )
+    # call_loc = (
+    #     (func_code, call_num),
+    #     (lineno, col_offset, end_lineno, end_col_offset),
+    # )
 
-    try:
-        method_call_locs = receiver._snp_method_call_locs
-    except:
-        method_call_locs = set()
+    # try:
+    #     method_call_locs = receiver._snp_method_call_locs
+    # except:
+    #     method_call_locs = set()
 
-    method_call_locs.add(call_loc)
+    # method_call_locs.add(call_loc)
 
-    try:
-        receiver._snp_method_call_locs = method_call_locs
-    except:
-        pass
+    # try:
+    #     receiver._snp_method_call_locs = method_call_locs
+    # except:
+    #     pass
 
-    if hasattr(ret_obj, "_snp_came_from_call"):
+    if hasattr(ret_obj, "_snp_came_from_call_id"):
         return ret_obj  # Don't rewrite oldest loc.
 
     try:
-        ret_obj._snp_came_from_call = call_loc
+        ret_obj._snp_came_from_call_id = call_id
         return ret_obj
     except:
         if isinstance(ret_obj, tuple):
-            return TaggedTuple(tuple(tag_with_provenance(child, receiver, func_code, call_num, lineno, col_offset, end_lineno, end_col_offset) for child in ret_obj), call_loc)
+            return TaggedTuple(tuple(tag_with_provenance(child, call_id) for child in ret_obj), call_id)
         elif isinstance(ret_obj, str):
-            return TaggedStr(ret_obj, call_loc)
+            return TaggedStr(ret_obj, call_id)
         elif isinstance(ret_obj, list):
-            return TaggedList([tag_with_provenance(child, receiver, func_code, call_num, lineno, col_offset, end_lineno, end_col_offset) for child in ret_obj], call_loc)
+            return TaggedList([tag_with_provenance(child, call_id) for child in ret_obj], call_id)
         elif isinstance(ret_obj, dict):
-            return TaggedDict(ret_obj, call_loc)
+            return TaggedDict(ret_obj, call_id)
         elif isinstance(ret_obj, int):
-            return TaggedInt(ret_obj, call_loc)
+            return TaggedInt(ret_obj, call_id)
         elif isinstance(ret_obj, float):
-            return TaggedFloat(ret_obj, call_loc)
+            return TaggedFloat(ret_obj, call_id)
         return ret_obj
+
+
+# This assumes the typed node is in the notebook.
+# The nodes do not specify which file they actually came from.
+def code_at_range(notebook_code_lines, line, column, end_line, end_column):
+    if end_line is None or end_line > len(notebook_code_lines) or line < 1:
+        return None
+    if line == end_line:
+        return notebook_code_lines[line-1][column:end_column]
+    else:
+        return "\n".join(
+            [notebook_code_lines[line-1][column:]] +
+            notebook_code_lines[line:end_line-1] +
+            [notebook_code_lines[end_line-1][:end_column]]
+        )
 
 
 def ast_loc(node):
@@ -957,7 +928,7 @@ def ast_loc(node):
 
 class ProvenanceTagger(ast.NodeTransformer):
     def __init__(self) -> None:
-        self.call_nums = {}
+        self.call_nums = {} # I checked and the traversal order is the same as for GatherTypedCalls
         super().__init__()
 
     def visit_Call(self, node):
@@ -966,25 +937,26 @@ class ProvenanceTagger(ast.NodeTransformer):
         # When the form is receiver.attribute(...), log that there is call on this receiver.
         match node:
             case ast.Call(func=ast.Attribute(value)):
-                loc = ast_loc(node)
                 func_code = ast.unparse(node.func)
-                receiver = value
+                # receiver = value
                 call_num = self.call_nums.get(func_code, 0) + 1
+                self.call_nums[func_code] = call_num
+                call_id = make_call_id(func_code, call_num) # "ax.bar #1"
                 wrapped = ast.Call(
                     ast.Name("tag_with_provenance", ast.Load()),
                     [
                         node,
-                        receiver,
-                        ast.Constant(func_code),
-                        ast.Constant(call_num),
-                        ast.Constant(node.lineno),
-                        ast.Constant(node.col_offset),
-                        ast.Constant(node.end_lineno),
-                        ast.Constant(node.end_col_offset),
+                        # receiver,
+                        ast.Constant(call_id),
+                        # ast.Constant(node.lineno),
+                        # ast.Constant(node.col_offset),
+                        # ast.Constant(node.end_lineno),
+                        # ast.Constant(node.end_col_offset),
                     ],
                     [],
                 )
-                self.call_nums[func_code] = call_num
+
+                # print(call_num, ast.unparse(node))
 
                 return wrapped
             case _:
@@ -1052,7 +1024,7 @@ def type_json_with_node_loc(node, type, user_typed_snippets):
 
 
 # MyPy's is_subtype accepts AnyType on both LHS and RHS, which is maddening.
-# And I can't get its is_proper_subtype to reliable match things like tuples with e.g. Collection[Any] or ListLike
+# And I can't get its is_proper_subtype to reliably match things like tuples with e.g. Collection[Any] or ListLike
 # So this version rejects bare AnyType as a subtype of everything (but is not recursive).
 def is_subtype(subtype, type):
     subtype = mypy.types.get_proper_type(subtype)
@@ -1064,28 +1036,39 @@ def is_subtype(subtype, type):
     return mypy.subtypes.is_subtype(subtype, type)
 
 
+
 class GatherTypedCalls(TraverserVisitor):
-    def __init__(self, types_dict, user_typed_snippets):
+    def __init__(self, notebook_code_lines, types_dict, user_typed_snippets):
+        self.call_nums = {} # I checked and the traversal order is the same as for ast.NodeTransformer
+        self.notebook_code_lines = notebook_code_lines
         self.types_dict = types_dict
         self.user_typed_snippets = user_typed_snippets
         self.out = []
+        global call_typed_nodes # for debugging
+        call_typed_nodes = []
 
     def visit_call_expr(self, node: mypy.nodes.CallExpr) -> None:
         super().visit_call_expr(node)
 
+        func_code = code_at_range(self.notebook_code_lines, node.callee.line, node.callee.column, node.callee.end_line, node.callee.end_column)
+        call_num = self.call_nums.get(func_code, 0) + 1
+        self.call_nums[func_code] = call_num
+
+        # print(call_num, code_at_range(self.notebook_code_lines, node.line, node.column, node.end_line, node.end_column))
+
         callee_type = self.types_dict.get(node.callee)
+        call_typed_nodes.append(node)
+        # print(node, " has type ", callee_type)
 
         # For overloads, assume first.
         while isinstance(callee_type, mypy.types.Overloaded):
             callee_type = callee_type.items[0]
 
         if isinstance(callee_type, mypy.types.CallableType):
-            # loc = (node.line, node.column, node.end_line, node.end_column)
             given_args = []
-            for arg, name, kind in zip(node.args, node.arg_names, node.arg_kinds):
+            for arg, name in zip(node.args, node.arg_names):
                 given_arg = type_json_with_node_loc(arg, self.types_dict.get(arg), self.user_typed_snippets)
                 given_arg["name"] = name
-                # given_arg["kind"] = kind.value
                 given_args.append(given_arg)
 
             # The callee_type here is partially applied (self is already removed from the argument list).
@@ -1101,6 +1084,8 @@ class GatherTypedCalls(TraverserVisitor):
                     "call": type_json_with_node_loc(node, self.types_dict.get(node), self.user_typed_snippets),
                     "callee": type_json_with_node_loc(node.callee, callee_type, self.user_typed_snippets),
                     "given_args": given_args,
+                    "func_code": func_code, # e.g. "ax.bar" or "len"
+                    "call_id": make_call_id(func_code, call_num), # "ax.bar #1"
                 }
             )
 
@@ -1241,6 +1226,8 @@ def serialize_type(_type: mypy.types.Type, user_typed_snippets: Dict[str, mypy.t
         arg_names_at_definition = None
         type_compatible_code_snippets_by_arg_i = []
 
+        definition_fullname = _type.definition.fullname if hasattr(_type, "definition") and _type.definition else None
+
         if hasattr(_type, "definition") and _type.definition and _type.definition.arguments:
             default_code_by_arg_idx = [unparse_mypy_expr(arg.initializer) for arg in _type.definition.arguments]
             arg_names_at_definition = [arg.variable.name for arg in _type.definition.arguments] # for positional arguments, mypy doesn't store the names in the arg_names list so we need to re-gen
@@ -1260,6 +1247,7 @@ def serialize_type(_type: mypy.types.Type, user_typed_snippets: Dict[str, mypy.t
             "ret_type": serialize_type(_type.ret_type, user_typed_snippets),
             "fallback": serialize_type(_type.fallback, user_typed_snippets),
             "name": _type.name,
+            "definition_fullname": definition_fullname,
             "variables": [serialize_type(v, user_typed_snippets) for v in _type.variables],
             "is_ellipsis_args": _type.is_ellipsis_args,
             "implicit": _type.implicit,
@@ -1287,14 +1275,24 @@ class See():
 
     def _repr_html_(self):
         obj, code = self.obj, self.code
-        trival_names = get_trivial_names()
-        names = [name for name in dir(self.obj) if name not in trival_names]
+
+        field_htmls = []
+
+        if isinstance(obj, list) or isinstance(obj, tuple):
+            field_htmls = [self.field_to_html(i, f"[{i}]") for i in range(len(obj))]
+        elif isinstance(obj, dict):
+            field_htmls = [self.field_to_html(repr(k), f"[{repr(k)}]") for k in obj.keys()]
+        else:
+            trival_names = get_trivial_names()
+            field_htmls = [self.field_to_html(name, f".{name}") for name in dir(obj) if name not in trival_names]
+
+        full_class_name = obj.__class__.__module__ + '.' + obj.__class__.__qualname__
 
         return """
             <div style="font-family: monospace; overflow-x: auto">
-                <h3 style="color: darkblue">""" + escape_html(code) + ' ' + escape_html(repr(obj)) + """</h3>
+                <h3 style="color: darkblue">""" + escape_html(code) + ' (' + full_class_name + ') '+ escape_html(repr(obj)) + """</h3>
                 <ul style="list-style-type: none">
-                """ + "\n".join([self.field_to_html(name) for name in names]) + """
+                """ + "\n".join(field_htmls) + """
                 </ul>
                 <script>
                 document.querySelectorAll("[data-click-to-open-code]").forEach(el => {
@@ -1309,7 +1307,7 @@ class See():
                             expanded_child.remove()
                         } else {
                             const callbacks = {
-                                iopub: { output: (msg) => {
+                                iopub: { output: function (msg) {
                                     if (
                                         msg.header.msg_type === "execute_result" &&
                                         msg.content.data["text/html"]
@@ -1335,9 +1333,9 @@ class See():
             </div>
         """
 
-    def field_to_html(self, name):
-        val = getattr(self.obj, name)
-        field_code = f"{self.code}.{name}"
+    def field_to_html(self, name, accessor_code):
+        val = eval(f"self.obj{accessor_code}")
+        field_code = f"{self.code}{accessor_code}"
         if callable(val):
             try:
                 arg_count = val.__code__.co_argcount

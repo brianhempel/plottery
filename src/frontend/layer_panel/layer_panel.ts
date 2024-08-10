@@ -1,17 +1,17 @@
 import { P_stmt } from "../ast_types";
 import { add_sync_code_on_change_watcher, hard_rerun, redraw_cell } from "../code_sync/code_sync";
 import { add_menu_item, add_submenu, create_menu_el } from "../menus/menus";
-import { call_to_code, create_call_view } from "../sidebar/call/call";
+import { call_to_code, create_call_view, id_of_new_call } from "../sidebar/call/call";
 import { open_collapsable } from "../sidebar/collapsable/collapsable";
 import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_regions";
 import { add_method_call } from "../sidebar/methods/method";
 import { create_arbitrary_code_widget } from "../sidebar/widgets/arbitrary_code/arbitrary_code";
 import { make_widget_for_code_and_type } from "../sidebar/widgets/widget";
-import { CallView, CallWithArgs, DynamicCallInfo, IInstanceType, State, StaticCallTypeInfo } from "../types";
-import { equalByJSON, zip } from "../utils/array";
+import { CallView, CallWithArgs, IInstanceType, State, CallInfo } from "../types";
+import { equalByJSON, zip } from "../utils/stdlib";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
 import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type } from "../utils/misc";
-import { ParseableComment } from "../types";
+import { Position } from "../types";
 
 
 export type Layer = {
@@ -19,9 +19,11 @@ export type Layer = {
   el: HTMLElement;
   mark: TextMarker<MarkerRange>;
   target_mark: TextMarker<MarkerRange>;
-  calls_with_args: CallWithArgs<DynamicCallInfo>[];
+  calls_with_args: CallWithArgs[];
   call_views: CallView[];
 }
+
+export type ParseableComment = Position & { uncommented: string; };
 
 export type LayersPanel = {
   el: HTMLElement;
@@ -36,8 +38,10 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   const calls_with_args = state.calls_with_args;
   const calls_at_loc = calls_with_args.filter(call => call.call_info.call.pos.line === typed_node.line);
 
-  const call_views: CallView[] =
-    calls_at_loc.map(calls_with_args => create_call_view(calls_with_args, state));
+  // We only care about matplotlib calls for now
+  const mpl_calls = calls_at_loc.filter(call => call.call_info.callee.definition_fullname.includes('matplotlib.'));
+
+  const call_views: CallView[] = mpl_calls.map(calls_with_args => create_call_view(calls_with_args, state));
 
   // console.log('layer call_views:', call_views)
 
@@ -114,7 +118,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   const layer = {
     // parents: [],
     el: layer_el,
-    calls_with_args: calls_at_loc,
+    calls_with_args: mpl_calls,
     call_views,
     mark,        // the whole AST node
     target_mark, // the displayed layer code, so that drag-dropping below e.g. a for-loop adds to beginning of loop
@@ -411,7 +415,7 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
   });
 
   // Add possible method calls to the menu
-  state.methods.forEach(method => {
+  state.methods_with_code.forEach(method => {
     add_menu_item(
       add_layer_menu,
       method.receiver_dot_name, null,
@@ -461,8 +465,8 @@ export function duplicate_selected_layers(state: State) {
       cm.replaceRange(code + '\n', {line: insert_line, ch: 0})
 
       const receiver_dot_name = code.split('(')[0];
-      const loc = insert_line + state.cell_lineno;
-      state.persistent_dataset.new_calls = `["${receiver_dot_name}${loc}"]`;
+      const line = insert_line + state.cell_lineno;
+      state.persistent_dataset.new_calls = `["${id_of_new_call(receiver_dot_name, line)}"]`;
     });
   });
   if(cm.getValue() !== old_code) {
@@ -472,7 +476,7 @@ export function duplicate_selected_layers(state: State) {
 
 // For regeneration after cell rerun
 function save_selected_layers(state: State) {
-  const selected_calls = state.layers_panel.layers.filter(is_layer_selected).flatMap(layer => layer.calls_with_args).map(call_with_args => call_with_args.call_info.loc_via_func_code_and_num);
+  const selected_calls = state.layers_panel.layers.filter(is_layer_selected).flatMap(layer => layer.calls_with_args).map(call_with_args => call_with_args.call_info.call_id);
 
   // console.log(selected_calls)
 
@@ -491,8 +495,9 @@ export function load_selected_layers(state: State) {
   deselect_all_layers(state);
 
   state.layers_panel.layers.forEach(layer => {
-    if (layer.calls_with_args.some(call_with_args => selected_calls.some(selected_call => equalByJSON(selected_call, call_with_args.call_info.loc_via_func_code_and_num)))) {
+    if (layer.calls_with_args.some(call_with_args => selected_calls.some(selected_call => equalByJSON(selected_call, call_with_args.call_info.call_id)))) {
       select_layer(layer, state);
     }
   });
 }
+

@@ -3,7 +3,7 @@ import { select_layer, selected_layers } from "../../layer_panel/layer_panel";
 import {
   State,
 } from "../../types";
-import { zip, equalByJSON } from "../../utils/array";
+import { zip, equalByJSON } from "../../utils/stdlib";
 import { place_centered_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
 import { perhaps_get_drag_x_handler, perhaps_get_drag_width_handler, perhaps_get_drag_height_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler } from "../call/call";
 import { create_method_view } from "../methods/method";
@@ -20,9 +20,9 @@ export function place_add_method_buttons_on_plot(state: State) {
 
   // Draw add method widgets on appropriate hover regions
   const placed_methods: HTMLElement[] = [];
-  state.methods.forEach(method => {
+  state.methods_with_code.forEach(method => {
     // Skip if already called
-    const dont_show = method.method_info.max_calls == 1 && state.calls.some(call => call.loc_via_func_code_and_num[0] == method.receiver_dot_name);
+    const dont_show =  state.calls.count(call => call.func_code == method.receiver_dot_name) >= method.method_info.max_calls;
     if (dont_show) { return; }
 
     const show_on = method.method_info.show_on.at(-1);
@@ -41,24 +41,24 @@ export function place_add_method_buttons_on_plot(state: State) {
   placed_methods.forEach(method_el => { method_el.classList.add("placed"); });
 }
 
-export function hover_regions_for_call(loc_via_func_code_and_num: [string, number], state: State): SVGElement[] {
+export function hover_regions_for_call(call_id: string, state: State): SVGElement[] {
   const svg_overlay_el = state.hover_regions_svg();
 
   if (!svg_overlay_el) { return []; }
 
-  return (Array.from(svg_overlay_el.querySelectorAll('[data-func-code-and-num]')) as SVGElement[]).filter(hover_region => {
-    return equalByJSON(JSON.parse(hover_region.dataset.funcCodeAndNum || ""), loc_via_func_code_and_num);
+  return (Array.from(svg_overlay_el.querySelectorAll('[data-call-id]')) as SVGElement[]).filter(hover_region => {
+    return hover_region.dataset.callId === call_id;
   });
 }
 
-// export function deselect_hover_regions(loc_via_func_code_and_num: [string, number], state: State) {
-//   hover_regions_for_call(loc_via_func_code_and_num, state).forEach(hover_region => {
+// export function deselect_hover_regions(call_id: string, state: State) {
+//   hover_regions_for_call(call_id, state).forEach(hover_region => {
 //     hover_region.classList.remove("selected");
 //   });
 // }
 
-export function select_hover_regions(loc_via_func_code_and_num: [string, number], state: State) {
-  hover_regions_for_call(loc_via_func_code_and_num, state).forEach(hover_region => {
+export function select_hover_regions(call_id: string, state: State) {
+  hover_regions_for_call(call_id, state).forEach(hover_region => {
     hover_region.classList.add("selected");
   });
 }
@@ -72,7 +72,7 @@ export function compute_selected_hover_regions(state: State) {
   svg_overlay_el.querySelectorAll(".selected").forEach(el => el.classList.remove("selected"));
   selected_layers(state).forEach(layer => {
     layer.calls_with_args.forEach(call_with_args => {
-      select_hover_regions(call_with_args.call_info.loc_via_func_code_and_num, state);
+      select_hover_regions(call_with_args.call_info.call_id, state);
     });
   });
 }
@@ -103,7 +103,7 @@ export function attach_events_to_hover_regions(state: State) {
       const perhaps_drag_width_handler  = perhaps_get_drag_width_handler(call_view);
       const perhaps_drag_height_handler = perhaps_get_drag_height_handler(call_view);
 
-      const hover_regions = hover_regions_for_call(call_info.loc_via_func_code_and_num, state);
+      const hover_regions = hover_regions_for_call(call_info.call_id, state);
 
       hover_regions.forEach(hover_region => {
 
@@ -374,7 +374,7 @@ export function attach_events_to_hover_regions(state: State) {
 
 // export function add_method_trigger_to_hover_region(
 //   region: HoverRegion,
-//   method: MethodWithArgs,
+//   method: MethodWithCode,
 //   method_view: MethodView,
 //   state: State
 // ) {

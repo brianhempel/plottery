@@ -1,4 +1,4 @@
-import { create_el } from "../../../utils/misc";
+import { create_el, selectCodeText } from "../../../utils/misc";
 import { Widget } from "../widget";
 
 export type ArbitraryCodeWidget = Widget & {
@@ -34,12 +34,7 @@ export function create_arbitrary_code_widget(code: string): ArbitraryCodeWidget 
   el.addEventListener('mouseleave', () => el.closest(".snp-layer")?.setAttribute("draggable", "true")  );
 
   // When el is clicked, select its text
-  el.addEventListener("focus", ev => {
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    window.getSelection()?.removeAllRanges();
-    window.getSelection()?.addRange(range);
-  });
+  el.addEventListener("focus", ev => { selectCodeText(el); });
 
   return widget
 }

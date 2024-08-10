@@ -18,6 +18,7 @@ declare global {
     filterMap<U>(callback: (value: T, index: number, array: T[]) => U | null | undefined): U[];
     min(): T | undefined;
     max(): T | undefined;
+    count(predicate: (el: T) => boolean): number;
   }
 }
 
@@ -99,4 +100,32 @@ if (!Array.prototype.filterMap) {
   Array.prototype.filterMap = function<T, U>(this: T[], callback: (value: T, index: number, array: T[]) => U | null | undefined): U[] {
     return this.map(callback).clean();
   };
+}
+
+if (!Array.prototype.count) {
+  Array.prototype.count = function<T>(this: T[], predicate: (el: T) => boolean): number {
+    let count = 0;
+    for (const x of this) { predicate(x) && count++; }
+    return count;
+  };
+}
+
+
+
+
+
+/* ------------------------------------------------------ */
+/*                     String Utilities                    */
+/* ------------------------------------------------------ */
+
+declare global {
+  interface String {
+    capitalize(): string;
+  }
+}
+
+if (!String.prototype.capitalize) {
+  String.prototype.capitalize = function() {
+    return this.charAt(0).toUpperCase() + this.slice(1);
+  }
 }

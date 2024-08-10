@@ -62,9 +62,8 @@ ColorType = RGBColorType | RGBAColorType
 
 Hatches = Literal["/", "\\", "|", "-", "+", "x", "o", "O", ".", "*"]
 
-Linestyle = (
-    tuple[float, list[float]]
-    | Literal[
+Linestyle = \
+    Literal[
         "-",
         "--",
         "-.",
@@ -77,11 +76,10 @@ Linestyle = (
         "None",
         " ",
         "",
-    ]
-)
+    ] | tuple[float, list[float]]
 
 class PatchProps(TypedDict, total=False):
-    agg_filter: function
+    # agg_filter: function
     alpha: float | None
     animated: bool
     antialiased: bool | None
@@ -92,9 +90,9 @@ class PatchProps(TypedDict, total=False):
     # clip_path: Patch | tuple[Path, Transform] | None
     color: ColorType
     edgecolor: ColorType
-    ec: ColorType
+    # ec: ColorType
     facecolor: ColorType
-    fc: ColorType
+    # fc: ColorType
     # figure: Figure
     fill: bool
     gid: str
@@ -186,7 +184,7 @@ NamedFontWeight: TypeAlias = Literal[
 #   for list of aliases, look for `@_api.define_aliases` in text.py
 #   TODO do "text properties" encompass not just text kwargs (which this currenlty is) but also non-kwrags named parmaeters?
 class TextProps(TypedDict, total=False):
-    agg_filter: AggFilterType
+    # agg_filter: AggFilterType
     alpha: AlphaType
     animated: bool
     backgroundcolor: ColorType
@@ -195,23 +193,23 @@ class TextProps(TypedDict, total=False):
     clip_on: bool
     clip_path: None  # | Patch | tuple[Path, Transform]
     color: ColorType
-    c: ColorType  # aliases `color`
+    # c: ColorType  # aliases `color`
     # figure: Figure
     fontfamily: str | NamedFontName
-    family: str | NamedFontName  # aliases `fontfamily`
+    # family: str | NamedFontName  # aliases `fontfamily`
     fontproperties: str  # | Path | FontProperties
-    font: str  # | Path | FontProperties  # aliases `fontproperties`
-    font_properties: str  # | Path | FontProperties  # aliases `fontproperties`
+    font: str # | Path | FontProperties  # aliases `fontproperties`
+    # font_properties: str  # | Path | FontProperties  # aliases `fontproperties`
     fontsize: float | NamedFontSize
-    size: float | NamedFontSize  # aliases `fontsize`
+    # size: float | NamedFontSize  # aliases `fontsize`
     fontstretch: float | NamedFontStretch
-    stretch: float | NamedFontStretch  # aliases `fontstretch`
+    # stretch: float | NamedFontStretch  # aliases `fontstretch`
     fontstyle: FontStyle
-    style: FontStyle  # aliases `fontstyle`
+    # style: FontStyle  # aliases `fontstyle`
     fontvariant: FontVariant
-    variant: FontVariant  # aliases `fontvariant`
+    # variant: FontVariant  # aliases `fontvariant`
     fontweight: float | NamedFontWeight
-    weight: float | NamedFontWeight  # aliases `fontweight`
+    # weight: float | NamedFontWeight  # aliases `fontweight`
     gid: str
     horizontalalignment: Literal["center", "left", "right"]
     ha: Literal["center", "left", "right"]
@@ -282,7 +280,7 @@ MarkerType: TypeAlias = (
 )
 
 class Line2DProps(TypedDict, total=False):
-    agg_filter: AggFilterType
+    # agg_filter: AggFilterType
     alpha: AlphaType = 1.0
     animated: bool
     antialiased: bool
@@ -299,9 +297,9 @@ class Line2DProps(TypedDict, total=False):
     drawstyle: Literal[
         "default", "steps", "steps-pre", "steps-mid", "steps-post"
     ]
-    ds: Literal[
-        "default", "steps", "steps-pre", "steps-mid", "steps-post"
-    ]  # aliases `drawstyle`
+    # ds: Literal[
+    #     "default", "steps", "steps-pre", "steps-mid", "steps-post"
+    # ]  # aliases `drawstyle`
     figure: Figure
     fillstyle: Literal["full", "left", "right", "bottom", "top", "none"]
     gapcolor: ColorType | None
@@ -309,18 +307,18 @@ class Line2DProps(TypedDict, total=False):
     in_layout: bool
     label: object
     linestyle: Linestyle
-    ls: Linestyle  # aliases `linestyle`
+    # ls: Linestyle  # aliases `linestyle`
     linewidth: float
-    lw: float  # aliases `linewidth`
+    # lw: float  # aliases `linewidth`
     marker: MarkerType  # | Path | MarkerStyle
     markeredgecolor: ColorType
-    mec: ColorType  # aliases `markeredgecolor`
+    # mec: ColorType  # aliases `markeredgecolor`
     markeredgewidth: float
-    mew: float  # aliases `markeredgewidth`
+    # mew: float  # aliases `markeredgewidth`
     markerfacecolor: ColorType
-    mfc: ColorType  # aliases `markerfacecolor`
+    # mfc: ColorType  # aliases `markerfacecolor`
     markerfacecoloralt: ColorType
-    mfcalt: ColorType  # aliases `markerfacecoloralt`
+    # mfcalt: ColorType  # aliases `markerfacecoloralt`
     markersize: float
     ms: float  # aliases `markersize`
     markevery: (

@@ -36,13 +36,13 @@ export function create_sidebar_menu_bar(state: State) {
 //   CallWithArgs,
 //   MethodInfo,
 //   MethodView,
-//   MethodWithArgs,
+//   MethodWithCode,
 //   PersistantArtist,
 //   PersistantCall,
 //   SelectableArtist,
 //   // SidebarView,
 //   State,
-//   StaticCallTypeInfo,
+//   CallInfo,
 // } from "../types";
 // import { MarkerRange, TextMarker } from "../utils/codemirror";
 // import {
@@ -63,8 +63,8 @@ export function create_sidebar_menu_bar(state: State) {
 // export function create_sidebar(
 //   all_calls_and_methods: {
 //     [key: string]: {
-//       calls: CallWithArgs<DynamicCallInfo | StaticCallTypeInfo>[];
-//       methods: MethodWithArgs[];
+//       calls: CallWithArgs<DynamicCallInfo | CallInfo>[];
+//       methods: MethodWithCode[];
 //     };
 //   },
 //   selectable_artists: SelectableArtist[],

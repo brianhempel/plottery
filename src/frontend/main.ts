@@ -5,33 +5,27 @@ import { make_plot_widgets, reposition_plot_widgets } from "./sidebar/plot-widge
 import "./snp.css";
 import {
   Arg,
-  DynamicCallInfo,
   CallWithArgs,
-  CallableType,
-  Position,
-  SelectableArtist,
   State,
-  TypeAliasType,
-  TypedDictType,
-  StaticCallTypeInfo,
+  CallInfo,
   Type,
-  MethodInfoWithType,
+  MethodInfo,
 } from "./types";
-import "./utils/array";
+import "./utils/stdlib";
 import {
   arg_defaults_from_callee_type,
   create_el,
   cm_start_pos,
   cm_end_pos,
 } from "./utils/misc";
-import { JupyterType, get_arg_kind_from_int } from "./utils/types";
+import { JupyterType } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
 import { create_sidebar_menu_bar } from "./sidebar/sidebar";
 import { close_all_menus } from "./menus/menus";
-import { get_code_and_loc_for_call } from "./sidebar/call/call";
-import { get_methods } from "./sidebar/methods/method";
-import { ParseableComment } from "./types";
+import { id_as_new_call } from "./sidebar/call/call";
+import { method_info_to_method_with_args } from "./sidebar/methods/method";
+import { ParseableComment } from "./layer_panel/layer_panel";
 
 
 // These will already exist where we inject the JS in the notebook.
@@ -43,24 +37,16 @@ function attach_snp(
   snp_outer: HTMLElement,
   cell_lineno: number,
   provenance_is_off_by_n_lines: number,
-  user_call_type_info: StaticCallTypeInfo[],
-  sidebar_stuff: {
-    methods: MethodInfoWithType[];
-    calls: DynamicCallInfo[];
-  },
+  methods: MethodInfo[],
+  calls: CallInfo[],
   notebook_typed_defs: Type[],
   notebook_parseable_comments: ParseableComment[],
   user_iterables: string[],
 ) {
-  console.log("user_call_type_info", user_call_type_info);
-  console.log("sidebar_stuff", sidebar_stuff);
-
   // Initialize state
   const cell_el = snp_outer.closest(".code_cell");
   const cell = Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
   const state: State = {
-    canvas_selection: null,
-
     cell: cell,
     cell_lineno: cell_lineno,
 
@@ -70,11 +56,12 @@ function attach_snp(
     notebook_typed_defs: [],
     user_iterables: user_iterables,
 
-    methods: get_methods(sidebar_stuff.methods),
+    methods: methods,
+    methods_with_code: methods.map(method_info_to_method_with_args),
 
     layers_panel: { el: create_el("div"), layers: [] }, // Dummy, replaced immediately below.
 
-    calls: sidebar_stuff.calls,
+    calls: calls,
     calls_with_args: [],
 
     persistent_dataset: (snp_outer.closest('.output')! as HTMLElement).dataset,
@@ -117,7 +104,7 @@ function attach_snp(
 
   state.notebook_typed_defs = deserialize.python_objects_to_js(notebook_typed_defs);
 
-  state.calls_with_args = sidebar_stuff.calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror));
+  state.calls_with_args = calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror));
 
   const layers = state.notebook_typed_defs.flatMap(typed_node =>
     typed_node.line >= cell_lineno ? layers_from_typed_node(typed_node, state) : []
@@ -182,14 +169,14 @@ function attach_snp(
   if (new_calls.length > 0) {
     // select layers whose get_code_and_loc_for_call(call.call_info) appears in new_calls
     state.layers_panel.layers.forEach(layer => {
-      const codes_and_locs = layer.calls_with_args.map(call_with_args => get_code_and_loc_for_call(call_with_args.call_info));
-      // console.log(codes_and_locs)
-      if (codes_and_locs.some(code_and_loc => new_calls.includes(code_and_loc))) {
+      const ids_as_new_call = layer.calls_with_args.map(call_with_args => id_as_new_call(call_with_args.call_info));
+      // console.log(ids_as_new_call)
+      if (ids_as_new_call.some(id => new_calls.includes(id))) {
         select_layer(layer, state);
 
         // If there's an associated plot widget, "click" it to start editing
-        for (const { icon_el, show_on_loc_via_func_code_and_num } of state.plot_widgets) {
-          if (layer.calls_with_args.some(call_with_args => call_with_args.call_info.loc_via_func_code_and_num == show_on_loc_via_func_code_and_num)) {
+        for (const { icon_el, show_on_call_id } of state.plot_widgets) {
+          if (layer.calls_with_args.some(call_with_args => call_with_args.call_info.call_id == show_on_call_id)) {
             icon_el.click();
           }
         }
@@ -244,11 +231,11 @@ function attach_snp(
 // ARG_STAR2 = 4
 // # In an argument list, keyword-only and also optional
 // ARG_NAMED_OPT = 5
-export function call_info_to_call_with_args<call_info_type extends (DynamicCallInfo | StaticCallTypeInfo)>(
-  call_info: call_info_type,
+export function call_info_to_call_with_args(
+  call_info: CallInfo,
   cell_lineno: number,
   code_mirror: CodeMirror.DocOrEditor
-): CallWithArgs<call_info_type> {
+): CallWithArgs {
   const callee = call_info.callee;
 
   let arg_defaults = arg_defaults_from_callee_type(callee);

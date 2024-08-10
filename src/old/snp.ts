@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // These will already exist where we inject the JS in the notebook.
 declare const IPython: any;
 declare const Jupyter: any;
@@ -178,9 +180,9 @@ function selected_shapes(snp_state: {
     ];
     snp_state
       .hover_regions_svg()
-      .querySelectorAll(`[data-func-code-and-num]`)
+      .querySelectorAll(`[data-call-id]`)
       .forEach(shape => {
-        if (equal_by_json(target, JSON.parse(shape.dataset.funcCodeAndNum))) {
+        if (equal_by_json(target, JSON.parse(shape.dataset.callId))) {
           selected_shapes.push(shape);
         }
       });
@@ -225,8 +227,8 @@ function shape_selection_key(shape): SelectedItem {
     return {
       name: shortest_qualified_name(JSON.parse(shape.dataset.artistNames)),
     };
-  } else if (shape.dataset.funcCodeAndNum) {
-    const [func_code, call_num] = JSON.parse(shape.dataset.funcCodeAndNum);
+  } else if (shape.dataset.callId) {
+    const [func_code, call_num] = JSON.parse(shape.dataset.callId);
     return { func_code, call_num };
   }
   return undefined;
@@ -244,7 +246,7 @@ function selected_sidebar_item(snp_state, key: SelectedItem) {
     return Array.from(snp_state.sidebar.children as any[]).find(el =>
       Array.from(el.children as any[]).some(
         child =>
-          child.funcCodeAndNum && equal_by_json(child.funcCodeAndNum, target)
+          child.callId && equal_by_json(child.callId, target)
       )
     );
   }
@@ -1576,7 +1578,7 @@ function attach_snp(
   if ("select_lineno_after_execute" in window) {
     snp_state
       .hover_regions_svg()
-      .querySelectorAll("[data-pos][data-func-code-and-num]")
+      .querySelectorAll("[data-pos][data-call-id]")
       .forEach(hover_region => {
         const [lineno, col_offset, end_lineno, end_col_offset] = JSON.parse(
           hover_region.dataset.pos
@@ -1624,7 +1626,7 @@ function build_sidebar(snp_state) {
     const methods_called = [];
 
     const call_widgets = artist_calls.map(call_info => {
-      const { name, receiver, max_calls, loc_via_func_code_and_num } = call_info;
+      const { name, receiver, max_calls, call_id } = call_info;
       const { widget, mark } = loced_widget_from_code(
         call_info,
         cell_lineno,
@@ -1648,7 +1650,7 @@ function build_sidebar(snp_state) {
       if (is_single_call) {
         return make_el(
           "span",
-          { funcCodeAndNum: loc_via_func_code_and_num },
+          { callId: call_id },
           { display: "grid", gridTemplateColumns: "min-content 333px" },
           {},
           [
@@ -1666,7 +1668,7 @@ function build_sidebar(snp_state) {
       } else {
         return make_el(
           "div",
-          { funcCodeAndNum: loc_via_func_code_and_num },
+          { callId: call_id },
           { display: "grid", gridTemplateColumns: "min-content 333px" },
           {},
           [
@@ -1820,7 +1822,7 @@ function attach_events_to_hover_regions(snp_state) {
 
   snp_state
     .hover_regions_svg()
-    .querySelectorAll("[data-artist-names],[data-func-code-and-num]")
+    .querySelectorAll("[data-artist-names],[data-call-id]")
     .forEach(hover_region => {
       const selection_key = shape_selection_key(hover_region);
       // console.log(selection_key)

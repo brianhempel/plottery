@@ -4,9 +4,6 @@ import { Widget } from "./sidebar/widgets/widget";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
 
-/* ------------------------------------------------------ */
-/*                          Types                         */
-/* ------------------------------------------------------ */
 
 /* ------------------------ State ----------------------- */
 export type State = {
@@ -15,19 +12,14 @@ export type State = {
 
   cell: Cell;
   cell_lineno: number;
-
   provenance_is_off_by_n_lines: number;
 
-  methods: MethodWithArgs[];
-  calls: DynamicCallInfo[];
-  calls_with_args: CallWithArgs<DynamicCallInfo>[];
+  methods: MethodInfo[];
+  methods_with_code: MethodWithCode[];
 
-  calls_and_methods_by_artist?: {
-    [key: string]: {
-      calls: CallWithArgs<DynamicCallInfo | StaticCallTypeInfo>[];
-      methods: MethodWithArgs[];
-    };
-  };
+  calls: CallInfo[];
+  calls_with_args: CallWithArgs[];
+
   notebook_typed_defs: Type[],
   user_iterables: string[];
 
@@ -35,21 +27,19 @@ export type State = {
   // **** Actual state ****
 
   last_cell_code_executed: string;
-  canvas_selection: SelectedItem | null;
   persistent_dataset: DOMStringMap; // stuff to store between reruns, e.g. selected layers, stored in dataset attribute on the .output div
   dragging_layers: Layer[]
 
-  is_in_dom: () => boolean; // false after a hard rerun of the cell; everything is old now
+  is_in_dom: () => boolean; // false after a hard rerun of the cell; everything is old then
 
 
   // **** View outputs ****
 
-  // hovered_elems: SVGGElement[];
   snp_outer: HTMLElement;
   plot_area: HTMLElement;
   stdout_stderr: HTMLElement;
 
-  hover_regions_svg: () => SVGElement | undefined; // The SVG element not always there (e.g. during drag ops) and is sometimes replaced.
+  hover_regions_svg: () => SVGElement | undefined; // The SVG element is not always there (e.g. during drag ops) and is sometimes replaced.
   set_hover_regions_html: (html_svg_str: string) => void;
   hover_regions_container: HTMLElement;
   plot_widgets: PlotWidget[]; // On-plot UI edit widgets
@@ -59,51 +49,7 @@ export type State = {
 
   command_shortcuts: { [keys: string]: (state: State) => void };
 
-  // hover_regions?: {
-  //   el: HTMLElement;
-  //   regions: {
-  //     [artist_id: number]: HoverRegion;
-  //   };
-  // };
 };
-
-
-export type SelectedItem =
-  | { name: string }
-  | { func_code: string; call_num: number };
-
-export type SelectableArtist = {
-  id: number; // 140533847992896
-  names: string[]; // ['ax.yaxis.label', 'ax.axes.yaxis.label'...]
-  // parent_id?: number;
-};
-
-// export type HoverRegion = {
-//   el: HTMLElement;
-//   calls: { info: DynamicCallInfo; view: CallView }[];
-//   methods: { info: MethodInfo; view: MethodView }[];
-//   artist: ArtistView | null;
-// };
-
-// export type SidebarView = {
-//   el: HTMLElement;
-//   artists_el: HTMLElement;
-//   artists: { [name: string]: ArtistView };
-// };
-
-// export type ArtistView = {
-//   els: ArtistViewEls;
-
-//   calls: CallView[];
-//   methods: MethodView[];
-// };
-
-// export type ArtistViewEls = {
-//   el: HTMLElement;
-//   header_el: HTMLElement;
-//   name_el: HTMLElement;
-//   body_el: HTMLElement;
-// };
 
 export type CallView = {
   els: CallViewEls;
@@ -149,11 +95,24 @@ export type MethodInfo = {
   name: string; // "set_title"
   receiver: number; // 140533847992896
   receiver_names: string[]; // ["ax.bar"]
+  type: CallableType;
   show_on: number[]; // [140533847992896, 140533885438224]
 };
 
-export type MethodInfoWithType = MethodInfo & {
-  type: CallableType & { pos: Position };
+export type CallInfo = {
+  // name: string;
+  func_code: string; // "ax.bar"
+  call_id: string; // "ax.bar #1"
+
+  call: { pos: Position };
+  callee: CallableType & { pos: Position };
+
+  // It's either a Type with { name, pos }, OR
+  // its just { name, pos } if mypy couldn't type the arg
+  given_args: ((Type | {}) & {
+    name: string | null; // "align"
+    pos: Position;
+  })[];
 };
 
 export type Arg = {
@@ -168,26 +127,8 @@ export type Arg = {
   is_positional: boolean;
 };
 
-export type StaticCallTypeInfo = {
-  call: { pos: Position };
-  callee: CallableType & { pos: Position };
-
-  // It's either a Type with { kind, name, pos }, OR
-  // its just { kind, name, pos }.
-  given_args: ((Type | {}) & {
-    // kind: number; // 3
-    name: string | null; // "align"
-    pos: Position;
-  })[];
-};
-
-export type DynamicCallInfo =  StaticCallTypeInfo & {
-  name: string;
-  loc_via_func_code_and_num: [string, number]; // ["ax.bar", 1]
-};
-
-export type CallWithArgs<call_info_type> = {
-  call_info: call_info_type;
+export type CallWithArgs = {
+  call_info: CallInfo;
   given_positional_args: Arg[];
   given_keyword_args: Arg[];
   needed_positional_args: Arg[];
@@ -195,14 +136,14 @@ export type CallWithArgs<call_info_type> = {
   missing_keyword_args: Arg[];
 };
 
-export type MethodWithArgs = {
-  method_info: MethodInfoWithType;
+export type MethodWithCode = {
+  method_info: MethodInfo;
   receiver_dot_name: string; // "ax.bar"
-  code: string;
-  required_positional_arg: Arg[];
-  required_keyword_args: Arg[];
+  code: string; // "ax.bar(...)"
 };
 
+
+/* ----------------- Python types ----------------- */
 export type Type =
   | UnionType
   | LiteralType
@@ -263,6 +204,7 @@ export type CallableType = {
   is_ellipses_arg: boolean;
 
   name: string; // "set_title of Axes"
+  definition_fullname: string; // "matplotlib.axes._axes.Axes.set_title"
   ret_type: Type; // "matplotlib.text.Text"
 
   type_gaurd: null; // ?
@@ -296,6 +238,3 @@ export type TypedDictType = {
   required_keys: string[];
   default_codes_by_name: { [arg_name: string]: string };
 };
-
-export type ParseableComment = Position & { uncommented: string; };
-

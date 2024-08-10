@@ -3,6 +3,7 @@ import {
   ArgView,
   State,
 } from "../../types";
+import { selectCodeText } from "../../utils/misc";
 import {
   create_edit_icon,
   create_el,
@@ -14,16 +15,15 @@ import { hover_regions_for_call } from "../hover-regions/hover_regions";
 import "./plot_widget.css";
 
 export type PlotWidgetConfig = {
-  call_code: string;
+  method_name: string;
   arg_name: string;
-  type: string;
 };
 
 export type PlotWidget = {
   el: HTMLElement;
   icon_el: HTMLElement;
   input_el: HTMLElement;
-  show_on_loc_via_func_code_and_num: [string, number]; // can't use artist id's because they change on live sync
+  show_on_call_id: string; // can't use artist id's because they change on live sync
 }
 
 
@@ -35,25 +35,26 @@ export type PlotWidget = {
 export function make_plot_widgets(state: State) {
   const plot_widgets_configs: PlotWidgetConfig[] = [
     {
-      call_code: "ax.set_title",
+      method_name: "set_title",
       arg_name: "label",
-      type: "builtins.str",
     },
     {
-      call_code: "ax.set_xlabel",
+      method_name: "set_xlabel",
       arg_name: "xlabel",
-      type: "builtins.str",
     },
     {
-      call_code: "ax.set_ylabel",
+      method_name: "set_ylabel",
       arg_name: "ylabel",
-      type: "builtins.str",
+    },
+    {
+      method_name: "set_ylim",
+      arg_name: "bottom",
     },
   ];
 
   for (const plot_widget_config of plot_widgets_configs) {
     // Find the call
-    let target_call = find_call_that_satisfies((call_info, _) => plot_widget_config.call_code == call_info.loc_via_func_code_and_num[0], state);
+    let target_call = find_call_that_satisfies((call_info, _) => plot_widget_config.method_name == call_info.func_code.split('.').at(-1), state);
 
     if (target_call == undefined) {
       // console.warn(
@@ -77,7 +78,7 @@ export function make_plot_widgets(state: State) {
       continue;
     }
 
-    const show_on_loc_via_func_code_and_num = target_call.info.loc_via_func_code_and_num;
+    const show_on_call_id = target_call.info.call_id;
 
     let widget = target_arg.view.widget;
 
@@ -107,28 +108,7 @@ export function make_plot_widgets(state: State) {
       plot_widget_el.classList.remove("hidden");
       icon.classList.add("hidden");
       plot_widget_el.focus();
-
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-
-        const range = document.createRange();
-
-        const starting_code = plot_widget_el.innerText;
-
-        let [start_i, end_i] = [0, starting_code.length];
-
-        // If a literal string, select inside the string.
-        if ((starting_code.startsWith(`'`) && starting_code.endsWith(`'`)) || (starting_code.startsWith(`"`) && starting_code.endsWith(`"`))) {
-          start_i = 1;
-          end_i = starting_code.length - 1;
-        }
-
-        range.setStart(plot_widget_el.firstChild!, start_i);
-        range.setEnd(plot_widget_el.firstChild!, end_i);
-
-        selection.addRange(range);
-      }
+      selectCodeText(plot_widget_el);
     });
 
     plot_widget_el.addEventListener("input", () => {
@@ -153,7 +133,7 @@ export function make_plot_widgets(state: State) {
       el,
       icon_el: icon,
       input_el: plot_widget_el,
-      show_on_loc_via_func_code_and_num,
+      show_on_call_id,
     });
   }
 }
@@ -161,7 +141,7 @@ export function make_plot_widgets(state: State) {
 export function reposition_plot_widgets(state: State) {
 
   // console.log("repositioning", state.plot_widgets)
-  for (const { el, input_el, show_on_loc_via_func_code_and_num } of state.plot_widgets) {
+  for (const { el, input_el, show_on_call_id } of state.plot_widgets) {
 
     // Don't reposition the element while editting
     if (!input_el.classList.contains("hidden")) {
@@ -169,7 +149,7 @@ export function reposition_plot_widgets(state: State) {
     }
 
     const hover_region: Element | undefined =
-      hover_regions_for_call(show_on_loc_via_func_code_and_num, state).at(-1); // Only show on last hover region if multiple matches
+      hover_regions_for_call(show_on_call_id, state).at(-1); // Only show on last hover region if multiple matches
 
     if (hover_region) {
       const {top, right, width} = relativeBoundingRect(hover_region, state.plot_area)
@@ -177,7 +157,7 @@ export function reposition_plot_widgets(state: State) {
       el.style.left = `${right}px`;
       input_el.style.left = `-${width}px`;
     } else {
-      console.log("can't position", show_on_loc_via_func_code_and_num, el)
+      console.log("can't position", show_on_call_id, el)
     }
   }
 

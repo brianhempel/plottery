@@ -18,12 +18,12 @@
   display: none;
 }
 
-.hover_regions [data-func-code-and-num].selected > path {
+.hover_regions [data-call-id].selected > path {
   stroke-width: 2px;
   stroke: #009dff;
 }
 
-.hover_regions [data-func-code-and-num].hovered:not(.selected) > path {
+.hover_regions [data-call-id].hovered:not(.selected) > path {
   stroke-width: 1px;
   stroke: #009dff;
 }

@@ -1,11 +1,10 @@
-import { add_sync_code_on_change_watcher, sync_code_range } from "../../code_sync/code_sync";
+import { add_sync_code_on_change_watcher } from "../../code_sync/code_sync";
 import {
   Arg,
   ArgView,
+  CallInfo,
   CallView,
-  CallViewEls,
   CallWithArgs,
-  DynamicCallInfo,
   State,
 } from "../../types";
 import {
@@ -19,7 +18,6 @@ import {
   arg_view_to_code,
   create_arg_view,
   enable_arg_view,
-  disable_arg_view,
 } from "../arg/arg";
 import {
   collapse_collapsable,
@@ -29,10 +27,29 @@ import {
 import { Boundses } from "../hover-regions/hover_regions";
 import "./call.css";
 
-// by name and line number
-export function get_code_and_loc_for_call(call: DynamicCallInfo) {
-  return `${call.loc_via_func_code_and_num[0]}${call.call.pos.line}`;
+
+// Reference a call by name and line number.
+//
+// Used only to identify newly added calls in the code, for
+// selecting them after SNP regenerates on the cell re-run.
+// So it's quite transient.
+//
+// We can't use call_id because it's hard to compute the appropriate call number
+// for a new call that doesn't exist yet. BUT we can't get rid of call_id and
+// use the below everywhere because call number is more robust to other kind of code changes
+// than line number.
+//
+// Line number here is relative to the notebook, not the cell.
+export function id_as_new_call(call: CallInfo) {
+  return id_of_new_call(call.func_code, call.call.pos.line);
 }
+
+// 20 | ax.bar(...) -> "ax.bar at line 20"
+export function id_of_new_call(func_code: string, line_no: number): string {
+  return `${func_code} at line ${line_no}`;
+}
+
+
 
 /**
  * Creates a call in the sidebar. e.g.
@@ -41,7 +58,7 @@ export function get_code_and_loc_for_call(call: DynamicCallInfo) {
  *   - y=data[0]
  *   - heights=data[1]
  */
-export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: State): CallView {
+export function create_call_view(call: CallWithArgs, state: State): CallView {
   const code_mirror = state.cell.code_mirror;
   const cell_lineno = state.cell_lineno;
 
@@ -58,7 +75,7 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
   call_el.classList.add("snp-call");
   const name_el = create_el("div", "snp-call-name", header_el);
 
-  name_el.innerText = call.call_info.loc_via_func_code_and_num[0];
+  name_el.innerText = call.call_info.func_code;
 
 
   // Arguments
@@ -133,13 +150,13 @@ export function create_call_view(call: CallWithArgs<DynamicCallInfo>, state: Sta
 }
 
 export function call_to_code(call_view: CallView) : string {
-  const call_name = call_view.els.name_el.innerText;
+  const func_code = call_view.els.name_el.innerText;
   const args_str =
     call_view.arguments.
       filterMap(({ arg, view }) => view.disabled ? null : arg_view_to_code(arg, view)).
       join(", ");
 
-  return `${call_name}(${args_str})`;
+  return `${func_code}(${args_str})`;
 }
 
 // The handling for dragging on the plot has to be routed through the layers UI element because all the logic

@@ -324,7 +324,7 @@ class Axes(_AxesBase):
         color: ColorType | list[ColorType] = 'C0',  # mpl.rcParams['lines.color']
         alpha: Optional[float] = None,
         linewidth: Optional[float] = 1.5,  # mpl.rcParams['lines.linewidth']
-        linestyle: Optional[Literal['-', '--', '-.', ':', '', 'None', ' ', 'solid', 'dashed', 'dashdot', 'dotted']] = '-',  # mpl.rcParams['lines.linestyle']
+        linestyle: Linestyle | None = '-',  # mpl.rcParams['lines.linestyle']
         dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Sequence[float] | Tuple = (),
         gapcolor: ColorType | None = None,
         drawstyle: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default',
