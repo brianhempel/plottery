@@ -204,7 +204,7 @@ export type CallableType = {
   is_ellipses_arg: boolean;
 
   name: string; // "set_title of Axes"
-  definition_fullname: string; // "matplotlib.axes._axes.Axes.set_title"
+  definition_fullname: string | null; // "matplotlib.axes._axes.Axes.set_title"
   ret_type: Type; // "matplotlib.text.Text"
 
   type_gaurd: null; // ?

@@ -39,7 +39,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   const calls_at_loc = calls_with_args.filter(call => call.call_info.call.pos.line === typed_node.line);
 
   // We only care about matplotlib calls for now
-  const mpl_calls = calls_at_loc.filter(call => call.call_info.callee.definition_fullname.includes('matplotlib.'));
+  const mpl_calls = calls_at_loc.filter(call => call.call_info.callee.definition_fullname?.includes('matplotlib.'));
 
   const call_views: CallView[] = mpl_calls.map(calls_with_args => create_call_view(calls_with_args, state));
 
