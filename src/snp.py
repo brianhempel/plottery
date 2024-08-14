@@ -244,7 +244,7 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
             # Two: Transfer the provenance to the artists.
             for container in artist.containers:
                 for child in container.get_children():
-                    if not hasattr(child, "_snp_came_from_call_id"): # Don't overwrite if already set.
+                    if not hasattr(child, "_snp_came_from_call_id") and hasattr(container, "_snp_came_from_call_id"): # Don't overwrite if already set.
                         child._snp_came_from_call_id = container._snp_came_from_call_id
 
             children = sorted(children, key=get_zorder) # this is also in Axes.draw()
@@ -746,6 +746,10 @@ class SNP(SNPFigureAndHoverRegions):
                     chunks_in_comment = []
 
                 for chunk_in_comment in chunks_in_comment:
+                    # ignore if it's a lone single name, that means it's probably not code
+                    if isinstance(chunk_in_comment, ast.Expr) and isinstance(chunk_in_comment.value, ast.Name):
+                        continue
+
                     line_no, col_offset, raw_lines = multiline_comment
                     (chunk_lineno, chunk_col, chunk_endlineno, chunk_endcol) = ast_loc(chunk_in_comment)
                     chunk_lines = raw_lines[chunk_lineno-1:chunk_endlineno]

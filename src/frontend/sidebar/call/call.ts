@@ -66,7 +66,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   const mark = code_mirror.markText(
     cm_start_pos(call.call_info.call.pos, cell_lineno),
     cm_end_pos(call.call_info.call.pos, cell_lineno),
-    { inclusiveLeft: true, inclusiveRight: true }
+    { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
   );
 
   // Call container
@@ -144,7 +144,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
     arguments: arg_and_views,
   };
 
-  add_sync_code_on_change_watcher(() => call_to_code(call_view), mark, state);
+  add_sync_code_on_change_watcher(() => call_to_code(call_view), [mark], state);
 
   return call_view;
 }

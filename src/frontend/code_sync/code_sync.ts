@@ -12,7 +12,7 @@ export function hard_rerun(state: State) {
 
 export function add_sync_code_on_change_watcher(
   get_code: () => string,
-  mark: TextMarker<MarkerRange>,
+  marks: TextMarker<MarkerRange>[],
   state: State
 ) {
   let curr_code = get_code();
@@ -21,25 +21,28 @@ export function add_sync_code_on_change_watcher(
     const code = get_code();
 
     if (curr_code != code) {
-      sync_code_range(mark, code, state);
+      sync_code_range(marks, code, state);
       curr_code = code;
     }
 
+    // requestAnimationFrame(keep_synced);
     state.is_in_dom() && requestAnimationFrame(keep_synced);
   }
-  keep_synced();
+  requestAnimationFrame(keep_synced);
 }
 
-export function sync_code_range(
-  mark: TextMarker<MarkerRange>,
+function sync_code_range(
+  marks: TextMarker<MarkerRange>[],
   code: string,
   state: State
 ) {
-  let { from, to } = mark.find()!;
 
-  const code_mirror = state.cell.code_mirror;
+  const cm = state.cell.code_mirror;
 
-  code_mirror.replaceRange(code, from, to);
+  marks.forEach(mark => {
+    let { from, to } = mark.find()!;
+    cm.replaceRange(code, from, to);
+  });
 
   // Selecting the code leaves a highlight on what has changed, BUT it scrolls
   // the window which is really jarring when you are doing a direct manipulation.

@@ -666,6 +666,8 @@ export function selectCodeText(code_el: HTMLElement) {
       end_i = code.length - 1;
     }
 
+    if (!code_el.firstChild) { code_el.append(''); }
+
     range.setStart(code_el.firstChild!, start_i);
     range.setEnd(code_el.firstChild!, end_i);
 

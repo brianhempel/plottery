@@ -39,7 +39,8 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   const calls_at_loc = calls_with_args.filter(call => call.call_info.call.pos.line === typed_node.line);
 
   // We only care about matplotlib calls for now
-  const mpl_calls = calls_at_loc.filter(call => call.call_info.callee.definition_fullname?.includes('matplotlib.'));
+  const [mpl_calls, other_calls] = calls_at_loc.partition(call => !!call.call_info.callee.definition_fullname?.includes('matplotlib.'));
+  console.log('function calls not rendered:', ...other_calls.map(call => call.call_info.func_code))
 
   const call_views: CallView[] = mpl_calls.map(calls_with_args => create_call_view(calls_with_args, state));
 
@@ -51,7 +52,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   const mark = cm.markText(
     cm_start_pos(typed_node, state.cell_lineno),
     cm_end_pos(typed_node, state.cell_lineno),
-    { inclusiveLeft: true, inclusiveRight: true }
+    { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
   );
   let target_mark = mark;
 
@@ -76,7 +77,9 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
     }
     const iterator_widget = make_widget_for_code_and_type(iterable_code, iterable_type, null, state.user_iterables);
 
-    layer_el.append(
+    const layer_code_line = create_el('div', [], layer_el);
+
+    layer_code_line.append(
       "for ",
       pattern_widget.el,
       " in ",
@@ -89,7 +92,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
     const edit_mark = cm.markText(
       cm_start_pos(typed_node.index, state.cell_lineno),
       expr_end,
-      { inclusiveLeft: true, inclusiveRight: true }
+      { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
     );
     const end_of_for_line = {
       line: expr_end.line,
@@ -98,17 +101,104 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
     target_mark = cm.markText(
       cm_start_pos(typed_node, state.cell_lineno),
       end_of_for_line,
-      { inclusiveLeft: true, inclusiveRight: true }
+      { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
     );
     add_sync_code_on_change_watcher(
       () => `${pattern_widget.to_code()} in ${is_enumerate ? "enumerate(" : ""}${iterator_widget.to_code()}${is_enumerate ? ")" : ""}`,
-      edit_mark, state
+      [edit_mark], state
     );
     layer_el.classList.add(`indentbelow-${indent_level+1}`)
     layer_el.classList.add(`for-loop`)
 
     sublayers.push(...typed_node.body.body.flatMap(node => layers_from_typed_node(node, state, indent_level + 1)));
     // sublayers.forEach(sublayer => sublayer.parents.push(layer));
+  } else if (typed_node['.class'] === 'mypy.nodes.FuncDef') {
+    // layer_el.append(typed_node.unparsed.split('\n')[0]);
+    console.log('func def:', typed_node)
+
+    // Set up editable function name
+
+    const func_name_match = typed_node.unparsed.match(/(?<=^\s*def\s+)[^\(\s]+/)!
+    if (!func_name_match) { console.error('Could not find function name in:', typed_node.unparsed); return [] }
+
+    const func_name = func_name_match[0];
+    const func_name_widget = create_arbitrary_code_widget(func_name);
+
+    const func_start = cm_start_pos(typed_node, state.cell_lineno);
+    const func_name_start = { line: func_start.line,  ch: func_start.ch + func_name_match.index! }
+    const func_name_end   = { line: func_start.line,  ch: func_start.ch + func_name_match.index! + func_name.length }
+
+    const func_name_mark = cm.markText(
+      func_name_start,
+      func_name_end,
+      { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
+    );
+
+    // Also mark all uses of the function name to change them
+    const use_marks = []
+
+    for (const use_match of cm.getValue().matchAll(new RegExp(`\\b${func_name_match}\\(`, 'g'))) {
+      const use_start = cm.posFromIndex(use_match.index)
+      if (use_start.line != func_start.line) {
+        const use_end = { line: use_start.line, ch: use_start.ch + func_name.length };
+        use_marks.push(cm.markText(use_start, use_end, { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }));
+      }
+    }
+    add_sync_code_on_change_watcher(
+      () => func_name_widget.to_code(),
+      [func_name_mark, ...use_marks], state
+    );
+
+    // Set up editable function args
+
+    const args_unparsed = typed_node.arguments.map(arg => arg.unparsed + (arg.initializer ? '=' + arg.initializer.unparsed : '')).join(', ');
+    const args_widget = create_arbitrary_code_widget(args_unparsed);
+
+    const layer_code_line = create_el('div', [], layer_el);
+
+    layer_code_line.append("def ", func_name_widget.el, "(", args_widget.el, "):")
+
+    let args_start: {line: number, ch: number};
+    let args_end: {line: number, ch: number};
+
+    if (typed_node.arguments.length > 0) {
+      args_start = cm_start_pos(typed_node.arguments[0], state.cell_lineno);
+      const last_arg = typed_node.arguments.at(-1)!;
+      args_end = cm_end_pos(last_arg.initializer || last_arg, state.cell_lineno);
+    } else {
+      // For zero-arg functions, this presumes the colon is on the same line because I don't want to do the math to add extra line numbers
+      const func_def_parens_match = typed_node.unparsed.match(/(?<=^\s*def\s+[^:\(\n]+)\([^:\)\n]*\)/)!
+      if (!func_def_parens_match) { console.error('Could not find function def parens in:', typed_node.unparsed); return [] }
+
+      args_start = { line: func_start.line,  ch: func_start.ch + func_def_parens_match.index! + 1 }
+      args_end   = { line: func_start.line,  ch: func_start.ch + func_def_parens_match.index! + func_def_parens_match[0].length - 1 }
+    }
+    const args_mark = cm.markText(
+      args_start,
+      args_end,
+      { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
+    );
+    add_sync_code_on_change_watcher(
+      () => args_widget.to_code(),
+      [args_mark], state
+    );
+
+    // Set up the mark for the function definition line (used for managing drag-n-drops on this layer)
+
+    const end_of_def_line = {
+      line: args_end.line,
+      ch: args_end.ch + 1000
+    }
+    target_mark = cm.markText(
+      cm_start_pos(typed_node, state.cell_lineno),
+      end_of_def_line,
+      { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
+    );
+
+    layer_el.classList.add(`indentbelow-${indent_level+1}`)
+    layer_el.classList.add(`func-def`)
+
+    sublayers.push(...typed_node.body.body.flatMap(node => layers_from_typed_node(node, state, indent_level + 1)));
   } else {
     layer_el.innerText = typed_node.unparsed;
     layer_el.classList.add("snp-code-layer");
@@ -176,7 +266,7 @@ export function layers_from_parseable_comment(comment: ParseableComment, state: 
   const mark = state.cell.code_mirror.markText(
     cm_start_pos(comment, state.cell_lineno),
     cm_end_pos(comment, state.cell_lineno),
-    { inclusiveLeft: true, inclusiveRight: true }
+    { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
   );
 
   layer_el.innerText = comment.uncommented;
