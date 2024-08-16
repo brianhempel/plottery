@@ -9,9 +9,13 @@
 } */
 
 .hover_regions > svg {
-  border: none !important;
+  border: none;
   overflow: visible;
   margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scale(1,-1);
 }
 
 .hover_regions.hide_during_interaction {

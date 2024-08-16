@@ -532,7 +532,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
 
                 svg_body = region2_to_svg_g(fig_regions2)
 
-                self.cached_svg_hover_regions = f"""<svg style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
+                self.cached_svg_hover_regions = f"""<svg width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
                     {svg_body}
                 </svg>"""
 
