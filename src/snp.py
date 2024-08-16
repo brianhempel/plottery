@@ -22,7 +22,7 @@ import mypy.server.update
 
 import matplotlib as mpl
 
-import numpy
+import numpy as np
 
 import shapely
 
@@ -166,11 +166,11 @@ def remove_nones(iter):
     return [x for x in iter if x is not None]
 
 
-def all_artists(artist):
-    if "get_children" in dir(artist):
-        return [artist] + flatten([all_artists(artist) for artist in artist.get_children()])
-    else:
-        return [artist]
+# def all_artists(artist):
+#     if "get_children" in dir(artist):
+#         return [artist] + flatten([all_artists(artist) for artist in artist.get_children()])
+#     else:
+#         return [artist]
 
 
 # returns shapely.Polygon
@@ -372,7 +372,7 @@ def _artist_names_deep(out, obj, name, max_depth):
     if max_depth <= 0 or callable(obj):
         return
 
-    if isinstance(obj, list):
+    if isinstance(obj, list) or (isinstance(obj, np.ndarray) and len(obj) <= 10):
         for i, item in enumerate(obj):
             _artist_names_deep(out, item, f"{name}[{str(i)}]", max_depth)
         if len(obj) >= 1:
@@ -532,7 +532,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
 
                 svg_body = region2_to_svg_g(fig_regions2)
 
-                self.cached_svg_hover_regions = f"""<svg style="margin: 0; border: solid 1px black; position: absolute; top: 0; left: 0;" transform="scale(1,-1)" width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
+                self.cached_svg_hover_regions = f"""<svg width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
                     {svg_body}
                 </svg>"""
 
@@ -590,7 +590,7 @@ class SNP(SNPFigureAndHoverRegions):
                     name_type = tree.names[name].type
                     if name_type is not None:
                         self.user_typed_snippets[name] = name_type
-                        (is_subtype(name_type, iterable_type) and not is_subtype(name_type, string_type) or (isinstance(value, numpy.ndarray) and value.ndim == 1) or isinstance(value, list)) and self.user_iterables.append(name) # include dynamic checks too because grrrr
+                        (is_subtype(name_type, iterable_type) and not is_subtype(name_type, string_type) or (isinstance(value, np.ndarray) and value.ndim == 1) or isinstance(value, list)) and self.user_iterables.append(name) # include dynamic checks too because grrrr
 
                         if isinstance(value, dict) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.dict':
                             val_type = name_type.args[1]

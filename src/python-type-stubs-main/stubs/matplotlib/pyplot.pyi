@@ -1,7 +1,7 @@
 import datetime
 from matplotlib.contour import QuadContourSet
 import numpy as np
-from typing import Callable, ContextManager, Literal, Sequence, overload
+from typing import Any, Callable, ContextManager, List, Literal, Sequence, overload
 from matplotlib import rcParams as rcParams
 from matplotlib import style as style
 from ._typing import *
@@ -111,6 +111,10 @@ def cla() -> None: ...
 def subplot(*args, **kwargs) -> Axes: ...
 
 
+# subplots actually often returns np.ndarrays instead of List BUT the numpy type stubs
+# and/or mypy can't then understand that pulling items out of that list gives you an Axes
+#
+# So we pretend it returns lists
 @overload
 def subplots(
     nrows: int = ...,
@@ -122,7 +126,7 @@ def subplots(
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
     **fig_kw
-) -> tuple[Figure, np.ndarray]: ...
+) -> tuple[Figure, List[List[Axes]]]: ...
 @overload
 def subplots(
     nrows: Literal[1] = ...,
@@ -149,7 +153,7 @@ def subplots(
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
     **fig_kw
-) -> tuple[Figure, np.ndarray]: ...
+) -> tuple[Figure, List[Axes]]: ...
 @overload
 def subplots(
     nrows: int = ...,
@@ -161,7 +165,7 @@ def subplots(
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
     **fig_kw
-) -> tuple[Figure, np.ndarray]: ...
+) -> tuple[Figure, List[Axes]]: ...
 @overload
 def subplots(
     *,
@@ -173,7 +177,7 @@ def subplots(
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
     **fig_kw
-) -> tuple[Figure, np.ndarray]: ...
+) -> tuple[Figure, List[List[Axes]]]: ...
 @overload
 def subplots(
     *,
@@ -184,7 +188,7 @@ def subplots(
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
     **fig_kw
-) -> tuple[Figure, np.ndarray]: ...
+) -> tuple[Figure, List[Axes]]: ...
 @overload
 def subplots(
     nrows: int = ...,
@@ -195,7 +199,7 @@ def subplots(
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
     **fig_kw
-) -> tuple[Figure, np.ndarray]: ...
+) -> tuple[Figure, List[Axes]]: ...
 
 @overload
 def subplots(
@@ -219,7 +223,7 @@ def subplots(
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
     **fig_kw
-) -> tuple[Figure, np.ndarray]: ...
+) -> tuple[Figure, List[List[Axes]]]: ...
 
 def subplot_mosaic(
     mosaic: list | str,
