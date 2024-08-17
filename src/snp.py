@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import os
+import sys
 import pathlib
 import re
 import ast
@@ -25,6 +26,11 @@ import matplotlib as mpl
 import numpy as np
 
 import shapely
+
+if 'snp_src_directory' not in globals():
+    snp_src_directory = os.getcwd()
+
+sys.path.append(snp_src_directory)
 
 import serialize
 import visitor_ast
@@ -72,7 +78,6 @@ if "import_lineset" not in globals():
     mypy_result = None  # The FineGrainedBuildManager mutates this, apparently.
     fscache = None
 
-
 def do_inference(code):
     # For caching
     global import_lineset
@@ -95,7 +100,7 @@ def do_inference(code):
         options.fine_grained_incremental = True
         options.use_fine_grained_cache = True
         options.local_partial_types = True  # https://github.com/python/mypy/issues/4492
-        options.mypy_path = ["python-type-stubs-main/stubs"]
+        options.mypy_path = [f"{snp_src_directory}/python-type-stubs-main/stubs"]
         # options.follow_imports = "silent"
         options.follow_imports_for_stubs = True
         options.export_types = True
@@ -764,12 +769,12 @@ class SNP(SNPFigureAndHoverRegions):
 
         # Walk all the files in the frontend folder, and append all the contents of the .css files
         with Timer("frontend_css"):
-            frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path("frontend").rglob("*.css")])
+            frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path(f"{snp_src_directory}/frontend").rglob("*.css")])
 
         with Timer("out_html"):
             out_html = f"""
                 <div class="snp_outer">
-                <script>{pathlib.Path("../dist/plugin.js").read_text()}</script>
+                <script>{pathlib.Path(f"{snp_src_directory}/../dist/plugin.js").read_text()}</script>
                 <div class="plot_and_sidebar">
                     <div class="plot_area" style="position:relative;">
                         <img src='{data_url}'> <!-- the plot -->
