@@ -2,7 +2,7 @@ import { State } from "../types";
 import { create_el } from "../utils/misc";
 
 
-export function create_menu_el(innerHTML: string, parent: HTMLElement): HTMLElement {
+export function create_menu_el(innerHTML: string, parent: HTMLElement | undefined): HTMLElement {
   const menu = create_el("div", "snp-menu", parent);
   const menu_name = create_el("div", "snp-menu-name", menu);
   menu_name.innerHTML = innerHTML;
@@ -23,7 +23,7 @@ export function create_menu_el(innerHTML: string, parent: HTMLElement): HTMLElem
 // enabled_predicate is a function that takes the menu item and state and returns whether it should be enabled
 export function add_menu_item(
   menu: HTMLElement,
-  name: string,
+  innerHTML: string,
   command: string | null, // e.g. 'D' registers the shortcut cmd-D and '⇧A' registers cmd-shift-A
   action: (state: State) => void,
   enabled_predicate: (item: HTMLElement, state: State) => boolean,
@@ -31,7 +31,7 @@ export function add_menu_item(
 ) {
   const menu_items = menu.querySelector(".snp-menu-items")!;
   const menu_item = create_el("div", "snp-menu-item", menu_items);
-  menu_item.innerText = name;
+  menu_item.innerHTML = innerHTML;
   if (command) {
     command = command.toUpperCase();
     const command_key = window.navigator.platform.match(/Mac|iPhone/) ? "⌘" : "Ctrl+";

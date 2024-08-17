@@ -26,6 +26,8 @@
 .snp-menu.open > .snp-menu-items,
 .snp-submenu:hover > .snp-menu-items {
   display: block;
+  max-height: 33vh;
+  overflow: auto;
 }
 
 .snp-menu-item {

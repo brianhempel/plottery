@@ -1,13 +1,15 @@
 import { refresh_hover_regions } from "../../code_sync/code_sync";
 import { select_layer, selected_layers } from "../../layer_panel/layer_panel";
 import {
+  MethodWithCode,
   State,
 } from "../../types";
 import { zip, equalByJSON } from "../../utils/stdlib";
-import { place_centered_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
+import { create_el, escape_html, place_centered_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
 import { perhaps_get_drag_x_handler, perhaps_get_drag_width_handler, perhaps_get_drag_height_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler } from "../call/call";
-import { create_method_view } from "../methods/method";
+import { add_method_call, create_method_view } from "../methods/method";
 import "./hover_regions.css";
+import { add_menu_item, create_menu_el } from "../../menus/menus";
 
 
 export function place_add_method_buttons_on_plot(state: State) {
@@ -18,23 +20,83 @@ export function place_add_method_buttons_on_plot(state: State) {
 
   const hover_regions: Element[] = Array.from(svg_overlay_el.querySelectorAll('[data-artist-id]'));
 
+  // Group methods by artist_id
+
+  const methods_by_artist_id: { [artist_id: number]: MethodWithCode[] } = {};
+
+  state.methods_with_code.forEach(method => {
+    const artist_id = method.method_info.show_on.at(-1);
+    if (artist_id) {
+      const dont_show = state.calls.count(call => call.func_code == method.receiver_dot_name) >= method.method_info.max_calls;
+
+      if (!dont_show) {
+        methods_by_artist_id[artist_id] = methods_by_artist_id[artist_id] || [];
+        methods_by_artist_id[artist_id].push(method);
+      }
+    } else {
+      console.warn("Method without artist_id!", method);
+    }
+  });
+
   // Draw add method widgets on appropriate hover regions
   const placed_methods: HTMLElement[] = [];
-  state.methods_with_code.forEach(method => {
-    // Skip if already called
-    const dont_show =  state.calls.count(call => call.func_code == method.receiver_dot_name) >= method.method_info.max_calls;
-    if (dont_show) { return; }
 
-    const show_on = method.method_info.show_on.at(-1);
+  for (const [artist_id, methods] of Object.entries(methods_by_artist_id)) {
 
-    hover_regions.filter(el => parseInt(el.getAttribute("data-artist-id") || "-1") == show_on).forEach(hover_region => {
-      const { el: method_el } = create_method_view(method, state);
-      state.plot_area.append(method_el); // Have to place in DOM first so it has width/height for centering
-      place_centered_over_shape(hover_region, method_el, state.plot_area);
-      reposition_to_avoid_overlap(method_el, placed_methods, state.plot_area);
-      placed_methods.push(method_el);
+    hover_regions.filter(el => el.getAttribute("data-artist-id") == artist_id).forEach(hover_region => {
+      let el: HTMLElement;
+      if (methods.length == 1) {
+        el = create_el("div", "snp-method-view");
+        el.innerText = methods[0].receiver_dot_name; // "ax.bar"
+        el.title = methods[0].method_info.docstring_first_line;
+        el.addEventListener("click", _ => add_method_call(methods[0], state));
+      } else {
+
+        const artist_name = hover_region.getAttribute("data-artist-name") || "unknown";
+
+        el = create_menu_el(`<span class="snp-methods-dropdown">${artist_name} ▾</span>`, undefined)
+        el.classList.add('snp-method-view');
+
+        // Add possible method calls to the menu
+        methods.forEach(method => {
+          add_menu_item(
+            el,
+            `<span>${method.receiver_dot_name}<span class="doc">${escape_html(method.method_info.docstring_first_line)}</span></span>`,
+            null, // Command
+            (state => add_method_call(method, state)),
+            _ => true, // Enabled?
+            state
+          )
+          // create_el('span', 'doc', item).innerText = method.method_info.docstring_first_line;
+        });
+      }
+
+      // const { el: method_el } = create_method_view(method, state);
+      state.plot_area.append(el); // Have to place in DOM first so it has width/height for centering
+      place_centered_over_shape(hover_region, el, state.plot_area);
+      reposition_to_avoid_overlap(el, placed_methods, state.plot_area);
+      placed_methods.push(el);
     });
-  });
+
+  }
+
+  // // Draw add method widgets on appropriate hover regions
+  // const placed_methods: HTMLElement[] = [];
+  // state.methods_with_code.forEach(method => {
+  //   // Skip if already called
+  //   const dont_show =  state.calls.count(call => call.func_code == method.receiver_dot_name) >= method.method_info.max_calls;
+  //   if (dont_show) { return; }
+
+  //   const show_on = method.method_info.show_on.at(-1);
+
+  //   hover_regions.filter(el => parseInt(el.getAttribute("data-artist-id") || "-1") == show_on).forEach(hover_region => {
+      // const { el: method_el } = create_method_view(method, state);
+  //     state.plot_area.append(method_el); // Have to place in DOM first so it has width/height for centering
+  //     place_centered_over_shape(hover_region, method_el, state.plot_area);
+  //     reposition_to_avoid_overlap(method_el, placed_methods, state.plot_area);
+  //     placed_methods.push(method_el);
+  //   });
+  // });
 
   // Can't hide the methods for hover until they've all been repositioned
   // (if they start hidden then the above repositioning does not work)

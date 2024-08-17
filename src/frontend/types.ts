@@ -68,9 +68,9 @@ export type CallViewEls = {
   body_el: HTMLElement;
 };
 
-export type MethodView = {
-  el: HTMLElement;
-};
+// export type MethodView = {
+//   el: HTMLElement;
+// };
 
 export type ArgView = {
   el: HTMLElement;
@@ -93,8 +93,9 @@ export type Position = {
 export type MethodInfo = {
   max_calls: number; // 1, Infinity, etc.
   name: string; // "set_title"
+  docstring_first_line: string; // "Set a title for the axes."
   receiver: number; // 140533847992896
-  receiver_names: string[]; // ["ax.bar"]
+  receiver_name: string; // "ax.bar"
   type: CallableType;
   show_on: number[]; // [140533847992896, 140533885438224]
 };

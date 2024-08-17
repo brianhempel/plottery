@@ -46,10 +46,10 @@ export function make_plot_widgets(state: State) {
       method_name: "set_ylabel",
       arg_name: "ylabel",
     },
-    {
-      method_name: "set_ylim",
-      arg_name: "bottom",
-    },
+    // {
+    //   method_name: "set_ylim",
+    //   arg_name: "bottom",
+    // },
   ];
 
   for (const plot_widget_config of plot_widgets_configs) {

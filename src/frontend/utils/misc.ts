@@ -47,6 +47,12 @@ import { get_arg_kind_from_int } from "./types";
 //   }
 // }
 
+// https://stackoverflow.com/a/6234804
+export function escape_html(str: string): string {
+  return str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+}
+
+
 export function get_proper_type(type: Type): Type {
   return type[".class"] == "TypeAliasType" && type.resolved ? get_proper_type(type.resolved) : type;
 }
@@ -89,6 +95,10 @@ function arg_defaults_for_star2_arg(arg_type: Type): Arg[] {
 export function arg_defaults_from_callee_type(callee: CallableType): Arg[] {
 
   let arg_names = callee.arg_names_at_definition ? callee.arg_names_at_definition : callee.arg_names;
+  if (!arg_names) {
+    console.warn("arg_names not found for ", callee, " likely meaning the type def for it is malformed or missing");
+    return [];
+  }
   if (arg_names === callee.arg_names) {
     console.warn("arg_names_at_definition not found for ", callee, " likely meaning the type def for it is missing an import or is otherwise missing or malformed. Lack of definition access can can mess up positional-only arguments.");
   }
@@ -551,18 +561,18 @@ export function hex_to_rgb(hex: string): { r: number; g: number; b: number } {
     : { r: 0, g: 0, b: 0 };
 }
 
-// Sort by number of dots, then by total length.
-export function compare_qualified_names(name1: string, name2: string) {
-  return (
-    name1.length +
-    100 * name1.split(".").length -
-    (name2.length + +100 * name2.split(".").length)
-  );
-}
+// // Sort by number of dots, then by total length.
+// function compare_qualified_names(name1: string, name2: string) {
+//   return (
+//     name1.length +
+//     100 * name1.split(".").length -
+//     (name2.length + +100 * name2.split(".").length)
+//   );
+// }
 
-export function get_shortest_qualified_name(names: string[]) {
-  return names.sort(compare_qualified_names)[0];
-}
+// export function get_shortest_qualified_name(names: string[]) {
+//   return names.sort(compare_qualified_names)[0];
+// }
 
 // Round to given number of significant figures.
 // A mashup of Brian, GPT-4o, and Sam Mason https://stackoverflow.com/a/56974893

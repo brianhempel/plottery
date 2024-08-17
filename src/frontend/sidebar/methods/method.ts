@@ -1,27 +1,28 @@
 import { MethodInfo, MethodView, MethodWithCode, State } from "../../types";
-import { arg_defaults_from_callee_type, create_el, get_shortest_qualified_name } from "../../utils/misc";
+import { arg_defaults_from_callee_type, create_el } from "../../utils/misc";
 import { hard_rerun } from "../../code_sync/code_sync";
 import "./method.css";
 import { add_line_of_code } from "../../utils/misc";
 import { id_of_new_call } from "../call/call";
 
-/**
- * Buttons to click to add method calls to the code.
- */
-export function create_method_view(
-  method: MethodWithCode,
-  state: State
-): MethodView {
+// /**
+//  * Buttons to click to add method calls to the code.
+//  */
+// export function create_method_view(
+//   method: MethodWithCode,
+//   state: State
+// ): MethodView {
 
-  const el = create_el("div", "snp-method-view");
-  el.innerText = method.receiver_dot_name; // "ax.bar"
+//   const el = create_el("div", "snp-method-view");
+//   el.innerText = method.receiver_dot_name; // "ax.bar"
+//   el.title = method.method_info.docstring_first_line;
 
-  el.addEventListener("click", _ => add_method_call(method, state));
+//   el.addEventListener("click", _ => add_method_call(method, state));
 
-  return {
-    el,
-  };
-}
+//   return {
+//     el,
+//   };
+// }
 
 export function add_method_call(
   method: MethodWithCode,
@@ -34,7 +35,6 @@ export function add_method_call(
 }
 
 export function method_info_to_method_with_args(method_info: MethodInfo): MethodWithCode {
-  let receiver_name = get_shortest_qualified_name(method_info.receiver_names);
 
   let arg_defaults = arg_defaults_from_callee_type(method_info.type);
 
@@ -58,7 +58,7 @@ export function method_info_to_method_with_args(method_info: MethodInfo): Method
 
   let required_keyword_arg_codes = required_keyword_args.map(arg => `${arg.name}=${arg.code}`);
 
-  let receiver_dot_name = `${receiver_name}.${method_info.name}`;
+  let receiver_dot_name = `${method_info.receiver_name}.${method_info.name}`;
   let code = `${receiver_dot_name}(${required_positional_arg_codes
     .concat(required_keyword_arg_codes)
     .join(",")})\n`;

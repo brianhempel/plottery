@@ -146,18 +146,26 @@ def full_names_dict(type_node):
 
 
 def object_type_node(obj, type_graph):
-    thing_type_node = type_graph[obj.__class__.__module__].tree
+    try:
+        thing_type_node = type_graph[obj.__class__.__module__].tree
+    except KeyError:
+        # print(
+        #     obj.__class__.__module__,
+        #     obj.__class__.__qualname__,
+        #     "not found",
+        # )
+        return None
 
     for class_name in obj.__class__.__qualname__.split("."):  # Handle inner nested classes correctly.
         if class_name in thing_type_node.names:
             thing_type_node = thing_type_node.names[class_name].node
         else:
             thing_type_node = None
-            print(
-                obj.__class__.__module__,
-                obj.__class__.__qualname__,
-                "not found",
-            )
+            # print(
+            #     obj.__class__.__module__,
+            #     obj.__class__.__qualname__,
+            #     "not found",
+            # )
             break
 
     return thing_type_node
@@ -342,7 +350,10 @@ def method_type(receiver, method_name, type_graph):
     if receiver_type_node is not None:
         node = full_names_dict(receiver_type_node).get(method_name)
         if node is not None:
-            if not isinstance(node.type, mypy.types.Overloaded):
+            if isinstance(node.type, mypy.types.Overloaded):
+                # First overload is our default signature for the method.
+                return node.type.items[0]
+            else:
                 return node.type
 
     return None
@@ -356,21 +367,25 @@ def method_type_json(receiver, method_name, type_graph):
 # data-call-id indicates the artist was returned from a call, so that artist on the canvas should be associated with that call in the layers panel.
 
 # Preserve heirarchical structure so that JS mouseenter events work as intended
-def region2_to_svg_g(artist_methods_bounds_geom_children):
+def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names):
     artist, methods, (fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds), geom, children = artist_methods_bounds_geom_children
     geom_svg = geom.svg()
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
-    child_svgs_str = "\n".join([region2_to_svg_g(child) for child in children])
+    child_svgs_str = "\n".join([region2_to_svg_g(child, artist_names) for child in children])
 
-    # names = artist_names.get(id(artist), (None, {}))[1]
+    name = shortest_qualified_name(artist_names.get(id(artist), (None, {}))[1])
 
+    perhaps_name = f'data-artist-name="{name}"' if name is not None else ""
     perhaps_call_loc = f'data-call-id="{escape_html(artist._snp_came_from_call_id)}" data-fig-px-bounds="{json_for_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_attr(region_px_bounds)}"' if hasattr(artist, "_snp_came_from_call_id") else ""
-    return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" {perhaps_call_loc}>
+    return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" {perhaps_name} {perhaps_call_loc}>
     {geom_svg}
     {child_svgs_str}
     </g>"""
 
+
+def shortest_qualified_name(names):
+    return min(names, key=lambda name: (name.count("."), len(name))) if len(names) > 0 else None
 
 # Mutates out
 def _artist_names_deep(out, obj, name, max_depth):
@@ -401,29 +416,6 @@ def _artist_names_deep(out, obj, name, max_depth):
     #     out[id(obj)] = (obj, set())
 
 
-# Return list of (descendants that should also expose this method, method name on the root artist, number of times method could be called)
-def method_associations(artist):
-    match artist:
-        case mpl.axes.Axes():
-            return [
-                ([".title"], "set_title", 1),
-                ([".xaxis"], "set_xticks", 1),
-                ([".xaxis", ".xaxis.label"], "set_xlabel", 1),
-                ([".yaxis", ".yaxis.label"], "set_ylabel", 1),
-                ([".yaxis.majorTicks[0].label1"], "set_ylim", 1),
-                ([".yaxis.majorTicks[0].label2"], "set_ylim", 1),
-                ([], "bar", float("inf")),
-                ([], "barh", float("inf")),
-                ([], "plot", float("inf")),
-                ([], "legend", 1),
-                ([], "axhline", float("inf")),
-                ([], "axvline", float("inf")),
-                ([], "bar_label", float("inf")),
-            ]
-        case _:
-            return []
-
-
 # Returns a dict of object to (object, set of names)
 #
 # Used to find receivers for possible new method calls, which are all currently
@@ -437,6 +429,524 @@ def artist_names(locals, user_nameset, max_depth=4):
             _artist_names_deep(out, value, f"{name}", max_depth)
 
     return out
+
+# # Collapse adjacent whitespace to a single space
+# def squish(string):
+#     return re.sub(r'\s+', ' ', string)
+#
+# for name in dir(ax):
+#     if name.startswith('_'):
+#         continue
+#     doc = (getattr(ax, name).__doc__ or '').strip().split('\n\n')[0]
+#     print(f"([''], {repr(name)}, float('inf'), {repr(squish(doc))}),")
+axes_method_associations = [
+    # ([''], 'ArtistList', float('inf'), 'A sublist of Axes children based on their type.'),
+    ([''], 'acorr', float('inf'), 'Plot the autocorrelation of *x*.'),
+    # ([''], 'add_artist', float('inf'), 'Add an `.Artist` to the Axes; return the artist.'),
+    # ([''], 'add_callback', float('inf'), 'Add a callback function that will be called whenever one of the'),
+    # ([''], 'add_child_axes', float('inf'), "Add an `.AxesBase` to the Axes' children; return the child Axes."),
+    # ([''], 'add_collection', float('inf'), 'Add a `.Collection` to the Axes; return the collection.'),
+    # ([''], 'add_container', float('inf'), "Add a `.Container` to the Axes' containers; return the container."),
+    # ([''], 'add_image', float('inf'), 'Add an `.AxesImage` to the Axes; return the image.'),
+    # ([''], 'add_line', float('inf'), 'Add a `.Line2D` to the Axes; return the line.'),
+    # ([''], 'add_patch', float('inf'), 'Add a `.Patch` to the Axes; return the patch.'),
+    # ([''], 'add_table', float('inf'), 'Add a `.Table` to the Axes; return the table.'),
+    ([''], 'angle_spectrum', float('inf'), 'Plot the angle spectrum.'),
+    ([''], 'annotate', float('inf'), 'Annotate the point *xy* with text *text*.'),
+    # ([''], 'apply_aspect', float('inf'), 'Adjust the Axes for a specified data aspect ratio.'),
+    ([''], 'arrow', float('inf'), 'Add an arrow to the Axes.'),
+    # ([''], 'artists', float('inf'), 'A sublist of Axes children based on their type.'),
+    # ([''], 'autoscale', float('inf'), 'Autoscale the axis view to the data (toggle).'),
+    # ([''], 'autoscale_view', float('inf'), 'Autoscale the view limits using the data limits.'),
+    # ([''], 'axes', float('inf'), 'An Axes object encapsulates all the elements of an individual (sub-)plot in'),
+    ([''], 'axhline', float('inf'), 'Add a horizontal line across the Axes.'),
+    ([''], 'axhspan', float('inf'), 'Add a horizontal span (rectangle) across the Axes.'),
+    # ([''], 'axis', float('inf'), 'Convenience method to get or set some axis properties.'),
+    # ([''], 'axison', float('inf'), 'bool(x) -> bool'),
+    ([''], 'axline', float('inf'), 'Add an infinitely long straight line.'),
+    ([''], 'axvline', float('inf'), 'Add a vertical line across the Axes.'),
+    ([''], 'axvspan', float('inf'), 'Add a vertical span (rectangle) across the Axes.'),
+    ([''], 'bar', float('inf'), 'Make a bar plot.'),
+    ([''], 'bar_label', float('inf'), 'Label a bar plot.'),
+    ([''], 'barbs', float('inf'), 'Plot a 2D field of barbs.'),
+    ([''], 'barh', float('inf'), 'Make a horizontal bar plot.'),
+    # ([''], 'bbox', float('inf'), 'A `Bbox` that is automatically transformed by a given'),
+    ([''], 'boxplot', float('inf'), 'Draw a box and whisker plot.'),
+    ([''], 'broken_barh', float('inf'), 'Plot a horizontal sequence of rectangles.'),
+    # ([''], 'bxp', float('inf'), 'Drawing function for box and whisker plots.'),
+    # ([''], 'callbacks', float('inf'), 'Handle registering, processing, blocking, and disconnecting'),
+    # ([''], 'can_pan', float('inf'), 'Return whether this Axes supports any pan/zoom button functionality.'),
+    # ([''], 'can_zoom', float('inf'), 'Return whether this Axes supports the zoom box button functionality.'),
+    # ([''], 'child_axes', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'cla', float('inf'), 'Clear the Axes.'),
+    ([''], 'clabel', float('inf'), 'Label a contour plot.'),
+    # ([''], 'clear', float('inf'), 'Clear the Axes.'),
+    # ([''], 'clipbox', float('inf'), ''),
+    ([''], 'cohere', float('inf'), 'Plot the coherence between *x* and *y*.'),
+    # ([''], 'collections', float('inf'), 'A sublist of Axes children based on their type.'),
+    # ([''], 'containers', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'contains', float('inf'), ''),
+    # ([''], 'contains_point', float('inf'), 'Return whether *point* (pair of pixel coordinates) is inside the Axes'),
+    ([''], 'contour', float('inf'), 'Plot contour lines.'),
+    ([''], 'contourf', float('inf'), 'Plot filled contours.'),
+    # ([''], 'convert_xunits', float('inf'), 'Convert *x* using the unit type of the xaxis.'),
+    # ([''], 'convert_yunits', float('inf'), 'Convert *y* using the unit type of the yaxis.'),
+    ([''], 'csd', float('inf'), 'Plot the cross-spectral density.'),
+    # ([''], 'dataLim', float('inf'), 'A mutable bounding box.'),
+    # ([''], 'drag_pan', float('inf'), 'Called when the mouse moves during a pan operation.'),
+    # ([''], 'draw', float('inf'), ''),
+    # ([''], 'draw_artist', float('inf'), 'Efficiently redraw a single artist.'),
+    ([''], 'ecdf', float('inf'), 'Compute and plot the empirical cumulative distribution function of *x*.'),
+    # ([''], 'end_pan', float('inf'), 'Called when a pan operation completes (when the mouse button is up.)'),
+    ([''], 'errorbar', float('inf'), 'Plot y versus x as lines and/or markers with attached errorbars.'),
+    ([''], 'eventplot', float('inf'), 'Plot identical parallel lines at the given positions.'),
+    # ([''], 'figure', float('inf'), 'The top level container for all the plot elements.'),
+    ([''], 'fill', float('inf'), 'Plot filled polygons.'),
+    ([''], 'fill_between', float('inf'), 'Fill the area between two horizontal curves.'),
+    ([''], 'fill_betweenx', float('inf'), 'Fill the area between two vertical curves.'),
+    # ([''], 'findobj', float('inf'), 'Find artist objects.'),
+    # ([''], 'fmt_xdata', float('inf'), ''),
+    # ([''], 'fmt_ydata', float('inf'), ''),
+    # ([''], 'format_coord', float('inf'), 'Return a format string formatting the *x*, *y* coordinates.'),
+    # ([''], 'format_cursor_data', float('inf'), 'Return a string representation of *data*.'),
+    # ([''], 'format_xdata', float('inf'), 'Return *x* formatted as an x-value.'),
+    # ([''], 'format_ydata', float('inf'), 'Return *y* formatted as a y-value.'),
+    # ([''], 'get_adjustable', float('inf'), "Return whether the Axes will adjust its physical dimension ('box') or"),
+    # ([''], 'get_agg_filter', float('inf'), 'Return filter function to be used for agg filter.'),
+    # ([''], 'get_alpha', float('inf'), 'Return the alpha value used for blending - not supported on all'),
+    # ([''], 'get_anchor', float('inf'), 'Get the anchor location.'),
+    # ([''], 'get_animated', float('inf'), 'Return whether the artist is animated.'),
+    # ([''], 'get_aspect', float('inf'), 'Return the aspect ratio of the axes scaling.'),
+    # ([''], 'get_autoscale_on', float('inf'), 'Return True if each axis is autoscaled, False otherwise.'),
+    # ([''], 'get_autoscalex_on', float('inf'), 'Return whether the xaxis is autoscaled.'),
+    # ([''], 'get_autoscaley_on', float('inf'), 'Return whether the yaxis is autoscaled.'),
+    # ([''], 'get_axes_locator', float('inf'), 'Return the axes_locator.'),
+    # ([''], 'get_axisbelow', float('inf'), 'Get whether axis ticks and gridlines are above or below most artists.'),
+    # ([''], 'get_box_aspect', float('inf'), 'Return the Axes box aspect, i.e. the ratio of height to width.'),
+    # ([''], 'get_children', float('inf'), ''),
+    # ([''], 'get_clip_box', float('inf'), 'Return the clipbox.'),
+    # ([''], 'get_clip_on', float('inf'), 'Return whether the artist uses clipping.'),
+    # ([''], 'get_clip_path', float('inf'), 'Return the clip path.'),
+    # ([''], 'get_cursor_data', float('inf'), 'Return the cursor data for a given event.'),
+    # ([''], 'get_data_ratio', float('inf'), 'Return the aspect ratio of the scaled data.'),
+    # ([''], 'get_default_bbox_extra_artists', float('inf'), 'Return a default list of artists that are used for the bounding box'),
+    # ([''], 'get_facecolor', float('inf'), 'Get the facecolor of the Axes.'),
+    # ([''], 'get_fc', float('inf'), 'Alias for `get_facecolor`.'),
+    # ([''], 'get_figure', float('inf'), 'Return the `.Figure` instance the artist belongs to.'),
+    # ([''], 'get_frame_on', float('inf'), 'Get whether the Axes rectangle patch is drawn.'),
+    # ([''], 'get_gid', float('inf'), 'Return the group id.'),
+    # ([''], 'get_gridspec', float('inf'), 'Return the `.GridSpec` associated with the subplot, or None.'),
+    # ([''], 'get_images', float('inf'), 'Return a list of `.AxesImage`\\s contained by the Axes.'),
+    # ([''], 'get_in_layout', float('inf'), 'Return boolean flag, ``True`` if artist is included in layout'),
+    # ([''], 'get_label', float('inf'), 'Return the label used for this artist in the legend.'),
+    # ([''], 'get_legend', float('inf'), 'Return the `.Legend` instance, or None if no legend is defined.'),
+    # ([''], 'get_legend_handles_labels', float('inf'), 'Return handles and labels for legend'),
+    # ([''], 'get_lines', float('inf'), 'Return a list of lines contained by the Axes.'),
+    # ([''], 'get_mouseover', float('inf'), 'Return whether this artist is queried for custom context information'),
+    # ([''], 'get_navigate', float('inf'), 'Get whether the Axes responds to navigation commands.'),
+    # ([''], 'get_navigate_mode', float('inf'), "Get the navigation toolbar button status: 'PAN', 'ZOOM', or None."),
+    # ([''], 'get_path_effects', float('inf'), ''),
+    # ([''], 'get_picker', float('inf'), 'Return the picking behavior of the artist.'),
+    # ([''], 'get_position', float('inf'), 'Return the position of the Axes within the figure as a `.Bbox`.'),
+    # ([''], 'get_rasterization_zorder', float('inf'), 'Return the zorder value below which artists will be rasterized.'),
+    # ([''], 'get_rasterized', float('inf'), 'Return whether the artist is to be rasterized.'),
+    # ([''], 'get_shared_x_axes', float('inf'), 'Return an immutable view on the shared x-axes Grouper.'),
+    # ([''], 'get_shared_y_axes', float('inf'), 'Return an immutable view on the shared y-axes Grouper.'),
+    # ([''], 'get_sketch_params', float('inf'), 'Return the sketch parameters for the artist.'),
+    # ([''], 'get_snap', float('inf'), 'Return the snap setting.'),
+    # ([''], 'get_subplotspec', float('inf'), 'Return the `.SubplotSpec` associated with the subplot, or None.'),
+    # ([''], 'get_tightbbox', float('inf'), 'Return the tight bounding box of the Axes, including axis and their'),
+    # ([''], 'get_title', float('inf'), 'Get an Axes title.'),
+    # ([''], 'get_transform', float('inf'), 'Return the `.Transform` instance used by this artist.'),
+    # ([''], 'get_transformed_clip_path_and_affine', float('inf'), 'Return the clip path with the non-affine part of its'),
+    # ([''], 'get_url', float('inf'), 'Return the url.'),
+    # ([''], 'get_visible', float('inf'), 'Return the visibility.'),
+    # ([''], 'get_window_extent', float('inf'), 'Return the Axes bounding box in display space.'),
+    # ([''], 'get_xaxis', float('inf'), '[*Discouraged*] Return the XAxis instance.'),
+    # ([''], 'get_xaxis_text1_transform', float('inf'), 'Returns'),
+    # ([''], 'get_xaxis_text2_transform', float('inf'), 'Returns'),
+    # ([''], 'get_xaxis_transform', float('inf'), 'Get the transformation used for drawing x-axis labels, ticks'),
+    # ([''], 'get_xbound', float('inf'), 'Return the lower and upper x-axis bounds, in increasing order.'),
+    # ([''], 'get_xgridlines', float('inf'), "Return the xaxis' grid lines as a list of `.Line2D`\\s."),
+    # ([''], 'get_xlabel', float('inf'), 'Get the xlabel text string.'),
+    # ([''], 'get_xlim', float('inf'), 'Return the x-axis view limits.'),
+    # ([''], 'get_xmajorticklabels', float('inf'), "Return the xaxis' major tick labels, as a list of `~.text.Text`."),
+    # ([''], 'get_xminorticklabels', float('inf'), "Return the xaxis' minor tick labels, as a list of `~.text.Text`."),
+    # ([''], 'get_xscale', float('inf'), "Return the xaxis' scale (as a str)."),
+    # ([''], 'get_xticklabels', float('inf'), "Get the xaxis' tick labels."),
+    # ([''], 'get_xticklines', float('inf'), "Return the xaxis' tick lines as a list of `.Line2D`\\s."),
+    # ([''], 'get_xticks', float('inf'), "Return the xaxis' tick locations in data coordinates."),
+    # ([''], 'get_yaxis', float('inf'), '[*Discouraged*] Return the YAxis instance.'),
+    # ([''], 'get_yaxis_text1_transform', float('inf'), 'Returns'),
+    # ([''], 'get_yaxis_text2_transform', float('inf'), 'Returns'),
+    # ([''], 'get_yaxis_transform', float('inf'), 'Get the transformation used for drawing y-axis labels, ticks'),
+    # ([''], 'get_ybound', float('inf'), 'Return the lower and upper y-axis bounds, in increasing order.'),
+    # ([''], 'get_ygridlines', float('inf'), "Return the yaxis' grid lines as a list of `.Line2D`\\s."),
+    # ([''], 'get_ylabel', float('inf'), 'Get the ylabel text string.'),
+    # ([''], 'get_ylim', float('inf'), 'Return the y-axis view limits.'),
+    # ([''], 'get_ymajorticklabels', float('inf'), "Return the yaxis' major tick labels, as a list of `~.text.Text`."),
+    # ([''], 'get_yminorticklabels', float('inf'), "Return the yaxis' minor tick labels, as a list of `~.text.Text`."),
+    # ([''], 'get_yscale', float('inf'), "Return the yaxis' scale (as a str)."),
+    # ([''], 'get_yticklabels', float('inf'), "Get the yaxis' tick labels."),
+    # ([''], 'get_yticklines', float('inf'), "Return the yaxis' tick lines as a list of `.Line2D`\\s."),
+    # ([''], 'get_yticks', float('inf'), "Return the yaxis' tick locations in data coordinates."),
+    # ([''], 'get_zorder', float('inf'), "Return the artist's zorder."),
+    ([''], 'grid', 1, 'Configure the grid lines.'),
+    # ([''], 'has_data', float('inf'), 'Return whether any artists have been added to the Axes.'),
+    # ([''], 'have_units', float('inf'), 'Return whether units are set on any axis.'),
+    ([''], 'hexbin', float('inf'), 'Make a 2D hexagonal binning plot of points *x*, *y*.'),
+    ([''], 'hist', float('inf'), 'Compute and plot a histogram.'),
+    ([''], 'hist2d', float('inf'), 'Make a 2D histogram plot.'),
+    ([''], 'hlines', float('inf'), 'Plot horizontal lines at each *y* from *xmin* to *xmax*.'),
+    # ([''], 'ignore_existing_data_limits', float('inf'), 'bool(x) -> bool'),
+    # ([''], 'images', float('inf'), 'A sublist of Axes children based on their type.'),
+    ([''], 'imshow', float('inf'), 'Display data as an image, i.e., on a 2D regular raster.'),
+    # ([''], 'in_axes', float('inf'), 'Return whether the given event (in display coords) is in the Axes.'),
+    ([''], 'indicate_inset', float('inf'), 'Add an inset indicator to the Axes. This is a rectangle on the plot at the position indicated by *bounds* that optionally has lines that connect the rectangle to an inset Axes (`.Axes.inset_axes`).'),
+    ([''], 'indicate_inset_zoom', float('inf'), 'Add an inset indicator rectangle to the Axes based on the axis limits for an *inset_ax* and draw connectors between *inset_ax* and the rectangle.'),
+    # ([''], 'inset_axes', float('inf'), 'Add a child inset Axes to this existing Axes.'),
+    (['.xaxis'], 'invert_xaxis', float('inf'), 'Invert the x-axis.'),
+    (['.yaxis'], 'invert_yaxis', float('inf'), 'Invert the y-axis.'),
+    # ([''], 'is_transform_set', float('inf'), 'Return whether the Artist has an explicitly set transform.'),
+    # ([''], 'label_outer', float('inf'), 'Only show "outer" labels and tick labels.'),
+    ([''], 'legend', float('inf'), 'Place a legend on the Axes.'),
+    # ([''], 'legend_', float('inf'), 'Place a legend on the figure/axes.'),
+    # ([''], 'lines', float('inf'), 'A sublist of Axes children based on their type.'),
+    # ([''], 'locator_params', float('inf'), 'Control behavior of major tick locators.'),
+    ([''], 'loglog', float('inf'), 'Make a plot with log scaling on both the x- and y-axis.'),
+    ([''], 'magnitude_spectrum', float('inf'), 'Plot the magnitude spectrum.'),
+    # ([''], 'margins', float('inf'), 'Set or retrieve autoscaling margins.'),
+    ([''], 'matshow', float('inf'), 'Plot the values of a 2D matrix or array as color-coded image.'),
+    # ([''], 'minorticks_off', float('inf'), 'Remove minor ticks from the Axes.'),
+    # ([''], 'minorticks_on', float('inf'), 'Display minor ticks on the Axes.'),
+    # ([''], 'mouseover', float('inf'), 'bool(x) -> bool'),
+    # ([''], 'name', float('inf'), "str(object='') -> str"),
+    # ([''], 'patch', float('inf'), 'A rectangle defined via an anchor point *xy* and its *width* and *height*.'),
+    # ([''], 'patches', float('inf'), 'A sublist of Axes children based on their type.'),
+    # ([''], 'pchanged', float('inf'), 'Call all of the registered callbacks.'),
+    ([''], 'pcolor', float('inf'), 'Create a pseudocolor plot with a non-regular rectangular grid.'),
+    ([''], 'pcolorfast', float('inf'), 'Create a pseudocolor plot with a non-regular rectangular grid.'),
+    ([''], 'pcolormesh', float('inf'), 'Create a pseudocolor plot with a non-regular rectangular grid.'),
+    ([''], 'phase_spectrum', float('inf'), 'Plot the phase spectrum.'),
+    # ([''], 'pick', float('inf'), 'Process a pick event.'),
+    # ([''], 'pickable', float('inf'), 'Return whether the artist is pickable.'),
+    ([''], 'pie', float('inf'), 'Plot a pie chart.'),
+    ([''], 'plot', float('inf'), 'Plot y versus x as lines and/or markers.'),
+    ([''], 'plot_date', float('inf'), '[*Discouraged*] Plot coercing the axis to treat floats as dates.'),
+    # ([''], 'properties', float('inf'), 'Return a dictionary of all the properties of the artist.'),
+    ([''], 'psd', float('inf'), 'Plot the power spectral density.'),
+    ([''], 'quiver', float('inf'), 'Plot a 2D field of arrows.'),
+    ([''], 'quiverkey', float('inf'), 'Add a key to a quiver plot.'),
+    # ([''], 'redraw_in_frame', float('inf'), 'Efficiently redraw Axes data, but not axis ticks, labels, etc.'),
+    # ([''], 'relim', float('inf'), 'Recompute the data limits based on current artists.'),
+    # ([''], 'remove', float('inf'), 'Remove the artist from the figure if possible.'),
+    # ([''], 'remove_callback', float('inf'), 'Remove a callback based on its observer id.'),
+    # ([''], 'reset_position', float('inf'), 'Reset the active position to the original position.'),
+    ([''], 'scatter', float('inf'), 'A scatter plot of *y* vs. *x* with varying marker size and/or color.'),
+    ([''], 'secondary_xaxis', 1, 'Add a second x-axis to this `~.axes.Axes`.'),
+    ([''], 'secondary_yaxis', 1, 'Add a second y-axis to this `~.axes.Axes`.'),
+    ([''], 'semilogx', float('inf'), 'Make a plot with log scaling on the x-axis.'),
+    ([''], 'semilogy', float('inf'), 'Make a plot with log scaling on the y-axis.'),
+    # ([''], 'set', 1, 'Set multiple properties at once.'),
+    # ([''], 'set_adjustable', 1, 'Set how the Axes adjusts to achieve the required aspect ratio.'),
+    # ([''], 'set_agg_filter', 1, 'Set the agg filter.'),
+    # ([''], 'set_alpha', 1, 'Set the alpha value used for blending - not supported on all backends.'),
+    # ([''], 'set_anchor', 1, 'Define the anchor location.'),
+    # ([''], 'set_animated', 1, 'Set whether the artist is intended to be used in an animation.'),
+    # ([''], 'set_aspect', 1, 'Set the aspect ratio of the axes scaling, i.e. y/x-scale.'),
+    # ([''], 'set_autoscale_on', 1, 'Set whether autoscaling is applied to each axis on the next draw or'),
+    # ([''], 'set_autoscalex_on', 1, 'Set whether the xaxis is autoscaled when drawing or by'),
+    # ([''], 'set_autoscaley_on', 1, 'Set whether the yaxis is autoscaled when drawing or by'),
+    # ([''], 'set_axes_locator', 1, 'Set the Axes locator.'),
+    # ([''], 'set_axis_off', 1, 'Hide all visual components of the x- and y-axis.'),
+    # ([''], 'set_axis_on', 1, 'Do not hide all visual components of the x- and y-axis.'),
+    # ([''], 'set_axisbelow', 1, 'Set whether axis ticks and gridlines are above or below most artists.'),
+    # ([''], 'set_box_aspect', 1, 'Set the Axes box aspect, i.e. the ratio of height to width.'),
+    # ([''], 'set_clip_box', 1, "Set the artist's clip `.Bbox`."),
+    # ([''], 'set_clip_on', 1, 'Set whether the artist uses clipping.'),
+    # ([''], 'set_clip_path', 1, "Set the artist's clip path."),
+    # ([''], 'set_facecolor', 1, 'Set the facecolor of the Axes.'),
+    # ([''], 'set_fc', 1, 'Alias for `set_facecolor`.'),
+    # ([''], 'set_figure', 1, ''),
+    # ([''], 'set_frame_on', 1, 'Set whether the Axes rectangle patch is drawn.'),
+    # ([''], 'set_gid', 1, 'Set the (group) id for the artist.'),
+    # ([''], 'set_in_layout', 1, 'Set if artist is to be included in layout calculations,'),
+    # ([''], 'set_label', 1, 'Set a label that will be displayed in the legend.'),
+    # ([''], 'set_mouseover', 1, 'Set whether this artist is queried for custom context information when'),
+    # ([''], 'set_navigate', 1, 'Set whether the Axes responds to navigation toolbar commands.'),
+    # ([''], 'set_navigate_mode', 1, 'Set the navigation toolbar button status.'),
+    # ([''], 'set_path_effects', 1, 'Set the path effects.'),
+    # ([''], 'set_picker', 1, 'Define the picking behavior of the artist.'),
+    # ([''], 'set_position', 1, 'Set the Axes position.'),
+    # ([''], 'set_prop_cycle', 1, 'Set the property cycle of the Axes.'),
+    # ([''], 'set_rasterization_zorder', 1, 'Set the zorder threshold for rasterization for vector graphics output.'),
+    # ([''], 'set_rasterized', 1, 'Force rasterized (bitmap) drawing for vector graphics output.'),
+    # ([''], 'set_sketch_params', 1, 'Set the sketch parameters.'),
+    # ([''], 'set_snap', 1, 'Set the snapping behavior.'),
+    # ([''], 'set_subplotspec', 1, 'Set the `.SubplotSpec`. associated with the subplot.'),
+    (['.title'], 'set_title', 1, 'Set a title for the Axes.'),
+    # ([''], 'set_transform', 1, 'Set the artist transform.'),
+    # ([''], 'set_url', 1, 'Set the url for the artist.'),
+    # ([''], 'set_visible', 1, "Set the artist's visibility."),
+    # ([''], 'set_xbound', 1, 'Set the lower and upper numerical bounds of the x-axis.'),
+    (['.xaxis.label'], 'set_xlabel', 1, 'Set the label for the x-axis.'),
+    (['.xaxis'], 'set_xlim', 1, 'Set the x-axis view limits.'),
+    # ([''], 'set_xmargin', 1, 'Set padding of X data limits prior to autoscaling.'),
+    # ([''], 'set_xscale', 1, "Set the xaxis' scale."),
+    # ([''], 'set_xticklabels', 1, "[*Discouraged*] Set the xaxis' tick labels with list of string labels."),
+    (['.xaxis'], 'set_xticks', 1, "Set the xaxis' tick locations and optionally tick labels."),
+    # ([''], 'set_ybound', 1, 'Set the lower and upper numerical bounds of the y-axis.'),
+    (['.yaxis.label'], 'set_ylabel', 1, 'Set the label for the y-axis.'),
+    (['.yaxis'], 'set_ylim', 1, 'Set the y-axis view limits.'),
+    # ([''], 'set_ymargin', 1, 'Set padding of Y data limits prior to autoscaling.'),
+    # ([''], 'set_yscale', 1, "Set the yaxis' scale."),
+    # ([''], 'set_yticklabels', 1, "[*Discouraged*] Set the yaxis' tick labels with list of string labels."),
+    (['.yaxis'], 'set_yticks', 1, "Set the yaxis' tick locations and optionally tick labels."),
+    # ([''], 'set_zorder', 1, 'Set the zorder for the artist.  Artists with lower zorder'),
+    (['.xaxis'], 'sharex', 1, 'Share the x-axis with *other*.'),
+    (['.yaxis'], 'sharey', 1, 'Share the y-axis with *other*.'),
+    ([''], 'specgram', float('inf'), 'Plot a spectrogram.'),
+    ([''], 'spines', float('inf'), 'The container of all `.Spine`\\s in an Axes.'),
+    ([''], 'spy', float('inf'), 'Plot the sparsity pattern of a 2D array.'),
+    ([''], 'stackplot', float('inf'), 'Draw a stacked area plot.'),
+    ([''], 'stairs', float('inf'), 'A stepwise constant function as a line with bounding edges or a filled plot.'),
+    # ([''], 'stale', float('inf'), 'bool(x) -> bool'),
+    # ([''], 'stale_callback', float('inf'), ''),
+    # ([''], 'start_pan', float('inf'), 'Called when a pan operation has started.'),
+    ([''], 'stem', float('inf'), 'Create a stem plot.'),
+    ([''], 'step', float('inf'), 'Make a step plot.'),
+    # ([''], 'sticky_edges', float('inf'), '_XYPair(x, y)'),
+    ([''], 'streamplot', float('inf'), 'Draw streamlines of a vector flow.'),
+    ([''], 'table', float('inf'), 'Add a table to an `~.axes.Axes`.'),
+    # ([''], 'tables', float('inf'), 'A sublist of Axes children based on their type.'),
+    ([''], 'text', float('inf'), 'Add text to the Axes.'),
+    # ([''], 'texts', float('inf'), 'A sublist of Axes children based on their type.'),
+    ([''], 'tick_params', 1, 'Change the appearance of ticks, tick labels, and gridlines.'),
+    # ([''], 'ticklabel_format', float('inf'), 'Configure the `.ScalarFormatter` used by default for linear Axes.'),
+    # ([''], 'title', float('inf'), 'Handle storing and drawing of text in window or data coordinates.'),
+    # ([''], 'titleOffsetTrans', float('inf'), 'A transformation that translates by *xt* and *yt*, after *xt* and *yt*'),
+    # ([''], 'transAxes', float('inf'), '`BboxTransformTo` is a transformation that linearly transforms points from'),
+    # ([''], 'transData', float('inf'), 'A composite transform formed by applying transform *a* then'),
+    # ([''], 'transLimits', float('inf'), '`BboxTransformFrom` linearly transforms points from a given `Bbox` to the'),
+    # ([''], 'transScale', float('inf'), 'A helper class that holds a single child transform and acts'),
+    ([''], 'tricontour', float('inf'), 'Draw contour lines on an unstructured triangular grid.'),
+    ([''], 'tricontourf', float('inf'), 'Draw contour regions on an unstructured triangular grid.'),
+    ([''], 'tripcolor', float('inf'), 'Create a pseudocolor plot of an unstructured triangular grid.'),
+    ([''], 'triplot', float('inf'), 'Draw an unstructured triangular grid as lines and/or markers.'),
+    ([''], 'twinx', float('inf'), 'Create a twin Axes sharing the xaxis.'),
+    ([''], 'twiny', float('inf'), 'Create a twin Axes sharing the yaxis.'),
+    # ([''], 'update', float('inf'), "Update this artist's properties from the dict *props*."),
+    # ([''], 'update_datalim', float('inf'), 'Extend the `~.Axes.dataLim` Bbox to include the given points.'),
+    # ([''], 'update_from', float('inf'), 'Copy properties from *other* to *self*.'),
+    # ([''], 'use_sticky_edges', float('inf'), 'bool(x) -> bool'),
+    # ([''], 'viewLim', float('inf'), 'A mutable bounding box.'),
+    # ([''], 'violin', float('inf'), 'Drawing function for violin plots.'),
+    ([''], 'violinplot', float('inf'), 'Make a violin plot.'),
+    ([''], 'vlines', float('inf'), 'Plot vertical lines at each *x* from *ymin* to *ymax*.'),
+    # ([''], 'xaxis', float('inf'), ''),
+    (['.xaxis'], 'xaxis_date', 1, 'Set up axis ticks and labels to treat data along the xaxis as dates.'),
+    # ([''], 'xaxis_inverted', float('inf'), 'Return whether the xaxis is oriented in the "inverse" direction.'),
+    ([''], 'xcorr', float('inf'), 'Plot the cross correlation between *x* and *y*.'),
+    # ([''], 'yaxis', float('inf'), ''),
+    (['.yaxis'], 'yaxis_date', 1, 'Set up axis ticks and labels to treat data along the yaxis as dates.'),
+    # ([''], 'yaxis_inverted', float('inf'), 'Return whether the yaxis is oriented in the "inverse" direction.'),
+    # ([''], 'zorder', float('inf'), 'int([x]) -> integer'),
+
+    # (['.title'], 'set_title', 1),
+    # (['.xaxis'], 'set_xticks', 1),
+    # (['.xaxis'], 'set_xlabel', 1),
+    # (['.yaxis'], 'set_yticks', 1),
+    # (['.yaxis'], 'set_ylabel', 1),
+    # (['.yaxis.majorTicks[0].label1'], 'set_ylim', 1),
+    # (['.yaxis.majorTicks[0].label2'], 'set_ylim', 1),
+    # (['.yaxis._update_ticks()[-1].label1'], 'set_ylim', 1), # For some reason, majorTicks may include ticks outside the axis limits; _update_ticks() doesn't
+    # (['.yaxis._update_ticks()[-1].label2'], 'set_ylim', 1), # For some reason, majorTicks may include ticks outside the axis limits; _update_ticks() doesn't
+    # ([''], 'bar', float('inf')),
+    # ([''], 'barh', float('inf')),
+    # ([''], 'plot', float('inf')),
+    # ([''], 'legend', 1),
+    # ([''], 'axhline', float('inf')),
+    # ([''], 'axvline', float('inf')),
+    # ([''], 'bar_label', float('inf')),
+]
+
+# # Collapse adjacent whitespace to a single space
+# def squish(string):
+#     return re.sub(r'\s+', ' ', string)
+#
+# for name in dir(fig):
+#     if name.startswith('_'):
+#         continue
+#     doc = (getattr(fig, name).__doc__ or '').strip().split('\n\n')[0]
+#     print(f"([''], {repr(name)}, float('inf'), {repr(squish(doc))}),")
+fig_method_associations = [
+    # ([''], 'add_artist', float('inf'), 'Add an `.Artist` to the figure.'),
+    # ([''], 'add_axes', float('inf'), 'Add an `~.axes.Axes` to the figure.'),
+    # ([''], 'add_axobserver', float('inf'), 'Whenever the Axes state change, ``func(self)`` will be called.'),
+    # ([''], 'add_callback', float('inf'), "Add a callback function that will be called whenever one of the `.Artist`'s properties changes."),
+    # ([''], 'add_gridspec', float('inf'), 'Low-level API for creating a `.GridSpec` that has this figure as a parent.'),
+    # ([''], 'add_subfigure', float('inf'), 'Add a `.SubFigure` to the figure as part of a subplot arrangement.'),
+    ([''], 'add_subplot', float('inf'), 'Add an `~.axes.Axes` to the figure as part of a subplot arrangement.'),
+    ([''], 'align_labels', 1, 'Align the xlabels and ylabels of subplots with the same subplots row or column (respectively) if label alignment is being done automatically (i.e. the label position is not manually set).'),
+    ([''], 'align_titles', 1, 'Align the titles of subplots in the same subplot row if title alignment is being done automatically (i.e. the title position is not manually set).'),
+    ([''], 'align_xlabels', 1, 'Align the xlabels of subplots in the same subplot row if label alignment is being done automatically (i.e. the label position is not manually set).'),
+    ([''], 'align_ylabels', 1, 'Align the ylabels of subplots in the same subplot column if label alignment is being done automatically (i.e. the label position is not manually set).'),
+    # ([''], 'artists', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'autofmt_xdate', float('inf'), 'Date ticklabels often overlap, so it is useful to rotate them and right align them. Also, a common use case is a number of subplots with shared x-axis where the x-axis is date data. The ticklabels are often long, and it helps to rotate them on the bottom subplot and turn them off on other subplots, as well as turn off xlabels.'),
+    # ([''], 'axes', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'bbox', float('inf'), 'A `Bbox` that is automatically transformed by a given transform. When either the child bounding box or transform changes, the bounds of this bbox will update accordingly.'),
+    # ([''], 'bbox_inches', float('inf'), 'A mutable bounding box.'),
+    # ([''], 'canvas', float('inf'), ''),
+    # ([''], 'clear', float('inf'), ''),
+    # ([''], 'clf', float('inf'), '[*Discouraged*] Alias for the `clear()` method.'),
+    # ([''], 'clipbox', float('inf'), ''),
+    # ([''], 'colorbar', float('inf'), 'Add a colorbar to a plot.'),
+    # ([''], 'contains', float('inf'), 'Test whether the mouse event occurred on the figure.'),
+    # ([''], 'convert_xunits', float('inf'), 'Convert *x* using the unit type of the xaxis.'),
+    # ([''], 'convert_yunits', float('inf'), 'Convert *y* using the unit type of the yaxis.'),
+    # ([''], 'delaxes', float('inf'), 'Remove the `~.axes.Axes` *ax* from the figure; update the current Axes.'),
+    # ([''], 'dpi', float('inf'), 'Convert a string or number to a floating point number, if possible.'),
+    # ([''], 'dpi_scale_trans', float('inf'), 'A mutable 2D affine transformation.'),
+    # ([''], 'draw', float('inf'), ''),
+    # ([''], 'draw_artist', float('inf'), 'Draw `.Artist` *a* only.'),
+    # ([''], 'draw_without_rendering', float('inf'), 'Draw the figure with no output. Useful to get the final size of artists that require a draw before their size is known (e.g. text).'),
+    # ([''], 'figbbox', float('inf'), 'A `Bbox` that is automatically transformed by a given transform. When either the child bounding box or transform changes, the bounds of this bbox will update accordingly.'),
+    # ([''], 'figimage', float('inf'), 'Add a non-resampled image to the figure.'),
+    # ([''], 'figure', float('inf'), 'The top level container for all the plot elements.'),
+    # ([''], 'findobj', float('inf'), 'Find artist objects.'),
+    # ([''], 'format_cursor_data', float('inf'), 'Return a string representation of *data*.'),
+    # ([''], 'frameon', float('inf'), 'bool(x) -> bool'),
+    # ([''], 'gca', float('inf'), 'Get the current Axes.'),
+    # ([''], 'get_agg_filter', float('inf'), 'Return filter function to be used for agg filter.'),
+    # ([''], 'get_alpha', float('inf'), 'Return the alpha value used for blending - not supported on all backends.'),
+    # ([''], 'get_animated', float('inf'), 'Return whether the artist is animated.'),
+    # ([''], 'get_axes', float('inf'), 'List of Axes in the Figure. You can access and modify the Axes in the Figure through this list.'),
+    # ([''], 'get_children', float('inf'), 'Get a list of artists contained in the figure.'),
+    # ([''], 'get_clip_box', float('inf'), 'Return the clipbox.'),
+    # ([''], 'get_clip_on', float('inf'), 'Return whether the artist uses clipping.'),
+    # ([''], 'get_clip_path', float('inf'), 'Return the clip path.'),
+    # ([''], 'get_constrained_layout', float('inf'), 'Return whether constrained layout is being used.'),
+    # ([''], 'get_constrained_layout_pads', float('inf'), '[*Deprecated*] Get padding for ``constrained_layout``.'),
+    # ([''], 'get_cursor_data', float('inf'), 'Return the cursor data for a given event.'),
+    # ([''], 'get_default_bbox_extra_artists', float('inf'), 'Return a list of Artists typically used in `.Figure.get_tightbbox`.'),
+    # ([''], 'get_dpi', float('inf'), 'Return the resolution in dots per inch as a float.'),
+    # ([''], 'get_edgecolor', float('inf'), 'Get the edge color of the Figure rectangle.'),
+    # ([''], 'get_facecolor', float('inf'), 'Get the face color of the Figure rectangle.'),
+    # ([''], 'get_figheight', float('inf'), 'Return the figure height in inches.'),
+    # ([''], 'get_figure', float('inf'), 'Return the `.Figure` instance the artist belongs to.'),
+    # ([''], 'get_figwidth', float('inf'), 'Return the figure width in inches.'),
+    # ([''], 'get_frameon', float('inf'), "Return the figure's background patch visibility, i.e. whether the figure background will be drawn. Equivalent to ``Figure.patch.get_visible()``."),
+    # ([''], 'get_gid', float('inf'), 'Return the group id.'),
+    # ([''], 'get_in_layout', float('inf'), 'Return boolean flag, ``True`` if artist is included in layout calculations.'),
+    # ([''], 'get_label', float('inf'), 'Return the label used for this artist in the legend.'),
+    # ([''], 'get_layout_engine', float('inf'), ''),
+    # ([''], 'get_linewidth', float('inf'), 'Get the line width of the Figure rectangle.'),
+    # ([''], 'get_mouseover', float('inf'), 'Return whether this artist is queried for custom context information when the mouse cursor moves over it.'),
+    # ([''], 'get_path_effects', float('inf'), ''),
+    # ([''], 'get_picker', float('inf'), 'Return the picking behavior of the artist.'),
+    # ([''], 'get_rasterized', float('inf'), 'Return whether the artist is to be rasterized.'),
+    # ([''], 'get_size_inches', float('inf'), 'Return the current size of the figure in inches.'),
+    # ([''], 'get_sketch_params', float('inf'), 'Return the sketch parameters for the artist.'),
+    # ([''], 'get_snap', float('inf'), 'Return the snap setting.'),
+    # ([''], 'get_suptitle', float('inf'), 'Return the suptitle as string or an empty string if not set.'),
+    # ([''], 'get_supxlabel', float('inf'), 'Return the supxlabel as string or an empty string if not set.'),
+    # ([''], 'get_supylabel', float('inf'), 'Return the supylabel as string or an empty string if not set.'),
+    # ([''], 'get_tight_layout', float('inf'), 'Return whether `.Figure.tight_layout` is called when drawing.'),
+    # ([''], 'get_tightbbox', float('inf'), 'Return a (tight) bounding box of the figure *in inches*.'),
+    # ([''], 'get_transform', float('inf'), 'Return the `.Transform` instance used by this artist.'),
+    # ([''], 'get_transformed_clip_path_and_affine', float('inf'), 'Return the clip path with the non-affine part of its transformation applied, and the remaining affine part of its transformation.'),
+    # ([''], 'get_url', float('inf'), 'Return the url.'),
+    # ([''], 'get_visible', float('inf'), 'Return the visibility.'),
+    # ([''], 'get_window_extent', float('inf'), ''),
+    # ([''], 'get_zorder', float('inf'), "Return the artist's zorder."),
+    # ([''], 'ginput', float('inf'), 'Blocking call to interact with a figure.'),
+    # ([''], 'have_units', float('inf'), 'Return whether units are set on any axis.'),
+    # ([''], 'images', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'is_transform_set', float('inf'), 'Return whether the Artist has an explicitly set transform.'),
+    ([''], 'legend', 1, 'Place a legend on the figure.'),
+    # ([''], 'legends', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'lines', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'mouseover', float('inf'), 'bool(x) -> bool'),
+    # ([''], 'number', float('inf'), 'int([x]) -> integer int(x, base=10) -> integer'),
+    # ([''], 'patch', float('inf'), 'A rectangle defined via an anchor point *xy* and its *width* and *height*.'),
+    # ([''], 'patches', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'pchanged', float('inf'), 'Call all of the registered callbacks.'),
+    # ([''], 'pick', float('inf'), ''),
+    # ([''], 'pickable', float('inf'), 'Return whether the artist is pickable.'),
+    # ([''], 'properties', float('inf'), 'Return a dictionary of all the properties of the artist.'),
+    # ([''], 'remove', float('inf'), 'Remove the artist from the figure if possible.'),
+    # ([''], 'remove_callback', float('inf'), 'Remove a callback based on its observer id.'),
+    # ([''], 'savefig', float('inf'), 'Save the current figure as an image or vector graphic to a file.'),
+    # ([''], 'sca', float('inf'), 'Set the current Axes to be *a* and return *a*.'),
+    # ([''], 'set', float('inf'), 'Set multiple properties at once.'),
+    # ([''], 'set_agg_filter', float('inf'), 'Set the agg filter.'),
+    # ([''], 'set_alpha', float('inf'), 'Set the alpha value used for blending - not supported on all backends.'),
+    # ([''], 'set_animated', float('inf'), 'Set whether the artist is intended to be used in an animation.'),
+    # ([''], 'set_canvas', float('inf'), 'Set the canvas that contains the figure'),
+    # ([''], 'set_clip_box', float('inf'), "Set the artist's clip `.Bbox`."),
+    # ([''], 'set_clip_on', float('inf'), 'Set whether the artist uses clipping.'),
+    # ([''], 'set_clip_path', float('inf'), "Set the artist's clip path."),
+    # ([''], 'set_constrained_layout', float('inf'), '[*Deprecated*] Set whether ``constrained_layout`` is used upon drawing.'),
+    # ([''], 'set_constrained_layout_pads', float('inf'), '[*Deprecated*] Set padding for ``constrained_layout``.'),
+    ([''], 'set_dpi', 1, 'Set the resolution of the figure in dots-per-inch.'),
+    ([''], 'set_edgecolor', 1, 'Set the edge color of the Figure rectangle.'),
+    ([''], 'set_facecolor', 1, 'Set the face color of the Figure rectangle.'),
+    ([''], 'set_figheight', 1, 'Set the height of the figure in inches.'),
+    # ([''], 'set_figure', float('inf'), 'Set the `.Figure` instance the artist belongs to.'),
+    ([''], 'set_figwidth', 1, 'Set the width of the figure in inches.'),
+    ([''], 'set_frameon', 1, "Set the figure's background patch visibility, i.e. whether the figure background will be drawn. Equivalent to ``Figure.patch.set_visible()``."),
+    # ([''], 'set_gid', float('inf'), 'Set the (group) id for the artist.'),
+    # ([''], 'set_in_layout', float('inf'), "Set if artist is to be included in layout calculations, E.g. :ref:`constrainedlayout_guide`, `.Figure.tight_layout()`, and ``fig.savefig(fname, bbox_inches='tight')``."),
+    # ([''], 'set_label', float('inf'), 'Set a label that will be displayed in the legend.'),
+    # ([''], 'set_layout_engine', float('inf'), 'Set the layout engine for this figure.'),
+    ([''], 'set_linewidth', 1, 'Set the line width of the Figure rectangle.'),
+    # ([''], 'set_mouseover', float('inf'), 'Set whether this artist is queried for custom context information when the mouse cursor moves over it.'),
+    # ([''], 'set_path_effects', float('inf'), 'Set the path effects.'),
+    # ([''], 'set_picker', float('inf'), 'Define the picking behavior of the artist.'),
+    # ([''], 'set_rasterized', float('inf'), 'Force rasterized (bitmap) drawing for vector graphics output.'),
+    ([''], 'set_size_inches', 1, 'Set the figure size in inches.'),
+    # ([''], 'set_sketch_params', float('inf'), 'Set the sketch parameters.'),
+    # ([''], 'set_snap', float('inf'), 'Set the snapping behavior.'),
+    # ([''], 'set_tight_layout', float('inf'), '[*Deprecated*] Set whether and how `.Figure.tight_layout` is called when drawing.'),
+    # ([''], 'set_transform', float('inf'), 'Set the artist transform.'),
+    # ([''], 'set_url', float('inf'), 'Set the url for the artist.'),
+    # ([''], 'set_visible', float('inf'), "Set the artist's visibility."),
+    # ([''], 'set_zorder', float('inf'), 'Set the zorder for the artist. Artists with lower zorder values are drawn first.'),
+    # ([''], 'show', float('inf'), 'If using a GUI backend with pyplot, display the figure window.'),
+    # ([''], 'stale', float('inf'), 'bool(x) -> bool'),
+    # ([''], 'stale_callback', float('inf'), ''),
+    # ([''], 'sticky_edges', float('inf'), '_XYPair(x, y)'),
+    # ([''], 'subfigs', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'subfigures', float('inf'), 'Add a set of subfigures to this figure or subfigure.'),
+    # ([''], 'subplot_mosaic', float('inf'), 'Build a layout of Axes based on ASCII art or nested lists.'),
+    # ([''], 'subplotpars', float('inf'), 'Parameters defining the positioning of a subplots grid in a figure.'),
+    ([''], 'subplots', 1, 'Add a set of subplots to this figure.'),
+    # ([''], 'subplots_adjust', float('inf'), 'Adjust the subplot layout parameters.'),
+    # ([''], 'suppressComposite', float('inf'), ''),
+    ([''], 'suptitle', 1, 'Add a centered suptitle to the figure.'),
+    ([''], 'supxlabel', 1, 'Add a centered supxlabel to the figure.'),
+    ([''], 'supylabel', 1, 'Add a centered supylabel to the figure.'),
+    ([''], 'text', float('inf'), 'Add text to figure.'),
+    # ([''], 'texts', float('inf'), 'Built-in mutable sequence.'),
+    # ([''], 'tight_layout', float('inf'), 'Adjust the padding between and around subplots.'),
+    # ([''], 'transFigure', float('inf'), '`BboxTransformTo` is a transformation that linearly transforms points from the unit bounding box to a given `Bbox`.'),
+    # ([''], 'transSubfigure', float('inf'), '`BboxTransformTo` is a transformation that linearly transforms points from the unit bounding box to a given `Bbox`.'),
+    # ([''], 'update', float('inf'), "Update this artist's properties from the dict *props*."),
+    # ([''], 'update_from', float('inf'), 'Copy properties from *other* to *self*.'),
+    # ([''], 'waitforbuttonpress', float('inf'), 'Blocking call to interact with the figure.'),
+    # ([''], 'zorder', float('inf'), 'int([x]) -> integer int(x, base=10) -> integer'),
+]
+
+# Return list of (artists that should expose this method, method name on the root artist, number of times method could be called, first line of method docs)
+def method_associations(artist):
+    match artist:
+        case mpl.figure.Figure():
+            return fig_method_associations
+        case mpl.axes.Axes():
+            return axes_method_associations
+        case _:
+            return []
+
 
 # Get all the names in the AST (thanks GPT-4o)
 class NameExtractor(ast.NodeVisitor):
@@ -507,8 +1017,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         with Timer("artist_ids_that_will_have_a_method_call"):
             self.artist_ids_that_will_have_a_method_call = set()
             for artist_id, (artist, _names) in self.artist_names.items():
-                for children_paths, _, _ in method_associations(artist):
-                    self.artist_ids_that_will_have_a_method_call.add(artist_id)
+                for children_paths, _, _, _doc in method_associations(artist):
                     for code_to_descendent in children_paths:
                         self.artist_ids_that_will_have_a_method_call.add(id(eval("artist" + code_to_descendent)))
 
@@ -535,7 +1044,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
 
                 fig_regions2 = regions2(self.figure, (bbox_pixels.extents, None, None), fig.canvas.renderer, self.artist_ids_that_will_have_a_method_call)
 
-                svg_body = region2_to_svg_g(fig_regions2)
+                svg_body = region2_to_svg_g(fig_regions2, self.artist_names)
 
                 self.cached_svg_hover_regions = f"""<svg width={width_px} height={height_px} viewBox="{x0_px} {y0_px} {width_px} {height_px}">
                     {svg_body}
@@ -671,15 +1180,13 @@ class SNP(SNPFigureAndHoverRegions):
             base64_image = base64.b64encode(self._repr_png_()).decode("utf-8")
             data_url = f"data:image/png;base64,{base64_image}"
 
-        # data_methods = json.dumps([{"receiver_id": id(receiver), "receiver_names": list(artist_names.get(id(receiver), (None, {}))[1]), "method_name": method_name, "method_type": method_type_json(receiver, method_name, type_graph)} for receiver, method_name in methods])
-
         self.methods = []
 
         with Timer("associate method calls on named artists"):
             # Find method calls on each of the named artists.
             for artist_id, (artist, names) in self.artist_names.items():
-                for children_paths, method_name, max_calls in method_associations(artist):
-                    show_on = [artist_id]
+                for children_paths, method_name, max_calls, docstring_first_line in method_associations(artist):
+                    show_on = []
                     for code_to_descendent in children_paths:
                         show_on.append(id(eval("artist" + code_to_descendent)))  # This can't be in a comprehension because eval() can't find "artist" when it is
 
@@ -688,8 +1195,9 @@ class SNP(SNPFigureAndHoverRegions):
                     type_json is not None and self.methods.append(
                         {
                             "name": method_name,
+                            "docstring_first_line": docstring_first_line,
                             "receiver": artist_id,
-                            "receiver_names": list(names),
+                            "receiver_name": shortest_qualified_name(names),
                             "show_on": show_on,
                             "type": type_json,
                             "max_calls": max_calls,
@@ -1072,6 +1580,8 @@ class GatherTypedCalls(TraverserVisitor):
         # For overloads, assume first.
         while isinstance(callee_type, mypy.types.Overloaded):
             callee_type = callee_type.items[0]
+
+        # print(func_code, callee_type)
 
         if isinstance(callee_type, mypy.types.CallableType):
             given_args = []
