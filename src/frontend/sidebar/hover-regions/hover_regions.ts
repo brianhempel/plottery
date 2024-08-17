@@ -5,7 +5,7 @@ import {
   State,
 } from "../../types";
 import { zip, equalByJSON } from "../../utils/stdlib";
-import { create_el, escape_html, place_centered_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
+import { create_el, escape_html, place_centered_over_shape, place_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
 import { perhaps_get_drag_x_handler, perhaps_get_drag_width_handler, perhaps_get_drag_height_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler } from "../call/call";
 import { add_method_call, create_method_view } from "../methods/method";
 import "./hover_regions.css";
@@ -40,6 +40,7 @@ export function place_add_method_buttons_on_plot(state: State) {
 
   // Draw add method widgets on appropriate hover regions
   const placed_methods: HTMLElement[] = [];
+  const is_empty_plot = Object.entries(methods_by_artist_id).length == 1;
 
   for (const [artist_id, methods] of Object.entries(methods_by_artist_id)) {
 
@@ -52,10 +53,9 @@ export function place_add_method_buttons_on_plot(state: State) {
         el.addEventListener("click", _ => add_method_call(methods[0], state));
       } else {
 
-        const artist_name = hover_region.getAttribute("data-artist-name") || "unknown";
+        const artist_name = (hover_region.getAttribute("data-artist-name") || "unknown").replace(/\.patch$/, ''); // show 'ax.patch' as 'ax' although we want the method positioned relative to the patch
 
-        el = create_menu_el(`<span class="snp-methods-dropdown">${artist_name} ▾</span>`, undefined)
-        el.classList.add('snp-method-view');
+        el = create_menu_el(`<span class="snp-methods-dropdown">${artist_name}&nbsp▾</span>`, 'snp-method-view', undefined)
 
         // Add possible method calls to the menu
         methods.forEach(method => {
@@ -73,7 +73,12 @@ export function place_add_method_buttons_on_plot(state: State) {
 
       // const { el: method_el } = create_method_view(method, state);
       state.plot_area.append(el); // Have to place in DOM first so it has width/height for centering
-      place_centered_over_shape(hover_region, el, state.plot_area);
+      if (!is_empty_plot) {
+        place_over_shape(hover_region, el, state.plot_area);
+      } else {
+        place_centered_over_shape(hover_region, el, state.plot_area);
+        el.classList.add("always-show");
+      }
       reposition_to_avoid_overlap(el, placed_methods, state.plot_area);
       placed_methods.push(el);
     });

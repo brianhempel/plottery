@@ -290,38 +290,68 @@ export function create_el(
   return el;
 }
 
-export function relativeTopLeft(el: Element, container: Element) : [number, number] {
-  const { top, left } = relativeBoundingRect(el, container);
-  return [top, left];
-}
+// export function relativeTopLeft(el: Element, container: Element) : [number, number] {
+//   const { top, left } = relativeBoundingRect(el, container);
+//   return [top, left];
+// }
 
+// clips to container if el goes outside of it by more than slop
 export function relativeBoundingRect(el: Element, container: Element) : DOMRect {
+  const slop = 17;
   const elRect = el.getBoundingClientRect();
   const refRect = container.getBoundingClientRect();
 
+  const x = elRect.x - refRect.x;
+  const y = elRect.y - refRect.y;
+  const right = x + elRect.width;
+  const bot = y + elRect.height;
+  const clippedX     = Math.max(-slop, Math.min(x, refRect.width + slop));
+  const clippedY     = Math.max(-slop, Math.min(y, refRect.height + slop));
+  const clippedRight = Math.max(-slop, Math.min(right, refRect.width + slop));
+  const clippedBot   = Math.max(-slop, Math.min(bot, refRect.height + slop));
+
   return DOMRect.fromRect({
-    x: elRect.x - refRect.x,
-    y: elRect.y - refRect.y,
-    width: elRect.width,
-    height: elRect.height,
+    x: clippedX,
+    y: clippedY,
+    width:  clippedRight - clippedX,
+    height: clippedBot - clippedY,
   });
 }
 
 // Absolutely positions el over the center of shape, where container is the appropriate relative ancestor.
 export function place_centered_over_shape(shape: Element, el: HTMLElement, container: Element) {
-  // const [plot_width, plot_height] = [
-  //   snp_state.img.getBoundingClientRect().width,
-  //   snp_state.img.getBoundingClientRect().height,
-  // ];
   const shapeRect = relativeBoundingRect(shape, container);
   const elRect = el.getBoundingClientRect();
+
   let top = shapeRect.top + shapeRect.height / 2 - elRect.height / 2;
   let left = shapeRect.left + shapeRect.width / 2 - elRect.width / 2;
-  // top = Math.max(0, Math.min(top, plot_height - elRect.height));
-  // left = Math.max(0, Math.min(left, plot_width - elRect.width));
+
   el.style.position = "absolute";
   el.style.top = `${top}px`;
   el.style.left = `${left}px`;
+}
+
+// Absolutely positions el over shape, where container is the appropriate relative ancestor.
+export function place_over_shape(shape: Element, el: HTMLElement, container: Element) {
+  // const containerRect = container.getBoundingClientRect();
+  const shapeRect = relativeBoundingRect(shape, container);
+  const elRect = el.getBoundingClientRect();
+
+  const pad = 6;
+  if (elRect.width + pad*2 < shapeRect.width && elRect.height + pad*2 < shapeRect.height) {
+    // If bigger than shape, place in upper right corner
+    el.style.position = "absolute";
+    el.style.top = `${shapeRect.top + pad}px`;
+    el.style.left = `${shapeRect.right - elRect.width - pad}px`;
+  } else if (elRect.height + pad*2 < shapeRect.height) {
+    // If only wider than shape, place in center top
+    el.style.position = "absolute";
+    el.style.top = `${shapeRect.top + pad}px`;
+    let left = shapeRect.left + shapeRect.width / 2 - elRect.width / 2;
+    el.style.left = `${left}px`;
+  } else {
+    place_centered_over_shape(shape, el, container);
+  }
 }
 
 export function reposition_to_avoid_overlap(el: HTMLElement, avoid_els: Element[], container: Element) {

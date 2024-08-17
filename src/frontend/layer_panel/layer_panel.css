@@ -12,19 +12,20 @@
   /* font-size: 1.3em; */
   font-size: 15px;
   padding: 0.5em 0.5em;
-  color: #f2f2f2;
   margin: 0 !important; /* there's some default stylesheet in the notebook clobbering the top margin */
 }
 
 .snp-layers-panel h2,
-.snp-layers-panel .snp-menu-item {
+.add-layer-menu,
+.add-layer-menu .snp-menu-items { /* submenu */
   background-color: #656565;
+  color: #f2f2f2;
 }
-.snp-layers-panel .snp-menu-item:hover {
+.add-layer-menu .snp-menu-item:hover {
   background-color: #929292;
 }
 
-.snp-layers-panel .snp-menu {
+.add-layer-menu {
   font-weight: normal;
   font-size: 1.2rem;
 }
