@@ -7,7 +7,51 @@ import { CellMessage } from "../utils/types";
 
 export function hard_rerun(state: State) {
   state.cell.code_mirror.getAllMarks().forEach(mark => mark.clear());
-  state.cell.execute();
+  // state.cell.execute();
+  execute_cell_but_delay_clearing_output(state.cell);
+}
+
+// Adapted from notebook/js/codecell.js
+function execute_cell_but_delay_clearing_output(cell) {
+
+  const stop_on_error = true
+
+  // cell.clear_output(false, true);
+  var old_msg_id = cell.last_msg_id;
+  if (old_msg_id) {
+      cell.kernel.clear_callbacks_for_msg(old_msg_id);
+      // delete CodeCell.msg_cells[old_msg_id]; // Pretty sure this isn't used
+      cell.last_msg_id = null;
+  }
+  if (cell.get_text().trim().length === 0) {
+      // nothing to do
+      cell.set_input_prompt(null);
+      return;
+  }
+  cell.set_input_prompt('*');
+  cell.element.addClass("running");
+  var callbacks = cell.get_callbacks();
+  const orig_output_callback = callbacks.iopub!.output;
+
+  callbacks.iopub!.output = function (msg: CellMessage) {
+    if (msg.header.msg_type === "execute_result") {
+      cell.clear_output(false, true);
+    }
+    orig_output_callback(...arguments);
+  }
+
+  cell.last_msg_id = cell.kernel.execute(cell.get_text(), callbacks, {silent: false, store_history: true, stop_on_error : stop_on_error});
+  // CodeCell.msg_cells[cell.last_msg_id] = cell;
+  cell.render();
+  cell.events.trigger('execute.CodeCell', {cell: cell});
+  var that = cell;
+  function handleFinished(evt, data) {
+      if (that.kernel.id === data.kernel.id && that.last_msg_id === data.msg_id) {
+              that.events.trigger('finished_execute.CodeCell', {cell: that});
+          that.events.off('finished_iopub.Kernel', handleFinished);
+        }
+  }
+  cell.events.on('finished_iopub.Kernel', handleFinished);
 }
 
 export function add_sync_code_on_change_watcher(
