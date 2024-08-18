@@ -7,3 +7,4 @@ venv
 snp.js.map
 __temp.py
 dist/
+.DS_Store
