@@ -1280,6 +1280,8 @@ class SNP(SNPFigureAndHoverRegions):
             frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path(f"{snp_src_directory}/frontend").rglob("*.css")])
 
         with Timer("out_html"):
+            llm_api_key = os.getenv('OPENAI_API_KEY', '')
+
             out_html = f"""
                 <div class="snp_outer">
                 <script>{pathlib.Path(f"{snp_src_directory}/../dist/plugin.js").read_text()}</script>
@@ -1293,7 +1295,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- sidebar added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)})">
+                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)}, {json_for_attr(llm_api_key)})">
                     {frontend_css}
                 </style>
                 </div>

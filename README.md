@@ -14,7 +14,7 @@ Install Python packages.
 ```
 pip install -r requirements.txt
 ```
-  
+
 Install node packages.
 
 ```
@@ -31,5 +31,7 @@ npm run build
 Test it by opening jupyter and running `src/snp.ipynb`.
 
 ```
-jupyter notebook
+OPENAI_API_KEY=your_key jupyter notebook
 ```
+
+If `OPENAI_API_KEY` is not provided, the AI panel will not show.

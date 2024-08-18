@@ -23,6 +23,7 @@ export type State = {
   notebook_typed_defs: Type[],
   user_iterables: string[];
 
+  llm_api_key: string;
 
   // **** Actual state ****
 
