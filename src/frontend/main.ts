@@ -43,6 +43,7 @@ function attach_snp(
   notebook_typed_defs: Type[],
   notebook_parseable_comments: ParseableComment[],
   user_iterables: string[],
+  avoid_names: string[],
   llm_api_key: string
 ) {
   // Initialize state
@@ -59,7 +60,7 @@ function attach_snp(
     user_iterables: user_iterables,
 
     methods: methods,
-    methods_with_code: methods.map(method_info_to_method_with_args),
+    methods_with_code: methods.map(m => method_info_to_method_with_args(m, avoid_names)),
 
     llm_api_key: llm_api_key,
 

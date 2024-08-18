@@ -1,4 +1,4 @@
-import { MethodInfo, MethodView, MethodWithCode, State } from "../../types";
+import { IInstanceType, MethodInfo, MethodView, MethodWithCode, State, Type } from "../../types";
 import { arg_defaults_from_callee_type, create_el } from "../../utils/misc";
 import { hard_rerun } from "../../code_sync/code_sync";
 import "./method.css";
@@ -34,7 +34,7 @@ export function add_method_call(
   hard_rerun(state);
 }
 
-export function method_info_to_method_with_args(method_info: MethodInfo): MethodWithCode {
+export function method_info_to_method_with_args(method_info: MethodInfo, avoid_names: string[]): MethodWithCode {
 
   let arg_defaults = arg_defaults_from_callee_type(method_info.type);
 
@@ -59,13 +59,56 @@ export function method_info_to_method_with_args(method_info: MethodInfo): Method
   let required_keyword_arg_codes = required_keyword_args.map(arg => `${arg.name}=${arg.code}`);
 
   let receiver_dot_name = `${method_info.receiver_name}.${method_info.name}`;
-  let code = `${receiver_dot_name}(${required_positional_arg_codes
-    .concat(required_keyword_arg_codes)
-    .join(",")})\n`;
+
+  let ret_name = name_for_ret_type(method_info.type.ret_type);
+  let perhaps_assignment = ret_name ? `${non_colliding_name(ret_name, avoid_names)} = ` : '';
+  let code = `${perhaps_assignment}${receiver_dot_name}(${required_positional_arg_codes.concat(required_keyword_arg_codes).join(', ')})\n`;
 
   return {
     method_info,
     receiver_dot_name,
     code
   };
+}
+
+// My beautiful segmentor regex, comes in handy!
+// "mkNameG_tcIdKey" => [ 'mk', 'Name', 'G', 'tc', 'Id', 'Key' ]
+function identifier_to_words(s: string): string[] {
+  const words = s.match(/\'|(?:^[^A-Za-z0-9\s\'])?(?:[^a-z\_\s\'\.]+$|[^a-z\_\s\'\.]+[0-9\.]|[^a-z\_\s\'\.]+(?![a-z])|[A-Z][^A-Z0-9\_\s\'\.]+\.?|[^A-Z0-9\_\s\'\.]+\.?)/g)
+  return words || [s];
+}
+
+// Convert the return type into a name
+function name_for_ret_type(ret_type: Type): string | null {
+  if (ret_type && ret_type['.class'] == 'NoneType') {
+    return null
+  }
+
+  const abbrevs: { [k: string]: string } = {
+    'axes': 'ax',
+    'figure': 'fig',
+  }
+
+  let s = (ret_type as IInstanceType)?.type_ref || 'var';
+  let is_list = false;
+  if (s === 'builtins.list' && (ret_type as IInstanceType).args.length > 0) {
+    s = ((ret_type as IInstanceType).args[0] as IInstanceType)?.type_ref || 'var';
+    is_list = true;
+  } else if (s === 'builtins.ellipsis') {
+    s = 'var'
+  }
+  const base_name = s.split('.').at(-1) || 'var';
+  const words = identifier_to_words(base_name).map(w => w.toLowerCase()).map(w => abbrevs[w] || w);
+  let name = words.join('_') + (is_list ? 's' : '');
+  name = name.replace(/_container/, 's');
+  return name;
+}
+
+function non_colliding_name(name: string, avoid_names: string[]): string {
+  let i = 1;
+  while (avoid_names.includes(name)) {
+    i++;
+    name = `${name}${i}`;
+  }
+  return name;
 }

@@ -1064,6 +1064,8 @@ class SNP(SNPFigureAndHoverRegions):
     ):
         super().__init__(figure, locals, cell_lineno, provenance_is_off_by_n_lines, notebook_code_through_cell)
 
+        self.avoid_names = self.user_nameset | locals.keys()
+
         # Perform type inference
         self.cell_lineno = cell_lineno
         self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
@@ -1295,7 +1297,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- sidebar added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)}, {json_for_attr(llm_api_key)})">
+                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)}, {json_for_attr(list(self.avoid_names))}, {json_for_attr(llm_api_key)})">
                     {frontend_css}
                 </style>
                 </div>
