@@ -71,7 +71,7 @@ class FigureBase(Artist):
     def get_frameon(self) -> bool: ...
     def set_linewidth(self, linewidth: float) -> None: ...
     def get_linewidth(self) -> float: ...
-    def set_edgecolor(self, color: Color): ...
+    def set_edgecolor(self, color: ColorType): ...
     def set_facecolor(self, color: str) -> None: ...
     def set_frameon(self, b: bool): ...
     frameon = ...
@@ -79,10 +79,43 @@ class FigureBase(Artist):
     def add_axes(self, *args, **kwargs) -> Axes: ...
     @overload
     def add_subplot(
+        self,
+        nrows: int, # The Sketch-n-Plot default int is 1
+        ncols: int, # The Sketch-n-Plot default int is 1
+        index: int, # The Sketch-n-Plot default int is 1
+        /,
+        projection: Literal['aitoff', 'hammer', 'lambert', 'mollweide', 'polar', 'rectilinear'] | str | None = None,
+        polar: bool = False,
+        sharex: Axes | None = None,
+        sharey: Axes | None = None,
+        frameon: bool = True,
+        label: str = '',
+        xscale: float | None = None,
+        yscale: float | None = None,
+        box_aspect: float | None = None,
+        facecolor: ColorType | None = None,
+        **kwargs
+    ) -> Axes: ...
+    def add_subplot(
+        self,
+        grid: Literal[111] | int,
+        /,
+        projection: Literal['aitoff', 'hammer', 'lambert', 'mollweide', 'polar', 'rectilinear'] | str | None = None,
+        polar: bool = False,
+        sharex: Axes | None = None,
+        sharey: Axes | None = None,
+        frameon: bool = True,
+        label: str = '',
+        xscale: float | None = None,
+        yscale: float | None = None,
+        box_aspect: float | None = None,
+        facecolor: ColorType | None = None,
+        **kwargs
+    ) -> Axes: ...
+    @overload
+    def add_subplot(
         self, *args, projection: Literal["3d"], **kwargs
     ) -> Axes3D: ...
-    @overload
-    def add_subplot(self, *args, **kwargs) -> Axes: ...
     @overload
     def subplots(
         self,

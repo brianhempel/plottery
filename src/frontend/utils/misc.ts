@@ -47,6 +47,12 @@ import { get_arg_kind_from_int } from "./types";
 //   }
 // }
 
+// https://stackoverflow.com/a/6234804
+export function escape_html(str: string): string {
+  return str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+}
+
+
 export function get_proper_type(type: Type): Type {
   return type[".class"] == "TypeAliasType" && type.resolved ? get_proper_type(type.resolved) : type;
 }
@@ -89,6 +95,10 @@ function arg_defaults_for_star2_arg(arg_type: Type): Arg[] {
 export function arg_defaults_from_callee_type(callee: CallableType): Arg[] {
 
   let arg_names = callee.arg_names_at_definition ? callee.arg_names_at_definition : callee.arg_names;
+  if (!arg_names) {
+    console.warn("arg_names not found for ", callee, " likely meaning the type def for it is malformed or missing");
+    return [];
+  }
   if (arg_names === callee.arg_names) {
     console.warn("arg_names_at_definition not found for ", callee, " likely meaning the type def for it is missing an import or is otherwise missing or malformed. Lack of definition access can can mess up positional-only arguments.");
   }
@@ -280,38 +290,68 @@ export function create_el(
   return el;
 }
 
-export function relativeTopLeft(el: Element, container: Element) : [number, number] {
-  const { top, left } = relativeBoundingRect(el, container);
-  return [top, left];
-}
+// export function relativeTopLeft(el: Element, container: Element) : [number, number] {
+//   const { top, left } = relativeBoundingRect(el, container);
+//   return [top, left];
+// }
 
+// clips to container if el goes outside of it by more than slop
 export function relativeBoundingRect(el: Element, container: Element) : DOMRect {
+  const slop = 17;
   const elRect = el.getBoundingClientRect();
   const refRect = container.getBoundingClientRect();
 
+  const x = elRect.x - refRect.x;
+  const y = elRect.y - refRect.y;
+  const right = x + elRect.width;
+  const bot = y + elRect.height;
+  const clippedX     = Math.max(-slop, Math.min(x, refRect.width + slop));
+  const clippedY     = Math.max(-slop, Math.min(y, refRect.height + slop));
+  const clippedRight = Math.max(-slop, Math.min(right, refRect.width + slop));
+  const clippedBot   = Math.max(-slop, Math.min(bot, refRect.height + slop));
+
   return DOMRect.fromRect({
-    x: elRect.x - refRect.x,
-    y: elRect.y - refRect.y,
-    width: elRect.width,
-    height: elRect.height,
+    x: clippedX,
+    y: clippedY,
+    width:  clippedRight - clippedX,
+    height: clippedBot - clippedY,
   });
 }
 
 // Absolutely positions el over the center of shape, where container is the appropriate relative ancestor.
 export function place_centered_over_shape(shape: Element, el: HTMLElement, container: Element) {
-  // const [plot_width, plot_height] = [
-  //   snp_state.img.getBoundingClientRect().width,
-  //   snp_state.img.getBoundingClientRect().height,
-  // ];
   const shapeRect = relativeBoundingRect(shape, container);
   const elRect = el.getBoundingClientRect();
+
   let top = shapeRect.top + shapeRect.height / 2 - elRect.height / 2;
   let left = shapeRect.left + shapeRect.width / 2 - elRect.width / 2;
-  // top = Math.max(0, Math.min(top, plot_height - elRect.height));
-  // left = Math.max(0, Math.min(left, plot_width - elRect.width));
+
   el.style.position = "absolute";
   el.style.top = `${top}px`;
   el.style.left = `${left}px`;
+}
+
+// Absolutely positions el over shape, where container is the appropriate relative ancestor.
+export function place_over_shape(shape: Element, el: HTMLElement, container: Element) {
+  // const containerRect = container.getBoundingClientRect();
+  const shapeRect = relativeBoundingRect(shape, container);
+  const elRect = el.getBoundingClientRect();
+
+  const pad = 6;
+  if (elRect.width + pad*2 < shapeRect.width && elRect.height + pad*2 < shapeRect.height) {
+    // If bigger than shape, place in upper right corner
+    el.style.position = "absolute";
+    el.style.top = `${shapeRect.top + pad}px`;
+    el.style.left = `${shapeRect.right - elRect.width - pad}px`;
+  } else if (elRect.height + pad*2 < shapeRect.height) {
+    // If only wider than shape, place in center top
+    el.style.position = "absolute";
+    el.style.top = `${shapeRect.top + pad}px`;
+    let left = shapeRect.left + shapeRect.width / 2 - elRect.width / 2;
+    el.style.left = `${left}px`;
+  } else {
+    place_centered_over_shape(shape, el, container);
+  }
 }
 
 export function reposition_to_avoid_overlap(el: HTMLElement, avoid_els: Element[], container: Element) {
@@ -551,18 +591,18 @@ export function hex_to_rgb(hex: string): { r: number; g: number; b: number } {
     : { r: 0, g: 0, b: 0 };
 }
 
-// Sort by number of dots, then by total length.
-export function compare_qualified_names(name1: string, name2: string) {
-  return (
-    name1.length +
-    100 * name1.split(".").length -
-    (name2.length + +100 * name2.split(".").length)
-  );
-}
+// // Sort by number of dots, then by total length.
+// function compare_qualified_names(name1: string, name2: string) {
+//   return (
+//     name1.length +
+//     100 * name1.split(".").length -
+//     (name2.length + +100 * name2.split(".").length)
+//   );
+// }
 
-export function get_shortest_qualified_name(names: string[]) {
-  return names.sort(compare_qualified_names)[0];
-}
+// export function get_shortest_qualified_name(names: string[]) {
+//   return names.sort(compare_qualified_names)[0];
+// }
 
 // Round to given number of significant figures.
 // A mashup of Brian, GPT-4o, and Sam Mason https://stackoverflow.com/a/56974893

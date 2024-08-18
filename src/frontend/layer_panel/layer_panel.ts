@@ -468,20 +468,20 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
   const layers_panel_heading = create_el("h2", [], layers_el);
   layers_panel_heading.append("Layers")
 
-  const add_layer_menu = create_menu_el('<span class="snp-add-layer-button">＋ Add Layer</span>', layers_panel_heading)
+  const add_layer_menu = create_menu_el('<span class="snp-add-layer-button">＋ Add Layer</span>', 'add-layer-menu', layers_panel_heading)
 
   const default_iterable = default_code_for_type({".class": "Instance", "type_ref": "matplotlib._typing.ArrayLike", "args": []});
+  const default_iterable_code = `for i, x in enumerate(${default_iterable}):\n    pass\n`;
   add_menu_item(
     add_layer_menu,
     'For-loop', null,
     (state => {
-      const code = `for i, x in enumerate(${default_iterable}):\n    pass\n`;
-      add_line_of_code(code, state);
+      add_line_of_code(default_iterable_code, state);
       hard_rerun(state);
     }),
     _ => true, // Enabled?
     state
-  )
+  ).title = default_iterable_code.trim()
 
   const user_iterables_menu =
     add_submenu(
@@ -491,17 +491,17 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
       state
     );
   [default_iterable, ...state.user_iterables].forEach(iterable => {
+    const code = `for i, x in enumerate(${iterable}):\n    pass\n`;
     add_menu_item(
       user_iterables_menu,
       iterable, null,
       (state => {
-        const code = `for i, x in enumerate(${iterable}):\n    pass\n`;
         add_line_of_code(code, state);
         hard_rerun(state);
       }),
       _ => true, // Enabled?
       state
-    )
+    ).title = code.trim()
   });
 
   // Add possible method calls to the menu
@@ -512,7 +512,7 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
       (state => add_method_call(method, state)),
       _ => true, // Enabled?
       state
-    )
+    ).title = method.method_info.docstring_first_line
   });
 
   layers.forEach(layer => layers_el.append(layer.el));

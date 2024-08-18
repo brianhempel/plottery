@@ -8,7 +8,7 @@ export function create_sidebar_menu_bar(state: State) {
   const sidebar_menu_bar = create_el("div", "snp-sidebar-menu-bar");
   sidebar_menu_bar.innerHTML = snp_logo_svg_html().replace('<svg ', '<svg class="sketch-n-plot-logo" ')
 
-  const edit_menu = create_menu_el("<strong>Edit</strong>", sidebar_menu_bar)
+  const edit_menu = create_menu_el("<strong>Edit</strong>", [], sidebar_menu_bar)
 
   add_menu_item(
     edit_menu,

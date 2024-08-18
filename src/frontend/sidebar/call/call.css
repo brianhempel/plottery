@@ -49,10 +49,9 @@
   opacity: 0.5;
 }
 
-.snp-call.snp-focused > .snp-collapsable-header > .snp-call-name {
-  /* box-shadow: 0px 0px 0px 1px rgb(94, 196, 255); */
+/* .snp-call.snp-focused > .snp-collapsable-header > .snp-call-name {
   background: #bc00ff33;
-}
+} */
 
 .snp-call > .snp-collapsable-header:hover {
   background: none;

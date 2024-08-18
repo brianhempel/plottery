@@ -26,6 +26,7 @@ import { close_all_menus } from "./menus/menus";
 import { id_as_new_call } from "./sidebar/call/call";
 import { method_info_to_method_with_args } from "./sidebar/methods/method";
 import { ParseableComment } from "./layer_panel/layer_panel";
+import { create_ai_panel } from "./ai_panel/ai_panel";
 
 
 // These will already exist where we inject the JS in the notebook.
@@ -42,6 +43,8 @@ function attach_snp(
   notebook_typed_defs: Type[],
   notebook_parseable_comments: ParseableComment[],
   user_iterables: string[],
+  avoid_names: string[],
+  llm_api_key: string
 ) {
   // Initialize state
   const cell_el = snp_outer.closest(".code_cell");
@@ -57,7 +60,9 @@ function attach_snp(
     user_iterables: user_iterables,
 
     methods: methods,
-    methods_with_code: methods.map(method_info_to_method_with_args),
+    methods_with_code: methods.map(m => method_info_to_method_with_args(m, avoid_names)),
+
+    llm_api_key: llm_api_key,
 
     layers_panel: { el: create_el("div"), layers: [] }, // Dummy, replaced immediately below.
 
@@ -94,6 +99,12 @@ function attach_snp(
   const sidebar_menu_bar = create_sidebar_menu_bar(state);
 
   state.sidebar_el.append(sidebar_menu_bar);
+
+  if (llm_api_key.length > 10) {
+    state.sidebar_el.append(create_ai_panel(state));
+  } else {
+    console.log("No LLM API key provided, not showing AI panel.");
+  }
 
   // const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
   // state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));
