@@ -552,27 +552,6 @@ export function insert_to_beginning_of_el(
   parent.insertBefore(el_to_insert, parent.firstChild);
 }
 
-export function find_call_that_satisfies(
-  pred: (info: CallInfo, view: CallView) => boolean,
-  state: State
-) : { info: CallInfo, view: CallView } | undefined {
-  // console.log("find_call_that_satisfies state", state);
-
-  // Go through all the call views from artists
-  for (const layer of state.layers_panel.layers) {
-    for (let i = 0; i < layer.calls_with_args.length; i++) {
-      const calls_with_args = layer.calls_with_args[i];
-      const call_view = layer.call_views[i];
-
-      if (pred(calls_with_args.call_info, call_view)) {
-        return { info: calls_with_args.call_info, view: call_view };
-      }
-    }
-  }
-
-  return undefined;
-}
-
 // https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
 export function hex_to_rgb(hex: string): { r: number; g: number; b: number } {
   // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
