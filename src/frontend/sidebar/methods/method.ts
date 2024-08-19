@@ -96,13 +96,17 @@ function name_for_ret_type(ret_type: Type): string | null {
   if (s === 'builtins.list' && (ret_type as IInstanceType).args.length > 0) {
     s = ((ret_type as IInstanceType).args[0] as IInstanceType)?.type_ref || 'var';
     is_list = true;
+  } else if (s === 'builtins.dict' && (ret_type as IInstanceType).args.length == 2) {
+    const key_name = name_for_ret_type((ret_type as IInstanceType).args[0]);
+    const val_name = name_for_ret_type((ret_type as IInstanceType).args[1]);
+    return `${key_name}_to_${val_name}`;
   } else if (s === 'builtins.ellipsis') {
     s = 'var'
   }
   const base_name = s.split('.').at(-1) || 'var';
   const words = identifier_to_words(base_name).map(w => w.toLowerCase()).map(w => abbrevs[w] || w);
   let name = words.join('_') + (is_list ? 's' : '');
-  name = name.replace(/_container/, 's');
+  name = name.replace(/_container|_collection/, 's');
   return name;
 }
 

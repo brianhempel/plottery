@@ -9,6 +9,7 @@ import pathlib
 import re
 import ast
 import time
+import keyword
 from typing import Dict, List, Tuple
 
 import IPython
@@ -1053,6 +1054,8 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         return self.cached_svg_hover_regions
 
 
+keywordset = set(keyword.kwlist)
+
 class SNP(SNPFigureAndHoverRegions):
     def __init__(
         self,
@@ -1064,7 +1067,7 @@ class SNP(SNPFigureAndHoverRegions):
     ):
         super().__init__(figure, locals, cell_lineno, provenance_is_off_by_n_lines, notebook_code_through_cell)
 
-        self.avoid_names = self.user_nameset | locals.keys()
+        self.avoid_names = self.user_nameset | locals.keys() | keywordset
 
         # Perform type inference
         self.cell_lineno = cell_lineno
