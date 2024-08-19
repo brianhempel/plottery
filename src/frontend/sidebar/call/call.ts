@@ -167,7 +167,7 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
   // move legend handler
   //
   // changed legend loc to e.g. (0.5, 0.5) which is the bot left corner, relative to the axes bounds
-  if(call_view.els.name_el.innerText.endsWith(".legend")) {
+  if (call_view.els.name_el.innerText.endsWith(".legend")) {
     let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'loc')?.view;
 
     if (perhaps_view) {
@@ -201,28 +201,36 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
 
 export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
 
-  let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'x')?.view;
+  const first_ten_args = call_view.arguments.slice(0, 10);
+
+  let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'x')?.view;
 
   return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'x') : undefined;
 }
 
 export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
 
-  let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'y')?.view;
+  const first_ten_args = call_view.arguments.slice(0, 10);
+
+  let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'y')?.view;
 
   return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y') : undefined;
 }
 
 export function perhaps_get_drag_width_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
 
-  let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'width')?.view;
+  const first_ten_args = call_view.arguments.slice(0, 10);
+
+  let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'width')?.view;
 
   return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'x') : undefined;
 }
 
 export function perhaps_get_drag_height_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
 
-  let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'height')?.view;
+  const first_ten_args = call_view.arguments.slice(0, 10);
+
+  let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'height')?.view;
 
   return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y') : undefined;
 }
@@ -260,7 +268,8 @@ function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y') : ((fig_px:
     const [x_min,    y_min,    x_max,    y_max]    = boundses.axes_unit_bounds;
     const [x_min_px, y_min_px, x_max_px, y_max_px] = boundses.axes_px_bounds;
 
-    const units_per_px = x_or_y == 'x' ? (x_max - x_min) / (x_max_px - x_min_px) : (y_max - y_min) / (y_max_px - y_min_px);
+    // y inverted
+    const units_per_px = x_or_y == 'x' ? (x_max - x_min) / (x_max_px - x_min_px) : -(y_max - y_min) / (y_max_px - y_min_px);
 
     const new_number = delta_px === 0 ? starting_number : sig_figs(starting_number + delta_px*units_per_px, 2);
     let new_arg_code: string;

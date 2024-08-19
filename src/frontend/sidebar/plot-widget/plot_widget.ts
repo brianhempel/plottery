@@ -45,6 +45,10 @@ export function make_plot_widgets(state: State) {
       method_name: "set_ylabel",
       arg_name: "ylabel",
     },
+    {
+      method_name: "text",
+      arg_name: "s",
+    },
     // {
     //   method_name: "set_ylim",
     //   arg_name: "bottom",
