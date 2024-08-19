@@ -63,7 +63,7 @@ ${notebook_code}
 
 Modify the code of Cell ${last_cell_no} to ${user_prompt}
 
-Notes: If you need to add more subplots, use the following form:
+Notes: If I asked above to add more subplots, use the following form:
 
 \`\`\`
 fig = plt.figure(...)
@@ -72,7 +72,7 @@ ax2 = fig.add_subplot(...)
 ...
 \`\`\`
 
-but only if you need to add more subplots.
+but _only_ if I asked to add more subplots.
 
 Return only the new code of Cell ${last_cell_no}. The code should conlude as before with
 snp = SNP(fig, locals(), cell_lineno, provenance_is_off_by_n_lines, notebook_code_through_cell)
