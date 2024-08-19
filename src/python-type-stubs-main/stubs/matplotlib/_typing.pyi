@@ -1,6 +1,8 @@
 import decimal
 import io
 
+from matplotlib.markers import MarkerStyle
+
 # from figure import Figure
 # from font_manager import FontProperties
 # from markers import MarkerStyle
@@ -9,7 +11,9 @@ from collections.abc import Collection
 import numpy.typing
 import pandas as pd
 from typing import (
+    Iterable,
     Sequence,
+    Tuple,
     TypedDict,
     TypeAlias,
     Optional,
@@ -29,8 +33,8 @@ from transforms import BboxBase, IdentityTransform, Transform
 from _enums import CapStyle, JoinStyle
 from artist import Artist
 
-CapStyleLike = Literal["butt", "projecting", "round"] | CapStyle
-JoinStyleLike = Literal["miter", "round", "bevel"] | JoinStyle
+CapStyleLike = Literal["butt", "projecting", "round"]
+JoinStyleLike = Literal["miter", "round", "bevel"]
 
 Decimal = decimal.Decimal
 PythonScalar = str | int | float | bool
@@ -43,6 +47,8 @@ PathLike = str
 
 PandasScalar = pd.Period | pd.Timestamp | pd.Timedelta | pd.Interval
 Scalar = PythonScalar | PandasScalar
+
+SingleLetterColorStrs = Literal['b','g','r','c','m','y','k','w']
 
 # TODO: Add in the supported 'str'
 RGBColorType = tuple[float, float, float] | str
@@ -134,9 +140,6 @@ AggFilterType: TypeAlias = Callable[
 ]  # TODO taken from Artist.set_agg_filter, but might want to refine more
 AlphaType: TypeAlias = float | None
 ClipPathType: TypeAlias = None  # | Patch | tuple[Path, Transform]
-HatchType: TypeAlias = Literal[
-    "/", "\\", "|", "-", "+", "x", "o", "O", ".", "*"
-]
 
 NormType: TypeAlias = (
     str | None
@@ -212,14 +215,14 @@ class TextProps(TypedDict, total=False):
     # weight: float | NamedFontWeight  # aliases `fontweight`
     gid: str
     horizontalalignment: Literal["center", "left", "right"]
-    ha: Literal["center", "left", "right"]
+    # ha: Literal["center", "left", "right"]
     in_layout: bool
     label: object
     linespacing: float  # "multiple of font size"
     math_fontfamily: str
     mouseover: bool
     multialignment: Literal["center", "left", "right"]
-    ma: Literal["center", "left", "right"]
+    # ma: Literal["center", "left", "right"]
     parse_math: bool
     # path_effects: Any
     picker: None | bool | float | Callable
@@ -237,9 +240,9 @@ class TextProps(TypedDict, total=False):
     verticalalignment: Literal[
         "bottom", "baseline", "center", "center_baseline", "top"
     ]
-    va: Literal[
-        "bottom", "baseline", "center", "center_baseline", "top"
-    ]  # aliases `verticalalignment`
+    # va: Literal[
+    #     "bottom", "baseline", "center", "center_baseline", "top"
+    # ]  # aliases `verticalalignment`
     visible: bool
     wrap: bool
     x: float
@@ -248,103 +251,82 @@ class TextProps(TypedDict, total=False):
 
 AxesProps: TypeAlias = TextProps
 
-MarkerType: TypeAlias = (
-    Literal[
-        ".",
-        ",",
-        "o",
-        "v",
-        "^",
-        "<",
-        ">",
-        "1",
-        "2",
-        "3",
-        "4",
-        "8",
-        "s",
-        "p",
-        "P",
-        "*",
-        "h",
-        "H",
-        "+",
-        "x",
-        "X",
-        "D",
-        "d",
-        "|",
-        "_",  # TODO: There's more stuff https://matplotlib.org/stable/api/markers_api.html#module-matplotlib.markers
-    ]
-    | str
-)
+MarkerStrs: TypeAlias = Literal['.',',','o','v','^','<','>','1','2','3','4','8','s','p','P','*','h','H','+','x','X','D','d','|','_']
+
+MarkerType: TypeAlias = MarkerStrs | Literal[0,1,2,3,4,5,6,7,8,9,10,11,'none','None',' ',''] | str | MarkerStyle | Path
+
+
 
 class Line2DProps(TypedDict, total=False):
+    color: ColorType | list[ColorType] = 'C0',  # mpl.rcParams['lines.color']
+    # c: ColorType | list[ColorType] = 'C0',  # mpl.rcParams['lines.color']
+    alpha: float | None = None,
+    linewidth: float | None = 1.5,  # mpl.rcParams['lines.linewidth']
+    # lw: float | None = 1.5,  # mpl.rcParams['lines.linewidth']
+    linestyle: Linestyle | None = '-',  # mpl.rcParams['lines.linestyle']
+    # ls: Linestyle | None = '-',  # mpl.rcParams['lines.linestyle']
+    dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Sequence[float] | Tuple = (),
+    gapcolor: ColorType | None = None,
+    drawstyle: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default',
+    # ds: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default',
+    # Marker styles
+    marker: MarkerType | None = 'None',  # mpl.rcParams['lines.marker']
+    markevery: int | Iterable[int] | None = None,  # mpl.rcParams['lines.markevery']
+    markersize: float | None = 6.0,  # mpl.rcParams['lines.markersize']
+    # ms: float | None = 6.0,  # mpl.rcParams['lines.markersize']
+    markeredgecolor: Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markeredgecolor']
+    # mec: Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markeredgecolor']
+    markeredgewidth: float | None = 1.0,  # mpl.rcParams['lines.markeredgewidth']
+    # mew: float | None = 1.0,  # mpl.rcParams['lines.markeredgewidth']
+    markerfacecolor:  Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markerfacecolor']
+    # mfc:  Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markerfacecolor']
+    markerfacecoloralt: Literal['none'] | ColorType = 'none',
+    # mfcalt: Literal['none'] | ColorType = 'none',
+    fillstyle: Literal['full', 'left', 'right', 'bottom', 'top', 'none'] | None = 'full',  #  mpl.rcParams['markers.fillstyle']
+    # Line cap styles
+    solid_capstyle: CapStyleLike | None = 'projecting',  # mpl.rcParams['lines.solid_capstyle']
+    solid_joinstyle: JoinStyleLike | None = 'round',  # mpl.rcParams['lines.solid_joinstyle']
+    dash_capstyle: CapStyleLike | None = 'butt',  # mpl.rcParams['lines.dash_capstyle']
+    dash_joinstyle: JoinStyleLike | None = 'round',  # mpl.rcParams['lines.dash_joinstyle']
+    # Layering
+    visible: bool = True,
+    zorder: float = 2,
+    path_effects: Iterable[AbstractPathEffect] = [],  # mpl.rcParams['path.effects']
+    in_layout: bool = True, # Use when computing figure size for e.g. tight_layout?
+    scalex: bool = True, # Use for determing x axes limit?
+    scaley: bool = True, # Use for determing y axes limit?
+    # Clip
+    clip_box: Transform | None = None,
+    clip_on: bool = True,
+    clip_path: Artist | Transform | None = None,
+    # Rendering Options
+    antialiased: bool | None = True,  # mpl.rcParams['lines.antialiased']
+    # aa: bool | None = True,  # mpl.rcParams['lines.antialiased']
+    snap: bool | None = True,  # mpl.rcParams['path.snap']
+    rasterized: bool | None = None, # For vector backends, perhaps rasterize for speed/size.
+    # Interactivity
+    animated: bool = False,
+    pickradius: float = 5,
+    picker: bool | float | Callable[[Artist, MouseEvent], Tuple[bool, dict]] | None = None,
+    url: Optional[str] = None,
+
+
     # agg_filter: AggFilterType
-    alpha: AlphaType = 1.0
-    animated: bool
-    antialiased: bool
-    aa: bool
-    clip_box: None  # | BboxBase
-    clip_on: bool
-    clip_path: None  # | Patch | tuple[Path, Transform]
-    color: ColorType
-    c: ColorType  # aliases `color`
-    dash_capstyle: CapStyleLike
-    dash_joinstyle: JoinStyleLike
-    dashes: list[float] | tuple[None, None]
-    data: tuple[ArrayLike, ArrayLike] | ArrayLike
-    drawstyle: Literal[
-        "default", "steps", "steps-pre", "steps-mid", "steps-post"
-    ]
-    # ds: Literal[
-    #     "default", "steps", "steps-pre", "steps-mid", "steps-post"
-    # ]  # aliases `drawstyle`
-    figure: Figure
-    fillstyle: Literal["full", "left", "right", "bottom", "top", "none"]
-    gapcolor: ColorType | None
-    gid: str
-    in_layout: bool
-    label: object
-    linestyle: Linestyle
-    # ls: Linestyle  # aliases `linestyle`
-    linewidth: float
-    # lw: float  # aliases `linewidth`
-    marker: MarkerType  # | Path | MarkerStyle
-    markeredgecolor: ColorType
-    # mec: ColorType  # aliases `markeredgecolor`
-    markeredgewidth: float
-    # mew: float  # aliases `markeredgewidth`
-    markerfacecolor: ColorType
-    # mfc: ColorType  # aliases `markerfacecolor`
-    markerfacecoloralt: ColorType
-    # mfcalt: ColorType  # aliases `markerfacecoloralt`
-    markersize: float
-    ms: float  # aliases `markersize`
-    markevery: (
-        None
-        | int
-        | tuple[int, int]
-        | list[int]
-        | float
-        | tuple[float, float]
-        | list[bool]
-    )
-    mouseover: bool
-    path_effects: list[AbstractPathEffect]
-    picker: float | callable
-    pickradius: float
-    rasterized: bool
-    sketch_params: SketchParamsType
-    snap: bool | None
-    solid_capstyle: CapStyleLike
-    solid_joinstyle: JoinStyleLike
-    transform: Transform
-    url: str
-    visible: bool
-    xdata: ArrayLike
-    ydata: ArrayLike
-    zorder: float
+    # data: tuple[ArrayLike, ArrayLike] | ArrayLike
+    # figure: Figure
+    # gid: str
+    label: str | None = '',
+
+    # mouseover: bool
+    # picker: float | callable
+    # pickradius: float
+    # sketch_params: SketchParamsType
+    # snap: bool | None
+    # transform: Transform
+    # url: str
+    # xdata: ArrayLike
+    # ydata: ArrayLike
+
 
 XYCoordSystem = (
     Literal[
@@ -431,9 +413,9 @@ class CollectionProps(TypedDict, total=False):
     offset_transform: Transform = IdentityTransform()
     cmap: CmapType | None
     norm: NormType | None
-    hatch: HatchType | None
+    hatch: Hatches | None
     pickradius: float = 5
-    urls: list[str] | None
+    # urls: list[str] | None
     zorder: float = 1
 
 class LineCollectionProps(CollectionProps, total=False):
@@ -460,8 +442,10 @@ __all__ = [
     "FileLike",
     "PathLike",
     "Scalar",
+    "SingleLetterColorStrs",
     "ColorType",
     "AxesProps",
+    "PatchProps",
     "RectangleProps",
     "NamedFontSize",
     "Line2DProps",
@@ -474,4 +458,6 @@ __all__ = [
     "CollectionProps",
     "EventCollectionProps",
     "Linestyle",
+    "MarkerStrs",
+    "MarkerType",
 ]
