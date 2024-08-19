@@ -18,7 +18,7 @@ export function create_ai_panel(state: State): HTMLElement {
   const spinner_el = create_el("div", "snp-spinner", prompt_wrapper);
 
   prompt_el.addEventListener("keydown", ev => {
-    if (ev.code === "Enter") {
+    if (ev.code === "Enter" && (prompt_el.value.trim() !== "" || ev.ctrlKey)) {
       ev.stopPropagation();
       ev.preventDefault();
       submit_prompt(prompt_el, spinner_el, state);
