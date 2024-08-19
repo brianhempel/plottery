@@ -10,7 +10,7 @@ import { make_widget_for_code_and_type } from "../sidebar/widgets/widget";
 import { CallView, CallWithArgs, IInstanceType, State, CallInfo } from "../types";
 import { equalByJSON, zip } from "../utils/stdlib";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
-import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type } from "../utils/misc";
+import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type, non_colliding_name } from "../utils/misc";
 import { Position } from "../types";
 
 
@@ -506,13 +506,13 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
 
   // Add possible method calls to the menu
   state.methods_with_code.forEach(method => {
-    add_menu_item(
+    const menu_item = add_menu_item(
       add_layer_menu,
       method.receiver_dot_name, null,
       (state => add_method_call(method, state)),
       _ => true, // Enabled?
       state
-    ).title = method.method_info.docstring_first_line
+    ).title = method.method_info.docstring_first_line  || `No documenation for ${method.receiver_dot_name}`
   });
 
   layers.forEach(layer => layers_el.append(layer.el));
@@ -548,16 +548,27 @@ export function duplicate_selected_layers(state: State) {
   const old_code = cm.getValue();
   selected_layers(state).forEach((layer : Layer) => {
     // Duplicate layer
-    zip(layer.call_views, layer.calls_with_args).forEach(([call_view, call_with_args]) => {
-      const insert_line = 1 + (call_view.mark.find()?.to.line || cm.getCursor().line);
+    const mark = layer.mark;
+    const range = mark.find()!;
+    const insert_line = 1 + (range.to.line || cm.getCursor().line);
 
-      const code = call_to_code(call_view);
-      cm.replaceRange(code + '\n', {line: insert_line, ch: 0})
+    let code = cm.getRange(range.from, range.to);
 
-      const receiver_dot_name = code.split('(')[0];
+    // Make new variable name
+    let [_code, indent, orig_name, rest] = code.match(/^(\s*)(\w+)(\s*=[\S\s]*)/) || [null, null, null, null];
+    if (orig_name) {
+      let new_name = non_colliding_name(orig_name.replace(/_?\d+$/, ''), state.avoid_names);
+      code = `${indent}${new_name}${rest}`;
+    }
+
+    cm.replaceRange(code + '\n', {line: insert_line, ch: 0})
+
+    // Queue new layer for selection/focus after hard_rerun
+    const func_code = layer.calls_with_args.at(-1)?.call_info.func_code;
+    if (func_code) {
       const line = insert_line + state.cell_lineno;
-      state.persistent_dataset.new_calls = `["${id_of_new_call(receiver_dot_name, line)}"]`;
-    });
+      state.persistent_dataset.new_calls = `["${id_of_new_call(func_code, line)}"]`;
+    }
   });
   if(cm.getValue() !== old_code) {
     hard_rerun(state);

@@ -58,6 +58,7 @@ function attach_snp(
 
     notebook_typed_defs: [],
     user_iterables: user_iterables,
+    avoid_names: avoid_names,
 
     methods: methods,
     methods_with_code: methods.map(m => method_info_to_method_with_args(m, avoid_names)),

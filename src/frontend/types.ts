@@ -22,6 +22,7 @@ export type State = {
 
   notebook_typed_defs: Type[],
   user_iterables: string[];
+  avoid_names: string[];
 
   llm_api_key: string;
 

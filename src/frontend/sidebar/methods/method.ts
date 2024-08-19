@@ -4,6 +4,7 @@ import { hard_rerun } from "../../code_sync/code_sync";
 import "./method.css";
 import { add_line_of_code } from "../../utils/misc";
 import { id_of_new_call } from "../call/call";
+import { non_colliding_name } from "../../utils/misc";
 
 // /**
 //  * Buttons to click to add method calls to the code.
@@ -79,6 +80,7 @@ function identifier_to_words(s: string): string[] {
 }
 
 // Convert the return type into a name
+// Returns null for NoneType
 function name_for_ret_type(ret_type: Type): string | null {
   if (ret_type && ret_type['.class'] == 'NoneType') {
     return null
@@ -104,11 +106,3 @@ function name_for_ret_type(ret_type: Type): string | null {
   return name;
 }
 
-function non_colliding_name(name: string, avoid_names: string[]): string {
-  let i = 1;
-  while (avoid_names.includes(name)) {
-    i++;
-    name = `${name}${i}`;
-  }
-  return name;
-}

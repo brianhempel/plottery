@@ -716,3 +716,13 @@ export function selectCodeText(code_el: HTMLElement) {
   }
 }
 
+export function non_colliding_name(base_name: string, avoid_names: string[]): string {
+  let name = base_name;
+  let i = 1;
+  while (avoid_names.includes(name)) {
+    i++;
+    name = `${base_name}${i}`;
+  }
+  return name;
+}
+

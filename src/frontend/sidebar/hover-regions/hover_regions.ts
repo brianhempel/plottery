@@ -49,7 +49,7 @@ export function place_add_method_buttons_on_plot(state: State) {
       if (methods.length == 1) {
         el = create_el("div", "snp-method-view");
         el.innerText = methods[0].receiver_dot_name; // "ax.bar"
-        el.title = methods[0].method_info.docstring_first_line;
+        el.title = methods[0].method_info.docstring_first_line || `No documenation for ${methods[0].receiver_dot_name}`;
         el.addEventListener("click", _ => add_method_call(methods[0], state));
       } else {
 
