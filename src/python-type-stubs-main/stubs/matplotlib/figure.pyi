@@ -1,7 +1,7 @@
 from io import BufferedWriter, BytesIO
 from .colorbar import Colorbar
 import numpy as np
-from typing import Callable, List, Literal, overload
+from typing import Callable, List, Literal, Sequence, overload
 from ._typing import *
 from .text import Text
 from .gridspec import GridSpec, SubplotSpec
@@ -190,9 +190,9 @@ class FigureBase(Artist):
         wspace: float = ...,
         hspace: float = ...,
     ) -> None: ...
-    def align_xlabels(self, axs: list[Axes] = ...) -> None: ...
-    def align_ylabels(self, axs: list[Axes] = ...) -> None: ...
-    def align_labels(self, axs: list[Axes] = ...) -> None: ...
+    def align_xlabels(self, axs: Sequence[Axes] = ...) -> None: ...
+    def align_ylabels(self, axs: Sequence[Axes] = ...) -> None: ...
+    def align_labels(self, axs: Sequence[Axes] = ...) -> None: ...
     def add_gridspec(
         self, nrows: int = 1, ncols: int = 1, **kwargs
     ) -> GridSpec: ...
@@ -216,7 +216,7 @@ class FigureBase(Artist):
     def get_tightbbox(
         self,
         renderer: RendererBase = ...,
-        bbox_extra_artists: list[Artist] | None = ...,
+        bbox_extra_artists: Sequence[Artist] | None = ...,
     ) -> BboxBase: ...
     def subplot_mosaic(
         self,

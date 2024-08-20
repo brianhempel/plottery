@@ -258,7 +258,7 @@ export function call_info_to_call_with_args(
       cm_end_pos(given_arg.pos, cell_lineno)
     );
 
-    // Find the corresponding default arg template based on namr or position
+    // Find the corresponding default arg template based on name or position
     const arg_template = given_arg.name ? arg_defaults.find(arg => given_arg.name === arg.name) : arg_defaults[arg_i];
 
     // We've been given a named argument that's not in the type definition.

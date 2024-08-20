@@ -6,7 +6,7 @@ from matplotlib.patheffects import AbstractPathEffect
 from font_manager import FontProperties
 import mlab
 import numpy as np
-from typing import Annotated, Any, Callable, Dict, Generic, Iterable, Literal, Optional, Sequence, Tuple, TypeVar, Union, overload
+from typing import Annotated, Any, Callable, Dict, Generic, Iterable, List, Literal, Optional, Sequence, Tuple, TypeVar, Union, overload
 from typing_extensions import Unpack
 
 # from matplotlib._typing import * seems not to work, need the explicit imports:
@@ -109,10 +109,10 @@ class Axes(_AxesBase):
         ncol: int = 1,
         prop: None | dict = None,
         fontsize: int | NamedFontSize | None = None,
-        labelcolor: ColorType | list[ColorType] | None = None,
+        labelcolor: ColorType | Sequence[ColorType] | None = None,
         numpoints: int = 1,
         scatterpoints: int = 1,
-        scatteryoffsets: list[float] = [0.375, 0.5, 0.3125],
+        scatteryoffsets: Sequence[float] = [0.375, 0.5, 0.3125],
         markerscale: float = 1.0,
         markerfirst: bool = True,
         reverse: bool = False,
@@ -253,7 +253,7 @@ class Axes(_AxesBase):
         y: float | ArrayLike,
         xmin: float | ArrayLike,
         xmax: float | ArrayLike,
-        colors: list[ColorType] = "C0",
+        colors: Sequence[ColorType] = "C0",
         linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = "solid",
         label: str = "",
         **kwargs: LineCollectionProps,
@@ -263,21 +263,21 @@ class Axes(_AxesBase):
         x: float | ArrayLike,
         ymin: float | ArrayLike,
         ymax: float | ArrayLike,
-        colors: list[ColorType] = ...,
+        colors: Sequence[ColorType] = ...,
         linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
         label: str = ...,
         **kwargs: LineCollectionProps,
     ) -> LineCollection: ...
     def eventplot(
         self,
-        positions: ArrayLike | list[ArrayLike],
+        positions: ArrayLike | Sequence[ArrayLike],
         orientation: Literal["horizontal", "vertical"] = "horizontal",
         lineoffsets: float | ArrayLike = 1,
         linelengths: float | ArrayLike = 1,
         linewidths: float | ArrayLike = 1.5,
-        colors: ColorType | list[ColorType] = "C0",
+        colors: ColorType | Sequence[ColorType] = "C0",
         alpha: float | ArrayLike = 1,
-        linestyles: Linestyle | list[Linestyle] = "solid",
+        linestyles: Linestyle | Sequence[Linestyle] = "solid",
         **kwargs: EventCollectionProps,
     ) -> list[EventCollection]: ...
     # def plot(
@@ -298,15 +298,15 @@ class Axes(_AxesBase):
     #     bottom: float | ArrayLike = 0,
     #     *,  # What does the star mean?
     #     align: Literal["center", "edge"] = "center",
-    #     color: ColorType | list[ColorType] = ...,
-    #     # color: ColorType | list[ColorType] = ...,
-    #     edgecolor: ColorType | list[ColorType] = ...,
+    #     color: ColorType | Sequence[ColorType] = ...,
+    #     # color: ColorType | Sequence[ColorType] = ...,
+    #     edgecolor: ColorType | Sequence[ColorType] = ...,
     #     linewidth: float | ArrayLike = ...,
-    #     tick_label: str | list[str] = ...,
-    #     label: str | list[str] = ...,
+    #     tick_label: str | Sequence[str] = ...,
+    #     label: str | Sequence[str] = ...,
     #     xerr: float | ArrayLike = ...,
     #     yerr: float | ArrayLike = ...,
-    #     ecolor: ColorType | list[ColorType] = "black",
+    #     ecolor: ColorType | Sequence[ColorType] = "black",
     #     capsize: float = 0.0,
     #     error_kw: float | ArrayLike = ...,
     #     log: bool = False,
@@ -317,55 +317,10 @@ class Axes(_AxesBase):
         self,
         x: ArrayLike | float,
         y: ArrayLike | float,
-        fmt: str | Literal['o:g'] | Literal['.',',','o','v','^','<','>','1','2','3','4','8','s','p','P','*','h','H','+','x','X','D','d','|','_'] | Literal['-','--','-.',':'] | Literal['b','g','r','c','m','y','k','w'] = 'o:g',
+        fmt: str | Literal['o:g'] | MarkerStrs | Literal['-','--','-.',':'] | SingleLetterColorStrs = 'o:g',
         /,
-        label: Optional[str] = '',
-        # Line styles
-        color: ColorType | list[ColorType] = 'C0',  # mpl.rcParams['lines.color']
-        alpha: Optional[float] = None,
-        linewidth: Optional[float] = 1.5,  # mpl.rcParams['lines.linewidth']
-        linestyle: Linestyle | None = '-',  # mpl.rcParams['lines.linestyle']
-        dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Sequence[float] | Tuple = (),
-        gapcolor: ColorType | None = None,
-        drawstyle: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default',
-        # Marker styles
-        marker: str | Literal['.',',','o','v','^','<','>','1','2','3','4','8','s','p','P','*','h','H','+','x','X','D','d','|','_',0,1,2,3,4,5,6,7,8,9,10,11,'none','None',' ',''] | MarkerStyle | None = 'None',  # mpl.rcParams['lines.marker']
-        markevery: Optional[Union[int, Iterable[int]]] = None,  # mpl.rcParams['lines.markevery']
-        markersize: Optional[float] = 6.0,  # mpl.rcParams['lines.markersize']
-        markeredgecolor: Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markeredgecolor']
-        markeredgewidth: Optional[float] = 1.0,  # mpl.rcParams['lines.markeredgewidth']
-        markerfacecolor:  Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markerfacecolor']
-        markerfacecoloralt: Literal['none'] | ColorType = 'none',
-        fillstyle: Optional[Literal['full', 'left', 'right', 'bottom', 'top', 'none']] = 'full',  #  mpl.rcParams['markers.fillstyle']
-        # Line cap styles
-        solid_capstyle: Optional[Literal['butt', 'round', 'projecting']] = 'projecting',  # mpl.rcParams['lines.solid_capstyle']
-        solid_joinstyle: Optional[Literal['miter', 'round', 'bevel']] = 'round',  # mpl.rcParams['lines.solid_joinstyle']
-        dash_capstyle: Optional[Literal['butt', 'round', 'projecting']] = 'butt',  # mpl.rcParams['lines.dash_capstyle']
-        dash_joinstyle: Optional[Literal['miter', 'round', 'bevel']] = 'round',  # mpl.rcParams['lines.dash_joinstyle']
-        # Layering
-        visible: bool = True,
-        zorder: float = 2,
-        path_effects: Iterable[AbstractPathEffect] = [],  # mpl.rcParams['path.effects']
-        in_layout: bool = True, # Use when computing figure size for e.g. tight_layout?
-        scalex: bool = True, # Use for determing x axes limit?
-        scaley: bool = True, # Use for determing y axes limit?
-        # Clip
-        clip_box: Optional[Transform] = None,
-        clip_on: bool = True,
-        clip_path: Optional[Union[Artist, Transform]] = None,
-        # Rendering Options
-        antialiased: Optional[bool] = True,  # mpl.rcParams['lines.antialiased']
-        snap: Optional[bool] = True,  # mpl.rcParams['path.snap']
-        rasterized: Optional[bool] = None, # For vector backends, perhaps rasterize for speed/size.
-        # Interactivity
-        animated: bool = False,
-        pickradius: float = 5,
-        picker: bool | float | Callable[[Artist, MouseEvent], Tuple[bool, dict]] | None = None,
-        url: Optional[str] = None,
-        # Junk
-        # data: Optional[Union[np.ndarray, Iterable[Any]]] = None,
-        # sketch_params: Optional[Tuple[float, float, float]] = None,  # mpl.rcParams['path.sketch'] # Parameters for XKCD-style rendering, but doesn't seem to work
-        # figure: Optional[Any] = None, # Why would you want to set the figure?
+        label: str | None = '',
+        **kwargs: Line2DProps,
     ) -> list[Line2D]: ...
     def plot_date(
         self,
@@ -448,14 +403,14 @@ class Axes(_AxesBase):
         bottom: float | ArrayLike = 0,
         *,  # What does the star mean?
         align: Literal["center", "edge"] = "center",
-        color: ColorType | list[ColorType] = ...,
-        edgecolor: ColorType | list[ColorType] = ...,
+        color: Sequence[int | str] = ...,
+        edgecolor: ColorType | Sequence[ColorType] = ...,
         linewidth: float | ArrayLike = 0.0,
-        tick_label: str | list[str] = ...,
-        label: str | list[str] = ...,
+        tick_label: str | Sequence[str] = ...,
+        label: str | Sequence[str] = ...,
         xerr: float | ArrayLike = ...,
         yerr: float | ArrayLike = ...,
-        ecolor: ColorType | list[ColorType] = "black",
+        ecolor: ColorType | Sequence[ColorType] = "black",
         capsize: float = 0.0,
         error_kw: float | ArrayLike = ...,
         log: bool = False,
@@ -470,14 +425,14 @@ class Axes(_AxesBase):
         left: float | ArrayLike = 0,
         *,
         align: Literal["center", "edge"] = "center",
-        color: ColorType | list[ColorType] = ...,
-        edgecolor: ColorType | list[ColorType] = ...,
+        color: ColorType | Sequence[ColorType] = ...,
+        edgecolor: ColorType | Sequence[ColorType] = ...,
         linewidth: float | ArrayLike = ...,
-        tick_label: str | list[str] = ...,
-        label: str | list[str] = ...,
+        tick_label: str | Sequence[str] = ...,
+        label: str | Sequence[str] = ...,
         xerr: float | ArrayLike = ...,
         yerr: float | ArrayLike = ...,
-        ecolor: ColorType | list[ColorType] = "black",
+        ecolor: ColorType | Sequence[ColorType] = "black",
         capsize: float = 0.0,
         error_kw: dict = ...,
         log: bool = False,
@@ -584,7 +539,7 @@ class Axes(_AxesBase):
     ) -> dict[str, list[Line2D]]: ...
     def bxp(
         self,
-        bxpstats: list[dict],
+        bxpstats: Sequence[dict],
         positions: ArrayLike = ...,
         widths: float | ArrayLike | None = None,
         vert: bool = True,
@@ -916,7 +871,7 @@ class Axes(_AxesBase):
     ) -> dict[str, Collection]: ...
     def violin(
         self,
-        vpstats: list[dict],
+        vpstats: Sequence[dict],
         positions: ArrayLike = ...,
         vert: bool = True,
         widths: ArrayLike | float = 0.5,

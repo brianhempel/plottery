@@ -1,3 +1,7 @@
+# In argument position, always use Sequence[] instead of List[],
+# because List[] is mutable and therefore List[str] is not a subtype of e.g. List[Union[str, int]],
+# but you want it to be a subtype for matching args
+
 import decimal
 import io
 
@@ -82,7 +86,7 @@ Linestyle = \
         "None",
         " ",
         "",
-    ] | tuple[float, list[float]]
+    ] | tuple[float, Sequence[float]]
 
 class PatchProps(TypedDict, total=False):
     # agg_filter: function
@@ -258,8 +262,8 @@ MarkerType: TypeAlias = MarkerStrs | Literal[0,1,2,3,4,5,6,7,8,9,10,11,'none','N
 
 
 class Line2DProps(TypedDict, total=False):
-    color: ColorType | list[ColorType] = 'C0',  # mpl.rcParams['lines.color']
-    # c: ColorType | list[ColorType] = 'C0',  # mpl.rcParams['lines.color']
+    color: ColorType | Sequence[ColorType] = 'C0',  # mpl.rcParams['lines.color']
+    # c: ColorType | Sequence[ColorType] = 'C0',  # mpl.rcParams['lines.color']
     alpha: float | None = None,
     linewidth: float | None = 1.5,  # mpl.rcParams['lines.linewidth']
     # lw: float | None = 1.5,  # mpl.rcParams['lines.linewidth']
@@ -402,39 +406,39 @@ class PolygonProps(PatchProps, total=False):
     closed: bool
 
 class CollectionProps(TypedDict, total=False):
-    edgecolors: ColorType | list[ColorType] = "black"
-    facecolors: ColorType | list[ColorType] = "C0"
-    linewidths: float | list[float] = 1.0
-    linestyles: Linestyle | list[Linestyle] = "solid"
+    edgecolors: ColorType | Sequence[ColorType] = "black"
+    facecolors: ColorType | Sequence[ColorType] = "C0"
+    linewidths: float | Sequence[float] = 1.0
+    linestyles: Linestyle | Sequence[Linestyle] = "solid"
     capstyle: CapStyleLike = "butt"
     joinstyle: JoinStyleLike = "round"
-    antialiaseds: bool | list[bool] = True
-    offsets: tuple[float, float] | list[tuple[float, float]] = (0, 0)
+    antialiaseds: bool | Sequence[bool] = True
+    offsets: tuple[float, float] | Sequence[tuple[float, float]] = (0, 0)
     offset_transform: Transform = IdentityTransform()
     cmap: CmapType | None
     norm: NormType | None
     hatch: Hatches | None
     pickradius: float = 5
-    # urls: list[str] | None
+    # urls: Sequence[str] | None
     zorder: float = 1
 
 class LineCollectionProps(CollectionProps, total=False):
     segments: Sequence[Sequence[tuple[float, float]]]
-    linewidths: float | list[float] = 1.5
-    colors: ColorType | list[ColorType] = "C0"
-    antialiaseds: bool | list[bool] = True
+    linewidths: float | Sequence[float] = 1.5
+    colors: ColorType | Sequence[ColorType] = "C0"
+    antialiaseds: bool | Sequence[bool] = True
     zorder: float = 2
-    facecolors: ColorType | list[ColorType] = "none"
+    facecolors: ColorType | Sequence[ColorType] = "none"
 
 class EventCollectionProps(LineCollectionProps, total=False):
     positions: Sequence
     orientation: Literal["vertical", "horizontal"] = "horizontal"
     lineoffset: float = 0
     linelength: float = 1
-    linewidths: float | list[float] = 1.5
-    colors: ColorType | list[ColorType] = "C0"
-    linestyle: Linestyle | list[Linestyle] = "solid"
-    antialiaseds: bool | list[bool] = True
+    linewidths: float | Sequence[float] = 1.5
+    colors: ColorType | Sequence[ColorType] = "C0"
+    linestyle: Linestyle | Sequence[Linestyle] = "solid"
+    antialiaseds: bool | Sequence[bool] = True
 
 __all__ = [
     "ArrayLike",
