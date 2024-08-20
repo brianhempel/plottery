@@ -1,4 +1,5 @@
 import { add_sync_code_on_change_watcher } from "../../code_sync/code_sync";
+import { set_properties_panel_on } from "../../properties_panel/properties_panel";
 import {
   Arg,
   ArgView,
@@ -18,6 +19,8 @@ import {
   arg_view_to_code,
   create_arg_view,
   enable_arg_view,
+  make_proxy_arg_el,
+  // make_proxy_arg_view,
 } from "../arg/arg";
 import {
   collapse_collapsable,
@@ -71,9 +74,16 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
   // Call container
 
-  const { el: call_el, body_el, header_el } = create_collapsable_els();
+  // const { el: call_el, body_el, header_el } = create_collapsable_els();
+
+  const call_el = create_el("div", []);
+  const header_el = create_el("div", [], call_el);
+  const proxies_el = create_el("div", ["snp-args", "snp-proxy-args"], call_el);
+  const properties_el = create_el("div", ["snp-args"], call_el);
+
   call_el.classList.add("snp-call");
   const name_el = create_el("div", "snp-call-name", header_el);
+
 
   name_el.innerText = call.call_info.func_code;
   name_el.title = call.call_info.docstring || `No docstring available for ${call.call_info.func_code}`;
@@ -93,7 +103,9 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   const add_args = (args: Arg[], disabled: boolean) => {
     args.forEach(arg => {
       const arg_view = create_arg_view(arg, call.call_info.docstring, {disabled});
-      body_el.append(arg_view.el);
+      const proxy_arg_el = make_proxy_arg_el(arg, arg_view, state);
+      properties_el.append(arg_view.el);
+      proxies_el.append(proxy_arg_el);
       arg_and_views.push({ arg, view: arg_view });
     });
   };
@@ -138,7 +150,8 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
       el: call_el,
       header_el,
       name_el: name_el,
-      body_el,
+      proxies_el,
+      properties_el,
     },
     is_elided: false,
     mark: mark,
@@ -146,6 +159,10 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   };
 
   add_sync_code_on_change_watcher(() => call_to_code(call_view), [mark], state);
+
+  // call_el.addEventListener("click", ev => {
+  //   set_properties_panel_on(call_view, state);
+  // });
 
   return call_view;
 }

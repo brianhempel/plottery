@@ -7,7 +7,7 @@ import {
 import { zip, equalByJSON } from "../../utils/stdlib";
 import { create_el, escape_html, place_centered_over_shape, place_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
 import { perhaps_get_drag_x_handler, perhaps_get_drag_width_handler, perhaps_get_drag_height_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler } from "../call/call";
-import { add_method_call, create_method_view } from "../methods/method";
+import { add_method_call } from "../methods/method";
 import "./hover_regions.css";
 import { add_menu_item, create_menu_el } from "../../menus/menus";
 

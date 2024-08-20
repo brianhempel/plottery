@@ -48,6 +48,7 @@ export type State = {
 
   sidebar_el: HTMLElement;
   layers_panel: LayersPanel;
+  properties_el: HTMLElement;
 
   command_shortcuts: { [keys: string]: (state: State) => void };
 
@@ -67,7 +68,8 @@ export type CallViewEls = {
   el: HTMLElement;
   header_el: HTMLElement;
   name_el: HTMLElement;
-  body_el: HTMLElement;
+  proxies_el: HTMLElement;
+  properties_el: HTMLElement;
 };
 
 // export type MethodView = {
@@ -77,9 +79,7 @@ export type CallViewEls = {
 export type ArgView = {
   el: HTMLElement;
   widget: Widget;
-
   disabled: boolean;
-
   positional: boolean;
 };
 

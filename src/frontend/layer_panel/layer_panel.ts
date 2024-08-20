@@ -12,6 +12,7 @@ import { equalByJSON, zip } from "../utils/stdlib";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
 import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type, non_colliding_name } from "../utils/misc";
 import { Position } from "../types";
+import { set_properties_panel_on } from "../properties_panel/properties_panel";
 
 
 export type Layer = {
@@ -224,9 +225,7 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
   const { el: layer_el, mark } = layer;
 
   layer_el.addEventListener("click", ev => {
-    if (ev.target == layer_el) {
-      select_layer(layer, state);
-    }
+    select_layer(layer, state);
   });
 
   layer_el.draggable = true;
@@ -257,6 +256,7 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
       redraw_cell(state);
     }
   })
+  visible_checkbox.addEventListener("click", ev => ev.stopPropagation());
 }
 
 export function layers_from_parseable_comment(comment: ParseableComment, state: State): Layer[] {
@@ -541,7 +541,8 @@ export function select_layer(layer: Layer, state: State) {
   deselect_all_layers(state);
   // console.log(layer.el)
   layer.el.classList.add("selected");
-  open_collapsable(layer.el.querySelector('.snp-collapsable')!);
+  // open_collapsable(layer.el.querySelector('.snp-collapsable')!);
+  set_properties_panel_on(layer.call_views[0], state);
   compute_selected_hover_regions(state);
   save_selected_layers(state);
   // console.log(layer.el)

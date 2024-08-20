@@ -1,3 +1,17 @@
+/* Don't show until transplanted to properties panel */
+.snp-layers-panel .snp-args:not(.snp-proxy-args) {
+  display: none;
+}
+
+.snp-args {
+  padding: 0 4px;
+}
+
+.snp-proxy-args {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
 .snp-arg-str {
   color: #BA2121;
 }
@@ -14,36 +28,26 @@
   outline: none;
 }
 
-.snp-remove-arg-button {
+/* .snp-remove-arg-button {
   content: "\00d7";
-}
+} */
 
 .snp-arg-view {
   display: flex;
+  margin-bottom: -3px;
 }
 
 .snp-arg-disabled {
   opacity: 0.5;
   filter: saturate(0.15);
 }
+.snp-arg-disabled.snp-proxy {
+  display: none;
+}
 
-.snp-arg-disabled:hover {
+.snp-arg-disabled:not(.snp-proxy):hover {
   opacity: 0.66;
   filter: saturate(0.3);
-}
-
-
-.snp-arg-view {
-  margin-bottom: 2px;
-  margin-top: 2px;
-}
-
-.snp-arg-view:first-child {
-  margin-top: 0px;
-}
-
-.snp-arg-view:last-child {
-  margin-bottom: 0px;
 }
 
 .snp-arg-name {
@@ -51,7 +55,9 @@
   font-weight: bold;
   margin-right: 5px;
   /* Width is set in JS because we do some fancy resizing if the name is too long */
-  cursor: pointer;
+}
+.snp-arg-name.snp-proxy {
+  color:#2d4467;
 }
 
 .snp-arg-disabled > .snp-arg-name {
@@ -59,8 +65,9 @@
   color: #6a6a6a;
 }
 
-.snp-arg-name:hover,
-.snp-arg-disabled:hover > .snp-arg-name {
+.snp-arg-name:not(.snp-proxy):hover,
+.snp-arg-disabled:not(.snp-proxy):hover > .snp-arg-name {
+  cursor: pointer;
   color: #0e4991;
 
   /* Text outline: */

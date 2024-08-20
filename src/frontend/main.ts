@@ -83,7 +83,9 @@ function attach_snp(
 
     plot_widgets: [],
 
-    sidebar_el: create_el("div", "snp-sidebar", snp_outer.querySelector(".plot_and_sidebar")!),
+    sidebar_el:    create_el("div", "snp-sidebar",                      snp_outer.querySelector(".plot_and_sidebar")!),
+    properties_el: create_el("div", ["snp-properties-panel", "hidden"], snp_outer.querySelector(".plot_and_sidebar")!),
+
     stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
 
     command_shortcuts: {}, // Added by menu items in menus.ts
@@ -144,6 +146,8 @@ function attach_snp(
   state.hover_regions_container.addEventListener("click", _ => { deselect_all_layers(state); });
 
   state.sidebar_el.append(state.layers_panel.el);
+
+  create_el("h2", "snp-properties-panel-header", state.properties_el);
 
   // Make plot widgets on those hover regions
   // (Populates state.plot_widgets)

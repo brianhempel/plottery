@@ -1,11 +1,15 @@
-.snp-layers-panel {
+.snp-layers-panel,
+.snp-properties-panel {
   font-size: 14px;
   border: solid 1px gray;
   padding: 0;
-  min-width: 300px;
+}
+.snp-layers-panel {
+  min-width: 270px;
 }
 
-.snp-layers-panel h2 {
+.snp-layers-panel h2,
+.snp-properties-panel h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -16,6 +20,7 @@
 }
 
 .snp-layers-panel h2,
+.snp-properties-panel h2,
 .add-layer-menu,
 .add-layer-menu .snp-menu-items { /* submenu */
   background-color: #656565;
@@ -36,6 +41,11 @@
   border: solid 1px gray;
   padding: 0.25rem 0.5rem;
   margin: 0;
+}
+
+.snp-properties-panel .snp-args {
+  font-family: monospace;
+  white-space: pre-wrap;
 }
 
 .snp-layer {

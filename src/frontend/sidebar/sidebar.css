@@ -1,4 +1,5 @@
-.snp-sidebar {
+.snp-sidebar,
+.snp-properties-panel {
   background-color: white;
   display: flex;
   flex-direction: column;

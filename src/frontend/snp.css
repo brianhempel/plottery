@@ -2,11 +2,15 @@
   overflow: visible !important;
 }
 
-
-
 .hidden {
   display: none;
 }
+
+/* Shift everything left when the properites panel is open */
+.snp_outer:has(.snp-properties-panel:not(.hidden)) {
+  margin-left: -116px
+}
+
 
 .plot_and_sidebar {
   margin-top: 1em;
