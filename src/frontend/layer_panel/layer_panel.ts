@@ -242,12 +242,11 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
   visible_checkbox.checked = checked;
   visible_checkbox.addEventListener("change", ev => {
     const layer_range = layer.mark.find()!;
-    const layer_code = cm.getRange(layer_range.from, layer_range.to);
 
     if (!visible_checkbox.checked) {
-      cm.replaceRange(layer_code.replaceAll(/^/mg, '# '), layer_range.from, layer_range.to)
+      replace_all_preserving_marks(cm, /^([ \t]*)/mg, '$1# ', (_match, start_pos, _end_pos) => start_pos.line >= layer_range.from.line && start_pos.line <= layer_range.to.line)
     } else {
-      cm.replaceRange(layer_code.replaceAll(/^# /mg, ''), layer_range.from, layer_range.to)
+      replace_all_preserving_marks(cm, /^([ \t]*)# /mg, '$1', (_match, start_pos, _end_pos) => start_pos.line >= layer_range.from.line && start_pos.line <= layer_range.to.line)
     }
 
     clean_up_passes(cm);
@@ -346,34 +345,39 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
   hard_rerun(state);
 }
 
-// This mechanism is still not perfect because the only way to start a new regexp
-// search at a location in Javascript is to .slice the string first, but that *will*
-// mess up lookbehinds. So keep that in mind.
-//
-// Also the replacement here can only reference numbered (not named) capture groups.
-function replace_all_preserving_marks(cm: DocOrEditor, target: RegExp, replacement: string) {
+// The replacement here can only reference numbered (not named) capture groups.
+function replace_all_preserving_marks(cm: DocOrEditor, target: RegExp, replacement: string, pred: (match: RegExpMatchArray, start_pos: CodeMirror.Position, end_pos: CodeMirror.Position) => boolean = _ => true) {
   let search_i = 0;
 
   // match will only give us the match index if the regexp is non-global
-  const non_global_regexp = new RegExp(target.source, target.flags.replace('g', ''));
+  let non_global_regexp = new RegExp(target.source, target.flags.replace('g', ''));
 
-  while (true) {
-    const match = cm.getValue().slice(search_i).match(non_global_regexp);
+  while (search_i <= cm.getValue().length) {
+    // console.log('looking for', non_global_regexp, 'in', cm.getValue());
+    const match = cm.getValue().match(non_global_regexp);
 
     if (!match) break;
 
-    const startPos = cm.posFromIndex(search_i + match.index!);
-    const endPos   = cm.posFromIndex(search_i + match.index! + match[0].length);
+    const start_pos = cm.posFromIndex(match.index!);
+    const end_pos   = cm.posFromIndex(match.index! + match[0].length);
 
-    // have to handle $0 $1 $2 replacement refs ourself because lookaheads/lookbehinds
-    // won't match the substring if we were to dimply do match[0].replace(target, replacement)
-    //
-    // Only supports numbered capture groups for now
-    const new_str  = replacement.replaceAll(/(?<!\\)\$(\d+)/g, (_, n) => match[parseInt(n)]);
+    if (pred(match, start_pos, end_pos)) {
+      // have to handle $0 $1 $2 replacement refs ourself because lookaheads/lookbehinds
+      // won't match the substring if we were to dimply do match[0].replace(target, replacement)
+      //
+      // Only supports numbered capture groups for now
+      const new_str  = replacement.replaceAll(/(?<!\\)\$(\d+)/g, (_, n) => match[parseInt(n)]);
 
-    cm.replaceRange(new_str, startPos, endPos);
+      cm.replaceRange(new_str, start_pos, end_pos);
 
-    search_i += match.index! + new_str.length;
+      search_i = match.index! + new_str.length;
+    } else {
+      search_i = match.index! + Math.max(1, match[0].length);
+    }
+
+    // Prepend a lookbehind to the target regexp to start the next search at the right place
+    // This should allow multiline ^ and negative lookbehinds to work correctly.
+    non_global_regexp = new RegExp(`(?<=[\\s\\S]{${search_i}})` + target.source, target.flags.replace('g', ''));
   }
 }
 
