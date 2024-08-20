@@ -262,64 +262,64 @@ MarkerType: TypeAlias = MarkerStrs | Literal[0,1,2,3,4,5,6,7,8,9,10,11,'none','N
 
 
 class Line2DProps(TypedDict, total=False):
-    color: ColorType | Sequence[ColorType] = 'C0',  # mpl.rcParams['lines.color']
-    # c: ColorType | Sequence[ColorType] = 'C0',  # mpl.rcParams['lines.color']
-    alpha: float | None = None,
-    linewidth: float | None = 1.5,  # mpl.rcParams['lines.linewidth']
-    # lw: float | None = 1.5,  # mpl.rcParams['lines.linewidth']
-    linestyle: Linestyle | None = '-',  # mpl.rcParams['lines.linestyle']
-    # ls: Linestyle | None = '-',  # mpl.rcParams['lines.linestyle']
-    dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Sequence[float] | Tuple = (),
-    gapcolor: ColorType | None = None,
-    drawstyle: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default',
-    # ds: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default',
+    color: ColorType | Sequence[ColorType] = 'C0'  # mpl.rcParams['lines.color']
+    # c: ColorType | Sequence[ColorType] = 'C0'  # mpl.rcParams['lines.color']
+    alpha: float | None = None
+    linewidth: float | None = 1.5  # mpl.rcParams['lines.linewidth']
+    # lw: float | None = 1.5  # mpl.rcParams['lines.linewidth']
+    linestyle: Linestyle | None = '-'  # mpl.rcParams['lines.linestyle']
+    # ls: Linestyle | None = '-'  # mpl.rcParams['lines.linestyle']
+    dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Sequence[float] | Tuple = ()
+    gapcolor: ColorType | None = None
+    drawstyle: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default'
+    # ds: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default'
     # Marker styles
-    marker: MarkerType | None = 'None',  # mpl.rcParams['lines.marker']
-    markevery: int | Iterable[int] | None = None,  # mpl.rcParams['lines.markevery']
-    markersize: float | None = 6.0,  # mpl.rcParams['lines.markersize']
-    # ms: float | None = 6.0,  # mpl.rcParams['lines.markersize']
-    markeredgecolor: Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markeredgecolor']
-    # mec: Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markeredgecolor']
-    markeredgewidth: float | None = 1.0,  # mpl.rcParams['lines.markeredgewidth']
-    # mew: float | None = 1.0,  # mpl.rcParams['lines.markeredgewidth']
-    markerfacecolor:  Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markerfacecolor']
-    # mfc:  Literal['auto'] | ColorType | None = 'auto',  # mpl.rcParams['lines.markerfacecolor']
-    markerfacecoloralt: Literal['none'] | ColorType = 'none',
-    # mfcalt: Literal['none'] | ColorType = 'none',
-    fillstyle: Literal['full', 'left', 'right', 'bottom', 'top', 'none'] | None = 'full',  #  mpl.rcParams['markers.fillstyle']
+    marker: MarkerType | None = 'None'  # mpl.rcParams['lines.marker']
+    markevery: int | Iterable[int] | None = None  # mpl.rcParams['lines.markevery']
+    markersize: float | None = 6.0  # mpl.rcParams['lines.markersize']
+    # ms: float | None = 6.0  # mpl.rcParams['lines.markersize']
+    markeredgecolor: Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markeredgecolor']
+    # mec: Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markeredgecolor']
+    markeredgewidth: float | None = 1.0  # mpl.rcParams['lines.markeredgewidth']
+    # mew: float | None = 1.0  # mpl.rcParams['lines.markeredgewidth']
+    markerfacecolor:  Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markerfacecolor']
+    # mfc:  Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markerfacecolor']
+    markerfacecoloralt: Literal['none'] | ColorType = 'none'
+    # mfcalt: Literal['none'] | ColorType = 'none'
+    fillstyle: Literal['full', 'left', 'right', 'bottom', 'top', 'none'] | None = 'full'  #  mpl.rcParams['markers.fillstyle']
     # Line cap styles
-    solid_capstyle: CapStyleLike | None = 'projecting',  # mpl.rcParams['lines.solid_capstyle']
-    solid_joinstyle: JoinStyleLike | None = 'round',  # mpl.rcParams['lines.solid_joinstyle']
-    dash_capstyle: CapStyleLike | None = 'butt',  # mpl.rcParams['lines.dash_capstyle']
-    dash_joinstyle: JoinStyleLike | None = 'round',  # mpl.rcParams['lines.dash_joinstyle']
+    solid_capstyle: CapStyleLike | None = 'projecting'  # mpl.rcParams['lines.solid_capstyle']
+    solid_joinstyle: JoinStyleLike | None = 'round'  # mpl.rcParams['lines.solid_joinstyle']
+    dash_capstyle: CapStyleLike | None = 'butt'  # mpl.rcParams['lines.dash_capstyle']
+    dash_joinstyle: JoinStyleLike | None = 'round'  # mpl.rcParams['lines.dash_joinstyle']
     # Layering
-    visible: bool = True,
-    zorder: float = 2,
-    path_effects: Iterable[AbstractPathEffect] = [],  # mpl.rcParams['path.effects']
-    in_layout: bool = True, # Use when computing figure size for e.g. tight_layout?
-    scalex: bool = True, # Use for determing x axes limit?
-    scaley: bool = True, # Use for determing y axes limit?
+    visible: bool = True
+    zorder: float = 2
+    path_effects: Iterable[AbstractPathEffect] = []  # mpl.rcParams['path.effects']
+    in_layout: bool = True # Use when computing figure size for e.g. tight_layout?
+    scalex: bool = True # Use for determing x axes limit?
+    scaley: bool = True # Use for determing y axes limit?
     # Clip
-    clip_box: Transform | None = None,
-    clip_on: bool = True,
-    clip_path: Artist | Transform | None = None,
+    clip_box: Transform | None = None
+    clip_on: bool = True
+    clip_path: Artist | Transform | None = None
     # Rendering Options
-    antialiased: bool | None = True,  # mpl.rcParams['lines.antialiased']
-    # aa: bool | None = True,  # mpl.rcParams['lines.antialiased']
-    snap: bool | None = True,  # mpl.rcParams['path.snap']
-    rasterized: bool | None = None, # For vector backends, perhaps rasterize for speed/size.
+    antialiased: bool | None = True  # mpl.rcParams['lines.antialiased']
+    # aa: bool | None = True  # mpl.rcParams['lines.antialiased']
+    snap: bool | None = True  # mpl.rcParams['path.snap']
+    rasterized: bool | None = None # For vector backends, perhaps rasterize for speed/size.
     # Interactivity
-    animated: bool = False,
-    pickradius: float = 5,
-    picker: bool | float | Callable[[Artist, MouseEvent], Tuple[bool, dict]] | None = None,
-    url: Optional[str] = None,
+    # animated: bool = False
+    # pickradius: float = 5
+    # picker: bool | float | Callable[[Artist, MouseEvent], Tuple[bool, dict]] | None = None
+    # url: Optional[str] = None
 
 
     # agg_filter: AggFilterType
     # data: tuple[ArrayLike, ArrayLike] | ArrayLike
     # figure: Figure
     # gid: str
-    label: str | None = '',
+    label: str | None = ''
 
     # mouseover: bool
     # picker: float | callable
