@@ -7,10 +7,18 @@ import "./arg.css";
 
 export function create_arg_view(
   arg: Arg,
+  call_docstring: string | null,
   options: { disabled: boolean }
 ): ArgView {
   const arg_el = create_el("div", "snp-arg-view");
-  arg_el.title = JSON.stringify(arg.type);
+
+  // arg_el.title = JSON.stringify(arg.type);
+
+  // Look for '...arg_name...:' and anything following at a higher indent level
+  const regex = new RegExp(`^([ \\t]*)[\\w ,]*\\b${arg.name}\\b.*:.*(\\n+\\1[ \\t].*)*`, 'm');
+  const arg_docstring = (call_docstring || '').match(regex)?.at(0);
+
+  arg_el.title = arg_docstring || `No documentation available for ${arg.name}`;
 
   // Prefix with the argument name
   const prefixEl = create_el("div", "snp-arg-name", arg_el);

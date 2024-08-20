@@ -76,6 +76,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   const name_el = create_el("div", "snp-call-name", header_el);
 
   name_el.innerText = call.call_info.func_code;
+  name_el.title = call.call_info.docstring || `No docstring available for ${call.call_info.func_code}`;
 
 
   // Arguments
@@ -91,7 +92,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
   const add_args = (args: Arg[], disabled: boolean) => {
     args.forEach(arg => {
-      const arg_view = create_arg_view(arg, {disabled});
+      const arg_view = create_arg_view(arg, call.call_info.docstring, {disabled});
       body_el.append(arg_view.el);
       arg_and_views.push({ arg, view: arg_view });
     });

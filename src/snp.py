@@ -1054,6 +1054,13 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         return self.cached_svg_hover_regions
 
 
+def try_to_add_docstring_to_call(call):
+    try:
+        docstring = eval(call['func_code']).__doc__
+    except:
+        docstring = None
+    call['docstring'] = docstring
+
 keywordset = set(keyword.kwlist)
 
 class SNP(SNPFigureAndHoverRegions):
@@ -1168,6 +1175,8 @@ class SNP(SNPFigureAndHoverRegions):
                 visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets)
                 visitor.visit_mypy_file(tree)
                 self.calls = visitor.out
+                for call in self.calls:
+                    try_to_add_docstring_to_call(call)
             else:
                 self.calls = []
 
