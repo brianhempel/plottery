@@ -1,7 +1,7 @@
 from io import BufferedWriter, BytesIO
 from .colorbar import Colorbar
 import numpy as np
-from typing import Callable, Literal, overload
+from typing import Callable, List, Literal, overload
 from ._typing import *
 from .text import Text
 from .gridspec import GridSpec, SubplotSpec
@@ -123,13 +123,37 @@ class FigureBase(Artist):
         ncols: Literal[1] = 1,
         *,
         squeeze: Literal[False] = True,
-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
+        sharex: bool | Literal["none", "all", "row", "col"] = False,
+        sharey: bool | Literal["none", "all", "row", "col"] = False,
         width_ratios: ArrayLike = ...,
         height_ratios: ArrayLike = ...,
         subplot_kw: dict = ...,
         gridspec_kw: dict = ...,
-    ) -> list[Axes]: ...
+    ) -> Axes: ...
+    @overload
+    def subplots(
+        self,
+        nrows: int = 1,
+        ncols: Literal[1] = 1,
+        *,
+        squeeze: Literal[True] = True,
+        sharex: bool | Literal["none", "all", "row", "col"] = False,
+        sharey: bool | Literal["none", "all", "row", "col"] = False,
+        subplot_kw: dict = ...,
+        gridspec_kw: dict = ...,
+    ) -> List[Axes]: ...
+    @overload
+    def subplots(
+        self,
+        nrows: Literal[1] = 1,
+        ncols: int = 1,
+        *,
+        squeeze: bool = True,
+        sharex: bool | Literal["none", "all", "row", "col"] = False,
+        sharey: bool | Literal["none", "all", "row", "col"] = False,
+        subplot_kw: dict = ...,
+        gridspec_kw: dict = ...,
+    ) -> List[Axes]: ...
     @overload
     def subplots(
         self,
@@ -141,31 +165,7 @@ class FigureBase(Artist):
         sharey: bool | Literal["none", "all", "row", "col"] = False,
         subplot_kw: dict = ...,
         gridspec_kw: dict = ...,
-    ) -> list[list[Axes]]: ...
-    @overload
-    def subplots(
-        self,
-        nrows: Literal[1] = 1,
-        ncols: Literal[1] = 1,
-        *,
-        squeeze: Literal[True] = True,
-        sharex: bool | Literal["none", "all", "row", "col"] = False,
-        sharey: bool | Literal["none", "all", "row", "col"] = False,
-        subplot_kw: dict = ...,
-        gridspec_kw: dict = ...,
-    ) -> Axes: ...
-    @overload
-    def subplots(
-        self,
-        nrows: int = 1,
-        ncols: int = 1,
-        *,
-        squeeze: bool = True,
-        sharex: bool | Literal["none", "all", "row", "col"] = False,
-        sharey: bool | Literal["none", "all", "row", "col"] = False,
-        subplot_kw: dict = ...,
-        gridspec_kw: dict = ...,
-    ) -> list[Axes]: ...
+    ) -> List[List[Axes]]: ...
     def delaxes(self, ax: Axes) -> None: ...
     def clear(self, keep_observers: bool = False) -> None: ...
     def clf(self, keep_observers: bool = False) -> None: ...
