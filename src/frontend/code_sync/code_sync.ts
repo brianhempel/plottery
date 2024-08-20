@@ -34,7 +34,7 @@ function execute_cell_but_delay_clearing_output(cell) {
   const orig_output_callback = callbacks.iopub!.output;
 
   callbacks.iopub!.output = function (msg: CellMessage) {
-    if (msg.header.msg_type === "execute_result") {
+    if (msg.header.msg_type === "execute_result" || msg.header.msg_type === "error") {
       cell.clear_output(false, true);
     }
     orig_output_callback(...arguments);
