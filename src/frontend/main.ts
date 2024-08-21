@@ -21,7 +21,7 @@ import {
 import { JupyterType } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
-import { create_sidebar_menu_bar } from "./sidebar/sidebar";
+import { create_sidebar_menu_bar, set_margin_right_to_width } from "./sidebar/sidebar";
 import { close_all_menus } from "./menus/menus";
 import { id_as_new_call } from "./sidebar/call/call";
 import { method_info_to_method_with_args } from "./sidebar/methods/method";
@@ -83,13 +83,14 @@ function attach_snp(
 
     plot_widgets: [],
 
-    sidebar_el:    create_el("div", "snp-sidebar",                      snp_outer.querySelector(".plot_and_sidebar")!),
+    sidebar_el:    snp_outer.querySelector(".snp-sidebar")!,
     properties_el: create_el("div", ["snp-properties-panel", "hidden"], snp_outer.querySelector(".plot_and_sidebar")!),
 
     stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
 
     command_shortcuts: {}, // Added by menu items in menus.ts
   };
+  set_margin_right_to_width(state.sidebar_el, 20);
 
   // Put stdout_stderr at the bottom
   // state.stdout_stderr.remove();

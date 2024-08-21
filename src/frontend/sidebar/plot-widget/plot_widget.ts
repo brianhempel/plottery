@@ -1,9 +1,10 @@
+import { select_call_view } from "../../layer_panel/layer_panel";
 import {
   Arg,
   ArgView,
   State,
 } from "../../types";
-import { selectCodeText } from "../../utils/misc";
+import { select_code_text } from "../../utils/misc";
 import {
   create_edit_icon,
   create_el,
@@ -113,7 +114,8 @@ export function make_plot_widgets(state: State) {
         plot_widget_el.classList.remove("hidden");
         icon.classList.add("hidden");
         plot_widget_el.focus();
-        selectCodeText(plot_widget_el);
+        select_code_text(plot_widget_el);
+        select_call_view(target_call.view, state);
       });
 
       plot_widget_el.addEventListener("input", () => {

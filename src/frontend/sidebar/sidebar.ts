@@ -4,6 +4,21 @@ import { create_el, snp_logo_svg_html } from "../utils/misc";
 import { add_menu_item, create_menu_el } from "../menus/menus";
 
 
+export function set_margin_right_to_width(el: HTMLElement, extra_px: number) {
+  const resizeObserver = new ResizeObserver((entries) => {
+    // console.log("resizeObserver", entries);
+    for (const entry of entries) {
+      if (entry.borderBoxSize) {
+        const width = (entry.borderBoxSize[0] || entry.borderBoxSize).inlineSize;
+        el.style.marginLeft = `${-width-extra_px}px`;
+        el.style.marginRight = `${extra_px}px`;
+      }
+    }
+  });
+  resizeObserver.observe(el);
+}
+
+
 export function create_sidebar_menu_bar(state: State) {
   const sidebar_menu_bar = create_el("div", "snp-sidebar-menu-bar");
   sidebar_menu_bar.innerHTML = snp_logo_svg_html().replace('<svg ', '<svg class="sketch-n-plot-logo" ')

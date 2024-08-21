@@ -1300,13 +1300,14 @@ class SNP(SNPFigureAndHoverRegions):
                 <div class="snp_outer">
                 <script>{pathlib.Path(f"{snp_src_directory}/../dist/plugin.js").read_text()}</script>
                 <div class="plot_and_sidebar">
+                    <div class="snp-sidebar"></div>
                     <div class="plot_area" style="position:relative;">
                         <img src='{data_url}'> <!-- the plot -->
                         <div class="hover_regions">{self._repr_svg_()}</div>
                         <div class="stdout_stderr" style="max-width: {self.figure.get_window_extent(self.figure.canvas.renderer).width}px"></div>
                         <!-- buttons to add method calls will be added by JS below -->
                     </div>
-                    <!-- sidebar added here -->
+                    <!-- properties panel added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
                 <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)}, {json_for_attr(list(self.avoid_names))}, {json_for_attr(llm_api_key)})">

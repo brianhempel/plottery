@@ -7,15 +7,43 @@
 }
 
 /* Shift everything left when the properites panel is open */
-.snp_outer:has(.snp-properties-panel:not(.hidden)) {
+/* .snp_outer:has(.snp-properties-panel:not(.hidden)) {
   margin-left: -116px
-}
+} */
 
 
 .plot_and_sidebar {
   margin-top: 1em;
   display: flex;
   place-items: flex-start;
+}
+
+.snp-sidebar,
+.snp-properties-panel {
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  /* border-top: 1px solid #ababab;  */
+
+  /* border: 1px solid #ababab; */
+  /* box-shadow: 4px 4px 11px #00000026; */
+  /* border-radius: 2px; */
+
+  padding: 0px;
+
+  /* top: 0px; */
+  /* left: 0px; */
+
+  z-index: 5;
+
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
+}
+.snp-sidebar {
+  margin: 10px 0;  /* JS overrides the right margin .snp-sidebar to keep it on the left */
+}
+.snp-properties-panel {
+  margin: 10px;
 }
 
 .plot_area {

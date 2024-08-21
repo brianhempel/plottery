@@ -537,15 +537,21 @@ export function deselect_all_layers(state: State) {
   state.layers_panel.layers.forEach(layer => deselect_layer(layer, state));
 }
 
-export function select_layer(layer: Layer, state: State) {
+export function select_layer(layer: Layer, state: State, call_view?: CallView) {
   deselect_all_layers(state);
   // console.log(layer.el)
   layer.el.classList.add("selected");
   // open_collapsable(layer.el.querySelector('.snp-collapsable')!);
-  set_properties_panel_on(layer.call_views[0], state);
+  set_properties_panel_on(call_view || layer.call_views[0], state);
   compute_selected_hover_regions(state);
   save_selected_layers(state);
   // console.log(layer.el)
+}
+
+export function select_call_view(call_view: CallView, state: State) {
+  const layer = state.layers_panel.layers.find(layer => layer.call_views.includes(call_view));
+
+  layer && select_layer(layer, state, call_view);
 }
 
 export function duplicate_selected_layers(state: State) {

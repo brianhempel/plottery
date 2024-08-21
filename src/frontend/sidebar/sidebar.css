@@ -1,27 +1,3 @@
-.snp-sidebar,
-.snp-properties-panel {
-  background-color: white;
-  display: flex;
-  flex-direction: column;
-  height: fit-content;
-  /* border-top: 1px solid #ababab;  */
-
-  /* border: 1px solid #ababab; */
-  /* box-shadow: 4px 4px 11px #00000026; */
-  /* border-radius: 2px; */
-
-  padding: 0px;
-
-  /* top: 0px; */
-  /* left: 0px; */
-
-
-  margin: 10px;
-  z-index: 5;
-
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
-}
-
 .sketch-n-plot-logo {
   margin: 0 0.5em;
 }

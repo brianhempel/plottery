@@ -670,7 +670,7 @@ export function number_to_string_not_ugly(n: number): string {
   return parseFloat(sign + before_decimal + "." + after_decimal).toString();
 }
 
-export function selectCodeText(code_el: HTMLElement) {
+export function select_code_text(code_el: HTMLElement) {
   const code = code_el.innerText;
 
   const selection = window.getSelection();

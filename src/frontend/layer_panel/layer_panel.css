@@ -6,6 +6,8 @@
 }
 .snp-layers-panel {
   min-width: 270px;
+  max-width: 330px;
+  overflow: hidden;
 }
 
 .snp-layers-panel h2,

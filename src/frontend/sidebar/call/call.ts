@@ -1,4 +1,5 @@
 import { add_sync_code_on_change_watcher } from "../../code_sync/code_sync";
+import { select_call_view } from "../../layer_panel/layer_panel";
 import { set_properties_panel_on } from "../../properties_panel/properties_panel";
 import {
   Arg,
@@ -160,9 +161,13 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
   add_sync_code_on_change_watcher(() => call_to_code(call_view), [mark], state);
 
-  // call_el.addEventListener("click", ev => {
-  //   set_properties_panel_on(call_view, state);
-  // });
+  // This is redundant with the layer panel, but in theory (and maybe in the future)
+  // there may be more than one call per layer
+  call_el.addEventListener("click", ev => {
+    select_call_view(call_view, state);
+    ev.stopPropagation();
+    ev.preventDefault();
+  });
 
   return call_view;
 }
