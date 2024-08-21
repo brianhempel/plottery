@@ -3,8 +3,9 @@
 }
 
 .snp-properties-panel .snp-args {
-  max-height: 50vh;
-  overflow: auto;
+  /* Hmmm, the below cause the dropdown widget menus to disappear */
+  /* max-height: 50vh; */
+  /* overflow: auto; */
   padding: 4px 8px;
 }
 
