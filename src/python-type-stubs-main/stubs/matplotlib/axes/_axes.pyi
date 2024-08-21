@@ -403,7 +403,7 @@ class Axes(_AxesBase):
         bottom: float | ArrayLike = 0,
         *,  # What does the star mean?
         align: Literal["center", "edge"] = "center",
-        color: Sequence[int | str] = ...,
+        color: ColorType | Sequence[ColorType] = ...,
         edgecolor: ColorType | Sequence[ColorType] = ...,
         linewidth: float | ArrayLike = 0.0,
         tick_label: str | Sequence[str] = ...,
