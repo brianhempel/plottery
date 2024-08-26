@@ -157,7 +157,8 @@ export function default_code_for_type(
 
   if (typeof type == "string") {
     console.error("default_code_for_type: type is a string", type);
-    return `no default code for ${JSON.stringify(type)}`;
+    // return `no default code for ${JSON.stringify(type)}`;
+    return '...';
   }
 
   // Try to find a literal first; if that fails, use a default for the first type.
@@ -185,7 +186,8 @@ export function default_code_for_type(
     return "None";
   }
 
-  return `no default code for ${JSON.stringify(type)}`;
+  console.warn(`no default code for ${JSON.stringify(type)}`);
+  return '...';
 }
 
 function find_first_literal_type(type: Type | string): LiteralType | null {
