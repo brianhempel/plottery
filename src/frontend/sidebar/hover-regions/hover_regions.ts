@@ -234,12 +234,14 @@ export function attach_events_to_hover_regions(state: State) {
             x_handler = undefined;
             y_handler = undefined;
           } else if (perhaps_drag_x_handler) {
-            hover_region.style.cursor = perhaps_drag_y_handler ? "move" : "ew-resize";
+            hover_region.style.cursor = "move";
+            // hover_region.style.cursor = perhaps_drag_y_handler ? "move" : "ew-resize";
             x_handler = perhaps_drag_x_handler;
             y_handler = perhaps_drag_y_handler;
             xy_handler = undefined;
           } else if (perhaps_drag_y_handler) {
-            hover_region.style.cursor = "ns-resize";
+            hover_region.style.cursor = "move";
+            // hover_region.style.cursor = "ns-resize";
             y_handler = perhaps_drag_y_handler;
             x_handler = undefined;
             xy_handler = undefined;
