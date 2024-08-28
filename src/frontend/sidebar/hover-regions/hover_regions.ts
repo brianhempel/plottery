@@ -219,12 +219,12 @@ export function attach_events_to_hover_regions(state: State) {
 
           // For checking edges, we already know the mouse is over the hover region so we don't have to check the outer bounds.
           if (perhaps_drag_width_handler && (evt.clientX < x + ew_edge_w || evt.clientX > right - ew_edge_w)) {
-            hover_region.style.cursor = "ew-resize";
+            hover_region.style.cursor = "col-resize";
             x_handler = perhaps_drag_width_handler;
             y_handler = undefined;
             xy_handler = undefined;
           } else if (perhaps_drag_height_handler && (evt.clientY < y + ns_edge_w || evt.clientY > bottom - ns_edge_w)) {
-            hover_region.style.cursor = "ns-resize";
+            hover_region.style.cursor = "row-resize";
             y_handler = perhaps_drag_height_handler;
             x_handler = undefined;
             xy_handler = undefined;
@@ -234,14 +234,12 @@ export function attach_events_to_hover_regions(state: State) {
             x_handler = undefined;
             y_handler = undefined;
           } else if (perhaps_drag_x_handler) {
-            hover_region.style.cursor = "move";
-            // hover_region.style.cursor = perhaps_drag_y_handler ? "move" : "ew-resize";
+            hover_region.style.cursor = perhaps_drag_y_handler ? "move" : "ew-resize";
             x_handler = perhaps_drag_x_handler;
             y_handler = perhaps_drag_y_handler;
             xy_handler = undefined;
           } else if (perhaps_drag_y_handler) {
-            hover_region.style.cursor = "move";
-            // hover_region.style.cursor = "ns-resize";
+            hover_region.style.cursor = "ns-resize";
             y_handler = perhaps_drag_y_handler;
             x_handler = undefined;
             xy_handler = undefined;
