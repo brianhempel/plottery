@@ -185,7 +185,7 @@ export function call_to_code(call_view: CallView) : string {
 // The handling for dragging on the plot has to be routed through the layers UI element because all the logic
 // for attaching the arguments to the code is buried there, including adding new args and modifying current args.
 
-export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | ((fig_px: [number, number], delta_px: [number, number], boundses: Boundses) => void) {
+export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | ((client_px_in_fig: [number, number], delta_px: [number, number], fig_bb: DOMRect, boundses: Boundses) => void) {
 
   // move legend handler
   //
@@ -201,20 +201,23 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
       //   [starting_x, starting_y] = [NaN, NaN];
       // }
 
-      return (fig_px, delta_px, boundses: Boundses) => {
+      return (client_px_in_fig: [number, number], delta_px: [number, number], fig_bb: DOMRect, boundses: Boundses) => {
         enable_arg_view(view);
 
         const [fig_x0,  fig_y0,  fig_x1,  fig_y1]  = boundses.fig_px_bounds;
         const [axes_x0, axes_y0, axes_x1, axes_y1] = boundses.axes_px_bounds;
 
-        const [mouse_fig_x, mouse_fig_y] = fig_px;
+        const [mouse_x, mouse_y] = client_px_in_fig;
         // const [mouse_dx,    mouse_dy]    = delta_px;
 
-        // Relative mouse position inside of axes, from 0 to 1
-        const mouse_x = (mouse_fig_x - (axes_x0 - fig_x0)) / (axes_x1 - axes_x0) - 0.05; // Not quite the corner
-        const mouse_y = (mouse_fig_y - (axes_y0 - fig_y0)) / (axes_y1 - axes_y0) - 0.05; // Not quite the corner
+        // If at higher DPI, these are not 1-to-1
+        const client_px_per_fig_px = fig_bb.width / (fig_x1 - fig_x0);
 
-        view.widget.set_code(`(${number_to_string_not_ugly(sig_figs(mouse_x, 2))}, ${number_to_string_not_ugly(sig_figs(mouse_y, 2))})`);
+        // Relative mouse position inside of axes, from 0 to 1
+        const mouse_axes_x = (mouse_x / client_px_per_fig_px - (axes_x0 - fig_x0)) / (axes_x1 - axes_x0) - 0.05; // Not quite the corner
+        const mouse_axes_y = (mouse_y / client_px_per_fig_px - (axes_y0 - fig_y0)) / (axes_y1 - axes_y0) - 0.05; // Not quite the corner
+
+        view.widget.set_code(`(${number_to_string_not_ugly(sig_figs(mouse_axes_x, 2))}, ${number_to_string_not_ugly(sig_figs(mouse_axes_y, 2))})`);
       };
     }
   }
@@ -222,7 +225,7 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
 }
 
 
-export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
+export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
 
   const first_ten_args = call_view.arguments.slice(0, 10);
 
@@ -231,16 +234,22 @@ export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((
   return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'x') : undefined;
 }
 
-export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
+export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
 
   const first_ten_args = call_view.arguments.slice(0, 10);
 
   let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'y')?.view;
 
-  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y') : undefined;
+  let coord_sys = 'axes_units'
+  // the y for ax.set_title is relative to the axes height
+  if (call_view.els.name_el.innerText.endsWith(".set_title")) {
+    coord_sys = 'axes_size'
+  }
+
+  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y', coord_sys) : undefined;
 }
 
-export function perhaps_get_drag_width_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
+export function perhaps_get_drag_width_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
 
   const first_ten_args = call_view.arguments.slice(0, 10);
 
@@ -249,7 +258,7 @@ export function perhaps_get_drag_width_handler(call_view: CallView) : undefined 
   return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'x') : undefined;
 }
 
-export function perhaps_get_drag_height_handler(call_view: CallView) : undefined | ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
+export function perhaps_get_drag_height_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
 
   const first_ten_args = call_view.arguments.slice(0, 10);
 
@@ -259,7 +268,7 @@ export function perhaps_get_drag_height_handler(call_view: CallView) : undefined
 }
 
 
-function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y') : ((fig_px: number, delta_px: number, boundses: Boundses) => void) {
+function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', coord_sys: 'axes_units' | 'axes_size' = 'axes_units') : ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
   const starting_arg_code = view.widget.to_code();
 
   // The branches below will set these two, based on what kind of code we have
@@ -284,17 +293,28 @@ function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y') : ((fig_px:
     code_lhs = starting_arg_code;
   }
 
-  return (_fig_px, delta_px, boundses: Boundses) => {
+  return (_client_px_in_fig, delta_px, fig_bb: DOMRect, boundses: Boundses) => {
     enable_arg_view(view);
 
     // Convert pixels to the units of the axes
     const [x_min,    y_min,    x_max,    y_max]    = boundses.axes_unit_bounds;
     const [x_min_px, y_min_px, x_max_px, y_max_px] = boundses.axes_px_bounds;
 
-    // y inverted
-    const units_per_px = x_or_y == 'x' ? (x_max - x_min) / (x_max_px - x_min_px) : -(y_max - y_min) / (y_max_px - y_min_px);
+    // If at higher DPI, these are not 1-to-1
+    const [fig_x0,  _fig_y0,  fig_x1,  _fig_y1]  = boundses.fig_px_bounds;
+    const client_px_per_fig_px = fig_bb.width / (fig_x1 - fig_x0);
+    let units_per_fig_px: number;
+    if (coord_sys == 'axes_units') {
+      // y inverted
+      units_per_fig_px = x_or_y == 'x' ? (x_max - x_min) / (x_max_px - x_min_px) : -(y_max - y_min) / (y_max_px - y_min_px);
+    } else if (coord_sys = 'axes_size') {
+      // y inverted
+      units_per_fig_px = x_or_y == 'x' ? 1 / (x_max_px - x_min_px) : -1 / (y_max_px - y_min_px);
+    } else {
+      throw new Error(`drag_handler_for_arg_view this shouldn't happen ${coord_sys}`);
+    }
 
-    const new_number = delta_px === 0 ? starting_number : sig_figs(starting_number + delta_px*units_per_px, 2);
+    const new_number = delta_px === 0 ? starting_number : sig_figs(starting_number + delta_px*units_per_fig_px/client_px_per_fig_px, 2);
     let new_arg_code: string;
     if (code_lhs === undefined) { // code is bare literal number
       new_arg_code = number_to_string_not_ugly(new_number);
