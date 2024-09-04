@@ -180,9 +180,9 @@ export function attach_events_to_hover_regions(state: State) {
         let start_y = 0;
         let fig_bb: DOMRect = new DOMRect();
 
-        let xy_handler : ((fig_px: [number, number], delta_px: [number, number], boundses: Boundses) => void) | undefined = undefined; // Preferred over the below if present.
-        let x_handler  : ((fig_px: number,           delta_px: number,           boundses: Boundses) => void) | undefined = undefined;
-        let y_handler  : ((fig_px: number,           delta_px: number,           boundses: Boundses) => void) | undefined = undefined;
+        let xy_handler : ((client_px_in_fig: [number, number], delta_px: [number, number], fig_bb: DOMRect, boundses: Boundses) => void) | undefined = undefined; // Preferred over the below if present.
+        let x_handler  : ((client_px_in_fig: number,           delta_px: number,           fig_bb: DOMRect, boundses: Boundses) => void) | undefined = undefined;
+        let y_handler  : ((client_px_in_fig: number,           delta_px: number,           fig_bb: DOMRect, boundses: Boundses) => void) | undefined = undefined;
 
         let fig_px_bounds    : [number, number, number, number] = hover_region.dataset.figPxBounds    ? (JSON.parse(hover_region.dataset.figPxBounds)    || [0, 0, 0, 0]) : [0, 0, 0, 0];
         let axes_px_bounds   : [number, number, number, number] = hover_region.dataset.axesPxBounds   ? (JSON.parse(hover_region.dataset.axesPxBounds)   || [0, 0, 0, 0]) : [0, 0, 0, 0];
@@ -219,12 +219,12 @@ export function attach_events_to_hover_regions(state: State) {
 
           // For checking edges, we already know the mouse is over the hover region so we don't have to check the outer bounds.
           if (perhaps_drag_width_handler && (evt.clientX < x + ew_edge_w || evt.clientX > right - ew_edge_w)) {
-            hover_region.style.cursor = "ew-resize";
+            hover_region.style.cursor = "col-resize";
             x_handler = perhaps_drag_width_handler;
             y_handler = undefined;
             xy_handler = undefined;
           } else if (perhaps_drag_height_handler && (evt.clientY < y + ns_edge_w || evt.clientY > bottom - ns_edge_w)) {
-            hover_region.style.cursor = "ns-resize";
+            hover_region.style.cursor = "row-resize";
             y_handler = perhaps_drag_height_handler;
             x_handler = undefined;
             xy_handler = undefined;
@@ -279,10 +279,10 @@ export function attach_events_to_hover_regions(state: State) {
           if (pressed) {
             const dx = evt.clientX - start_x;
             const dy = evt.clientY - start_y;
-            const fig_px: [number, number] = [evt.clientX - fig_bb.x, fig_bb.bottom - evt.clientY];
-            if (xy_handler) { xy_handler(fig_px, [dx, dy], boundses); }
-            if (x_handler)  { x_handler(fig_px[0], dx, boundses); }
-            if (y_handler)  { y_handler(fig_px[1], dy, boundses); }
+            const client_px_in_fig: [number, number] = [evt.clientX - fig_bb.x, fig_bb.bottom - evt.clientY];
+            if (xy_handler) { xy_handler(client_px_in_fig, [dx, dy], fig_bb, boundses); }
+            if (x_handler)  { x_handler(client_px_in_fig[0], dx, fig_bb, boundses); }
+            if (y_handler)  { y_handler(client_px_in_fig[1], dy, fig_bb, boundses); }
             state.hover_regions_container.classList.add("hide_during_interaction");
             evt.preventDefault();
             evt.stopPropagation();

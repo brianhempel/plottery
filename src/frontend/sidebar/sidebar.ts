@@ -21,7 +21,7 @@ export function set_margin_right_to_width(el: HTMLElement, extra_px: number) {
 
 export function create_sidebar_menu_bar(state: State) {
   const sidebar_menu_bar = create_el("div", "snp-sidebar-menu-bar");
-  sidebar_menu_bar.innerHTML = snp_logo_svg_html().replace('<svg ', '<svg class="sketch-n-plot-logo" ')
+  sidebar_menu_bar.innerHTML = snp_logo_svg_html().replace('<svg ', '<svg class="sketch-n-plot-logo" style="margin-bottom:-5px" ')
 
   const edit_menu = create_menu_el("<strong>Edit</strong>", [], sidebar_menu_bar)
 
