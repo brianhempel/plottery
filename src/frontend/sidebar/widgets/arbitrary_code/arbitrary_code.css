@@ -1,3 +1,8 @@
 .snp-widget.arbitrary-code-widget {
   min-width: 45px;
 }
+
+.snp-dropdown:hover .snp-dropdown-selected-item .snp-widget.arbitrary-code-widget {
+  border: solid 1px gray;
+  margin: -1px 1px -1px -1px;
+}

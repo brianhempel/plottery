@@ -2,6 +2,7 @@ import { deselect_all_layers, duplicate_selected_layers, selected_layers } from 
 import { State } from "../types";
 import { create_el, snp_logo_svg_html } from "../utils/misc";
 import { add_menu_item, create_menu_el } from "../menus/menus";
+import { hard_rerun } from "../code_sync/code_sync";
 
 
 export function set_margin_right_to_width(el: HTMLElement, extra_px: number) {
@@ -19,10 +20,13 @@ export function set_margin_right_to_width(el: HTMLElement, extra_px: number) {
 }
 
 
-export function create_sidebar_menu_bar(state: State) {
+export function create_sidebar_menu_bar(state: State, fig_idx: number, fig_names: string[]) {
   const sidebar_menu_bar = create_el("div", "snp-sidebar-menu-bar");
+
+  // Add Logo
   sidebar_menu_bar.innerHTML = snp_logo_svg_html().replace('<svg ', '<svg class="sketch-n-plot-logo" style="margin-bottom:-5px" ')
 
+  // Add Edit menu
   const edit_menu = create_menu_el("<strong>Edit</strong>", [], sidebar_menu_bar)
 
   add_menu_item(
@@ -40,6 +44,24 @@ export function create_sidebar_menu_bar(state: State) {
     (_item: HTMLElement, state: State) => selected_layers(state).length > 0, // Enabled?
     state
   )
+
+  if (fig_names.length > 1) {
+    // Add fig selector
+    const fig_selector = create_el("select", "snp-fig-selector", sidebar_menu_bar) as HTMLSelectElement;
+
+    fig_names.forEach((name, i) => {
+      const option = create_el("option", [], fig_selector) as HTMLOptionElement;
+      option.innerText = `Fig ${i+1} ${name}`;
+      option.value = i.toString();
+    })
+    fig_selector.value = fig_idx.toString();
+
+    // On fig change, set persitent_dataset.fig_idx and rerun
+    fig_selector.addEventListener("change", () => {
+      state.persistent_dataset.fig_idx = fig_selector.value;
+      hard_rerun(state);
+    })
+  }
 
   return sidebar_menu_bar;
 }

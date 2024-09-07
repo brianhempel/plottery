@@ -475,7 +475,7 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
   const add_layer_menu = create_menu_el('<span class="snp-add-layer-button">＋ Add Layer</span>', 'add-layer-menu', layers_panel_heading)
 
   const default_iterable = default_code_for_type({".class": "Instance", "type_ref": "matplotlib._typing.ArrayLike", "args": []});
-  const default_iterable_code = `for i, x in enumerate(${default_iterable}):\n    pass\n`;
+  const default_iterable_code = `for i, x in enumerate(${default_iterable}):\n    pass`;
   add_menu_item(
     add_layer_menu,
     'For-loop', null,
@@ -495,7 +495,7 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
       state
     );
   [default_iterable, ...state.user_iterables].forEach(iterable => {
-    const code = `for i, x in enumerate(${iterable}):\n    pass\n`;
+    const code = `for i, x in enumerate(${iterable}):\n    pass`;
     add_menu_item(
       user_iterables_menu,
       iterable, null,

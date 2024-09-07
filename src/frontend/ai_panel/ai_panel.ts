@@ -74,9 +74,7 @@ ax2 = fig.add_subplot(...)
 
 but _only_ if I asked to add more subplots.
 
-Return only the new code of Cell ${last_cell_no}. The code should conlude as before with
-snp = SNP(fig, locals(), cell_lineno, provenance_is_off_by_n_lines, notebook_code_through_cell)
-snp`;
+Return only the new code of Cell ${last_cell_no}`;
 
   return prompt;
 }

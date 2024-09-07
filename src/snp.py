@@ -14,6 +14,7 @@ from typing import Dict, List, Tuple
 
 import IPython
 
+import IPython.display
 import mypy
 import mypy.nodes
 import mypy.build
@@ -23,24 +24,35 @@ import mypy.types
 import mypy.server.update
 
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 import numpy as np
 
 import shapely
 
-if 'snp_src_directory' not in globals():
-    snp_src_directory = os.getcwd()
+# if 'snp_src_directory' not in globals():
+#     snp_src_directory = os.getcwd()
 
-sys.path.append(snp_src_directory)
+snp_src_directory = os.path.dirname(os.path.abspath(__file__))
+# print('snp_src_directory', snp_src_directory)
+
+# sys.path.append(snp_src_directory)
 
 import serialize
-import visitor_ast
+# import visitor_ast
+
 
 
 # Suppress extra figure, speeds up responsiveness during direct manipulation
-mpl.pyplot.switch_backend('module://matplotlib_inline.backend_inline') # register the display hook now rather than on creation of the first figure
-mpl.pyplot.ioff() # turn off that display hook
+plt.switch_backend('module://matplotlib_inline.backend_inline') # register the display hook now rather than on creation of the first figure
+plt.ioff() # turn off that display hook
 
+
+def get_index_or_default(lst, i, default):
+    try:
+        return lst[i]
+    except IndexError:
+        return default
 
 # thanks GPT-4
 class Timer:
@@ -62,37 +74,37 @@ def get_trivial_names():
 
 
 # File path that the notebook code will be written to for mypy
-file_path = "__temp.py"
-module_name = os.path.splitext(os.path.basename(file_path))[0]
+notebook_as_code_file_path = "__plottery_mypy_temp.py"
+notebook_as_code_module_name = os.path.splitext(os.path.basename(notebook_as_code_file_path))[0]
 
 
+import_lines_regex = re.compile(r"^[^#\n]*import .*", re.MULTILINE)
 def import_lineset_in(code):
     """Returns a set of code lines that begin with `import `"""
-    import_lines_regex = re.compile(r"^[^#\n]*import .*", re.MULTILINE)
     return set(import_lines_regex.findall(code))
 
 
 # For caching
 if "import_lineset" not in globals():
     import_lineset = set()
-    fine_grained_build_manager = None
+    mypy_fine_grained_build_manager = None
     mypy_result = None  # The FineGrainedBuildManager mutates this, apparently.
-    fscache = None
+    mypy_fscache = None
 
-def do_inference(code):
+def do_mypy_inference(code):
     # For caching
     global import_lineset
-    global fine_grained_build_manager
+    global mypy_fine_grained_build_manager
     global mypy_result
-    global fscache
+    global mypy_fscache
 
     # Write out to a temp file
-    with open(file_path, "w") as file:
+    with open(notebook_as_code_file_path, "w") as file:
         file.write(code)
 
-    if fine_grained_build_manager is None or import_lineset != import_lineset_in(code):
+    if mypy_fine_grained_build_manager is None or import_lineset != import_lineset_in(code):
         import_lineset = import_lineset_in(code)
-        sources, options = mypy.main.process_options([file_path])
+        sources, options = mypy.main.process_options([notebook_as_code_file_path])
 
         options.incremental = True
         options.preserve_asts = True
@@ -108,14 +120,14 @@ def do_inference(code):
         options.check_untyped_defs = True # Otherwise the bodies of user functions will not get inferred.
         options.ignore_errors = True
 
-        fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
-        mypy_result = mypy.build.build(sources, options=options, fscache=fscache)
+        mypy_fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
+        mypy_result = mypy.build.build(sources, options=options, fscache=mypy_fscache)
 
-        fine_grained_build_manager = mypy.server.update.FineGrainedBuildManager(mypy_result)
+        mypy_fine_grained_build_manager = mypy.server.update.FineGrainedBuildManager(mypy_result)
 
-    fine_grained_build_manager.update([(module_name, file_path)], [])
-    fine_grained_build_manager.flush_cache()
-    fscache.flush()
+    mypy_fine_grained_build_manager.update([(notebook_as_code_module_name, notebook_as_code_file_path)], [])
+    mypy_fine_grained_build_manager.flush_cache()
+    mypy_fscache.flush()
 
     return mypy_result
 
@@ -319,6 +331,12 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
                     )
                 else:
                     print("a;sdkjf;laskdj;lsaknvad")
+        case mpl.collections.PathCollection() as path_collection: # the thing created by a scatter plot
+            # path_collection._offsets is the locations of the scatterplot points
+            # path_collection._paths[0] is the shape of individual points
+            # path_collection._sizes is the sizes of the points
+            # path_collection.contains() will have the code to make sense of all of the above
+            my_geom = None
         case mpl.axes.Axes():
             my_geom = None
         case _:
@@ -413,7 +431,7 @@ def _artist_names_deep(out, obj, name, max_depth):
                 _artist_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
 
     # # Need this to get plt.subplots() to show up in the layers panel
-    # elif obj is mpl.pyplot:
+    # elif obj is plt:
     #     out[id(obj)] = (obj, set())
 
 
@@ -431,15 +449,19 @@ def artist_names(locals, user_nameset, max_depth=4):
 
     return out
 
-# # Collapse adjacent whitespace to a single space
-# def squish(string):
-#     return re.sub(r'\s+', ' ', string)
-#
-# for name in dir(ax):
-#     if name.startswith('_'):
-#         continue
-#     doc = (getattr(ax, name).__doc__ or '').strip().split('\n\n')[0]
-#     print(f"([''], {repr(name)}, float('inf'), {repr(squish(doc))}),")
+
+# Use this to help generate the method_associations below
+def methods_for(a, default_child_to_show_methods_on=''):
+    def squish(string):
+        return re.sub(r'\s+', ' ', string)
+
+    for name in dir(a):
+        if name.startswith('_'):
+            continue
+        doc = (getattr(a, name).__doc__ or '').strip().split('\n\n')[0]
+        print(f"([{repr(default_child_to_show_methods_on)}], {repr(name)}, float('inf'), {repr(squish(doc))}),")
+
+# snp.methods_for(ax, '.patch')
 axes_method_associations = [
     # (['.patch'], 'ArtistList', float('inf'), 'A sublist of Axes children based on their type.'),
     (['.patch'], 'acorr', float('inf'), 'Plot the autocorrelation of *x*.'),
@@ -694,14 +716,14 @@ axes_method_associations = [
     (['.xaxis'], 'set_xlim', 1, 'Set the x-axis view limits.'),
     # (['.patch'], 'set_xmargin', 1, 'Set padding of X data limits prior to autoscaling.'),
     # (['.patch'], 'set_xscale', 1, "Set the xaxis' scale."),
-    # (['.patch'], 'set_xticklabels', 1, "[*Discouraged*] Set the xaxis' tick labels with list of string labels."),
+    (['.xaxis'], 'set_xticklabels', 1, "[*Discouraged*] Set the xaxis' tick labels with list of string labels."),
     (['.xaxis'], 'set_xticks', 1, "Set the xaxis' tick locations and optionally tick labels."),
     # (['.patch'], 'set_ybound', 1, 'Set the lower and upper numerical bounds of the y-axis.'),
     (['.yaxis.label'], 'set_ylabel', 1, 'Set the label for the y-axis.'),
     (['.yaxis'], 'set_ylim', 1, 'Set the y-axis view limits.'),
     # (['.patch'], 'set_ymargin', 1, 'Set padding of Y data limits prior to autoscaling.'),
     # (['.patch'], 'set_yscale', 1, "Set the yaxis' scale."),
-    # (['.patch'], 'set_yticklabels', 1, "[*Discouraged*] Set the yaxis' tick labels with list of string labels."),
+    (['.yaxis'], 'set_yticklabels', 1, "[*Discouraged*] Set the yaxis' tick labels with list of string labels."),
     (['.yaxis'], 'set_yticks', 1, "Set the yaxis' tick locations and optionally tick labels."),
     # (['.patch'], 'set_zorder', 1, 'Set the zorder for the artist.  Artists with lower zorder'),
     (['.xaxis'], 'sharex', 1, 'Share the x-axis with *other*.'),
@@ -771,15 +793,7 @@ axes_method_associations = [
     # ([''], 'bar_label', float('inf')),
 ]
 
-# # Collapse adjacent whitespace to a single space
-# def squish(string):
-#     return re.sub(r'\s+', ' ', string)
-#
-# for name in dir(fig):
-#     if name.startswith('_'):
-#         continue
-#     doc = (getattr(fig, name).__doc__ or '').strip().split('\n\n')[0]
-#     print(f"([''], {repr(name)}, float('inf'), {repr(squish(doc))}),")
+# snp.methods_for(fig)
 fig_method_associations = [
     # ([''], 'add_artist', float('inf'), 'Add an `.Artist` to the figure.'),
     # ([''], 'add_axes', float('inf'), 'Add an `~.axes.Axes` to the figure.'),
@@ -938,6 +952,12 @@ fig_method_associations = [
     # ([''], 'zorder', float('inf'), 'int([x]) -> integer int(x, base=10) -> integer'),
 ]
 
+# snp.methods_for(ax.spines.top)
+# spine_method_associations = [
+# ]
+
+
+
 # Return list of (artists that should expose this method, method name on the root artist, number of times method could be called, first line of method docs)
 def method_associations(artist):
     match artist:
@@ -945,6 +965,8 @@ def method_associations(artist):
             return fig_method_associations
         case mpl.axes.Axes():
             return axes_method_associations
+        # case mpl.spines.Spine():
+        #     return spine_method_associations
         case _:
             return []
 
@@ -958,6 +980,9 @@ class NameExtractor(ast.NodeVisitor):
         self.nameset.add(node.id)
         self.generic_visit(node)
 
+    def visit_arg(self, node):
+        self.nameset.add(node.arg)
+
 
 def get_user_nameset(code):
     name_extractor = NameExtractor()
@@ -966,15 +991,18 @@ def get_user_nameset(code):
 
 
 # For when you want quick redraws during mouse manipulations.
-# The frontend calls this by changing the cell code from SNP(...) to SNPFigureOnly(...) before sending it to the Python kernel.
+# The frontend calls this by explicitly adding snp.show_ui(snp_class=SNPFigureOnly) to the cell code.
 class SNPFigureOnly:
     def __init__(
         self,
         figure,
         locals,
         cell_lineno,
+        plt_show_lineno_in_cell,
         provenance_is_off_by_n_lines,
-        notebook_code_through_cell
+        notebook_code_through_cell,
+        fig_idx,
+        fig_names,
     ):
         self.figure = figure
         self.cached_png = None
@@ -994,17 +1022,20 @@ class SNPFigureOnly:
 
 
 # When there's a free moment during manipulation, re-gen the hover regions too.
-# Frontend calls this by changing the cell code from SNP(...) to SNPFigureAndHoverRegions(...) before sending it to the Python kernel.
+# The frontend calls this by explicitly adding snp.show_ui(snp_class=SNPFigureAndHoverRegions) to the cell code.
 class SNPFigureAndHoverRegions(SNPFigureOnly):
     def __init__(
         self,
         figure,
         locals,
         cell_lineno,
+        plt_show_lineno_in_cell,
         provenance_is_off_by_n_lines,
-        notebook_code_through_cell
+        notebook_code_through_cell,
+        fig_idx,
+        fig_names,
     ):
-        mpl.pyplot.close('all') # Suppress "RuntimeWarning: More than 20 figures have been opened"
+        plt.close('all') # Suppress "RuntimeWarning: More than 20 figures have been opened"
 
         self.figure = figure
         self.cached_png = None
@@ -1054,12 +1085,22 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         return self.cached_svg_hover_regions
 
 
-def try_to_add_docstring_to_call(call):
-    try:
-        docstring = eval(call['func_code']).__doc__
-    except:
+root_item_name = re.compile(r'^\w*')
+def try_to_add_docstring_to_call(locals, call):
+    func_code = call['func_code'] or ''
+    split_idx = root_item_name.match(func_code).end()
+    root_name = func_code[:split_idx]
+    rest      = func_code[split_idx:]
+    item = locals.get(root_name)
+    if item is None:
         docstring = None
+    else:
+        try:
+            docstring = eval('item' + rest).__doc__
+        except:
+            docstring = None
     call['docstring'] = docstring
+
 
 keywordset = set(keyword.kwlist)
 
@@ -1069,25 +1110,31 @@ class SNP(SNPFigureAndHoverRegions):
         figure,
         locals,
         cell_lineno,
+        plt_show_lineno_in_cell,
         provenance_is_off_by_n_lines,
-        notebook_code_through_cell
+        notebook_code_through_cell,
+        fig_idx,
+        fig_names
     ):
-        super().__init__(figure, locals, cell_lineno, provenance_is_off_by_n_lines, notebook_code_through_cell)
+        super().__init__(figure, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names)
 
         self.avoid_names = self.user_nameset | locals.keys() | keywordset
 
         # Perform type inference
         self.cell_lineno = cell_lineno
+        self.plt_show_lineno_in_cell = plt_show_lineno_in_cell
         self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
 
         # self.notebook_code_through_cell = notebook_code_through_cell
         self.notebook_code_lines        = notebook_code_through_cell.split("\n")
-        with Timer("do_inference"):
-            self.mypy_result = do_inference(notebook_code_through_cell)
+        with Timer("do_mypy_inference"):
+            self.mypy_result = do_mypy_inference(notebook_code_through_cell)
         self.type_graph = self.mypy_result.graph
-        self.type_tree = self.type_graph[module_name].tree
+        self.type_tree = self.type_graph[notebook_as_code_module_name].tree
         tree = self.type_tree
 
+        self.fig_idx   = fig_idx
+        self.fig_names = fig_names
 
         # print(ast.dump(ast.parse(notebook_code_through_cell)))
 
@@ -1104,7 +1151,8 @@ class SNP(SNPFigureAndHoverRegions):
             # iterable_type
             self.user_typed_snippets = {}
             self.user_iterables = [] # but exclude strings
-            string_type = mypy.types.Instance(self.type_graph['builtins'].tree.names['str'].node, [])
+            builtins_names = self.type_graph['builtins'].tree.names
+            string_type = mypy.types.Instance(builtins_names['str'].node, [])
             np_arange_ret_type = self.type_graph['numpy'].tree.names['arange'].node.type.items[0].ret_type
             explicit_any_type = mypy.types.AnyType(mypy.types.TypeOfAny.explicit)
             iterable_type = mypy.types.Instance(self.type_graph['collections.abc'].tree.names['Iterable'].node, [explicit_any_type])
@@ -1112,41 +1160,54 @@ class SNP(SNPFigureAndHoverRegions):
             dict_values_node = self.type_graph['_collections_abc'].tree.names['dict_values'].node # <TypeInfo _collections_abc.dict_values>
             dict_items_node = self.type_graph['_collections_abc'].tree.names['dict_items'].node # <TypeInfo _collections_abc.dict_items>
             for name, value in locals.items():
-                if name in tree.names and name in self.user_nameset and name not in get_trivial_names() and not callable(value):
-                    name_type = tree.names[name].type
+                if name in self.user_nameset and name not in get_trivial_names() and not callable(value):
+                    name_type = None
+                    if name in tree.names:
+                        name_type = tree.names[name].type
+                    else:
+                        # tree.names only has top-level values
+                        #
+                        # So if we are in a funciton, let's try to convert the Python value into its type
+                        #
+                        # This only really works for bools, ints, floats, and strings. Lists and dicts need type arguments for full support below.
+                        type_name = type(value).__name__
+                        if type_name in builtins_names:
+                            # print(name, type_name)
+                            name_type = mypy.types.Instance(builtins_names[type_name].node, [])
+
                     if name_type is not None:
                         self.user_typed_snippets[name] = name_type
                         (is_subtype(name_type, iterable_type) and not is_subtype(name_type, string_type) or (isinstance(value, np.ndarray) and value.ndim == 1) or isinstance(value, list)) and self.user_iterables.append(name) # include dynamic checks too because grrrr
 
                         if isinstance(value, dict) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.dict':
-                            val_type = name_type.args[1]
+                            val_type = get_index_or_default(name_type.args, 1, None)
                             if val_type is not None:
                                 for key, _ in value.items():
                                     code = f"{name}[{repr(key)}]"
                                     self.user_typed_snippets[code] = val_type
                                     is_subtype(val_type, iterable_type) and not is_subtype(val_type, string_type) and self.user_iterables.append(code)
 
-                            # type of item.keys()
-                            # I don't know why dict_keys takes two args, rather than just the type of the keys, but that's how mypy does it.
-                            dot_keys_type = mypy.types.Instance(dict_keys_node, [name_type.args[0], name_type.args[1]])
-                            code = f"{name}.keys()"
-                            self.user_typed_snippets[code] = dot_keys_type
-                            is_subtype(dot_keys_type, iterable_type) and not is_subtype(dot_keys_type, string_type) and self.user_iterables.append(code)
+                                # type of item.keys()
+                                # I don't know why dict_keys takes two args, rather than just the type of the keys, but that's how mypy does it.
+                                dot_keys_type = mypy.types.Instance(dict_keys_node, [name_type.args[0], name_type.args[1]])
+                                code = f"{name}.keys()"
+                                self.user_typed_snippets[code] = dot_keys_type
+                                is_subtype(dot_keys_type, iterable_type) and not is_subtype(dot_keys_type, string_type) and self.user_iterables.append(code)
 
-                            # I don't know why dict_values takes two args, rather than just the type of the values, but that's how mypy does it.
-                            dot_values_type = mypy.types.Instance(dict_values_node, [name_type.args[0], name_type.args[1]])
-                            code = f"{name}.values()"
-                            self.user_typed_snippets[code] = dot_values_type
-                            is_subtype(dot_values_type, iterable_type) and not is_subtype(dot_values_type, string_type) and self.user_iterables.append(code)
+                                # I don't know why dict_values takes two args, rather than just the type of the values, but that's how mypy does it.
+                                dot_values_type = mypy.types.Instance(dict_values_node, [name_type.args[0], name_type.args[1]])
+                                code = f"{name}.values()"
+                                self.user_typed_snippets[code] = dot_values_type
+                                is_subtype(dot_values_type, iterable_type) and not is_subtype(dot_values_type, string_type) and self.user_iterables.append(code)
 
-                            # I don't know why dict_values takes two args, rather than just the type of the values, but that's how mypy does it.
-                            dot_items_type = mypy.types.Instance(dict_items_node, [name_type.args[0], name_type.args[1]])
-                            code = f"{name}.items()"
-                            self.user_typed_snippets[code] = dot_items_type
-                            is_subtype(dot_items_type, iterable_type) and not is_subtype(dot_items_type, string_type) and self.user_iterables.append(code)
+                                # I don't know why dict_values takes two args, rather than just the type of the values, but that's how mypy does it.
+                                dot_items_type = mypy.types.Instance(dict_items_node, [name_type.args[0], name_type.args[1]])
+                                code = f"{name}.items()"
+                                self.user_typed_snippets[code] = dot_items_type
+                                is_subtype(dot_items_type, iterable_type) and not is_subtype(dot_items_type, string_type) and self.user_iterables.append(code)
 
                         if isinstance(value, list) and isinstance(name_type, mypy.types.Instance) and name_type.type.fullname == 'builtins.list':
-                            item_type = name_type.args[0]
+                            item_type = get_index_or_default(name_type.args, 0, None)
                             if item_type is not None:
                                 for i, _ in enumerate(value):
                                     code = f"{name}[{i}]"
@@ -1176,7 +1237,7 @@ class SNP(SNPFigureAndHoverRegions):
                 visitor.visit_mypy_file(tree)
                 self.calls = visitor.out
                 for call in self.calls:
-                    try_to_add_docstring_to_call(call)
+                    try_to_add_docstring_to_call(locals, call)
             else:
                 self.calls = []
 
@@ -1304,19 +1365,64 @@ class SNP(SNPFigureAndHoverRegions):
                     <div class="plot_area" style="position:relative;">
                         <img src='{data_url}'> <!-- the plot -->
                         <div class="hover_regions">{self._repr_svg_()}</div>
-                        <div class="stdout_stderr" style="max-width: {self.figure.get_window_extent(self.figure.canvas.renderer).width}px"></div>
+                        <div class="stdout_stderr"></div>
                         <!-- buttons to add method calls will be added by JS below -->
                     </div>
                     <!-- properties panel added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)}, {json_for_attr(list(self.avoid_names))}, {json_for_attr(llm_api_key)})">
+                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)}, {json_for_attr(list(self.avoid_names))}, {json_for_attr(llm_api_key)}, {self.fig_idx}, {json_for_attr(self.fig_names)})">
                     {frontend_css}
                 </style>
                 </div>
             """
 
         return out_html
+
+
+cell_figs = []
+
+# The notebook extension replaces plt.show() with this snp.show() instead.
+#
+# Unlike plt.show(), this will only show the most recent fig if multiple figs were created since
+# the last show(). Showing only the last makes more sense because show() is the anchor point for
+# adding new code.
+#
+# Like plt.show, you can call this multiple times.
+#
+# The notebook extension replaces the cell return with snp.show_ui(), which renders the SNP UI which includes a picker to select which fig to show.
+def show(locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, **we_ignore_plt_show_kwargs):
+    fig_managers = mpl._pylab_helpers.Gcf.get_all_fig_managers()
+
+    if len(fig_managers) > 0:
+        fig = fig_managers[-1].canvas.figure
+        cell_figs.append((fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell))
+
+    return None
+
+
+def show_ui(fig_idx=0, snp_class=SNP):
+    global cell_figs
+    if len(cell_figs) == 0:
+        print("No figures to show. Be sure plt.show() is called within the cell.")
+        return None
+    else:
+        if fig_idx < 0:
+            fig_idx = len(cell_figs) + fig_idx
+
+        fig_idx = np.clip(fig_idx, 0, len(cell_figs) - 1)
+
+        fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell = cell_figs[fig_idx]
+
+        # What should we name the figs in the UI?
+        fig_names = []
+        for figg, _, _, _, _, _ in cell_figs: # figg bc don't want to clobber fig above
+            # Join the fig title and all the axes titles
+            fig_name = ' '.join([title for title in ([figg.get_suptitle()] + [axes.get_title() for axes in figg.get_axes()]) if title != ''])
+            fig_names.append(fig_name)
+
+        cell_figs = []
+        return snp_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names)
 
 
 # -------------------------------------------------------- #
@@ -1335,13 +1441,13 @@ class SNP(SNPFigureAndHoverRegions):
 # lines = ax.plot(xs, ys)
 
 # Output:
-# fig, ax = tag_with_provenance(plt.subplots(), 'plt.subplots #1')
-# tag_with_provenance(ax.set_title('My Plot'), 'ax.set_title #1')
-# xs = tag_with_provenance(np.linspace(0, 2 * np.pi, 20), 'np.linspace #1')
-# ys = tag_with_provenance(np.sin(xs), 'np.sin #1')
-# lines = tag_with_provenance(ax.plot(xs, ys), 'ax.plot #1')
+# fig, ax = snp.tag_with_provenance(plt.subplots(), 'plt.subplots #1')
+# snp.tag_with_provenance(ax.set_title('My Plot'), 'ax.set_title #1')
+# xs = snp.tag_with_provenance(np.linspace(0, 2 * np.pi, 20), 'np.linspace #1')
+# ys = snp.tag_with_provenance(np.sin(xs), 'np.sin #1')
+# lines = snp.tag_with_provenance(ax.plot(xs, ys), 'ax.plot #1')
 
-# tag_with_provenance() gives the returned object an `_snp_came_from_call_id` attribute, which references calls by code and occurance number in the code, e.g. "ax.bar #1"
+# snp.tag_with_provenance() gives the returned object an `_snp_came_from_call_id` attribute, which references calls by code and occurance number in the code, e.g. "ax.bar #1"
 
 
 # "ax.bar #1"
@@ -1477,7 +1583,7 @@ class ProvenanceTagger(ast.NodeTransformer):
                 self.call_nums[func_code] = call_num
                 call_id = make_call_id(func_code, call_num) # "ax.bar #1"
                 wrapped = ast.Call(
-                    ast.Name("tag_with_provenance", ast.Load()),
+                    ast.Attribute(ast.Name('snp', ast.Load()), 'tag_with_provenance', ast.Load()), # snp.tag_with_provenance
                     [
                         node,
                         # receiver,
@@ -1800,92 +1906,3 @@ def serialize_type(_type: mypy.types.Type, user_typed_snippets: Dict[str, mypy.t
 
     return { ".class": _type.__class__.__name__ }
 
-
-# Generic object inspector that's waaaay better than repr()
-#
-# Usage: See('code')
-class See():
-    def __init__(self, code):
-        self.obj = eval(code)
-        self.code = code
-
-    def _repr_html_(self):
-        obj, code = self.obj, self.code
-
-        field_htmls = []
-
-        if isinstance(obj, list) or isinstance(obj, tuple):
-            field_htmls = [self.field_to_html(i, f"[{i}]") for i in range(len(obj))]
-        elif isinstance(obj, dict):
-            field_htmls = [self.field_to_html(repr(k), f"[{repr(k)}]") for k in obj.keys()]
-        else:
-            trival_names = get_trivial_names()
-            field_htmls = [self.field_to_html(name, f".{name}") for name in dir(obj) if name not in trival_names]
-
-        full_class_name = obj.__class__.__module__ + '.' + obj.__class__.__qualname__
-
-        return """
-            <div style="font-family: monospace; overflow-x: auto">
-                <h3 style="color: darkblue">""" + escape_html(code) + ' (' + full_class_name + ') '+ escape_html(repr(obj)) + """</h3>
-                <ul style="list-style-type: none">
-                """ + "\n".join(field_htmls) + """
-                </ul>
-                <script>
-                document.querySelectorAll("[data-click-to-open-code]").forEach(el => {
-                    const code = el.dataset.clickToOpenCode;
-                    el.removeAttribute("data-click-to-open-code"); // So opening a field doesn't add the event handlers again
-
-                    el.addEventListener("click", ev => {
-                        ev.stopPropagation();
-
-                        const expanded_child = el.querySelector("div");
-                        if (expanded_child) {
-                            expanded_child.remove()
-                        } else {
-                            const callbacks = {
-                                iopub: { output: function (msg) {
-                                    if (
-                                        msg.header.msg_type === "execute_result" &&
-                                        msg.content.data["text/html"]
-                                    ) {
-                                        el.innerHTML += msg.content.data["text/html"]
-                                        // Run the script tags
-                                        el.querySelectorAll("script").forEach(script => { eval(script.innerText) });
-                                    } else if (msg.header.msg_type == "error") {
-                                        console.error(`[error running ${code}]`, msg.content.evalue);
-                                    } else if (msg.header.msg_type == "stream") {
-                                        console.error(`[error running ${code}]`, msg.content.text);
-                                    } else {
-                                        console.warn(`[unhandlable output message running ${code}]`, arguments);
-                                    }
-                                }}
-                            };
-
-                            Jupyter.notebook.kernel.execute(code, callbacks, { silent: false, store_history: false, stop_on_error: true });
-                        }
-                    });
-                });
-                </script>
-            </div>
-        """
-
-    def field_to_html(self, name, accessor_code):
-        val = eval(f"self.obj{accessor_code}")
-        field_code = f"{self.code}{accessor_code}"
-        if callable(val):
-            try:
-                arg_count = val.__code__.co_argcount
-            except AttributeError:
-                arg_count = float("inf")
-            if arg_count == 1:
-                field_code += "()"
-                name += "()"
-                val_str = "..."
-            else:
-                # field_code = None
-                val_str = repr(val)
-        else:
-            val_str = repr(val)[:200]
-
-        perhaps_click_to_open_code = f' data-click-to-open-code="See({json_for_attr(field_code)})" style="cursor: pointer"' if field_code is not None else ' style="cursor: default"'
-        return f"""<li {perhaps_click_to_open_code}><span style="white-space: pre"><strong style="color: darkgreen">{name}</strong> {escape_html(val_str)}</span></li>"""

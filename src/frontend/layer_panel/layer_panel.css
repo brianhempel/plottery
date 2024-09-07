@@ -1,6 +1,7 @@
 .snp-layers-panel,
 .snp-properties-panel {
-  font-size: 14px;
+  line-height: 16px; /* override div#notebook's 20px line-height */
+  font-size: 12px; /* same size as the code in the code box */
   border: solid 1px gray;
   padding: 0;
 }
@@ -51,10 +52,10 @@
 }
 
 .snp-layer {
-  /* these flex params put the layer checkbox at the top right */
+  /* these flex params put the layer checkbox at the center right */
   display: flex;
   justify-content: space-between;
-  align-items: start;
+  /* align-items: start; */
 
   font-family: monospace;
   white-space: pre-wrap;
@@ -80,7 +81,7 @@
 
 input.snp-layer-checkbox {
   cursor: pointer;
-  margin: 0.3em;
+  margin: 0 0.3em;
 }
 
 /* Unchecked layers */

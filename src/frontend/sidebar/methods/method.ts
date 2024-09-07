@@ -63,7 +63,7 @@ export function method_info_to_method_with_args(method_info: MethodInfo, avoid_n
 
   let ret_name = name_for_ret_type(method_info.type.ret_type);
   let perhaps_assignment = ret_name ? `${non_colliding_name(ret_name, avoid_names)} = ` : '';
-  let code = `${perhaps_assignment}${receiver_dot_name}(${required_positional_arg_codes.concat(required_keyword_arg_codes).join(', ')})\n`;
+  let code = `${perhaps_assignment}${receiver_dot_name}(${required_positional_arg_codes.concat(required_keyword_arg_codes).join(', ')})`;
 
   return {
     method_info,

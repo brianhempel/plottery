@@ -6,7 +6,7 @@ import {
 } from "../../types";
 import { zip, equalByJSON } from "../../utils/stdlib";
 import { create_el, escape_html, place_centered_over_shape, place_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
-import { perhaps_get_drag_x_handler, perhaps_get_drag_width_handler, perhaps_get_drag_height_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler } from "../call/call";
+import { perhaps_get_drag_bottom_edge_handler, perhaps_get_drag_left_edge_handler, perhaps_get_drag_right_edge_handler, perhaps_get_drag_top_edge_handler, perhaps_get_drag_x_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler } from "../call/call";
 import { add_method_call } from "../methods/method";
 import "./hover_regions.css";
 import { add_menu_item, create_menu_el } from "../../menus/menus";
@@ -164,11 +164,13 @@ export function attach_events_to_hover_regions(state: State) {
     zip(layer.calls_with_args, layer.call_views).forEach(([call_with_args, call_view]) => {
       const call_info = call_with_args.call_info;
 
-      const perhaps_drag_xy_handler     = perhaps_get_drag_xy_handler(call_view);
-      const perhaps_drag_x_handler      = perhaps_get_drag_x_handler(call_view);
-      const perhaps_drag_y_handler      = perhaps_get_drag_y_handler(call_view);
-      const perhaps_drag_width_handler  = perhaps_get_drag_width_handler(call_view);
-      const perhaps_drag_height_handler = perhaps_get_drag_height_handler(call_view);
+      const perhaps_drag_xy_handler          = perhaps_get_drag_xy_handler(call_view);
+      const perhaps_drag_x_handler           = perhaps_get_drag_x_handler(call_view);
+      const perhaps_drag_y_handler           = perhaps_get_drag_y_handler(call_view);
+      const perhaps_drag_left_edge_handler   = perhaps_get_drag_left_edge_handler(call_view);
+      const perhaps_drag_right_edge_handler  = perhaps_get_drag_right_edge_handler(call_view);
+      const perhaps_drag_top_edge_handler    = perhaps_get_drag_top_edge_handler(call_view);
+      const perhaps_drag_bottom_edge_handler = perhaps_get_drag_bottom_edge_handler(call_view);
 
       const hover_regions = hover_regions_for_call(call_info.call_id, state);
 
@@ -218,14 +220,24 @@ export function attach_events_to_hover_regions(state: State) {
           const ns_edge_w = Math.min(10, height / 4);
 
           // For checking edges, we already know the mouse is over the hover region so we don't have to check the outer bounds.
-          if (perhaps_drag_width_handler && (evt.clientX < x + ew_edge_w || evt.clientX > right - ew_edge_w)) {
+          if (perhaps_drag_left_edge_handler && evt.clientX < x + ew_edge_w) {
             hover_region.style.cursor = "col-resize";
-            x_handler = perhaps_drag_width_handler;
+            x_handler = perhaps_drag_left_edge_handler;
             y_handler = undefined;
             xy_handler = undefined;
-          } else if (perhaps_drag_height_handler && (evt.clientY < y + ns_edge_w || evt.clientY > bottom - ns_edge_w)) {
+          } else if (perhaps_drag_right_edge_handler && evt.clientX > right - ew_edge_w) {
+            hover_region.style.cursor = "col-resize";
+            x_handler = perhaps_drag_right_edge_handler;
+            y_handler = undefined;
+            xy_handler = undefined;
+          } else if (perhaps_drag_top_edge_handler && evt.clientY < y + ns_edge_w) {
             hover_region.style.cursor = "row-resize";
-            y_handler = perhaps_drag_height_handler;
+            y_handler = perhaps_drag_top_edge_handler;
+            x_handler = undefined;
+            xy_handler = undefined;
+          } else if (perhaps_drag_bottom_edge_handler && evt.clientY > bottom - ns_edge_w) {
+            hover_region.style.cursor = "row-resize";
+            y_handler = perhaps_drag_bottom_edge_handler;
             x_handler = undefined;
             xy_handler = undefined;
           } else if (perhaps_drag_xy_handler) {

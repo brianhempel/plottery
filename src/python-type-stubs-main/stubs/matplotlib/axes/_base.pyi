@@ -3,9 +3,10 @@ from matplotlib.cbook import Grouper
 from matplotlib.image import AxesImage
 from matplotlib.legend import Legend
 from matplotlib.table import Table
+from matplotlib.text import Text
 import numpy as np
 from typing import Any, Callable, Collection, Iterable, Literal, MutableSequence, Sequence, overload
-from matplotlib._typing import *
+from matplotlib._typing import Color, ArrayLike, TextProps
 from matplotlib.transforms import Bbox, BboxBase, Transform, TransformedBbox
 from matplotlib.backend_bases import RendererBase
 from matplotlib.patches import Patch
@@ -191,11 +192,11 @@ class _AxesBase(Artist):
     def set_xlabel(
         self,
         xlabel: str,
-        fontdict:dict=...,
+        fontdict: dict=...,
         labelpad: float = ...,
         *,
         loc: Literal["left", "center", "right"] = ...,
-        **kwargs
+        **kwargs: TextProps
     )-> None: ...
     def invert_xaxis(self) -> None: ...
     xaxis_inverted = ...
@@ -207,22 +208,22 @@ class _AxesBase(Artist):
     @overload
     def set_xlim(
         self,
-        left: tuple[float | np.datetime64, float | np.datetime64],
-        *,
+        left: Literal[0] | float | np.datetime64 = ...,
+        right: float | np.datetime64 = ...,
         emit: bool = ...,
         auto: bool | None = ...,
-        xmin: float = ...,
+        *,
+        xmin: Literal[0] | float = ...,
         xmax: float = ...
     ) -> tuple[float, float]: ...
     @overload
     def set_xlim(
         self,
-        left: float | np.datetime64 = ...,
-        right: float | np.datetime64 = ...,
+        left: tuple[float | np.datetime64, float | np.datetime64],
+        *,
         emit: bool = ...,
         auto: bool | None = ...,
-        *,
-        xmin: float = ...,
+        xmin: Literal[0] | float = ...,
         xmax: float = ...
     ) -> tuple[float, float]: ...
     def get_xscale(self) -> str: ...
@@ -236,21 +237,28 @@ class _AxesBase(Artist):
         labels: Iterable[str] | None = ...,
         *,
         minor: bool = False,
-        **kwargs
+        **kwargs: TextProps
     ) -> list[Tick]: ...
     get_xmajorticklabels = ...
     get_xminorticklabels = ...
     get_xticklabels = ...
-    set_xticklabels = ...
+    def set_xticklabels(
+        self,
+        labels: Sequence[str] | Sequence[Text],
+        *,
+        minor: bool = False,
+        fontdict: dict = None,
+        **kwargs: TextProps,
+    ) -> list[Text]: ...
     def get_ylabel(self) -> str: ...
     def set_ylabel(
         self,
         ylabel: str,
-        fontdict:dict=...,
+        fontdict: dict =...,
         labelpad: float = ...,
         *,
         loc: Literal["bottom", "center", "top"] = ...,
-        **kwargs
+        **kwargs: TextProps
     ) -> None: ...
     def invert_yaxis(self) -> None: ...
     yaxis_inverted = ...
@@ -261,12 +269,12 @@ class _AxesBase(Artist):
     def get_ylim(self) -> tuple[float, float]: ...
     def set_ylim(
         self,
-        bottom: float = ...,
+        bottom: Literal[0] | float = ...,
         top: float = ...,
         emit: bool = ...,
         auto: bool | None = ...,
         *,
-        ymin: float = ...,
+        ymin: Literal[0] | float  = ...,
         ymax: float = ...
     )-> None: ...
     get_yscale = ...
@@ -280,12 +288,19 @@ class _AxesBase(Artist):
         labels: Iterable[str] | None = ...,
         *,
         minor: bool = False,
-        **kwargs
+        **kwargs: TextProps
     ) -> list[Tick]: ...
     get_ymajorticklabels = ...
     get_yminorticklabels = ...
     get_yticklabels = ...
-    set_yticklabels = ...
+    def set_yticklabels(
+        self,
+        labels: Sequence[str] | Sequence[Text],
+        *,
+        minor: bool = False,
+        fontdict: dict = None,
+        **kwargs: TextProps,
+    ) -> list[Text]: ...
     xaxis_date = ...
     yaxis_date = ...
     def format_xdata(self, x) -> str: ...

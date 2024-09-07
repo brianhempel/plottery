@@ -62,7 +62,7 @@ export function create_arg_view(
     }
   });
 
-  const arg_name_width = 120;
+  const arg_name_width = 105;
   set_max_width(prefixEl, arg_name_width);
 
   return view;
@@ -110,32 +110,32 @@ export function arg_view_to_code(arg: Arg, arg_view: ArgView): string {
 }
 
 // Show the value the value of the control, but in the layer panel
-export function make_proxy_arg_el(arg : Arg, view : ArgView, state: State) : HTMLElement {
-  const proxy_arg_el = create_el("div", ["snp-arg-view", "snp-proxy"]);
+// export function make_proxy_arg_el(arg : Arg, view : ArgView, state: State) : HTMLElement {
+//   const proxy_arg_el = create_el("div", ["snp-arg-view", "snp-proxy"]);
 
-  const name_el = create_el("div", ["snp-arg-name", "snp-proxy"], proxy_arg_el);
-  const code_el = create_el("div", ["snp-arg-value", "snp-proxy"], proxy_arg_el);
+//   const name_el = create_el("div", ["snp-arg-name", "snp-proxy"], proxy_arg_el);
+//   const code_el = create_el("div", ["snp-arg-value", "snp-proxy"], proxy_arg_el);
 
-  name_el.innerText = arg.name;
+//   name_el.innerText = arg.name;
 
-  const arg_name_width = 120;
-  set_max_width(name_el, arg_name_width);
+//   const arg_name_width = 120;
+//   set_max_width(name_el, arg_name_width);
 
-  let last_code = '';
-  let last_disabled = false;
-  function sync() {
-    if (view.widget.to_code() !== last_code) {
-      last_code = view.widget.to_code();
-      code_el.innerText = last_code;
-    }
-    if (view.disabled !== last_disabled) {
-      last_disabled = view.disabled;
-      proxy_arg_el.classList.toggle("snp-arg-disabled", last_disabled);
-    }
-    state.is_in_dom() && requestAnimationFrame(sync);
-  }
-  sync();
+//   let last_code = '';
+//   let last_disabled = false;
+//   function sync() {
+//     if (view.widget.to_code() !== last_code) {
+//       last_code = view.widget.to_code();
+//       code_el.innerText = last_code;
+//     }
+//     if (view.disabled !== last_disabled) {
+//       last_disabled = view.disabled;
+//       proxy_arg_el.classList.toggle("snp-arg-disabled", last_disabled);
+//     }
+//     state.is_in_dom() && requestAnimationFrame(sync);
+//   }
+//   sync();
 
-  return proxy_arg_el;
-}
+//   return proxy_arg_el;
+// }
 

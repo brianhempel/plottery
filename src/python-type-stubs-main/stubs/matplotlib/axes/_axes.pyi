@@ -6,7 +6,7 @@ from matplotlib.patheffects import AbstractPathEffect
 from font_manager import FontProperties
 import mlab
 import numpy as np
-from typing import Annotated, Any, Callable, Dict, Generic, Iterable, List, Literal, Optional, Sequence, Tuple, TypeVar, Union, overload
+from typing import Annotated, Any, Callable, Dict, Generic, List, Literal, Optional, Sequence, Tuple, TypeVar, Union, overload
 from typing_extensions import Unpack
 
 # from matplotlib._typing import * seems not to work, need the explicit imports:
@@ -85,7 +85,7 @@ class Axes(_AxesBase):
     ) -> tuple[list, list]: ...
     def legend(
         self,
-        labels: Iterable[str] | None = None,
+        labels: Sequence[str] | None = None,
         loc: (
             Literal[
                 "best",
@@ -519,8 +519,8 @@ class Axes(_AxesBase):
         positions: ArrayLike = ...,
         widths: float | ArrayLike = ...,
         patch_artist: bool = False,
-        tick_labels: Iterable[str] = ...,
-        labels: Iterable[str] = ..., # deprecated
+        tick_labels: Sequence[str] = ...,
+        labels: Sequence[str] = ..., # deprecated
         manage_ticks: bool = True,
         autorange: bool = False,
         meanline: bool = False,
@@ -565,15 +565,15 @@ class Axes(_AxesBase):
         x: float | ArrayLike,
         y: float | ArrayLike,
         s: float | ArrayLike = 36.0,
-        c: ColorType | Iterable[ColorType] | None = ...,
+        c: ColorType | Sequence[ColorType] | None = ...,
         marker: MarkerType = 'o',
         cmap: str | Colormap = 'viridis',
         norm: Literal['asinh', 'function', 'functionlog', 'linear', 'log', 'logit', 'symlog'] | str | Normalize | None = None,
         vmin: float | None = None,
         vmax: float | None = None,
         alpha: float | None = None,
-        linewidths: float | Iterable[float] = ...,
-        edgecolors: ColorType | Iterable[ColorType] | Literal['face', 'none'] | None = ...,
+        linewidths: float | Sequence[float] = ...,
+        edgecolors: ColorType | Sequence[ColorType] | Literal['face', 'none'] | None = ...,
         plotnonfinite: bool = False,
         **kwargs: CollectionProps,
     ) -> PathCollection: ...

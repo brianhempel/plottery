@@ -12,6 +12,7 @@ export type State = {
 
   cell: Cell;
   cell_lineno: number;
+  plt_show_lineno_in_cell: number;
   provenance_is_off_by_n_lines: number;
 
   methods: MethodInfo[];
@@ -68,7 +69,7 @@ export type CallViewEls = {
   el: HTMLElement;
   header_el: HTMLElement;
   name_el: HTMLElement;
-  proxies_el: HTMLElement;
+  // proxies_el: HTMLElement;
   properties_el: HTMLElement;
 };
 

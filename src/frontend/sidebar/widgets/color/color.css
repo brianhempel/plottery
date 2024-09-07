@@ -1,11 +1,16 @@
+.snp-widget:has(> .snp-arg-color) {
+  min-width: calc(1em + 2px);
+}
+
 input.snp-arg-color {
-  width: 18px;
-  height: 18px;
+  width: calc(1em + 2px);
+  height: calc(1em + 2px);
   border: none;
   outline: none;
   background: none;
   padding: 0;
   cursor: pointer;
+  position: absolute;
 }
 
 input.snp-arg-color::-webkit-color-swatch-wrapper {
@@ -13,7 +18,7 @@ input.snp-arg-color::-webkit-color-swatch-wrapper {
 }
 
 input.snp-arg-color::-webkit-color-swatch {
-  width: 16px;
-  height: 16px;
+  width: 1em;
+  height: 1em;
   border: 1px solid darkgray; /* same as the bool controls */
 }

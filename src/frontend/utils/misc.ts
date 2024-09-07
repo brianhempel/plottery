@@ -176,6 +176,9 @@ export function default_code_for_type(
     type["type_ref"] == "matplotlib._typing.ArrayLike"
   ) {
     return "[1,2,3]";
+  } else if (type[".class"] == "Instance" && (type.type_ref.endsWith(".Sequence") || type.type_ref.endsWith(".Iterable")) && type.args.length == 1) {
+    const item_code = default_code_for_type(type.args[0]);
+    return `[${item_code}, ${item_code}, ${item_code}]`;
   } else if (type[".class"] == "TupleType") {
     const item_codes = type.items.map(t => default_code_for_type(t));
     const perhaps_trailing_comma = type.items.length == 1 ? "," : "";
@@ -536,20 +539,27 @@ export function sig_figs(x: number, ndigits: number): number {
 }
 
 export function add_line_of_code(
-  code: string,
+  code: string, // without newline, unless you want to add an extra newline
   state: State
 ): TextMarker<MarkerRange> {
   const cm = state.cell.code_mirror;
 
-  let line_count = cm.getValue().split("\n").length;
+  const lines = cm.getValue().split('\n');
+  const plt_show_line = lines[state.plt_show_lineno_in_cell - 1];
+  const indentation = (plt_show_line.match(/^\s*/) || [''])[0];
+
+  // if line before is blank, insert before the blank
+  // otherwise, insert immeditately above plt.show()
+  const n_lines_before = lines[state.plt_show_lineno_in_cell - 2]?.match(/^\s*$/) ? 2 : 1;
+
   let mark = cm.markText(
-    { line: line_count - 3, ch: 0 },
-    { line: line_count - 3, ch: 0 },
+    { line: state.plt_show_lineno_in_cell - n_lines_before, ch: 0 },
+    { line: state.plt_show_lineno_in_cell - n_lines_before, ch: 0 },
     { inclusiveRight: true, inclusiveLeft: true, clearWhenEmpty: false }
-  ); // insert at end, for now...
+  );
 
   let { from, to } = mark.find()!;
-  cm.replaceRange(code, from, to);
+  cm.replaceRange(code.replaceAll(/^/mg, indentation) + '\n', from, to);
 
   return mark;
 }

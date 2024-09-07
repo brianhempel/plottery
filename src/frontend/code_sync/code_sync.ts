@@ -2,7 +2,7 @@ import { attach_events_to_hover_regions } from "../sidebar/hover-regions/hover_r
 import { reposition_plot_widgets } from "../sidebar/plot-widget/plot_widget";
 import { State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
-import { CellMessage } from "../utils/types";
+import { Cell, CellMessage } from "../utils/types";
 
 
 export function hard_rerun(state: State) {
@@ -40,7 +40,12 @@ function execute_cell_but_delay_clearing_output(cell) {
     orig_output_callback(...arguments);
   }
 
-  cell.last_msg_id = cell.kernel.execute(cell.get_text(), callbacks, {silent: false, store_history: true, stop_on_error : stop_on_error});
+  cell.last_msg_id = cell.kernel.execute(cell.get_text(), callbacks, {
+    silent: false,
+    store_history: true,
+    stop_on_error : stop_on_error,
+    cell: cell
+  });
   // CodeCell.msg_cells[cell.last_msg_id] = cell;
   cell.render();
   cell.events.trigger('execute.CodeCell', {cell: cell});
@@ -157,10 +162,19 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
   };
 
   state.hover_regions_container.classList.add("hidden");
-  cell.kernel.execute(code_executing.replace('SNP(', `SNPFigureOnly(`), callbacks, {
+
+  const fig_idx = state.persistent_dataset.fig_idx || '0';
+  const postfix =
+`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureOnly) # Store to a variable for debugging
+last_snp`;
+
+  // If we add an explicit show_ui, the notebook extension will not re-add it again
+  cell.kernel.execute(code_executing + postfix, callbacks, {
     silent: false,
     store_history: false,
     stop_on_error: true,
+    cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
+    doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
   });
 }
 
@@ -201,9 +215,16 @@ export function refresh_hover_regions(state: State) {
     redraw_cell(state, true);
   };
 
-  cell.kernel.execute(cell.get_text().replace('SNP(', `SNPFigureAndHoverRegions(`), callbacks, {
+  const fig_idx = state.persistent_dataset.fig_idx || '0';
+  const postfix =
+`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureAndHoverRegions) # Store to a variable for debugging
+last_snp`;
+
+  cell.kernel.execute(cell.get_text() + postfix, callbacks, {
     silent: false,
     store_history: false,
     stop_on_error: true,
+    cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
+    doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
   });
 }

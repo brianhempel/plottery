@@ -46,10 +46,12 @@
   margin: 10px;
 }
 
-.plot_area {
+.plot_area,
+.stdout_stderr {
   min-width: 640px;
   max-width: 640px;
 }
+
 
 .plot_area:not(:hover) .snp-method-view.placed:not(.open):not(.always-show), /* Can't hide the methods until they've been positioned */
 .plot_area:not(:hover) .plot-widget .plot-widget-edit-icon,

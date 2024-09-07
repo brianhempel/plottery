@@ -37,6 +37,7 @@ declare const Jupyter: JupyterType;
 function attach_snp(
   snp_outer: HTMLElement,
   cell_lineno: number,
+  plt_show_lineno_in_cell: number,
   provenance_is_off_by_n_lines: number,
   methods: MethodInfo[],
   calls: CallInfo[],
@@ -44,7 +45,9 @@ function attach_snp(
   notebook_parseable_comments: ParseableComment[],
   user_iterables: string[],
   avoid_names: string[],
-  llm_api_key: string
+  llm_api_key: string,
+  fig_idx: number,
+  fig_names: string[],
 ) {
   // Initialize state
   const cell_el = snp_outer.closest(".code_cell");
@@ -54,6 +57,8 @@ function attach_snp(
     cell_lineno: cell_lineno,
 
     last_cell_code_executed: cell.get_text(),
+
+    plt_show_lineno_in_cell,
     provenance_is_off_by_n_lines,
 
     notebook_typed_defs: [],
@@ -100,7 +105,7 @@ function attach_snp(
 
   console.log("State", state);
 
-  const sidebar_menu_bar = create_sidebar_menu_bar(state);
+  const sidebar_menu_bar = create_sidebar_menu_bar(state, fig_idx, fig_names);
 
   state.sidebar_el.append(sidebar_menu_bar);
 
@@ -203,6 +208,11 @@ function attach_snp(
     state.persistent_dataset.new_calls = "[]";
   } else {
     load_selected_layers(state);
+  }
+
+  // Be sure fig_idx is stored so that re-runs of the cell preserve it
+  if (!state.persistent_dataset.fig_idx) {
+    state.persistent_dataset.fig_idx = fig_idx.toString();
   }
 
   // Re-open the selected calls

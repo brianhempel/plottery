@@ -20,7 +20,7 @@ import {
   arg_view_to_code,
   create_arg_view,
   enable_arg_view,
-  make_proxy_arg_el,
+  // make_proxy_arg_el,
   // make_proxy_arg_view,
 } from "../arg/arg";
 import {
@@ -56,11 +56,7 @@ export function id_of_new_call(func_code: string, line_no: number): string {
 
 
 /**
- * Creates a call in the sidebar. e.g.
- *
- * ax.barh
- *   - y=data[0]
- *   - heights=data[1]
+ * Creates a call in the sidebar, and its properties below it (which get transplanted to the properties panel)
  */
 export function create_call_view(call: CallWithArgs, state: State): CallView {
   const code_mirror = state.cell.code_mirror;
@@ -79,7 +75,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
   const call_el = create_el("div", []);
   const header_el = create_el("div", [], call_el);
-  const proxies_el = create_el("div", ["snp-args", "snp-proxy-args"], call_el);
+  // const proxies_el = create_el("div", ["snp-args", "snp-proxy-args"], call_el);
   const properties_el = create_el("div", ["snp-args"], call_el);
 
   call_el.classList.add("snp-call");
@@ -104,9 +100,9 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   const add_args = (args: Arg[], disabled: boolean) => {
     args.forEach(arg => {
       const arg_view = create_arg_view(arg, call.call_info.docstring, {disabled});
-      const proxy_arg_el = make_proxy_arg_el(arg, arg_view, state);
+      // const proxy_arg_el = make_proxy_arg_el(arg, arg_view, state);
       properties_el.append(arg_view.el);
-      proxies_el.append(proxy_arg_el);
+      // proxies_el.append(proxy_arg_el);
       arg_and_views.push({ arg, view: arg_view });
     });
   };
@@ -151,7 +147,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
       el: call_el,
       header_el,
       name_el: name_el,
-      proxies_el,
+      // proxies_el,
       properties_el,
     },
     is_elided: false,
@@ -229,9 +225,12 @@ export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((
 
   const first_ten_args = call_view.arguments.slice(0, 10);
 
-  let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'x')?.view;
+  const perhaps_x_view = first_ten_args.find(({ arg }) => arg.name == 'x')?.view;
+  if (perhaps_x_view) {
+    return drag_handler_for_arg_view(perhaps_x_view, 'x', false);
+  }
 
-  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'x') : undefined;
+  return undefined;
 }
 
 export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
@@ -240,35 +239,96 @@ export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | ((
 
   let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'y')?.view;
 
-  let coord_sys = 'axes_units'
+  let coord_sys: 'axes_units' | 'axes_size' = 'axes_units'
+
   // the y for ax.set_title is relative to the axes height
   if (call_view.els.name_el.innerText.endsWith(".set_title")) {
     coord_sys = 'axes_size'
   }
 
-  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y', coord_sys) : undefined;
+  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y', false, coord_sys) : undefined;
 }
 
-export function perhaps_get_drag_width_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
+export function perhaps_get_drag_left_edge_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
 
   const first_ten_args = call_view.arguments.slice(0, 10);
 
-  let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'width')?.view;
+  const perhaps_xmin_view = first_ten_args.find(({ arg }) => arg.name == 'xmin')?.view;
+  if (perhaps_xmin_view) {
+    return drag_handler_for_arg_view(perhaps_xmin_view, 'x', false);
+  }
 
-  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'x') : undefined;
+  const perhaps_width_view = first_ten_args.find(({ arg }) => arg.name == 'width')?.view;
+  if (perhaps_width_view) {
+    return drag_handler_for_arg_view(perhaps_width_view, 'x', true);
+  }
+
+  return undefined;
 }
 
-export function perhaps_get_drag_height_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
+export function perhaps_get_drag_right_edge_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
 
   const first_ten_args = call_view.arguments.slice(0, 10);
 
-  let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'height')?.view;
+  const perhaps_xmax_view = first_ten_args.find(({ arg }) => arg.name == 'xmax')?.view;
+  if (perhaps_xmax_view) {
+    return drag_handler_for_arg_view(perhaps_xmax_view, 'x', false);
+  }
 
-  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y') : undefined;
+  const perhaps_width_view = first_ten_args.find(({ arg }) => arg.name == 'width')?.view;
+  if (perhaps_width_view) {
+    return drag_handler_for_arg_view(perhaps_width_view, 'x', false);
+  }
+
+  return undefined;
+}
+
+export function perhaps_get_drag_top_edge_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
+
+  const first_ten_args = call_view.arguments.slice(0, 10);
+
+  const perhaps_ymax_view = first_ten_args.find(({ arg }) => arg.name == 'ymax')?.view;
+  if (perhaps_ymax_view) {
+    return drag_handler_for_arg_view(perhaps_ymax_view, 'y', false);
+  }
+
+  const perhaps_top_view = first_ten_args.find(({ arg }) => arg.name == 'top')?.view;
+  if (perhaps_top_view) {
+    return drag_handler_for_arg_view(perhaps_top_view, 'y', false);
+  }
+
+  const perhaps_height_view = first_ten_args.find(({ arg }) => arg.name == 'height')?.view;
+  if (perhaps_height_view) {
+    return drag_handler_for_arg_view(perhaps_height_view, 'y', false);
+  }
+
+  return undefined;
+}
+
+export function perhaps_get_drag_bottom_edge_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
+
+  const first_ten_args = call_view.arguments.slice(0, 10);
+
+  const perhaps_ymin_view = first_ten_args.find(({ arg }) => arg.name == 'ymin')?.view;
+  if (perhaps_ymin_view) {
+    return drag_handler_for_arg_view(perhaps_ymin_view, 'y', false);
+  }
+
+  const perhaps_bottom_view = first_ten_args.find(({ arg }) => arg.name == 'bottom')?.view;
+  if (perhaps_bottom_view) {
+    return drag_handler_for_arg_view(perhaps_bottom_view, 'y', false);
+  }
+
+  const perhaps_height_view = first_ten_args.find(({ arg }) => arg.name == 'height')?.view;
+  if (perhaps_height_view) {
+    return drag_handler_for_arg_view(perhaps_height_view, 'y', true);
+  }
+
+  return undefined;
 }
 
 
-function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', coord_sys: 'axes_units' | 'axes_size' = 'axes_units') : ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
+function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', reversed: boolean = false, coord_sys: 'axes_units' | 'axes_size' = 'axes_units') : ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
   const starting_arg_code = view.widget.to_code();
 
   // The branches below will set these two, based on what kind of code we have
@@ -314,6 +374,7 @@ function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', coord_sys: 
       throw new Error(`drag_handler_for_arg_view this shouldn't happen ${coord_sys}`);
     }
 
+    if (reversed) { delta_px = -delta_px; }
     const new_number = delta_px === 0 ? starting_number : sig_figs(starting_number + delta_px*units_per_fig_px/client_px_per_fig_px, 2);
     let new_arg_code: string;
     if (code_lhs === undefined) { // code is bare literal number

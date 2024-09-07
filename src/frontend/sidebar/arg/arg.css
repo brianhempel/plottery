@@ -7,10 +7,10 @@
   padding: 0 4px;
 }
 
-.snp-proxy-args {
+/* .snp-proxy-args {
   font-size: 12px;
   opacity: 0.8;
-}
+} */
 
 .snp-arg-str {
   color: #BA2121;
@@ -41,9 +41,9 @@
   opacity: 0.5;
   filter: saturate(0.15);
 }
-.snp-arg-disabled.snp-proxy {
+/* .snp-arg-disabled.snp-proxy {
   display: none;
-}
+} */
 
 .snp-arg-disabled:not(.snp-proxy):hover {
   opacity: 0.66;
@@ -56,9 +56,9 @@
   margin-right: 5px;
   /* Width is set in JS because we do some fancy resizing if the name is too long */
 }
-.snp-arg-name.snp-proxy {
+/* .snp-arg-name.snp-proxy {
   color:#2d4467;
-}
+} */
 
 .snp-arg-disabled > .snp-arg-name {
   font-weight: normal;
