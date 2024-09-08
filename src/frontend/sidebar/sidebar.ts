@@ -5,14 +5,14 @@ import { add_menu_item, create_menu_el } from "../menus/menus";
 import { hard_rerun } from "../code_sync/code_sync";
 
 
-export function set_margin_right_to_width(el: HTMLElement, extra_px: number) {
+export function set_margin_right_to_width(el: HTMLElement, margin_right: number, dx: number) {
   const resizeObserver = new ResizeObserver((entries) => {
     // console.log("resizeObserver", entries);
     for (const entry of entries) {
       if (entry.borderBoxSize) {
         const width = (entry.borderBoxSize[0] || entry.borderBoxSize).inlineSize;
-        el.style.marginLeft = `${-width-extra_px}px`;
-        el.style.marginRight = `${extra_px}px`;
+        el.style.marginLeft = `${-width-margin_right+dx}px`;
+        el.style.marginRight = `${margin_right}px`;
       }
     }
   });

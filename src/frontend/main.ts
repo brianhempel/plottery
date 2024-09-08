@@ -95,7 +95,8 @@ function attach_snp(
 
     command_shortcuts: {}, // Added by menu items in menus.ts
   };
-  set_margin_right_to_width(state.sidebar_el, 20);
+  const make_stuff_nice_for_screenshots = window.sessionStorage.getItem('make_stuff_nice_for_screenshots') === 'true'
+  set_margin_right_to_width(state.sidebar_el, 20, 83 + (make_stuff_nice_for_screenshots ? 113 : 0));
 
   // Put stdout_stderr at the bottom
   // state.stdout_stderr.remove();
@@ -239,6 +240,31 @@ function attach_snp(
   //   focus_on_call_from_code(focused_call, state);
   //   (window as any)["snp_focused_call"] = null;
   // }
+
+  // FOR SCREENSHOTS, SET window.sessionStorage.setItem('make_stuff_nice_for_screenshots', 'true') IN JAVASCRIPT
+  // %%javascript
+  // window.sessionStorage.removeItem('make_stuff_nice_for_screenshots')
+  // window.sessionStorage.setItem('make_stuff_nice_for_screenshots', 'true')
+  if (make_stuff_nice_for_screenshots) {
+    document.body.style.backgroundColor = 'white';
+    document.querySelectorAll('.prompt_container,.output_prompt,.out_prompt_overlay').forEach(el => { el.remove() });
+    document.querySelectorAll('#notebook-container').forEach(el => (el as HTMLElement).style.boxShadow = 'none');
+
+    const style = document.createElement("style");
+    // link.type = "text/css";
+    // link.rel = "stylesheet";
+    style.append(`
+div.cell.selected,
+.edit_mode div.cell.selected \{
+    border-color: transparent;
+\}
+div.cell.selected::before,
+.edit_mode div.cell.selected::before \{
+    background-color: transparent;
+\}
+    `);
+    document.getElementsByTagName("head")[0].appendChild(style);
+  }
 
   (window as any)["last_snp_state"] = state;
 }
