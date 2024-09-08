@@ -6,11 +6,11 @@ from matplotlib.patheffects import AbstractPathEffect
 from font_manager import FontProperties
 import mlab
 import numpy as np
-from typing import Annotated, Any, Callable, Dict, Generic, List, Literal, Optional, Sequence, Tuple, TypeVar, Union, overload
+from typing import Annotated, Any, Callable, Dict, Generic, List, Literal, Optional, Iterable, Tuple, TypeVar, Union, overload
 from typing_extensions import Unpack
 
 # from matplotlib._typing import * seems not to work, need the explicit imports:
-from matplotlib._typing import PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, Linestyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, XYCoordSystem
+from matplotlib._typing import PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, Linestyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, AnnotateProps, XYCoordSystem
 
 from matplotlib.backend_tools import Cursors
 from matplotlib.contour import QuadContourSet
@@ -85,7 +85,7 @@ class Axes(_AxesBase):
     ) -> tuple[list, list]: ...
     def legend(
         self,
-        labels: Sequence[str] | None = None,
+        labels: Iterable[str] | None = None,
         loc: (
             Literal[
                 "best",
@@ -109,10 +109,10 @@ class Axes(_AxesBase):
         ncol: int = 1,
         prop: None | dict = None,
         fontsize: int | NamedFontSize | None = None,
-        labelcolor: ColorType | Sequence[ColorType] | None = None,
+        labelcolor: ColorType | Iterable[ColorType] | None = None,
         numpoints: int = 1,
         scatterpoints: int = 1,
-        scatteryoffsets: Sequence[float] = [0.375, 0.5, 0.3125],
+        scatteryoffsets: Iterable[float] = [0.375, 0.5, 0.3125],
         markerscale: float = 1.0,
         markerfirst: bool = True,
         reverse: bool = False,
@@ -140,7 +140,7 @@ class Axes(_AxesBase):
     ) -> Legend: ...
     def inset_axes(
         self,
-        bounds: Sequence[float],
+        bounds: Iterable[float],
         *,
         transform: Transform = ...,
         projection: (
@@ -162,7 +162,7 @@ class Axes(_AxesBase):
     ) -> Axes: ...
     def indicate_inset(
         self,
-        bounds: Sequence[float],
+        bounds: Iterable[float],
         inset_ax: Axes = ...,
         *,
         transform: Transform = ...,
@@ -253,7 +253,7 @@ class Axes(_AxesBase):
         y: float | ArrayLike,
         xmin: float | ArrayLike,
         xmax: float | ArrayLike,
-        colors: Sequence[ColorType] = "C0",
+        colors: Iterable[ColorType] = "C0",
         linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = "solid",
         label: str = "",
         **kwargs: LineCollectionProps,
@@ -263,21 +263,21 @@ class Axes(_AxesBase):
         x: float | ArrayLike,
         ymin: float | ArrayLike,
         ymax: float | ArrayLike,
-        colors: Sequence[ColorType] = ...,
+        colors: Iterable[ColorType] = ...,
         linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
         label: str = ...,
         **kwargs: LineCollectionProps,
     ) -> LineCollection: ...
     def eventplot(
         self,
-        positions: ArrayLike | Sequence[ArrayLike],
+        positions: ArrayLike | Iterable[ArrayLike],
         orientation: Literal["horizontal", "vertical"] = "horizontal",
         lineoffsets: float | ArrayLike = 1,
         linelengths: float | ArrayLike = 1,
         linewidths: float | ArrayLike = 1.5,
-        colors: ColorType | Sequence[ColorType] = "C0",
+        colors: ColorType | Iterable[ColorType] = "C0",
         alpha: float | ArrayLike = 1,
-        linestyles: Linestyle | Sequence[Linestyle] = "solid",
+        linestyles: Linestyle | Iterable[Linestyle] = "solid",
         **kwargs: EventCollectionProps,
     ) -> list[EventCollection]: ...
     # def plot(
@@ -298,15 +298,15 @@ class Axes(_AxesBase):
     #     bottom: float | ArrayLike = 0,
     #     *,  # What does the star mean?
     #     align: Literal["center", "edge"] = "center",
-    #     color: ColorType | Sequence[ColorType] = ...,
-    #     # color: ColorType | Sequence[ColorType] = ...,
-    #     edgecolor: ColorType | Sequence[ColorType] = ...,
+    #     color: ColorType | Iterable[ColorType] = ...,
+    #     # color: ColorType | Iterable[ColorType] = ...,
+    #     edgecolor: ColorType | Iterable[ColorType] = ...,
     #     linewidth: float | ArrayLike = ...,
-    #     tick_label: str | Sequence[str] = ...,
-    #     label: str | Sequence[str] = ...,
+    #     tick_label: str | Iterable[str] = ...,
+    #     label: str | Iterable[str] = ...,
     #     xerr: float | ArrayLike = ...,
     #     yerr: float | ArrayLike = ...,
-    #     ecolor: ColorType | Sequence[ColorType] = "black",
+    #     ecolor: ColorType | Iterable[ColorType] = "black",
     #     capsize: float = 0.0,
     #     error_kw: float | ArrayLike = ...,
     #     log: bool = False,
@@ -336,7 +336,7 @@ class Axes(_AxesBase):
     def loglog(
         self,
         base: float = 1.0,
-        subs: Sequence | None = None,
+        subs: Iterable | None = None,
         nonpositive: Literal["mask", "clip"] = "clip",
         # All parameters supported by plot.
         y: ArrayLike | float = ...,
@@ -350,7 +350,7 @@ class Axes(_AxesBase):
     def semilogx(
         self,
         base: float = 10.0,
-        subs: Sequence | None = None,
+        subs: Iterable | None = None,
         nonpositive: Literal["mask", "clip"] = "clip",
         # All parameters supported by plot.
         y: ArrayLike | float = ...,
@@ -364,7 +364,7 @@ class Axes(_AxesBase):
     def semilogy(
         self,
         base: float = 10.0,
-        subs: Sequence | None = None,
+        subs: Iterable | None = None,
         nonpositive: Literal["mask", "clip"] = "clip",
         # All parameters supported by plot.
         y: ArrayLike | float = ...,
@@ -403,14 +403,14 @@ class Axes(_AxesBase):
         bottom: float | ArrayLike = 0,
         *,  # What does the star mean?
         align: Literal["center", "edge"] = "center",
-        color: ColorType | Sequence[ColorType] = ...,
-        edgecolor: ColorType | Sequence[ColorType] = ...,
+        color: ColorType | Iterable[ColorType] = ...,
+        edgecolor: ColorType | Iterable[ColorType] = ...,
         linewidth: float | ArrayLike = 0.0,
-        tick_label: str | Sequence[str] = ...,
-        label: str | Sequence[str] = ...,
+        tick_label: str | Iterable[str] = ...,
+        label: str | Iterable[str] = ...,
         xerr: float | ArrayLike = ...,
         yerr: float | ArrayLike = ...,
-        ecolor: ColorType | Sequence[ColorType] = "black",
+        ecolor: ColorType | Iterable[ColorType] = "black",
         capsize: float = 0.0,
         error_kw: float | ArrayLike = ...,
         log: bool = False,
@@ -425,14 +425,14 @@ class Axes(_AxesBase):
         left: float | ArrayLike = 0,
         *,
         align: Literal["center", "edge"] = "center",
-        color: ColorType | Sequence[ColorType] = ...,
-        edgecolor: ColorType | Sequence[ColorType] = ...,
+        color: ColorType | Iterable[ColorType] = ...,
+        edgecolor: ColorType | Iterable[ColorType] = ...,
         linewidth: float | ArrayLike = ...,
-        tick_label: str | Sequence[str] = ...,
-        label: str | Sequence[str] = ...,
+        tick_label: str | Iterable[str] = ...,
+        label: str | Iterable[str] = ...,
         xerr: float | ArrayLike = ...,
         yerr: float | ArrayLike = ...,
-        ecolor: ColorType | Sequence[ColorType] = "black",
+        ecolor: ColorType | Iterable[ColorType] = "black",
         capsize: float = 0.0,
         error_kw: dict = ...,
         log: bool = False,
@@ -447,11 +447,11 @@ class Axes(_AxesBase):
         fmt: str = "%g",
         label_type: Literal["edge", "center"] = "edge",
         padding: float = 0,
-        **kwargs,
+        **kwargs: AnnotateProps,
     ) -> list[Text]: ...
     def broken_barh(
         self,
-        xranges: Sequence[tuple[float, float]],
+        xranges: Iterable[tuple[float, float]],
         yrange: tuple[float, float],
         **kwargs,
     ) -> BrokenBarHCollection: ...
@@ -519,8 +519,8 @@ class Axes(_AxesBase):
         positions: ArrayLike = ...,
         widths: float | ArrayLike = ...,
         patch_artist: bool = False,
-        tick_labels: Sequence[str] = ...,
-        labels: Sequence[str] = ..., # deprecated
+        tick_labels: Iterable[str] = ...,
+        labels: Iterable[str] = ..., # deprecated
         manage_ticks: bool = True,
         autorange: bool = False,
         meanline: bool = False,
@@ -539,7 +539,7 @@ class Axes(_AxesBase):
     ) -> dict[str, list[Line2D]]: ...
     def bxp(
         self,
-        bxpstats: Sequence[dict],
+        bxpstats: Iterable[dict],
         positions: ArrayLike = ...,
         widths: float | ArrayLike | None = None,
         vert: bool = True,
@@ -565,15 +565,15 @@ class Axes(_AxesBase):
         x: float | ArrayLike,
         y: float | ArrayLike,
         s: float | ArrayLike = 36.0,
-        c: ColorType | Sequence[ColorType] | None = ...,
+        c: ColorType | Iterable[ColorType] | None = ...,
         marker: MarkerType = 'o',
         cmap: str | Colormap = 'viridis',
         norm: Literal['asinh', 'function', 'functionlog', 'linear', 'log', 'logit', 'symlog'] | str | Normalize | None = None,
         vmin: float | None = None,
         vmax: float | None = None,
         alpha: float | None = None,
-        linewidths: float | Sequence[float] = ...,
-        edgecolors: ColorType | Sequence[ColorType] | Literal['face', 'none'] | None = ...,
+        linewidths: float | Iterable[float] = ...,
+        edgecolors: ColorType | Iterable[ColorType] | Literal['face', 'none'] | None = ...,
         plotnonfinite: bool = False,
         **kwargs: CollectionProps,
     ) -> PathCollection: ...
@@ -583,10 +583,10 @@ class Axes(_AxesBase):
         y: ArrayLike,
         C: ArrayLike = ...,
         gridsize: int = 100,
-        bins: Literal["log"] | int | Sequence | None = None,
+        bins: Literal["log"] | int | Iterable | None = None,
         xscale: Literal["linear", "log"] = "linear",
         yscale: Literal["linear", "log"] = "linear",
-        extent: Sequence[float] | None = None,
+        extent: Iterable[float] | None = None,
         cmap=...,
         norm=...,
         vmin=...,
@@ -639,7 +639,7 @@ class Axes(_AxesBase):
         vmin: float = ...,
         vmax: float = ...,
         origin: Literal["upper", "lower"] = ...,
-        extent: Sequence[float] = ...,
+        extent: Iterable[float] = ...,
         *,
         interpolation_stage: Literal["data", "rgba"] = ...,
         filternorm: bool = True,
@@ -687,7 +687,7 @@ class Axes(_AxesBase):
     @overload
     def hist(
         self,
-        x: Sequence[ArrayLike],
+        x: Iterable[ArrayLike],
         bins: int | ArrayLike | str = ...,
         range: tuple | None = ...,
         density: bool = ...,
@@ -750,7 +750,7 @@ class Axes(_AxesBase):
     ]: ...
     def psd(
         self,
-        x: Sequence,
+        x: Iterable,
         NFFT: int = ...,
         Fs: float = ...,
         Fc: int = 0,
@@ -781,7 +781,7 @@ class Axes(_AxesBase):
     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
     def magnitude_spectrum(
         self,
-        x: Sequence,
+        x: Iterable,
         Fs: float = ...,
         Fc: int = ...,
         window: Callable | np.ndarray = ...,
@@ -792,7 +792,7 @@ class Axes(_AxesBase):
     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
     def angle_spectrum(
         self,
-        x: Sequence,
+        x: Iterable,
         Fs: float = ...,
         Fc: int = 0,
         window: Callable | np.ndarray = ...,
@@ -802,7 +802,7 @@ class Axes(_AxesBase):
     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
     def phase_spectrum(
         self,
-        x: Sequence,
+        x: Iterable,
         Fs: float = ...,
         Fc: int = 0,
         window: Callable | np.ndarray = ...,
@@ -827,7 +827,7 @@ class Axes(_AxesBase):
     ) -> tuple[np.ndarray, np.ndarray]: ...
     def specgram(
         self,
-        x: Sequence,
+        x: Iterable,
         NFFT: int = ...,
         Fs: float = ...,
         Fc: int = 0,
@@ -871,7 +871,7 @@ class Axes(_AxesBase):
     ) -> dict[str, Collection]: ...
     def violin(
         self,
-        vpstats: Sequence[dict],
+        vpstats: Iterable[dict],
         positions: ArrayLike = ...,
         vert: bool = True,
         widths: ArrayLike | float = 0.5,

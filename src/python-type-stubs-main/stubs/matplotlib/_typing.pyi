@@ -1,4 +1,4 @@
-# In argument position, always use Sequence[] instead of List[],
+# In argument position, always use Iterable[] instead of List[],
 # because List[] is mutable and therefore List[str] is not a subtype of e.g. List[Union[str, int]],
 # but you want it to be a subtype for matching args
 
@@ -16,7 +16,6 @@ import numpy.typing
 import pandas as pd
 from typing import (
     Iterable,
-    Sequence,
     Tuple,
     TypedDict,
     TypeAlias,
@@ -86,7 +85,7 @@ Linestyle = \
         "None",
         " ",
         "",
-    ] | tuple[float, Sequence[float]]
+    ] | tuple[float, Iterable[float]]
 
 class PatchProps(TypedDict, total=False):
     # agg_filter: function
@@ -189,7 +188,7 @@ NamedFontWeight: TypeAlias = Literal[
 
 # text
 #   for list of aliases, look for `@_api.define_aliases` in text.py
-#   TODO do "text properties" encompass not just text kwargs (which this currenlty is) but also non-kwrags named parmaeters?
+#   TODO do "text properties" encompass not just text kwargs (which this currently is) but also non-kwrags named parmaeters?
 class TextProps(TypedDict, total=False):
     # agg_filter: AggFilterType
     alpha: AlphaType
@@ -253,6 +252,15 @@ class TextProps(TypedDict, total=False):
     y: float
     zorder: float
 
+class AnnotateProps(TextProps, total=False):
+    xy: tuple[float, float]
+    xytext: tuple[float, float]
+    xycoords: XYCoordSystem | tuple[XYCoordSystem, XYCoordSystem] = "data"
+    textcoords: TextCoordSystem = "data"  # @TODO: default is value of xycoords, not always 'data'
+    arrowprops: ArrowProps
+    annotation_clip: bool | None = None
+
+
 AxesProps: TypeAlias = TextProps
 
 MarkerStrs: TypeAlias = Literal['.',',','o','v','^','<','>','1','2','3','4','8','s','p','P','*','h','H','+','x','X','D','d','|','_']
@@ -262,14 +270,14 @@ MarkerType: TypeAlias = MarkerStrs | Literal[0,1,2,3,4,5,6,7,8,9,10,11,'none','N
 
 
 class Line2DProps(TypedDict, total=False):
-    color: ColorType | Sequence[ColorType] = 'C0'  # mpl.rcParams['lines.color']
-    # c: ColorType | Sequence[ColorType] = 'C0'  # mpl.rcParams['lines.color']
+    color: ColorType | Iterable[ColorType] = 'C0'  # mpl.rcParams['lines.color']
+    # c: ColorType | Iterable[ColorType] = 'C0'  # mpl.rcParams['lines.color']
     alpha: float | None = None
     linewidth: float | None = 1.5  # mpl.rcParams['lines.linewidth']
     # lw: float | None = 1.5  # mpl.rcParams['lines.linewidth']
     linestyle: Linestyle | None = '-'  # mpl.rcParams['lines.linestyle']
     # ls: Linestyle | None = '-'  # mpl.rcParams['lines.linestyle']
-    dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Sequence[float] | Tuple = ()
+    dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Iterable[float] | Tuple = ()
     gapcolor: ColorType | None = None
     drawstyle: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default'
     # ds: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default'
@@ -406,39 +414,39 @@ class PolygonProps(PatchProps, total=False):
     closed: bool
 
 class CollectionProps(TypedDict, total=False):
-    edgecolors: ColorType | Sequence[ColorType] = "black"
-    facecolors: ColorType | Sequence[ColorType] = "C0"
-    linewidths: float | Sequence[float] = 1.0
-    linestyles: Linestyle | Sequence[Linestyle] = "solid"
+    edgecolors: ColorType | Iterable[ColorType] = "black"
+    facecolors: ColorType | Iterable[ColorType] = "C0"
+    linewidths: float | Iterable[float] = 1.0
+    linestyles: Linestyle | Iterable[Linestyle] = "solid"
     capstyle: CapStyleLike = "butt"
     joinstyle: JoinStyleLike = "round"
-    antialiaseds: bool | Sequence[bool] = True
-    offsets: tuple[float, float] | Sequence[tuple[float, float]] = (0, 0)
+    antialiaseds: bool | Iterable[bool] = True
+    offsets: tuple[float, float] | Iterable[tuple[float, float]] = (0, 0)
     offset_transform: Transform = IdentityTransform()
     cmap: CmapType | None
     norm: NormType | None
     hatch: Hatches | None
     pickradius: float = 5
-    # urls: Sequence[str] | None
+    # urls: Iterable[str] | None
     zorder: float = 1
 
 class LineCollectionProps(CollectionProps, total=False):
-    segments: Sequence[Sequence[tuple[float, float]]]
-    linewidths: float | Sequence[float] = 1.5
-    colors: ColorType | Sequence[ColorType] = "C0"
-    antialiaseds: bool | Sequence[bool] = True
+    segments: Iterable[Iterable[tuple[float, float]]]
+    linewidths: float | Iterable[float] = 1.5
+    colors: ColorType | Iterable[ColorType] = "C0"
+    antialiaseds: bool | Iterable[bool] = True
     zorder: float = 2
-    facecolors: ColorType | Sequence[ColorType] = "none"
+    facecolors: ColorType | Iterable[ColorType] = "none"
 
 class EventCollectionProps(LineCollectionProps, total=False):
-    positions: Sequence
+    positions: Iterable
     orientation: Literal["vertical", "horizontal"] = "horizontal"
     lineoffset: float = 0
     linelength: float = 1
-    linewidths: float | Sequence[float] = 1.5
-    colors: ColorType | Sequence[ColorType] = "C0"
-    linestyle: Linestyle | Sequence[Linestyle] = "solid"
-    antialiaseds: bool | Sequence[bool] = True
+    linewidths: float | Iterable[float] = 1.5
+    colors: ColorType | Iterable[ColorType] = "C0"
+    linestyle: Linestyle | Iterable[Linestyle] = "solid"
+    antialiaseds: bool | Iterable[bool] = True
 
 __all__ = [
     "ArrayLike",
@@ -454,6 +462,7 @@ __all__ = [
     "NamedFontSize",
     "Line2DProps",
     "TextProps",
+    "AnnotateProps",
     "XYCoordSystem",
     "TextCoordSystem",
     "ArrowProps",

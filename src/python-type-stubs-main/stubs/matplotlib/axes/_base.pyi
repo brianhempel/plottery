@@ -5,7 +5,7 @@ from matplotlib.legend import Legend
 from matplotlib.table import Table
 from matplotlib.text import Text
 import numpy as np
-from typing import Any, Callable, Collection, Iterable, Literal, MutableSequence, Sequence, overload
+from typing import Any, Callable, Collection, Iterable, Literal, MutableSequence, overload
 from matplotlib._typing import Color, ArrayLike, TextProps
 from matplotlib.transforms import Bbox, BboxBase, Transform, TransformedBbox
 from matplotlib.backend_bases import RendererBase
@@ -29,7 +29,7 @@ class _AxesBase(Artist):
     def __init__(
         self,
         fig: Figure,
-        rect: Sequence[float],
+        rect: Iterable[float],
         *,
         facecolor: Color|None=None,
         frameon: bool = True,
@@ -57,7 +57,7 @@ class _AxesBase(Artist):
     def get_position(self, original: bool = ...) -> Bbox: ...
     def set_position(
         self,
-        pos: Sequence[float] | Bbox,
+        pos: Iterable[float] | Bbox,
         which: Literal["both", "active", "original"] = ...,
     ) -> None: ...
     def reset_position(self) -> None: ...
@@ -91,7 +91,7 @@ class _AxesBase(Artist):
         self,
         aspect: Literal["auto", "equal"] | float,
         adjustable: None | Literal["box", "datalim"] = ...,
-        anchor: None | str | Sequence[float] = ...,
+        anchor: None | str | Iterable[float] = ...,
         share: bool = False,
     )-> None: ...
     def get_adjustable(self) -> str: ...
@@ -244,7 +244,7 @@ class _AxesBase(Artist):
     get_xticklabels = ...
     def set_xticklabels(
         self,
-        labels: Sequence[str] | Sequence[Text],
+        labels: Iterable[str] | Iterable[Text],
         *,
         minor: bool = False,
         fontdict: dict = None,
@@ -295,7 +295,7 @@ class _AxesBase(Artist):
     get_yticklabels = ...
     def set_yticklabels(
         self,
-        labels: Sequence[str] | Sequence[Text],
+        labels: Iterable[str] | Iterable[Text],
         *,
         minor: bool = False,
         fontdict: dict = None,
