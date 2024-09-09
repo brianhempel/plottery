@@ -39,11 +39,11 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   const calls_with_args = state.calls_with_args;
   const calls_at_loc = calls_with_args.filter(call => call.call_info.call.pos.line === typed_node.line);
 
-  // We only care about matplotlib calls for now
-  const [mpl_calls, other_calls] = calls_at_loc.partition(call => !!call.call_info.callee.definition_fullname?.includes('matplotlib.'));
+  // We only care about matplotlib and user-defined functions for now
+  const [layer_calls, other_calls] = calls_at_loc.partition(call => !!call.call_info.callee.definition_fullname?.includes('matplotlib.') || !!call.call_info.callee.definition_fullname?.includes('__plottery_mypy_temp.'));
   console.log('function calls not rendered:', ...other_calls.map(call => call.call_info.func_code))
 
-  const call_views: CallView[] = mpl_calls.map(calls_with_args => create_call_view(calls_with_args, state));
+  const call_views: CallView[] = layer_calls.map(calls_with_args => create_call_view(calls_with_args, state));
 
   // console.log('layer call_views:', call_views)
 
@@ -209,7 +209,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   const layer = {
     // parents: [],
     el: layer_el,
-    calls_with_args: mpl_calls,
+    calls_with_args: layer_calls,
     call_views,
     mark,        // the whole AST node
     target_mark, // the displayed layer code, so that drag-dropping below e.g. a for-loop adds to beginning of loop

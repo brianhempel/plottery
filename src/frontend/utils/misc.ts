@@ -139,7 +139,7 @@ export function arg_defaults_from_callee_type(callee: CallableType): Arg[] {
           callee.type_compatible_code_snippets_by_arg_i[arg_i],
       }];
     })
-    .slice(callee.def_extras.first_arg !== undefined ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined
+    .slice(callee.def_extras.first_arg !== undefined && callee.def_extras.first_arg !== null ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined
 }
 
 var instance_defaults = {
