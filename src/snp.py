@@ -203,6 +203,13 @@ def remove_nones(iter):
 def mpl_bbox_to_shapely(bbox):
     return shapely.box(*bbox.extents)
 
+def box_around(x, y, radius):
+    return shapely.box(
+        x - radius,
+        y - radius,
+        x + radius,
+        y + radius,
+    )
 
 # returns numpy ndarray of [xmin, ymin, xmax, ymax]
 def total_bounds(geometries):
@@ -227,6 +234,7 @@ def tuple_or_none(iterable_or_none):
 # returns (artist, list of (artist, method_name), (fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds), shapley.Geometry, children)
 def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_will_have_a_method_call):
     child_pad = 3
+    line_pad  = 10
 
     # These are used for computing the scale for mouse movements.
     # bounds are (x0, y0, x1, y1)
@@ -322,13 +330,8 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
                         join_style="mitre",
                     )  # expand outward
                 elif len(path.vertices) == 1:
-                    d = 10 + line.get_linewidth()
-                    my_geom = shapely.box(
-                        path.vertices[0, 0] - d,
-                        path.vertices[0, 1] - d,
-                        path.vertices[0, 0] + d,
-                        path.vertices[0, 1] + d,
-                    )
+                    d = line_pad + line.get_linewidth()
+                    my_geom = box_around(path.vertices[0, 0], path.vertices[0, 1], d)
                 else:
                     print("a;sdkjf;laskdj;lsaknvad")
         case mpl.collections.PathCollection() as path_collection: # the thing created by a scatter plot
@@ -336,7 +339,22 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
             # path_collection._paths[0] is the shape of individual points
             # path_collection._sizes is the sizes of the points
             # path_collection.contains() will have the code to make sense of all of the above
-            my_geom = None
+            # transform, offset_trf, offsets, paths = path_collection._prepare_points()
+
+            # I'm not smart enough to trace the code...hmmm thanks GPT-4o
+
+            px_coords = path_collection.axes.transData.transform(path_collection.get_offsets())
+            # print(px_coords)
+
+            region_px_bounds = (
+                min([x for x, _ in px_coords]),
+                min([y for _, y in px_coords]),
+                max([x for x, _ in px_coords]),
+                max([y for _, y in px_coords]),
+            )
+
+            my_geom = shapely.union_all([box_around(x, y, line_pad) for x, y in px_coords])
+            # print(my_geom)
         case mpl.axes.Axes():
             my_geom = None
         case _:
@@ -347,10 +365,10 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
         return None
     elif my_geom is None:
         my_geom = total_bbox(child_geoms)
-    else:
+    elif len(child_geoms) > 0:
         my_geom = shapely.union_all([my_geom, total_bbox(child_geoms)])
 
-    my_geom = shapely.buffer(my_geom, child_pad, quad_segs=1, cap_style="square", join_style="mitre")  # expand by 10px
+    my_geom = shapely.buffer(my_geom, child_pad, quad_segs=1, cap_style="square", join_style="mitre")  # expand by 3px
 
     my_region = (
         artist,
@@ -388,7 +406,11 @@ def method_type_json(receiver, method_name, type_graph):
 # Preserve heirarchical structure so that JS mouseenter events work as intended
 def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names):
     artist, methods, (fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds), geom, children = artist_methods_bounds_geom_children
-    geom_svg = geom.svg()
+    if isinstance(geom, shapely.geometry.multipolygon.MultiPolygon):
+        # Would produce a <g>, but we need them flat
+        geom_svg = "\n".join([g.svg() for g in geom.geoms])
+    else:
+        geom_svg = geom.svg()
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
     child_svgs_str = "\n".join([region2_to_svg_g(child, artist_names) for child in children])
