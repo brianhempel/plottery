@@ -527,6 +527,19 @@ export function hex_to_rgb(hex: string): { r: number; g: number; b: number } {
 //   return names.sort(compare_qualified_names)[0];
 // }
 
+// If 0 or a 1-sigfig number is within dx/2, snap to it
+export function maybe_round_number(x: number, dx: number) {
+  dx = Math.abs(dx*0.5)
+
+  if (x >= -dx && x <= dx) {
+    return 0;
+  }
+
+  const nice_x = sig_figs(x, 1);
+
+  return nice_x - dx <= x && x <= nice_x + dx ? nice_x : x;
+}
+
 // Round to given number of significant figures.
 // A mashup of Brian, GPT-4o, and Sam Mason https://stackoverflow.com/a/56974893
 export function sig_figs(x: number, ndigits: number): number {

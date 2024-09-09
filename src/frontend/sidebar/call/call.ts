@@ -15,6 +15,7 @@ import {
   cm_start_pos,
   number_to_string_not_ugly,
   sig_figs,
+  maybe_round_number,
 } from "../../utils/misc";
 import {
   arg_view_to_code,
@@ -375,7 +376,9 @@ function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', reversed: b
     }
 
     if (reversed) { delta_px = -delta_px; }
-    const new_number = delta_px === 0 ? starting_number : sig_figs(starting_number + delta_px*units_per_fig_px/client_px_per_fig_px, 2);
+    const delta_per_px = units_per_fig_px/client_px_per_fig_px;
+    console.log(`delta_per_px: ${delta_per_px}`);
+    const new_number = delta_px === 0 ? starting_number : sig_figs(maybe_round_number(starting_number + delta_px*delta_per_px, delta_per_px*3), 2);
     let new_arg_code: string;
     if (code_lhs === undefined) { // code is bare literal number
       new_arg_code = number_to_string_not_ugly(new_number);

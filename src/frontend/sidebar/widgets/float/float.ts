@@ -1,4 +1,4 @@
-import { create_el, is_numeric, number_to_string_not_ugly, sig_figs } from "../../../utils/misc";
+import { create_el, is_numeric, maybe_round_number, number_to_string_not_ugly, sig_figs } from "../../../utils/misc";
 import { Widget } from "../widget";
 
 export type FloatWidget = Widget & {
@@ -77,16 +77,27 @@ export function create_float_widget(code: string): FloatWidget {
 
 function position_to_float(slider: HTMLInputElement, base: number): number {
   const position  = parseFloat(slider.value);
-  const delta_pos = position;
-  const dir       = Math.sign(delta_pos);
+  const dir       = Math.sign(position);
 
   // Default to 10^-0.48 if base is 0 (i.e. slider range -10 to 10)
   // if base is non-zero, use the same order of magnitude.
+  const delta = position_to_delta(base, position);
+
+  // Calculate the delta per pixel for maybe_round_number
+  const position_per_px = (parseFloat(slider.max) - parseFloat(slider.min)) / slider.getBoundingClientRect().width; // 2/width.  not perfect but close
+  const delta_per_px_left  = delta - position_to_delta(base, position - position_per_px);
+  const delta_per_px_right = delta - position_to_delta(base, position + position_per_px);
+  const delta_per_px = Math.max(Math.abs(delta_per_px_left), Math.abs(delta_per_px_right));
+
+  return sig_figs(maybe_round_number(base + dir*delta, delta_per_px), 2);
+  // return sig_figs(base + dir*delta, 2);
+}
+
+function position_to_delta(base: number, position: number) {
   const base_pow_10 = base == 0 ? -0.48 : Math.log10(Math.abs(base));
-  const offset      = Math.pow(10, base_pow_10);
+  const offset = Math.pow(10, base_pow_10);
 
   // Range is ±1.5 powers of 10 from the starting number.
-  const delta = Math.pow(10, Math.abs(delta_pos)*1.5 + base_pow_10) - offset;
-
-  return sig_figs(base + dir*delta, 2);
+  const delta = Math.pow(10, Math.abs(position) * 1.5 + base_pow_10) - offset;
+  return delta;
 }
