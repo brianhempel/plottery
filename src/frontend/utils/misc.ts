@@ -539,27 +539,35 @@ export function sig_figs(x: number, ndigits: number): number {
 }
 
 export function add_line_of_code(
-  code: string, // without newline, unless you want to add an extra newline
+  code: string, // without newline, unless you want to add an extra newline after
   state: State
 ): TextMarker<MarkerRange> {
   const cm = state.cell.code_mirror;
 
-  const lines = cm.getValue().split('\n');
-  const plt_show_line = lines[state.plt_show_lineno_in_cell - 1];
+  const plt_show_line = (cm.getLine(state.plt_show_lineno_in_cell - 1) || '');
   const indentation = (plt_show_line.match(/^\s*/) || [''])[0];
 
   // if line before is blank, insert before the blank
   // otherwise, insert immeditately above plt.show()
-  const n_lines_before = lines[state.plt_show_lineno_in_cell - 2]?.match(/^\s*$/) ? 2 : 1;
+  const n_lines_before = (cm.getLine(state.plt_show_lineno_in_cell - 2) || '').match(/^\s*$/) ? 2 : 1;
+
+  const insert_line = state.plt_show_lineno_in_cell - n_lines_before;
+
+  // Add a newline every time we switch from "set_" calls to other calls
+
+  const line_before         = (cm.getLine(insert_line - 1) || '').trim();
+  const line_before_has_set = line_before.includes('.set_');
+  const new_code_has_set    = code.includes('.set_');
+  const perhaps_prefix_newline = (line_before_has_set != new_code_has_set && line_before !== '') ? '\n' : '';
 
   let mark = cm.markText(
-    { line: state.plt_show_lineno_in_cell - n_lines_before, ch: 0 },
-    { line: state.plt_show_lineno_in_cell - n_lines_before, ch: 0 },
+    { line: insert_line, ch: 0 },
+    { line: insert_line, ch: 0 },
     { inclusiveRight: true, inclusiveLeft: true, clearWhenEmpty: false }
   );
 
   let { from, to } = mark.find()!;
-  cm.replaceRange(code.replaceAll(/^/mg, indentation) + '\n', from, to);
+  cm.replaceRange(perhaps_prefix_newline + code.replaceAll(/^/mg, indentation) + '\n', from, to);
 
   return mark;
 }

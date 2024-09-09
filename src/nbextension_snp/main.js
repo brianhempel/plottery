@@ -129,7 +129,7 @@ plt.show()`
         const cell_code = content.code;
 
         if (is_not_magic(cell_code) && cell_code.includes('show')) {
-          console.log('content', content);
+          // console.log('content', content);
           const cell = content.cell || cell_executing; // content.cell if SNP called kernel.execute directly, cell_executing from above if user manually ran the cell
           const [cell_lineno, notebook_code_through_cell] = get_notebook_code_through(cell);
 
@@ -143,9 +143,9 @@ plt.show()`
           const just_show_names = [...notebook_code_through_cell.matchAll(/^\s*from matplotlib\.pyplot import .*(\*|\bshow\b)/mg)].map(_ => `show`)
           const targets = ['matplotlib.pyplot.show', ...matplotlib_show_names, ...pyplot_show_names, ...just_show_names];
 
-          console.log('cell_lineno', cell_lineno);
-          console.log('notebook_code_through_cell', notebook_code_through_cell);
-          console.log('targets', targets);
+          // console.log('cell_lineno', cell_lineno);
+          // console.log('notebook_code_through_cell', notebook_code_through_cell);
+          // console.log('targets', targets);
 
           const provenance_is_off_by_n_lines = 0; // Change this if you need to prefix the cell with extra code (we used to but don't now)
 
