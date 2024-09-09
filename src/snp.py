@@ -484,7 +484,7 @@ axes_method_associations = [
     # (['.patch'], 'axes', float('inf'), 'An Axes object encapsulates all the elements of an individual (sub-)plot in'),
     (['.patch'], 'axhline', float('inf'), 'Add a horizontal line across the Axes.'),
     (['.patch'], 'axhspan', float('inf'), 'Add a horizontal span (rectangle) across the Axes.'),
-    # (['.patch'], 'axis', float('inf'), 'Convenience method to get or set some axis properties.'),
+    (['.patch'], 'axis', float('inf'), 'Convenience method to get or set some axis properties.'),
     # (['.patch'], 'axison', float('inf'), 'bool(x) -> bool'),
     (['.patch'], 'axline', float('inf'), 'Add an infinitely long straight line.'),
     (['.patch'], 'axvline', float('inf'), 'Add a vertical line across the Axes.'),
