@@ -1,5 +1,5 @@
 .sketch-n-plot-logo {
-  margin: 0 0.5em;
+  margin: 0;
 }
 
 .snp-sidebar-menu-bar {
@@ -19,8 +19,13 @@
   border: 1px solid lightgray;
   border-radius: 1px;
   margin-bottom: 0.5em;
+  padding: 0 0.5em;
 }
 
 .snp-sidebar-menu-bar > .snp-menu > .snp-menu-name {
   padding: 0.4rem 1rem;
+}
+
+.snp-fig-selector {
+  max-width: 130px;
 }
