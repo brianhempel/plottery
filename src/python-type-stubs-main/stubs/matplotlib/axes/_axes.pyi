@@ -401,11 +401,11 @@ class Axes(_AxesBase):
         height: float | ArrayLike,
         width: float | ArrayLike = 0.8,
         bottom: float | ArrayLike = 0,
-        *,  # What does the star mean?
+        *, # Subsequent args are keyword-only
         align: Literal["center", "edge"] = "center",
         color: ColorType | Iterable[ColorType] = ...,
         edgecolor: ColorType | Iterable[ColorType] = ...,
-        linewidth: float | ArrayLike = 0.0,
+        linewidth: float | ArrayLike = ...,
         tick_label: str | Iterable[str] = ...,
         label: str | Iterable[str] = ...,
         xerr: float | ArrayLike = ...,

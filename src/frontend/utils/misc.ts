@@ -189,7 +189,7 @@ export function default_code_for_type(
     return "None";
   }
 
-  console.warn(`no default code for ${JSON.stringify(type)}`);
+  // console.warn(`no default code for ${JSON.stringify(type)}`);
   return '...';
 }
 

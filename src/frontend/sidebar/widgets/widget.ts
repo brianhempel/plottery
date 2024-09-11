@@ -64,6 +64,11 @@ function widgets_from_type(type: Type): Widget[] {
     return [create_code_and_control_widget("(0.90, 0.39, 0.40)", type)];
   }
 
+  // Don't want ArrayLike to produce bool, float, int, string etc defaults, just [1,2,3]
+  if (type[".class"] == "TypeAliasType" && type.type_ref == "matplotlib._typing.ArrayLike") {
+    return [create_arbitrary_code_widget(default_code_for_type(type))];
+  }
+
   type = get_proper_type(type);
 
   if (type[".class"] == "LiteralType") {
