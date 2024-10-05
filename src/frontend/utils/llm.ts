@@ -10,7 +10,7 @@ export function prompt_llm(prompt: string, success: (reply: string) => void, fai
     if (xhr.status == 200) {
       const raw_response = JSON.parse(xhr.responseText);
       const reply = raw_response['choices'][0]['message']['content'];
-      console.log(reply);
+      console.log('LLM reply', reply);
       success(reply);
     } else {
       console.warn('prompt error', xhr.responseText);
@@ -32,5 +32,6 @@ export function prompt_llm(prompt: string, success: (reply: string) => void, fai
       'stream':   false,
   };
 
+  console.log('LLM prompt', prompt);
   xhr.send(JSON.stringify(query));
 }

@@ -413,6 +413,8 @@ def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names):
         geom_svg = geom.svg()
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
+    # geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="1"', geom_svg)
+    # geom_svg = re.sub(r'stroke="[^"]*"', 'stroke="#AB312A"', geom_svg)
     child_svgs_str = "\n".join([region2_to_svg_g(child, artist_names) for child in children])
 
     name = shortest_qualified_name(artist_names.get(id(artist), (None, {}))[1])
@@ -1057,18 +1059,21 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         fig_idx,
         fig_names,
     ):
-        plt.close('all') # Suppress "RuntimeWarning: More than 20 figures have been opened"
+        with Timer("plot.close('all') and get_user_nameset"):
+            plt.close('all') # Suppress "RuntimeWarning: More than 20 figures have been opened"
 
-        self.figure = figure
-        self.cached_png = None
-        self.cached_svg_hover_regions = None
-        self.user_nameset = get_user_nameset(notebook_code_through_cell)
+            self.figure = figure
+            self.cached_png = None
+            self.cached_svg_hover_regions = None
+            self.user_nameset = get_user_nameset(notebook_code_through_cell)
 
         # Make a map of object id to object name (e.g. "fig.axes")
         with Timer("artist_names"):
             self.artist_names = artist_names(locals, self.user_nameset)
 
         with Timer("artist_ids_that_will_have_a_method_call"):
+            # We usually elide empty text objects from the hover regions
+            # BUT we need their position if a method call button is supposed to be place in their location (e.g. ax.set_title)
             self.artist_ids_that_will_have_a_method_call = set()
             for artist_id, (artist, _names) in self.artist_names.items():
                 for children_paths, _, _, _doc in method_associations(artist):
@@ -1140,15 +1145,17 @@ class SNP(SNPFigureAndHoverRegions):
     ):
         super().__init__(figure, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names)
 
-        self.avoid_names = self.user_nameset | locals.keys() | keywordset
+        with Timer("avoid_names etc"):
+            self.avoid_names = self.user_nameset | locals.keys() | keywordset
 
-        # Perform type inference
-        self.cell_lineno = cell_lineno
-        self.plt_show_lineno_in_cell = plt_show_lineno_in_cell
-        self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
+            # Perform type inference
+            self.cell_lineno = cell_lineno
+            self.plt_show_lineno_in_cell = plt_show_lineno_in_cell
+            self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
 
-        # self.notebook_code_through_cell = notebook_code_through_cell
-        self.notebook_code_lines        = notebook_code_through_cell.split("\n")
+            # self.notebook_code_through_cell = notebook_code_through_cell
+            self.notebook_code_lines        = notebook_code_through_cell.split("\n")
+
         with Timer("do_mypy_inference"):
             self.mypy_result = do_mypy_inference(notebook_code_through_cell)
         self.type_graph = self.mypy_result.graph

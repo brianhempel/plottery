@@ -30,7 +30,6 @@ export type State = {
   // **** Actual state ****
 
   last_cell_code_executed: string;
-  persistent_dataset: DOMStringMap; // stuff to store between reruns, e.g. selected layers, stored in dataset attribute on the .output div
   dragging_layers: Layer[]
 
   is_in_dom: () => boolean; // false after a hard rerun of the cell; everything is old then

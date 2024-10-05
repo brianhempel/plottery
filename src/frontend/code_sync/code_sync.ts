@@ -2,6 +2,7 @@ import { attach_events_to_hover_regions } from "../sidebar/hover-regions/hover_r
 import { reposition_plot_widgets } from "../sidebar/plot-widget/plot_widget";
 import { State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
+import { get_persistent_item } from "../utils/misc";
 import { Cell, CellMessage } from "../utils/types";
 
 
@@ -33,9 +34,16 @@ function execute_cell_but_delay_clearing_output(cell) {
   var callbacks = cell.get_callbacks();
   const orig_output_callback = callbacks.iopub!.output;
 
+  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true'
+
   callbacks.iopub!.output = function (msg: CellMessage) {
     if (msg.header.msg_type === "execute_result" || msg.header.msg_type === "error") {
       cell.clear_output(false, true);
+    }
+    if (in_demo_mode && msg.header.msg_type == "error" && msg.content.evalue!.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
+      // swallow the message
+    } else if (in_demo_mode && msg.header.msg_type == "stream" && msg.content.text.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
+      // swallow the message
     }
     orig_output_callback(...arguments);
   }
@@ -127,6 +135,7 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
   //   console.log("clear_output callback", msg);
   //   old_clear_output(msg);
   // }
+  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true'
 
   callbacks.iopub!.output = function (msg: CellMessage) {
     // console.log("output callback", msg);
@@ -139,14 +148,18 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
       img.src = "data:image/png;base64," + msg.content.data["image/png"];
     } else {
       if (msg.header.msg_type == "error") {
-        // Display the error, but adjust line number for the lines we added to the top of the cell.
-        state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
-          /\b(line +)(\d+)/gi,
-          (_: string, line_space: string, n_str: string) =>
-            `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
-        );
+        if (!in_demo_mode || !msg.content.evalue!.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
+          // Display the error, but adjust line number for the lines we added to the top of the cell.
+          state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
+            /\b(line +)(\d+)/gi,
+            (_: string, line_space: string, n_str: string) =>
+              `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
+          );
+        }
       } else if (msg.header.msg_type == "stream") {
-        state.stdout_stderr.innerText += msg.content.text;
+        if (!in_demo_mode || !msg.content.text.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
+          state.stdout_stderr.innerText += msg.content.text;
+        }
       } else {
         console.warn("[redraw cell unhandlable output message]", arguments);
       }
@@ -163,7 +176,7 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
 
   state.hover_regions_container.classList.add("hidden");
 
-  const fig_idx = state.persistent_dataset.fig_idx || '0';
+  const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
   const postfix =
 `\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureOnly) # Store to a variable for debugging
 last_snp`;
@@ -187,6 +200,8 @@ export function refresh_hover_regions(state: State) {
   // Hacktastic way to get live feedback
   const callbacks = cell.get_callbacks();
 
+  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true'
+
   callbacks.iopub!.output = function (msg: CellMessage) {
     // Replace hover regions
     if (
@@ -199,14 +214,18 @@ export function refresh_hover_regions(state: State) {
       attach_events_to_hover_regions(state);
       reposition_plot_widgets(state);
     } else if (msg.header.msg_type == "error") {
-      // Display the error, but adjust line number for the lines we added to the top of the cell.
-      state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
-        /\b(line +)(\d+)/gi,
-        (_: string, line_space: string, n_str: string) =>
-          `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
-      );
+      if (!in_demo_mode || !msg.content.evalue!.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
+        // Display the error, but adjust line number for the lines we added to the top of the cell.
+        state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
+          /\b(line +)(\d+)/gi,
+          (_: string, line_space: string, n_str: string) =>
+            `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
+        );
+      }
     } else if (msg.header.msg_type == "stream") {
-      state.stdout_stderr.innerText += msg.content.text;
+      if (!in_demo_mode || !msg.content.text.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
+        state.stdout_stderr.innerText += msg.content.text;
+      }
     } else {
       console.warn("[refresh_hover_regions unhandlable output message]", arguments);
     }
@@ -215,7 +234,7 @@ export function refresh_hover_regions(state: State) {
     redraw_cell(state, true);
   };
 
-  const fig_idx = state.persistent_dataset.fig_idx || '0';
+  const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
   const postfix =
 `\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureAndHoverRegions) # Store to a variable for debugging
 last_snp`;

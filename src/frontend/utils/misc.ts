@@ -14,7 +14,7 @@ import {
 } from "../types";
 import { unzip } from "./stdlib";
 import { TextMarker, MarkerRange } from "./codemirror";
-import { get_arg_kind_from_int } from "./types";
+import { get_arg_kind_from_int, JupyterType } from "./types";
 
 // declare global {
 //   interface EventTarget {
@@ -46,6 +46,35 @@ import { get_arg_kind_from_int } from "./types";
 //     to.addEventListener(eventName, f, opts);
 //   }
 // }
+
+
+// These will exist in Notebooks v6, but not in JupyterLab
+declare const IPython: JupyterType | undefined;
+declare const Jupyter: JupyterType | undefined;
+
+// Things than need to last between cell reruns
+//
+// E.g. selected layers, which fig to show
+function persistent_dataset(state: State) {
+  if (!Jupyter) { throw new Error("persistent_dataset not implemented for JupyterLab"); }
+  return (state.snp_outer.closest('.output')! as HTMLElement).dataset;
+}
+export function get_persistent_item(state: State, key: string) {
+  if (Jupyter) { // Notebooks v6, cells may not have ids
+    return persistent_dataset(state)[key];
+  } else { // JupyterLab
+    // this needs to match our labextension's get_persistent_item() function
+    return sessionStorage.getItem(`cell-${state.cell.id}-snp-${key}`);
+  }
+}
+export function set_persistent_item(state: State, key: string, value: string) {
+  if (Jupyter) { // Notebooks v6, cells may not have ids
+    persistent_dataset(state)[key] = value;
+  } else { // JupyterLab
+    sessionStorage.setItem(`cell-${state.cell.id}-snp-${key}`, value);
+  }
+}
+
 
 // https://stackoverflow.com/a/6234804
 export function escape_html(str: string): string {

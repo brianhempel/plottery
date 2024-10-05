@@ -17,6 +17,8 @@ import {
   create_el,
   cm_start_pos,
   cm_end_pos,
+  get_persistent_item,
+  set_persistent_item,
 } from "./utils/misc";
 import { JupyterType } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
@@ -29,9 +31,9 @@ import { ParseableComment } from "./layer_panel/layer_panel";
 import { create_ai_panel } from "./ai_panel/ai_panel";
 
 
-// These will already exist where we inject the JS in the notebook.
-declare const IPython: any;
-declare const Jupyter: JupyterType;
+// These will exist in Notebooks v6, but not in JupyterLab.
+declare const IPython: JupyterType | undefined;
+declare const Jupyter: JupyterType | undefined;
 
 // Entry point
 function attach_snp(
@@ -49,8 +51,12 @@ function attach_snp(
   fig_idx: number,
   fig_names: string[],
 ) {
+  console.time('time attach_snp');
+
+  console.time('time init state');
   // Initialize state
   const cell_el = snp_outer.closest(".code_cell");
+  // START HERE getting it to run in JupyterLab
   const cell = Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
   const state: State = {
     cell: cell,
@@ -75,7 +81,6 @@ function attach_snp(
     calls: calls,
     calls_with_args: [],
 
-    persistent_dataset: (snp_outer.closest('.output')! as HTMLElement).dataset,
     dragging_layers: [],
 
     snp_outer: snp_outer,
@@ -95,6 +100,9 @@ function attach_snp(
 
     command_shortcuts: {}, // Added by menu items in menus.ts
   };
+  console.timeEnd('time init state');
+
+  console.time('time make layers');
   const make_stuff_nice_for_screenshots = window.sessionStorage.getItem('make_stuff_nice_for_screenshots') === 'true'
   set_margin_right_to_width(state.sidebar_el, 20, 83 + (make_stuff_nice_for_screenshots ? 113 : 0));
 
@@ -154,7 +162,11 @@ function attach_snp(
 
   state.sidebar_el.append(state.layers_panel.el);
 
+
   create_el("h2", "snp-properties-panel-header", state.properties_el);
+
+  console.timeEnd('time make layers');
+  console.time('time make plot widgets');
 
   // Make plot widgets on those hover regions
   // (Populates state.plot_widgets)
@@ -164,6 +176,9 @@ function attach_snp(
 
   attach_events_to_hover_regions(state);
   reposition_plot_widgets(state);
+
+  console.timeEnd('time make plot widgets');
+  console.time('time final setup');
 
   // Keyboard commands
   // Registered on the outer element that can accept keyboard events
@@ -184,7 +199,7 @@ function attach_snp(
   });
 
 
-  const new_calls: string[] = JSON.parse(state.persistent_dataset.new_calls || "[]");
+  const new_calls: string[] = JSON.parse(get_persistent_item(state, "new_calls") || "[]");
 
   // console.log("new_calls", new_calls);
 
@@ -206,40 +221,15 @@ function attach_snp(
       }
     });
 
-    state.persistent_dataset.new_calls = "[]";
+    set_persistent_item(state, "new_calls", "[]");
   } else {
     load_selected_layers(state);
   }
 
   // Be sure fig_idx is stored so that re-runs of the cell preserve it
-  if (!state.persistent_dataset.fig_idx) {
-    state.persistent_dataset.fig_idx = fig_idx.toString();
+  if (!get_persistent_item(state, "fig_idx")) {
+    set_persistent_item(state, "fig_idx", fig_idx.toString());
   }
-
-  // Re-open the selected calls
-  // state.persistent_dataset
-  // const persistent_calls: { [id: string]: PersistantCall } = (window as any)[
-  //   "snp_persistent_calls"
-  // ];
-  // const code_and_loc = get_code_and_loc_for_call(call.call_info);
-
-  // // If previously expanded, then expand
-  // if (persistent_calls[code_and_loc]) {
-  //   if (persistent_calls[code_and_loc]?.collapsed) {
-  //     collapse_collapsable(call_el);
-  //   } else {
-  //     open_collapsable(call_el);
-  //   }
-  // }
-
-
-  // Focus on call (i.e. expand the sidebar to show the call)
-  // e.g. when adding a new method, expand it's call
-  // const focused_call: string | null = (window as any)["snp_focused_call"];
-  // if (focused_call != null) {
-  //   focus_on_call_from_code(focused_call, state);
-  //   (window as any)["snp_focused_call"] = null;
-  // }
 
   // FOR SCREENSHOTS, SET window.sessionStorage.setItem('make_stuff_nice_for_screenshots', 'true') IN JAVASCRIPT
   // %%javascript
@@ -267,6 +257,10 @@ div.cell.selected::before,
   }
 
   (window as any)["last_snp_state"] = state;
+
+  console.timeEnd('time final setup');
+
+  console.timeEnd('time attach_snp');
 }
 
 (window as any)["attach_snp"] = attach_snp;

@@ -103,7 +103,7 @@ function widgets_from_type(type: Type): Widget[] {
     return [create_arbitrary_code_widget(default_code_for_type(type))];
   }
 
-  console.warn("No type widget implemented!", type);
+  // console.warn("No type widget implemented!", type);
   return [];
 }
 

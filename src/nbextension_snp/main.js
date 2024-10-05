@@ -33,8 +33,6 @@ define(["require", "base/js/namespace", "base/js/events"], function (
   function get_notebook_code_through(cell) {
     const cells = Jupyter.notebook.get_cells()
 
-    const cells_before_cell = cells;
-
     const notebook_code_before_cell =
       cells.slice(0, cells.findIndex(c => c === cell))
         .filter(c => c.cell_type === "code")
@@ -86,7 +84,6 @@ ax = fig.add_subplot(1, 1, 1)
 
 
 plt.show()`
-
             );
           Jupyter.notebook.select(Jupyter.notebook.get_cells().indexOf(new_cell));
           selected_cell = new_cell;
@@ -107,6 +104,7 @@ plt.show()`
 
     console.log("Setting up SNP...");
 
+    // import snp when kernel (re)starts
     Jupyter.notebook.events.on('kernel_ready.Kernel', function(ev, { kernel }) {
       console.log("Kernel ready, importing snp");
       kernel.execute('import snp')
@@ -123,6 +121,7 @@ plt.show()`
       return out;
     }
 
+    // Replace plt.show() with snp.show()
     Jupyter.notebook.events.on(
       "execution_request.Kernel",
       function (ev, { kernel, content }) {
@@ -167,7 +166,7 @@ plt.show()`
               if (content.doesnt_need_snp_show_ui) {
                 content.code = cell_code_show_replaced;
               } else {
-                const fig_idx = cell.output_area.element[0].dataset.fig_idx || '0'; // Recall which fig is selected in the UI by querying the front-end's state.persistent_dataset
+                const fig_idx = cell.output_area.element[0].dataset.fig_idx || '0'; // Recall which fig is selected in the UI by querying the front-end's persistent_dataset
                 content.code =
 `${cell_code_show_replaced}
 last_snp = snp.show_ui(fig_idx=${fig_idx}) # Store to a variable for debugging

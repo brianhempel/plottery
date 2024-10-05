@@ -1,6 +1,6 @@
 import { deselect_all_layers, duplicate_selected_layers, selected_layers } from "../layer_panel/layer_panel";
 import { State } from "../types";
-import { create_el, snp_logo_svg_html } from "../utils/misc";
+import { create_el, set_persistent_item, snp_logo_svg_html } from "../utils/misc";
 import { add_menu_item, create_menu_el } from "../menus/menus";
 import { hard_rerun } from "../code_sync/code_sync";
 
@@ -49,7 +49,6 @@ export function create_sidebar_menu_bar(state: State, fig_idx: number, fig_names
     edit_menu,
     'Save PNG Image', '⇧S',
     (state: State) => {
-      const canvas = document.querySelector("canvas") as HTMLCanvasElement;
       const link = document.createElement('a');
       const img_name = (fig_names[fig_idx] || '').length > 0 ? fig_names[fig_idx].replace(/[^A-Za-z0-9\-]+/g, '_') : 'my_plot';
       link.download = img_name + '.png';
@@ -74,7 +73,7 @@ export function create_sidebar_menu_bar(state: State, fig_idx: number, fig_names
 
     // On fig change, set persitent_dataset.fig_idx and rerun
     fig_selector.addEventListener("change", () => {
-      state.persistent_dataset.fig_idx = fig_selector.value;
+      set_persistent_item(state, 'fig_idx', fig_selector.value);
       hard_rerun(state);
     })
   }

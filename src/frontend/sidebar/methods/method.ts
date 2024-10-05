@@ -1,5 +1,5 @@
 import { IInstanceType, MethodInfo, MethodView, MethodWithCode, State, Type } from "../../types";
-import { arg_defaults_from_callee_type, create_el } from "../../utils/misc";
+import { arg_defaults_from_callee_type, create_el, set_persistent_item } from "../../utils/misc";
 import { hard_rerun } from "../../code_sync/code_sync";
 import "./method.css";
 import { add_line_of_code } from "../../utils/misc";
@@ -31,7 +31,7 @@ export function add_method_call(
 ) {
   const mark = add_line_of_code(method.code, state);
   const line = mark.find()!.to.line + state.cell_lineno - 1;
-  state.persistent_dataset.new_calls = `["${id_of_new_call(method.receiver_dot_name, line)}"]`;
+  set_persistent_item(state, 'new_calls', `["${id_of_new_call(method.receiver_dot_name, line)}"]`);
   hard_rerun(state);
 }
 

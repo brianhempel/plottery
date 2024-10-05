@@ -53,6 +53,8 @@ export function place_add_method_buttons_on_plot(state: State) {
         el.addEventListener("click", _ => add_method_call(methods[0], state));
       } else {
 
+        // Hmm, could probably pull this off the methods somehow
+        // Would avoid the need to store the artist name in the hover region in snp.py
         const artist_name = (hover_region.getAttribute("data-artist-name") || "unknown").replace(/\.patch$/, ''); // show 'ax.patch' as 'ax' although we want the method positioned relative to the patch
 
         el = create_menu_el(`<span class="snp-methods-dropdown">${artist_name}&nbsp▾</span>`, 'snp-method-view', undefined)

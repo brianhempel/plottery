@@ -32,6 +32,23 @@
   stroke: #009dff;
 }
 
+/* STUFF TO SHOW OFF WHERE THE ARTISTS ARE */
+/* .plot_area {
+  margin: 10em;
+}
+.hover_regions path {
+  stroke-width: 1px;
+  stroke: #bd7e00;
+}
+.hover_regions [data-call-id] > path {
+  stroke-width: 3;
+  stroke: #6a006a;
+} */
+
+
+
+
+
 /* .snp-hover-regions:not(.disable):hover {
   background: #ffffff94;
 } */

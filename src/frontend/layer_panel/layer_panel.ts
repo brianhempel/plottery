@@ -10,7 +10,7 @@ import { make_widget_for_code_and_type } from "../sidebar/widgets/widget";
 import { CallView, CallWithArgs, IInstanceType, State, CallInfo } from "../types";
 import { equalByJSON, zip } from "../utils/stdlib";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
-import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type, non_colliding_name } from "../utils/misc";
+import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type, non_colliding_name, set_persistent_item, get_persistent_item } from "../utils/misc";
 import { Position } from "../types";
 import { set_properties_panel_on } from "../properties_panel/properties_panel";
 
@@ -578,7 +578,7 @@ export function duplicate_selected_layers(state: State) {
     const func_code = layer.calls_with_args.at(-1)?.call_info.func_code;
     if (func_code) {
       const line = insert_line + state.cell_lineno;
-      state.persistent_dataset.new_calls = `["${id_of_new_call(func_code, line)}"]`;
+      set_persistent_item(state, 'new_calls', `["${id_of_new_call(func_code, line)}"]`);
     }
   });
   if(cm.getValue() !== old_code) {
@@ -592,7 +592,7 @@ function save_selected_layers(state: State) {
 
   // console.log(selected_calls)
 
-  state.persistent_dataset.selected_calls = JSON.stringify(selected_calls);
+  set_persistent_item(state, 'selected_calls', JSON.stringify(selected_calls));
 
   // const selected_layers = state.layers_panel.layers.filter(is_layer_selected);
   // const selected_calls = selected_layers.map(layer => layer.calls_with_args);
@@ -602,7 +602,7 @@ function save_selected_layers(state: State) {
 
 // For regeneration after cell rerun
 export function load_selected_layers(state: State) {
-  const selected_calls = JSON.parse(state.persistent_dataset.selected_calls || '[]') as [number, string][];
+  const selected_calls = JSON.parse(get_persistent_item(state, 'selected_calls') || '[]') as [number, string][];
 
   deselect_all_layers(state);
 

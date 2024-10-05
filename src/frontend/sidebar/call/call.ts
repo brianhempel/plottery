@@ -259,6 +259,11 @@ export function perhaps_get_drag_left_edge_handler(call_view: CallView) : undefi
     return drag_handler_for_arg_view(perhaps_xmin_view, 'x', false);
   }
 
+  const perhaps_left_view = first_ten_args.find(({ arg }) => arg.name == 'left')?.view;
+  if (perhaps_left_view) {
+    return drag_handler_for_arg_view(perhaps_left_view, 'x', false);
+  }
+
   const perhaps_width_view = first_ten_args.find(({ arg }) => arg.name == 'width')?.view;
   if (perhaps_width_view) {
     return drag_handler_for_arg_view(perhaps_width_view, 'x', true);
@@ -274,6 +279,11 @@ export function perhaps_get_drag_right_edge_handler(call_view: CallView) : undef
   const perhaps_xmax_view = first_ten_args.find(({ arg }) => arg.name == 'xmax')?.view;
   if (perhaps_xmax_view) {
     return drag_handler_for_arg_view(perhaps_xmax_view, 'x', false);
+  }
+
+  const perhaps_right_view = first_ten_args.find(({ arg }) => arg.name == 'right')?.view;
+  if (perhaps_right_view) {
+    return drag_handler_for_arg_view(perhaps_right_view, 'x', false);
   }
 
   const perhaps_width_view = first_ten_args.find(({ arg }) => arg.name == 'width')?.view;

@@ -12,13 +12,16 @@ export function create_arg_view(
 ): ArgView {
   const arg_el = create_el("div", "snp-arg-view");
 
-  // arg_el.title = JSON.stringify(arg.type);
-
   // Look for '...arg_name...:' and anything following at a higher indent level
   const regex = new RegExp(`^([ \\t]*)[\\w ,]*\\b${arg.name}\\b.*:.*(\\n+\\1[ \\t].*)*`, 'm');
   const arg_docstring = (call_docstring || '').match(regex)?.at(0);
 
-  arg_el.title = arg_docstring || `No documentation available for ${arg.name}`;
+  if (window.sessionStorage.getItem('plottery_demo_mode') !== 'true') {
+    // Disabling this for video recording
+    arg_el.title = arg_docstring || `No documentation available for ${arg.name}`;
+  }
+  // For debugging:
+  // arg_el.title = JSON.stringify(arg.type);
 
   // Prefix with the argument name
   const prefixEl = create_el("div", "snp-arg-name", arg_el);
