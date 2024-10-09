@@ -328,6 +328,8 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
     // otherwise a layer might be moved into another layer,
     // or into itself and deleted below
     // hard_rerun() below will reset this.
+
+    // START HERE fix for JuptyerLab
     layer.mark.inclusiveLeft = false;
     layer.target_mark.inclusiveLeft = false;
     // layer.mark.inclusiveRight = false;
@@ -561,7 +563,7 @@ export function duplicate_selected_layers(state: State) {
     // Duplicate layer
     const mark = layer.mark;
     const range = mark.find()!;
-    const insert_line = 1 + (range.to.line || cm.getCursor().line);
+    const insert_line = 1 + (range.to.line || state.plt_show_lineno_in_cell - 1);
 
     let code = cm.getRange(range.from, range.to);
 

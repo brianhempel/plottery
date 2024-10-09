@@ -20,7 +20,7 @@ import {
   get_persistent_item,
   set_persistent_item,
 } from "./utils/misc";
-import { JupyterType } from "./utils/types";
+import { Cell, JupyterLabNotebookPanel, JupyterType } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
 import { create_sidebar_menu_bar, set_margin_right_to_width } from "./sidebar/sidebar";
@@ -31,9 +31,39 @@ import { ParseableComment } from "./layer_panel/layer_panel";
 import { create_ai_panel } from "./ai_panel/ai_panel";
 
 
+
 // These will exist in Notebooks v6, but not in JupyterLab.
 declare const IPython: JupyterType | undefined;
 declare const Jupyter: JupyterType | undefined;
+
+
+// Our extension throws the JS object onto the DOM object
+// so we can get it here.
+function jupyterlab_notebook_panel(snp_outer: HTMLElement) : JupyterLabNotebookPanel {
+  return (snp_outer.closest(".jp-NotebookPanel") as any).__panel;
+}
+
+function jupyterlab_cells(snp_outer: HTMLElement) : Cell[] {
+  return jupyterlab_notebook_panel(snp_outer).content.cellsArray;
+}
+
+function find_cell(snp_outer: HTMLElement): Cell {
+  if (Jupyter) { // Notebooks v6
+    const cell_el = snp_outer.closest(".code_cell");
+    return Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
+  } else { // JupyterLab
+    const cell_el = snp_outer.closest(".jp-Cell");
+    return ;
+  }
+}
+
+// START HERE
+// We only use Jupyter for Jupyter.notebook.get_cells(), so we should be able to
+// consolidate that.
+//
+// Then somehow we want to build an object that imitates a Notebook v6 Cell
+// that delegates to the JupyterLab Cell object.
+
 
 // Entry point
 function attach_snp(

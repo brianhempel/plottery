@@ -3,7 +3,7 @@ import { State } from "../types";
 import { DocOrEditor } from "../utils/codemirror";
 import { prompt_llm } from "../utils/llm";
 import { create_el } from "../utils/misc";
-import { Cell } from "../utils/types";
+import { Cell, JupyterType } from "../utils/types";
 
 export function create_ai_panel(state: State): HTMLElement {
   const panel_el = create_el("div", "snp-ai-panel");
@@ -34,6 +34,8 @@ export function create_ai_panel(state: State): HTMLElement {
 function is_not_magic(code: string): boolean {
   return !code.startsWith("%%");
 }
+
+declare const Jupyter: JupyterType | undefined;
 
 function prompt_for_llm(user_prompt: string, cm: DocOrEditor): string {
   const cell_code = cm.getValue();

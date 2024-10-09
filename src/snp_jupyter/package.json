@@ -9,7 +9,9 @@
     "outputDir": "labextension"
   },
   "dependencies": {
-    "@jupyterlab/application": ">=3.6.6"
+    "@jupyterlab/application": ">=3.6.6",
+    "@codemirror/state": "^6",
+    "@codemirror/view": "^6"
   },
   "devDependencies": {
     "@jupyterlab/builder": "^4.2.5"

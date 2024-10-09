@@ -11,7 +11,14 @@ import {
   NotebookActions
 } from '@jupyterlab/notebook';
 
+import { CodeCell } from '@jupyterlab/cells';
+
 import { ToolbarButton } from '@jupyterlab/apputils';
+
+// Need to expose these globally because we can't otherwise easily access them
+import {StateField, StateEffect} from "@codemirror/state"
+import {EditorView, Decoration} from "@codemirror/view"
+
 
 function is_not_magic(code) {
   return !code.startsWith("%%");
@@ -116,6 +123,18 @@ const plugin = {
     window.app = app; // debugging
     window.tracker = tracker; // debugging
 
+    console.log('__JupyterCodeCellModule', CodeCell);
+    window.__JupyterCodeCellModule = CodeCell; // actually we need this
+
+    console.log('__CM6StateField', StateField);
+    window.__CM6StateField = StateField;
+    console.log('__CM6StateEffect', StateEffect);
+    window.__CM6StateEffect = StateEffect;
+    console.log('__CM6EditorView', EditorView);
+    window.__CM6EditorView = EditorView;
+    console.log('__CM6Decoration', Decoration);
+    window.__CM6Decoration = Decoration;
+
     const { commands } = app;
     const new_plot_command = 'snp:new-plot';
 
@@ -168,6 +187,10 @@ plt.show()`;
       console.log('panel', panel);
       window.sender = sender; // debugging
       window.panel = panel; // debugging
+
+      // Attach the JS object to the DOM element so we can retrieve it
+      // from our own JS later.
+      panel.node.__panel = panel;
 
       // import snp whenever kernel is restarted
       panel.sessionContext.kernelChanged.connect((_, { newValue: kernel }) => {
