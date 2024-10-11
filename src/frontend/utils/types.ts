@@ -25,11 +25,17 @@ export type JupyterLabNotebook = {
 
 // https://github.com/jupyterlab/jupyterlab/blob/main/packages/cells/src/widget.ts#L193
 export type JupyterLabCell = {
+  id: string;
+
   editor: { editor: CM6Editor } | null;
 
   // The below are things we monkey-patch on in attach_snp
   code_mirror: CodeMirror.DocOrEditor;
 };
+
+export type JupyterLabCodeCell = {
+  // execute(cell: CodeCell, sessionContext: ISessionContext, metadata?: JSONObject): Promise<KernelMessage.IExecuteReplyMsg | void>;
+}
 
 
 // https://codemirror.net/docs/migration/#positions
@@ -247,9 +253,6 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
   return (cm5 as any) as CodeMirror.DocOrEditor;
 }
 
-export type JupyterLabCodeCell = {
-  // execute(cell: CodeCell, sessionContext: ISessionContext, metadata?: JSONObject): Promise<KernelMessage.IExecuteReplyMsg | void>;
-}
 
 declare const __JupyterCodeCellModule: JupyterCodeCellModule | undefined;
 
@@ -284,23 +287,20 @@ export type JupyterLabSharedCodeCell = {
 
 export type JupyterLabOtherCell = {}; // markdown, raw, etc.
 
+export function jupyterlab_cell_to_notebook_v6_cell(jl_cell: JupyterLabCell): Cell {
 
+  // START HERE fill in the shim for Cell
+  const cell: Cell = {
+
+  };
+
+  return cell;
+}
 
 export type Cell = {
-  anchor: boolean;
-  cell_id: string;
   cell_type: string;
 
   code_mirror: CodeMirror.DocOrEditor;
-
-  metadata: {
-    trusted: boolean;
-    scrolled?: boolean;
-  };
-  source: string;
-  execution_count: number;
-
-  outputs: CellOutput[];
 
   element: Array<HTMLElement>;
 
@@ -308,6 +308,8 @@ export type Cell = {
   get_callbacks: () => CellCallbacks;
   execute: (stop_on_error?: boolean) => void;
   kernel: any;
+
+  jupyterlab_cell: JupyterLabCell | undefined; // if a wrapper for a JupyterLab cell, this will be present.
 };
 
 export type CellOutput = {
@@ -324,19 +326,6 @@ export type CellOutput = {
     };
   };
 };
-
-export function get_arg_kind_from_int(arg_int: number) : "ARG_POS" | "ARG_OPT" | "ARG_STAR" | "ARG_NAMED" | "ARG_STAR2" | "ARG_NAMED_OPT" {
-  const int_to_arg_kind = [
-    "ARG_POS", // Positional argument
-    "ARG_OPT", // Positional, optional argument (functions only, not calls)
-    "ARG_STAR", // *arg argument
-    "ARG_NAMED", // Keyword argument x=y in call, or keyword-only function arg
-    "ARG_STAR2", // **arg argument
-    "ARG_NAMED_OPT", // In an argument list, keyword-only and also optional
-  ];
-
-  return int_to_arg_kind[arg_int] as "ARG_POS" | "ARG_OPT" | "ARG_STAR" | "ARG_NAMED" | "ARG_STAR2" | "ARG_NAMED_OPT";
-}
 
 // Cell callbacks from:
 // https://github.com/thoth-station/jupyter-nbrequirements/blob/master/js/src/types/io.d.ts#L54

@@ -1,6 +1,5 @@
 import { create_el, is_numeric, number_to_string_not_ugly, sig_figs } from "../../../utils/misc";
 import { Widget } from "../widget";
-import { Slider, make_slider, update_slider_val } from "../slider/slider";
 
 export type IntWidget = Widget & {
   kind: "IntWidget";

@@ -1,4 +1,4 @@
-import { IInstanceType, MethodInfo, MethodView, MethodWithCode, State, Type } from "../../types";
+import { IInstanceType, MethodInfo, MethodWithCode, State, Type } from "../../types";
 import { arg_defaults_from_callee_type, create_el, set_persistent_item } from "../../utils/misc";
 import { hard_rerun } from "../../code_sync/code_sync";
 import "./method.css";

@@ -111,7 +111,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
     layer_el.classList.add(`indentbelow-${indent_level+1}`)
     layer_el.classList.add(`for-loop`)
 
-    sublayers.push(...typed_node.body.body.flatMap(node => layers_from_typed_node(node, state, indent_level + 1)));
+    sublayers.push(...typed_node.body.body.flatMap((node: any) => layers_from_typed_node(node, state, indent_level + 1)));
     // sublayers.forEach(sublayer => sublayer.parents.push(layer));
   } else if (typed_node['.class'] === 'mypy.nodes.FuncDef') {
     // layer_el.append(typed_node.unparsed.split('\n')[0]);
@@ -152,7 +152,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
 
     // Set up editable function args
 
-    const args_unparsed = typed_node.arguments.map(arg => arg.unparsed + (arg.initializer ? '=' + arg.initializer.unparsed : '')).join(', ');
+    const args_unparsed = typed_node.arguments.map((arg: any) => arg.unparsed + (arg.initializer ? '=' + arg.initializer.unparsed : '')).join(', ');
     const args_widget = create_arbitrary_code_widget(args_unparsed);
 
     const layer_code_line = create_el('div', [], layer_el);
@@ -199,7 +199,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
     layer_el.classList.add(`indentbelow-${indent_level+1}`)
     layer_el.classList.add(`func-def`)
 
-    sublayers.push(...typed_node.body.body.flatMap(node => layers_from_typed_node(node, state, indent_level + 1)));
+    sublayers.push(...typed_node.body.body.flatMap((node: any) => layers_from_typed_node(node, state, indent_level + 1)));
   } else {
     layer_el.innerText = typed_node.unparsed;
     layer_el.classList.add("snp-code-layer");

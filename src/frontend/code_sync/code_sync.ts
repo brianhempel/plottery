@@ -3,17 +3,22 @@ import { reposition_plot_widgets } from "../sidebar/plot-widget/plot_widget";
 import { State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
 import { get_persistent_item } from "../utils/misc";
-import { Cell, CellMessage } from "../utils/types";
+import { CellMessage, JupyterType } from "../utils/types";
 
+
+declare const IPython: JupyterType | undefined;
 
 export function hard_rerun(state: State) {
   state.cell.code_mirror.getAllMarks().forEach(mark => mark.clear());
-  // state.cell.execute();
-  execute_cell_but_delay_clearing_output(state.cell);
+  if (IPython) { // Notebooks v6
+    execute_cell_but_delay_clearing_output(state.cell);
+  } else {
+    state.cell.execute();
+  }
 }
 
 // Adapted from notebook/js/codecell.js
-function execute_cell_but_delay_clearing_output(cell) {
+function execute_cell_but_delay_clearing_output(cell: any) {
 
   const stop_on_error = true
 
@@ -58,7 +63,7 @@ function execute_cell_but_delay_clearing_output(cell) {
   cell.render();
   cell.events.trigger('execute.CodeCell', {cell: cell});
   var that = cell;
-  function handleFinished(evt, data) {
+  function handleFinished(_evt: any, data: any) {
       if (that.kernel.id === data.kernel.id && that.last_msg_id === data.msg_id) {
               that.events.trigger('finished_execute.CodeCell', {cell: that});
           that.events.off('finished_iopub.Kernel', handleFinished);

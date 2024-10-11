@@ -14,7 +14,7 @@ import {
 } from "../types";
 import { unzip } from "./stdlib";
 import { TextMarker, MarkerRange } from "./codemirror";
-import { get_arg_kind_from_int, JupyterType } from "./types";
+import { JupyterLabCell, JupyterType } from "./types";
 
 // declare global {
 //   interface EventTarget {
@@ -64,14 +64,14 @@ export function get_persistent_item(state: State, key: string) {
     return persistent_dataset(state)[key];
   } else { // JupyterLab
     // this needs to match our labextension's get_persistent_item() function
-    return sessionStorage.getItem(`cell-${state.cell.id}-snp-${key}`);
+    return sessionStorage.getItem(`cell-${state.cell.jupyterlab_cell!.id}-snp-${key}`);
   }
 }
 export function set_persistent_item(state: State, key: string, value: string) {
   if (Jupyter) { // Notebooks v6, cells may not have ids
     persistent_dataset(state)[key] = value;
   } else { // JupyterLab
-    sessionStorage.setItem(`cell-${state.cell.id}-snp-${key}`, value);
+    sessionStorage.setItem(`cell-${state.cell.jupyterlab_cell!.id}-snp-${key}`, value);
   }
 }
 
@@ -107,6 +107,19 @@ function arg_defaults_for_star2_arg(arg_type: Type): Arg[] {
       is_positional: false,
     };
   })
+}
+
+function get_arg_kind_from_int(arg_int: number) : "ARG_POS" | "ARG_OPT" | "ARG_STAR" | "ARG_NAMED" | "ARG_STAR2" | "ARG_NAMED_OPT" {
+  const int_to_arg_kind = [
+    "ARG_POS", // Positional argument
+    "ARG_OPT", // Positional, optional argument (functions only, not calls)
+    "ARG_STAR", // *arg argument
+    "ARG_NAMED", // Keyword argument x=y in call, or keyword-only function arg
+    "ARG_STAR2", // **arg argument
+    "ARG_NAMED_OPT", // In an argument list, keyword-only and also optional
+  ];
+
+  return int_to_arg_kind[arg_int] as "ARG_POS" | "ARG_OPT" | "ARG_STAR" | "ARG_NAMED" | "ARG_STAR2" | "ARG_NAMED_OPT";
 }
 
 // # Positional argument

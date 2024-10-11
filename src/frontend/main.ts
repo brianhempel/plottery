@@ -9,7 +9,7 @@ import {
   State,
   CallInfo,
   Type,
-  MethodInfo,
+  MethodInfo
 } from "./types";
 import "./utils/stdlib";
 import {
@@ -20,7 +20,7 @@ import {
   get_persistent_item,
   set_persistent_item,
 } from "./utils/misc";
-import { Cell, JupyterLabNotebookPanel, JupyterType } from "./utils/types";
+import { Cell, JupyterLabNotebookPanel, JupyterType, jupyterlab_cell_to_notebook_v6_cell } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
 import { create_sidebar_menu_bar, set_margin_right_to_width } from "./sidebar/sidebar";
@@ -39,22 +39,21 @@ declare const Jupyter: JupyterType | undefined;
 
 // Our extension throws the JS object onto the DOM object
 // so we can get it here.
-function jupyterlab_notebook_panel(snp_outer: HTMLElement) : JupyterLabNotebookPanel {
+function jupyterlab_notebook_panel(snp_outer: HTMLElement): JupyterLabNotebookPanel {
   return (snp_outer.closest(".jp-NotebookPanel") as any).__panel;
 }
 
-function jupyterlab_cells(snp_outer: HTMLElement) : Cell[] {
-  return jupyterlab_notebook_panel(snp_outer).content.cellsArray;
+function jupyterlab_cells(snp_outer: HTMLElement): Cell[] {
+  return jupyterlab_notebook_panel(snp_outer).content.cellsArray.map(jupyterlab_cell_to_notebook_v6_cell);
+}
+
+function notebook_cells(snp_outer: HTMLElement): Cell[] {
+  return Jupyter ? Jupyter.notebook.get_cells() : jupyterlab_cells(snp_outer);
 }
 
 function find_cell(snp_outer: HTMLElement): Cell {
-  if (Jupyter) { // Notebooks v6
-    const cell_el = snp_outer.closest(".code_cell");
-    return Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
-  } else { // JupyterLab
-    const cell_el = snp_outer.closest(".jp-Cell");
-    return ;
-  }
+  const cell_el = snp_outer.closest(Jupyter ? ".code_cell" : ".jp-Cell");
+  return notebook_cells(snp_outer).filter(cell => cell.element[0] === cell_el)[0];
 }
 
 // START HERE
@@ -85,9 +84,10 @@ function attach_snp(
 
   console.time('time init state');
   // Initialize state
-  const cell_el = snp_outer.closest(".code_cell");
+  // const cell_el = snp_outer.closest(".code_cell");
   // START HERE getting it to run in JupyterLab
-  const cell = Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
+  const cell = find_cell(snp_outer);
+  // const cell = Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
   const state: State = {
     cell: cell,
     cell_lineno: cell_lineno,
@@ -166,7 +166,7 @@ function attach_snp(
   state.calls_with_args = calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror));
 
   const layers = state.notebook_typed_defs.flatMap(typed_node =>
-    typed_node.line >= cell_lineno ? layers_from_typed_node(typed_node, state) : []
+    (typed_node as any).line >= cell_lineno ? layers_from_typed_node(typed_node, state) : []
   );
 
   notebook_parseable_comments.filter(comment => comment.line >= cell_lineno).forEach(comment => {
