@@ -49,8 +49,8 @@ import { JupyterLabCell, JupyterType } from "./types";
 
 
 // These will exist in Notebooks v6, but not in JupyterLab
-declare const IPython: JupyterType | undefined;
 declare const Jupyter: JupyterType | undefined;
+(window as any).Jupyter ||= (window as any).Jupter
 
 // Things than need to last between cell reruns
 //

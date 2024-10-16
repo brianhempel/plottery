@@ -36,6 +36,7 @@ function is_not_magic(code: string): boolean {
 }
 
 declare const Jupyter: JupyterType | undefined;
+(window as any).Jupyter ||= (window as any).Jupter
 
 function prompt_for_llm(user_prompt: string, cm: DocOrEditor): string {
   const cell_code = cm.getValue();

@@ -21,6 +21,7 @@ export type JupyterLabNotebookPanel = {
 export type JupyterLabNotebook = {
   model: JupyterLabNotebookModel;
   cellsArray: JupyterLabCell[];
+  parent: JupyterLabNotebookPanel;
 };
 
 // https://github.com/jupyterlab/jupyterlab/blob/main/packages/cells/src/widget.ts#L193
@@ -29,8 +30,14 @@ export type JupyterLabCell = {
 
   editor: { editor: CM6Editor } | null;
 
-  // The below are things we monkey-patch on in attach_snp
-  code_mirror: CodeMirror.DocOrEditor;
+  node: HTMLElement;
+
+  model: {
+    sharedModel: JupyterLabSharedCell,
+    metadata: any;
+  };
+
+  parent: JupyterLabNotebook;
 };
 
 export type JupyterLabCodeCell = {
@@ -50,9 +57,13 @@ function offset_to_cm5_pos(doc: CM6Doc, offset: number) : CodeMirror.Position {
 
 // These are globally exposed by our extension in snp_jupyter/snp_jupyter.js
 declare const __CM6StateEffect: any;
+(window as any).__CM6StateEffect ||= __CM6StateEffect;
 declare const __CM6StateField: any;
+(window as any).__CM6StateField ||= __CM6StateField;
 declare const __CM6EditorView: any;
+(window as any).__CM6EditorView ||= __CM6EditorView;
 declare const __CM6Decoration: any
+(window as any).__CM6Decoration ||= __CM6Decoration;
 
 type CM5Mark = {
   mark_id: number;
@@ -255,12 +266,28 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
 
 
 declare const __JupyterCodeCellModule: JupyterCodeCellModule | undefined;
+(window as any).__JupyterCodeCellModule ||= __JupyterCodeCellModule;
 
-type JupyterLabSessionContext = {}
+type JupyterLabSessionContext = {
+  session?: {
+    kernel: {
+      status: string;
+      // execute: (code: string) => Promise<any>;
+    }
+  }
+}
 
 // https://github.com/jupyterlab/jupyterlab/blob/main/packages/cells/src/widget.ts#L1703
 export type JupyterCodeCellModule = {
   execute(cell: JupyterLabCodeCell, sessionContext: JupyterLabSessionContext, metadata?: any): Promise<any | void>;
+}
+
+declare const __JupyterNotebookActionsModule: JupyterNotebookActionsModule | undefined;
+(window as any).__JupyterNotebookActionsModule ||= __JupyterNotebookActionsModule;
+
+// https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/notebook/src/actions.tsx#L579
+type JupyterNotebookActionsModule = {
+  runCells(notebook: JupyterLabNotebook, cells: JupyterLabCell[], sessionContext?: JupyterLabSessionContext): Promise<boolean>
 }
 
 
@@ -273,10 +300,8 @@ export type JupyterLabNotebookSharedModel = {
   cells: JupyterLabSharedCell[];
 };
 
-export type JupyterLabSharedCell = JupyterLabSharedCodeCell | JupyterLabOtherCell;
-
-export type JupyterLabSharedCodeCell = {
-  cell_type: "code";
+export type JupyterLabSharedCell = {
+  cell_type: "code" | "raw" | "markdown";
   id: string;
   getId(): string;
   source: string;
@@ -289,9 +314,23 @@ export type JupyterLabOtherCell = {}; // markdown, raw, etc.
 
 export function jupyterlab_cell_to_notebook_v6_cell(jl_cell: JupyterLabCell): Cell {
 
-  // START HERE fill in the shim for Cell
-  const cell: Cell = {
+  if (jl_cell.model.sharedModel.cell_type !== "code") {
+    throw new Error("jupyterlab_cell_to_notebook_v6_cell: we should only be given code cells");
+  }
 
+  if (!__JupyterNotebookActionsModule) {
+    throw new Error("jupyterlab_cell_to_notebook_v6_cell: __JupyterNotebookActionsModule not found, it should have been set globally by the snp_jupyter.js lab extension");
+  }
+
+  const cell: Cell = {
+    cell_type: jl_cell.model.sharedModel.cell_type,
+    code_mirror: monkey_patch_codemirror5_on_codemirror6(jl_cell.editor!.editor),
+    element: [jl_cell.node],
+    get_text: () => jl_cell.model.sharedModel.source,
+    get_callbacks: () => { throw new Error("snp: get_callbacks not implemented for JupyterLab cells, need to execute some other way") },
+    execute: () => { __JupyterNotebookActionsModule.runCells(jl_cell.parent, [jl_cell], jl_cell.parent.parent.sessionContext); },
+    kernel: undefined,
+    jupyterlab_cell: jl_cell,
   };
 
   return cell;
@@ -307,10 +346,24 @@ export type Cell = {
   get_text: () => string;
   get_callbacks: () => CellCallbacks;
   execute: (stop_on_error?: boolean) => void;
-  kernel: any;
+  kernel: Kernel | undefined;
 
   jupyterlab_cell: JupyterLabCell | undefined; // if a wrapper for a JupyterLab cell, this will be present.
 };
+
+export type Kernel = {
+  _pending_messages: any[];
+  last_msg_callbacks: undefined | { iopub_done: boolean };
+  execute: (
+    code: string,
+    callbacks: CellCallbacks,
+    options: { silent?: boolean, store_history?: boolean, stop_on_error?: boolean, user_expressions?: any } & ExecuteMetadataForTheNBExtension,
+  ) => void;
+};
+type ExecuteMetadataForTheNBExtension = {
+  cell?: Cell
+  doesnt_need_snp_show_ui?: boolean
+}
 
 export type CellOutput = {
   output_type: string;

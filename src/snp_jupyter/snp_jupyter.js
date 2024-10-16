@@ -125,6 +125,8 @@ const plugin = {
 
     console.log('__JupyterCodeCellModule', CodeCell);
     window.__JupyterCodeCellModule = CodeCell; // actually we need this
+    console.log('__JupyterNotebookActionsModule', NotebookActions);
+    window.__JupyterNotebookActionsModule = NotebookActions; // actually we need this
 
     console.log('__CM6StateField', StateField);
     window.__CM6StateField = StateField;

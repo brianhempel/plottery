@@ -33,9 +33,8 @@ import { create_ai_panel } from "./ai_panel/ai_panel";
 
 
 // These will exist in Notebooks v6, but not in JupyterLab.
-declare const IPython: JupyterType | undefined;
 declare const Jupyter: JupyterType | undefined;
-
+(window as any).Jupyter ||= (window as any).Jupter
 
 // Our extension throws the JS object onto the DOM object
 // so we can get it here.
@@ -63,7 +62,6 @@ function find_cell(snp_outer: HTMLElement): Cell {
 // Then somehow we want to build an object that imitates a Notebook v6 Cell
 // that delegates to the JupyterLab Cell object.
 
-
 // Entry point
 function attach_snp(
   snp_outer: HTMLElement,
@@ -87,6 +85,8 @@ function attach_snp(
   // const cell_el = snp_outer.closest(".code_cell");
   // START HERE getting it to run in JupyterLab
   const cell = find_cell(snp_outer);
+  console.log("cell", cell);
+  (window as any).cell = cell;
   // const cell = Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
   const state: State = {
     cell: cell,

@@ -7,12 +7,13 @@ import { CellMessage, JupyterType } from "../utils/types";
 
 
 declare const IPython: JupyterType | undefined;
+(window as any).IPython ||= (window as any).IPython
 
 export function hard_rerun(state: State) {
   state.cell.code_mirror.getAllMarks().forEach(mark => mark.clear());
-  if (IPython) { // Notebooks v6
+  if (IPython) { // Notebooks v6, avoid the flash of clearing the output
     execute_cell_but_delay_clearing_output(state.cell);
-  } else {
+  } else { // JupyterLab, not going to work as hard
     state.cell.execute();
   }
 }
@@ -116,15 +117,46 @@ function sync_code_range(
 
 function kernel_is_busy(state: State): boolean {
   const kernel = state.cell.kernel;
-  const any_pending_messages = kernel._pending_messages.length > 0;
-  const iopub_not_done = kernel.last_msg_callbacks && !kernel.last_msg_callbacks.iopub_done;
-  return any_pending_messages || iopub_not_done;
+  if (kernel) { // Notebooks v6
+    const any_pending_messages = kernel._pending_messages.length > 0;
+    const iopub_not_done = !!kernel.last_msg_callbacks && !kernel.last_msg_callbacks.iopub_done;
+    return any_pending_messages || iopub_not_done;
+  } else { // JupyterLab
+    return state.cell.jupyterlab_cell!.parent.parent.sessionContext.session?.kernel.status !== 'idle';
+  }
+}
+
+function handle_error_or_stdout_stderr(state: State, msg: CellMessage) {
+  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true'
+
+  if (msg.header.msg_type == "error") {
+    if (!in_demo_mode || !msg.content.evalue!.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
+      // Display the error, but adjust line number for the lines we added to the top of the cell.
+      state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
+        /\b(line +)(\d+)/gi,
+        (_: string, line_space: string, n_str: string) =>
+          `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
+      );
+    }
+  } else if (msg.header.msg_type == "stream") {
+    if (!in_demo_mode || !msg.content.text.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
+      state.stdout_stderr.innerText += msg.content.text;
+    }
+  } else {
+    console.warn("[snp unhandlable iopub message]", msg);
+  }
 }
 
 export function redraw_cell(state: State, ignore_busy: boolean = false) {
   const cell = state.cell;
 
   if (!ignore_busy && kernel_is_busy(state)) return;
+
+  // Alternative path for JupyterLab
+  if (!cell.kernel) {
+    redraw_cell_jupyterlab(state);
+    return;
+  }
 
   const code_executing = cell.get_text();
   if (code_executing == state.last_cell_code_executed) return;
@@ -140,7 +172,6 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
   //   console.log("clear_output callback", msg);
   //   old_clear_output(msg);
   // }
-  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true'
 
   callbacks.iopub!.output = function (msg: CellMessage) {
     // console.log("output callback", msg);
@@ -152,22 +183,7 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
       const img = state.plot_area.querySelector("img")!;
       img.src = "data:image/png;base64," + msg.content.data["image/png"];
     } else {
-      if (msg.header.msg_type == "error") {
-        if (!in_demo_mode || !msg.content.evalue!.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
-          // Display the error, but adjust line number for the lines we added to the top of the cell.
-          state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
-            /\b(line +)(\d+)/gi,
-            (_: string, line_space: string, n_str: string) =>
-              `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
-          );
-        }
-      } else if (msg.header.msg_type == "stream") {
-        if (!in_demo_mode || !msg.content.text.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
-          state.stdout_stderr.innerText += msg.content.text;
-        }
-      } else {
-        console.warn("[redraw cell unhandlable output message]", arguments);
-      }
+      handle_error_or_stdout_stderr(state, msg);
     }
 
     if (code_executing != cell.get_text()) {
@@ -202,10 +218,15 @@ export function refresh_hover_regions(state: State) {
 
   state.stdout_stderr.innerHTML = "";
 
+  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true'
+
+  if (!cell.kernel) { // JupyterLab
+    hard_rerun(state);
+    return;
+  }
+
   // Hacktastic way to get live feedback
   const callbacks = cell.get_callbacks();
-
-  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true'
 
   callbacks.iopub!.output = function (msg: CellMessage) {
     // Replace hover regions
@@ -218,21 +239,8 @@ export function refresh_hover_regions(state: State) {
       state.hover_regions_container.classList.remove("hidden");
       attach_events_to_hover_regions(state);
       reposition_plot_widgets(state);
-    } else if (msg.header.msg_type == "error") {
-      if (!in_demo_mode || !msg.content.evalue!.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
-        // Display the error, but adjust line number for the lines we added to the top of the cell.
-        state.stdout_stderr.innerText += msg.content.evalue!.replaceAll(
-          /\b(line +)(\d+)/gi,
-          (_: string, line_space: string, n_str: string) =>
-            `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
-        );
-      }
-    } else if (msg.header.msg_type == "stream") {
-      if (!in_demo_mode || !msg.content.text.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
-        state.stdout_stderr.innerText += msg.content.text;
-      }
     } else {
-      console.warn("[refresh_hover_regions unhandlable output message]", arguments);
+      handle_error_or_stdout_stderr(state, msg);
     }
 
     // In case there was a change in the meantime
@@ -252,3 +260,212 @@ last_snp`;
     doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
   });
 }
+
+
+
+// START HERE figuring out how to hack jupyterlab to execute without clearing the output
+// https://jupyter-client.readthedocs.io/en/latest/messaging.html#execute
+
+// Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/cells/src/widget.ts#L1692
+// and, more importantly, on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L878
+function redraw_cell_jupyterlab(state: State) {
+  const cell    = state.cell;
+  const jl_cell = cell.jupyterlab_cell;
+
+  if (!jl_cell) {
+    throw new Error("snp redraw_cell_jupyterlab: cell should have a backing JupyterLab cell!");
+  }
+
+  const metadata = {
+    ...jl_cell.model.metadata,
+    cellId: jl_cell.model.sharedModel.getId()
+  };
+
+  const code_executing = cell.get_text();
+  if (code_executing == state.last_cell_code_executed) return;
+  state.last_cell_code_executed = code_executing;
+
+  state.stdout_stderr.innerHTML = "";
+
+  const kernel = jl_cell.parent.parent.sessionContext.session?.kernel;
+  if (!kernel) {
+    throw new Error('snp redraw_cell_jupyterlab: Session has no kernel.');
+  }
+
+  // START HERE need to add postfix and options
+  const future = kernel.requestExecute({ code: code_executing, stop_on_error: true }, false, metadata);
+
+
+  // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L678
+  future.onIOPub = (msg: any) => {
+    console.log("onIOPub", msg);
+    // // const model = outputArea.model;
+    // const msgType = msg.header.msg_type;
+    // // let output: nbformat.IOutput;
+    // let output;
+    // const transient = (msg.content as any).transient || {};
+    // const displayId = transient['display_id'] as string;
+    // let targets: number[] | undefined;
+
+    const msg_type = msg.header.msg_type;
+    if (
+      msg_type == "execute_result" &&
+      msg.content.data["image/png"]
+    ) {
+      // Replace background image
+      const img = state.plot_area.querySelector("img")!;
+      img.src = "data:image/png;base64," + msg.content.data["image/png"];
+    } else if (msg_type === "status" || msg_type === "execute_input") {
+
+    } else {
+      handle_error_or_stdout_stderr(state, msg);
+    }
+
+    if (code_executing != cell.get_text()) {
+      // console.log("iopub done", state.cell.kernel.last_msg_callbacks.iopub_done);
+      redraw_cell(state, true);
+    } else {
+      // Wait to refresh hover regions until the cell is not changing value.
+      refresh_hover_regions(state);
+    }
+
+
+    // need to check code_executing to potentially retry
+
+    // switch (msgType) {
+    //   case 'execute_result':
+    //   case 'display_data':
+    //   case 'stream':
+    //   case 'error':
+    //     output = { ...msg.content, output_type: msgType };
+    //     model.add(output);
+    //     break;
+    //   case 'clear_output': {
+    //     model.clear(msg.content.wait);
+    //     break;
+    //   }
+    //   case 'update_display_data':
+    //     output = { ...msg.content, output_type: 'display_data' };
+    //     targets = this._displayIdMap.get(displayId);
+    //     if (targets) {
+    //       for (const index of targets) {
+    //         model.set(index, output);
+    //       }
+    //     }
+    //     break;
+    //   case 'status': {
+    //     const executionState = (msg as KernelMessage.IStatusMsg).content
+    //       .execution_state;
+    //     if (executionState === 'idle') {
+    //       // If status is idle, the kernel is no longer blocked by the input
+    //       this._pendingInput = false;
+    //     }
+    //     break;
+    //   }
+      // case 'idle':
+      //   break;
+    //   default:
+    //     console.warn("[snp redraw_cell_jupyterlab unhandlable output message]", msg);
+    //     break;
+    // }
+    // if (displayId && msgType === 'display_data') {
+    //   targets = this._displayIdMap.get(displayId) || [];
+    //   targets.push(model.length - 1);
+    //   this._displayIdMap.set(displayId, targets);
+    // }
+  };
+
+  // do we need to do anything with this?
+  // based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L729
+  future.onReply = (msg: any) => {
+    console.log("onReply", msg);
+    // API responses that contain a pager are special cased and their type
+    // is overridden from 'execute_reply' to 'display_data' in order to
+    // render output.
+    // const model = outputArea.model;
+    // const content = msg.content;
+    // if (content.status !== 'ok') {
+    //   return;
+    // }
+    // const payload = content && content.payload;
+    // if (!payload || !payload.length) {
+    //   return;
+    // }
+    // const pages = payload.filter((i: any) => (i as any).source === 'page');
+    // if (!pages.length) {
+    //   return;
+    // }
+    // const page = JSON.parse(JSON.stringify(pages[0]));
+    // const output: nbformat.IOutput = {
+    //   output_type: 'display_data',
+    //   data: (page as any).data as nbformat.IMimeBundle,
+    //   metadata: {}
+    // };
+    // model.add(output);
+  };
+
+  future.done.then((x: any) => { console.log("executeRequest done", x); });
+//   output.future = future;
+//   return future.done;
+
+}
+
+
+
+// const cellId = { cellId: model.sharedModel.getId() };
+//     metadata = {
+//       ...model.metadata,
+//       ...metadata,
+//       ...cellId
+//     };
+// const msgPromise = OutputArea.execute(
+//   code,
+//   cell.outputArea,
+//   sessionContext,
+//   metadata
+// );
+// future = cell.outputArea.future;
+// const msg = (await msgPromise)!;
+
+// export async function execute(
+//   code: string,
+//   output: OutputArea,
+//   sessionContext: ISessionContext,
+//   metadata?: JSONObject
+// ): Promise<KernelMessage.IExecuteReplyMsg | undefined> {
+//   // Override the default for `stop_on_error`.
+//   let stopOnError = true;
+//   if (
+//     metadata &&
+//     Array.isArray(metadata.tags) &&
+//     metadata.tags.indexOf('raises-exception') !== -1
+//   ) {
+//     stopOnError = false;
+//   }
+//   const content: KernelMessage.IExecuteRequestMsg['content'] = {
+//     code,
+//     stop_on_error: stopOnError
+//   };
+
+//   const kernel = sessionContext.session?.kernel;
+//   if (!kernel) {
+//     throw new Error('Session has no kernel.');
+//   }
+//   const future = kernel.requestExecute(content, false, metadata);
+//   output.future = future;
+//   return future.done;
+// }
+
+
+
+// value.onIOPub = this._onIOPub;
+
+//     // Handle the execute reply.
+//     value.onReply = this._onExecuteReply;
+
+//     // Handle stdin.
+//     value.onStdin = msg => {
+//       if (KernelMessage.isInputRequestMsg(msg)) {
+//         this.onInputRequest(msg, value);
+//       }
+//     };
