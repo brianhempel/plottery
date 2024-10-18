@@ -3,7 +3,7 @@ import { reposition_plot_widgets } from "../sidebar/plot-widget/plot_widget";
 import { State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
 import { get_persistent_item } from "../utils/misc";
-import { CellMessage, JupyterType } from "../utils/types";
+import { CellCallbacks, CellMessage, JupyterType } from "../utils/types";
 
 
 declare const IPython: JupyterType | undefined;
@@ -115,14 +115,41 @@ function sync_code_range(
   redraw_cell(state);
 }
 
+// Trying to
+// (a) only run one request at once, and
+// (b) not sometimes freeze, and
+// (c) always run the last state of the code
+// is rather tricky.
 function kernel_is_busy(state: State): boolean {
+
+  // Can't figure out how to query the kernel reliably
+  // after .execute (Notebooks v6) or .requestExecute (JupyterLab)
+  // to discover requests immediately after they're queued. There seems
+  // to be a delay before the kernel knows it's busy.
+
+  // So we'll keep our own record of an outstanding request, at least
+  // until we are sure the kernel state is probably correct.
+
+  const outstanding_kernel_request_time = state.outstanding_kernel_request_time;
+  if (outstanding_kernel_request_time) {
+    if (new Date().getTime() - outstanding_kernel_request_time < 500) {
+      return true;
+    }
+  }
+
+  // If request is more than half a second old, it could be a long running request
+  // or, somehow the request never returned (e.g. kernel shutdown),
+  // but by now the kernel state should be reliable.
+
   const kernel = state.cell.kernel;
   if (kernel) { // Notebooks v6
     const any_pending_messages = kernel._pending_messages.length > 0;
     const iopub_not_done = !!kernel.last_msg_callbacks && !kernel.last_msg_callbacks.iopub_done;
     return any_pending_messages || iopub_not_done;
   } else { // JupyterLab
-    return state.cell.jupyterlab_cell!.parent.parent.sessionContext.session?.kernel.status !== 'idle';
+    const is_busy = state.cell.jupyterlab_cell!.parent.parent.sessionContext.session?.kernel.status !== 'idle';
+    // if (is_busy) { console.log("Kernel is busy"); }
+    return is_busy
   }
 }
 
@@ -152,48 +179,14 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
 
   if (!ignore_busy && kernel_is_busy(state)) return;
 
-  // Alternative path for JupyterLab
-  if (!cell.kernel) {
-    redraw_cell_jupyterlab(state);
-    return;
-  }
-
   const code_executing = cell.get_text();
   if (code_executing == state.last_cell_code_executed) return;
   state.last_cell_code_executed = code_executing;
 
+  const request_time = new Date().getTime();
+  state.outstanding_kernel_request_time = new Date().getTime();
+
   state.stdout_stderr.innerHTML = "";
-
-  // Hacktastic way to get live feedback
-  const callbacks = cell.get_callbacks();
-
-  // const old_clear_output = callbacks.iopub!.clear_output;
-  // callbacks.iopub!.clear_output = function (msg: CellMessage) {
-  //   console.log("clear_output callback", msg);
-  //   old_clear_output(msg);
-  // }
-
-  callbacks.iopub!.output = function (msg: CellMessage) {
-    // console.log("output callback", msg);
-    if (
-      msg.header.msg_type == "execute_result" &&
-      msg.content.data["image/png"]
-    ) {
-      // Replace background image
-      const img = state.plot_area.querySelector("img")!;
-      img.src = "data:image/png;base64," + msg.content.data["image/png"];
-    } else {
-      handle_error_or_stdout_stderr(state, msg);
-    }
-
-    if (code_executing != cell.get_text()) {
-      // console.log("iopub done", state.cell.kernel.last_msg_callbacks.iopub_done);
-      redraw_cell(state, true);
-    } else {
-      // Wait to refresh hover regions until the cell is not changing value.
-      refresh_hover_regions(state);
-    }
-  };
 
   state.hover_regions_container.classList.add("hidden");
 
@@ -202,103 +195,9 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
 `\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureOnly) # Store to a variable for debugging
 last_snp`;
 
-  // If we add an explicit show_ui, the notebook extension will not re-add it again
-  cell.kernel.execute(code_executing + postfix, callbacks, {
-    silent: false,
-    store_history: false,
-    stop_on_error: true,
-    cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
-    doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
-  });
-}
-
-
-export function refresh_hover_regions(state: State) {
-  const cell = state.cell;
-
-  state.stdout_stderr.innerHTML = "";
-
-  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true'
-
-  if (!cell.kernel) { // JupyterLab
-    hard_rerun(state);
-    return;
-  }
-
-  // Hacktastic way to get live feedback
-  const callbacks = cell.get_callbacks();
-
-  callbacks.iopub!.output = function (msg: CellMessage) {
-    // Replace hover regions
-    if (
-      msg.header.msg_type === "execute_result" &&
-      msg.content.data["image/svg+xml"]
-    ) {
-      // console.log("Replacing hover regions");
-      state.set_hover_regions_html(msg.content.data["image/svg+xml"]);
-      state.hover_regions_container.classList.remove("hidden");
-      attach_events_to_hover_regions(state);
-      reposition_plot_widgets(state);
-    } else {
-      handle_error_or_stdout_stderr(state, msg);
-    }
-
-    // In case there was a change in the meantime
-    redraw_cell(state, true);
-  };
-
-  const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
-  const postfix =
-`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureAndHoverRegions) # Store to a variable for debugging
-last_snp`;
-
-  cell.kernel.execute(cell.get_text() + postfix, callbacks, {
-    silent: false,
-    store_history: false,
-    stop_on_error: true,
-    cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
-    doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
-  });
-}
-
-
-
-// START HERE figuring out how to hack jupyterlab to execute without clearing the output
-// https://jupyter-client.readthedocs.io/en/latest/messaging.html#execute
-
-// Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/cells/src/widget.ts#L1692
-// and, more importantly, on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L878
-function redraw_cell_jupyterlab(state: State) {
-  const cell    = state.cell;
-  const jl_cell = cell.jupyterlab_cell;
-
-  if (!jl_cell) {
-    throw new Error("snp redraw_cell_jupyterlab: cell should have a backing JupyterLab cell!");
-  }
-
-  const metadata = {
-    ...jl_cell.model.metadata,
-    cellId: jl_cell.model.sharedModel.getId()
-  };
-
-  const code_executing = cell.get_text();
-  if (code_executing == state.last_cell_code_executed) return;
-  state.last_cell_code_executed = code_executing;
-
-  state.stdout_stderr.innerHTML = "";
-
-  const kernel = jl_cell.parent.parent.sessionContext.session?.kernel;
-  if (!kernel) {
-    throw new Error('snp redraw_cell_jupyterlab: Session has no kernel.');
-  }
-
-  // START HERE need to add postfix and options
-  const future = kernel.requestExecute({ code: code_executing, stop_on_error: true }, false, metadata);
-
-
-  // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L678
-  future.onIOPub = (msg: any) => {
-    console.log("onIOPub", msg);
+  // For JupyterLab, see https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L678
+  const on_iopub_output = (msg: any) => {
+    // console.log("onIOPub", msg);
     // // const model = outputArea.model;
     // const msgType = msg.header.msg_type;
     // // let output: nbformat.IOutput;
@@ -316,21 +215,10 @@ function redraw_cell_jupyterlab(state: State) {
       const img = state.plot_area.querySelector("img")!;
       img.src = "data:image/png;base64," + msg.content.data["image/png"];
     } else if (msg_type === "status" || msg_type === "execute_input") {
-
+      // Swallow these JupyterLab-specific messages
     } else {
       handle_error_or_stdout_stderr(state, msg);
     }
-
-    if (code_executing != cell.get_text()) {
-      // console.log("iopub done", state.cell.kernel.last_msg_callbacks.iopub_done);
-      redraw_cell(state, true);
-    } else {
-      // Wait to refresh hover regions until the cell is not changing value.
-      refresh_hover_regions(state);
-    }
-
-
-    // need to check code_executing to potentially retry
 
     // switch (msgType) {
     //   case 'execute_result':
@@ -375,10 +263,19 @@ function redraw_cell_jupyterlab(state: State) {
     // }
   };
 
-  // do we need to do anything with this?
-  // based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L729
-  future.onReply = (msg: any) => {
-    console.log("onReply", msg);
+  const on_shell_reply = (_msg: any) => {
+    // console.log("onReply", _msg);
+    if (state.outstanding_kernel_request_time == request_time) {
+      state.outstanding_kernel_request_time = undefined;
+    }
+    if (code_executing != cell.get_text()) {
+      // console.log("iopub done", state.cell.kernel.last_msg_callbacks.iopub_done);
+      redraw_cell(state);
+    } else {
+      // Wait to refresh hover regions until the cell is not changing value.
+      refresh_hover_regions(state);
+    }
+
     // API responses that contain a pager are special cased and their type
     // is overridden from 'execute_reply' to 'display_data' in order to
     // render output.
@@ -404,10 +301,308 @@ function redraw_cell_jupyterlab(state: State) {
     // model.add(output);
   };
 
-  future.done.then((x: any) => { console.log("executeRequest done", x); });
-//   output.future = future;
-//   return future.done;
+  kernel_execute(code_executing, postfix, on_iopub_output, on_shell_reply, state);
 
+
+  // if (cell.kernel) { // Notebooks v6
+  //   const callbacks: CellCallbacks = cell.get_callbacks();
+
+  //   callbacks.iopub!.output = function (msg: CellMessage) {
+  //     // console.log("iopub output callback", msg);
+  //     if (
+  //       msg.header.msg_type == "execute_result" &&
+  //       msg.content.data["image/png"]
+  //     ) {
+  //       // Replace background image
+  //       const img = state.plot_area.querySelector("img")!;
+  //       img.src = "data:image/png;base64," + msg.content.data["image/png"];
+  //     } else {
+  //       handle_error_or_stdout_stderr(state, msg);
+  //     }
+  //   };
+
+  //   callbacks.shell!.reply = function (_msg: CellMessage) {
+  //     if (state.outstanding_kernel_request_time == request_time) {
+  //       state.outstanding_kernel_request_time = undefined;
+  //     }
+  //     if (code_executing != cell.get_text()) {
+  //       // console.log("iopub done", state.cell.kernel.last_msg_callbacks.iopub_done);
+  //       redraw_cell(state);
+  //     } else {
+  //       // Wait to refresh hover regions until the cell is not changing value.
+  //       refresh_hover_regions(state);
+  //     }
+  //   }
+
+  //   // If we add an explicit show_ui, the notebook extension will not re-add it again
+  //   cell.kernel.execute(code_executing + postfix, callbacks, {
+  //     silent: false,
+  //     store_history: false,
+  //     stop_on_error: true,
+  //     cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
+  //     doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
+  //   });
+  // } else { // JupyterLab
+  //   // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/cells/src/widget.ts#L1692
+  //   // and, more importantly, on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L878
+
+  //   const jl_cell = cell.jupyterlab_cell;
+
+  //   if (!jl_cell) {
+  //     throw new Error("snp redraw_cell_jupyterlab: cell should have a backing JupyterLab cell!");
+  //   }
+
+  //   const metadata = {
+  //     ...jl_cell.model.metadata,
+  //     cellId: jl_cell.model.sharedModel.getId(),
+  //     doesnt_need_snp_show_ui: true, // Tell the labexention not to add another show_ui
+  //   };
+
+  //   const kernel = jl_cell.parent.parent.sessionContext.session?.kernel;
+
+  //   if (!kernel) {
+  //     throw new Error('snp redraw_cell jupyterlab: Session has no kernel.');
+  //   }
+
+  //   console.log("Executing");
+  //   const future = kernel.requestExecute({
+  //     code: code_executing + postfix,
+  //     silent: false,
+  //     store_history: false,
+  //     stop_on_error: true,
+  //   }, false, metadata);
+
+  //     // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L678
+  //   future.onIOPub = (msg: any) => {
+  //     // console.log("onIOPub", msg);
+  //     // // const model = outputArea.model;
+  //     // const msgType = msg.header.msg_type;
+  //     // // let output: nbformat.IOutput;
+  //     // let output;
+  //     // const transient = (msg.content as any).transient || {};
+  //     // const displayId = transient['display_id'] as string;
+  //     // let targets: number[] | undefined;
+
+  //     const msg_type = msg.header.msg_type;
+  //     if (
+  //       msg_type == "execute_result" &&
+  //       msg.content.data["image/png"]
+  //     ) {
+  //       // Replace background image
+  //       const img = state.plot_area.querySelector("img")!;
+  //       img.src = "data:image/png;base64," + msg.content.data["image/png"];
+  //     } else if (msg_type === "status" || msg_type === "execute_input") {
+
+  //     } else {
+  //       handle_error_or_stdout_stderr(state, msg);
+  //     }
+
+  //     // need to check code_executing to potentially retry
+
+  //     // switch (msgType) {
+  //     //   case 'execute_result':
+  //     //   case 'display_data':
+  //     //   case 'stream':
+  //     //   case 'error':
+  //     //     output = { ...msg.content, output_type: msgType };
+  //     //     model.add(output);
+  //     //     break;
+  //     //   case 'clear_output': {
+  //     //     model.clear(msg.content.wait);
+  //     //     break;
+  //     //   }
+  //     //   case 'update_display_data':
+  //     //     output = { ...msg.content, output_type: 'display_data' };
+  //     //     targets = this._displayIdMap.get(displayId);
+  //     //     if (targets) {
+  //     //       for (const index of targets) {
+  //     //         model.set(index, output);
+  //     //       }
+  //     //     }
+  //     //     break;
+  //     //   case 'status': {
+  //     //     const executionState = (msg as KernelMessage.IStatusMsg).content
+  //     //       .execution_state;
+  //     //     if (executionState === 'idle') {
+  //     //       // If status is idle, the kernel is no longer blocked by the input
+  //     //       this._pendingInput = false;
+  //     //     }
+  //     //     break;
+  //     //   }
+  //       // case 'idle':
+  //       //   break;
+  //     //   default:
+  //     //     console.warn("[snp redraw_cell_jupyterlab unhandlable output message]", msg);
+  //     //     break;
+  //     // }
+  //     // if (displayId && msgType === 'display_data') {
+  //     //   targets = this._displayIdMap.get(displayId) || [];
+  //     //   targets.push(model.length - 1);
+  //     //   this._displayIdMap.set(displayId, targets);
+  //     // }
+  //   };
+
+  //   future.onReply = (_msg: any) => {
+  //     console.log("onReply", _msg);
+  //     if (state.outstanding_kernel_request_time == request_time) {
+  //       state.outstanding_kernel_request_time = undefined;
+  //     }
+  //     if (code_executing != cell.get_text()) {
+  //       // console.log("iopub done", state.cell.kernel.last_msg_callbacks.iopub_done);
+  //       redraw_cell(state);
+  //     } else {
+  //       // Wait to refresh hover regions until the cell is not changing value.
+  //       refresh_hover_regions(state);
+  //     }
+
+  //     // API responses that contain a pager are special cased and their type
+  //     // is overridden from 'execute_reply' to 'display_data' in order to
+  //     // render output.
+  //     // const model = outputArea.model;
+  //     // const content = msg.content;
+  //     // if (content.status !== 'ok') {
+  //     //   return;
+  //     // }
+  //     // const payload = content && content.payload;
+  //     // if (!payload || !payload.length) {
+  //     //   return;
+  //     // }
+  //     // const pages = payload.filter((i: any) => (i as any).source === 'page');
+  //     // if (!pages.length) {
+  //     //   return;
+  //     // }
+  //     // const page = JSON.parse(JSON.stringify(pages[0]));
+  //     // const output: nbformat.IOutput = {
+  //     //   output_type: 'display_data',
+  //     //   data: (page as any).data as nbformat.IMimeBundle,
+  //     //   metadata: {}
+  //     // };
+  //     // model.add(output);
+  //   };
+  // }
+}
+
+
+export function refresh_hover_regions(state: State) {
+  const cell = state.cell;
+
+  state.stdout_stderr.innerHTML = "";
+
+  if (!cell.kernel) { // JupyterLab
+    hard_rerun(state);
+    return;
+  }
+
+  const code_executing = cell.get_text();
+  state.last_cell_code_executed = code_executing;
+
+  const request_time = new Date().getTime();
+  state.outstanding_kernel_request_time = new Date().getTime();
+
+  // Hacktastic way to get live feedback
+  const callbacks = cell.get_callbacks();
+
+  callbacks.iopub!.output = function (msg: CellMessage) {
+    // Replace hover regions
+    if (
+      msg.header.msg_type === "execute_result" &&
+      msg.content.data["image/svg+xml"]
+    ) {
+      // console.log("Replacing hover regions");
+      state.set_hover_regions_html(msg.content.data["image/svg+xml"]);
+      state.hover_regions_container.classList.remove("hidden");
+      attach_events_to_hover_regions(state);
+      reposition_plot_widgets(state);
+    } else {
+      handle_error_or_stdout_stderr(state, msg);
+    }
+  };
+
+  callbacks.shell!.reply = function (_msg: CellMessage) {
+    if (state.outstanding_kernel_request_time == request_time) {
+      state.outstanding_kernel_request_time = undefined;
+    }
+
+    // In case there was a change in the meantime
+    redraw_cell(state, true);
+  }
+
+  const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
+  const postfix =
+`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureAndHoverRegions) # Store to a variable for debugging
+last_snp`;
+
+  cell.kernel.execute(code_executing + postfix, callbacks, {
+    silent: false,
+    store_history: false,
+    stop_on_error: true,
+    cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
+    doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
+  });
+}
+
+
+// START HERE test the refactor below in Notebooks v6 and JuptyerLab
+// and then refactor refresh_hover_regions to use it.
+
+// Handle Notebooks v6 and JupyterLab.
+// Also tell the extension not to add the snp.show_ui call, presumably it is in postfix.
+function kernel_execute(
+  code_executing: string,
+  postfix: string,
+  on_iopub_output: (msg: CellMessage) => void,
+  on_shell_reply:  (msg: CellMessage) => void,
+  state: State
+) {
+  const cell = state.cell;
+  if (cell.kernel) { // Notebooks v6
+    const callbacks: CellCallbacks = cell.get_callbacks();
+
+    callbacks.iopub!.output = on_iopub_output;
+    callbacks.shell!.reply  = on_shell_reply
+
+    // If we add an explicit show_ui, the notebook extension will not re-add it again
+    cell.kernel.execute(code_executing + postfix, callbacks, {
+      silent: false,
+      store_history: false,
+      stop_on_error: true,
+      cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
+      doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
+    });
+  } else { // JupyterLab
+    // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/cells/src/widget.ts#L1692
+    // and, more importantly, on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L878
+
+    const jl_cell = cell.jupyterlab_cell;
+
+    if (!jl_cell) {
+      throw new Error("snp kernel_execute jupyterlab: cell should have a backing JupyterLab cell!");
+    }
+
+    const metadata = {
+      ...jl_cell.model.metadata,
+      cellId: jl_cell.model.sharedModel.getId(),
+      doesnt_need_snp_show_ui: true, // Tell the labexention not to add another show_ui
+    };
+
+    const kernel = jl_cell.parent.parent.sessionContext.session?.kernel;
+
+    if (!kernel) {
+      throw new Error('snp kernel_execute jupyterlab: Session has no kernel.');
+    }
+
+    console.log("Executing");
+    const future = kernel.requestExecute({
+      code: code_executing + postfix,
+      silent: false,
+      store_history: false,
+      stop_on_error: true,
+    }, false, metadata);
+
+    // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L678
+    future.onIOPub = on_iopub_output;
+    future.onReply = on_shell_reply;
+  }
 }
 
 

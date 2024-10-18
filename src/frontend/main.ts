@@ -93,6 +93,7 @@ function attach_snp(
     cell_lineno: cell_lineno,
 
     last_cell_code_executed: cell.get_text(),
+    outstanding_kernel_request_time: undefined,
 
     plt_show_lineno_in_cell,
     provenance_is_off_by_n_lines,

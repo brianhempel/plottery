@@ -58,15 +58,15 @@ function get_notebook_code_through(notebook, cell) {
 }
 
 // Will mutate content.code
-function perhaps_rewrite(content, cell, notebook) {
+function perhaps_rewrite(content, metadata, cell, notebook) {
   const cell_code = content.code || '';
 
   if (is_not_magic(cell_code) && cell_code.includes('show')) {
     // console.log('content', content);
     const [cell_lineno, notebook_code_through_cell] = get_notebook_code_through(notebook, cell);
 
-    console.log('cell_lineno', cell_lineno);
-    console.log('notebook_code_through_cell', notebook_code_through_cell);
+    // console.log('cell_lineno', cell_lineno);
+    // console.log('notebook_code_through_cell', notebook_code_through_cell);
 
     // look for
     // import matplotlib.pyplot as SOMETHING
@@ -97,17 +97,18 @@ function perhaps_rewrite(content, cell, notebook) {
 
     // Only replace code if the cell is somehow using plt.show()
     if (cell_code_show_replaced.includes('snp.show(')) {
-        // Sometimes the front end explicitly adds snp.show_ui(snp_class=FigureOnly) etc to
-        // do a quick render, then we don't need to add another show_ui
-        if (content.doesnt_need_snp_show_ui) {
-          content.code = cell_code_show_replaced;
-        } else {
-          const fig_idx = get_persistent_item(cell, 'fig_idx') || '0'; // Recall which fig is selected in the UI by querying the front-end's state.persistent_dataset
-          content.code =
+      // Sometimes the front end explicitly adds snp.show_ui(snp_class=FigureOnly) etc to
+      // do a quick render, then we don't need to add another show_ui
+      if (metadata.doesnt_need_snp_show_ui) {
+        // console.log('metadata.doesnt_need_snp_show_ui', metadata.doesnt_need_snp_show_ui);
+        content.code = cell_code_show_replaced;
+      } else {
+        const fig_idx = get_persistent_item(cell, 'fig_idx') || '0'; // Recall which fig is selected in the UI by querying the front-end's state.persistent_dataset
+        content.code =
 `${cell_code_show_replaced}
 last_snp = snp.show_ui(fig_idx=${fig_idx}) # Store to a variable for debugging
 last_snp`;
-        }
+      }
     }
   }
 }
@@ -200,9 +201,7 @@ plt.show()`;
         window.kernel = kernel; // debugging
         if (kernel) {
           console.log("Kernel ready, importing snp");
-          kernel.requestExecute({
-            code: 'import snp'
-          });
+          kernel.requestExecute({ code: 'import snp' });
         }
       });
 
@@ -218,7 +217,7 @@ plt.show()`;
           kernel.sendShellMessage = (
             (originalSendShellMessage => (...args) => {
               const { header, content, metadata } = args[0];
-              console.log('sendShellMessage args', args);
+              // console.log('sendShellMessage args', args);
 
               if (header.msg_type === 'execute_request') {
                 const notebook = tracker.currentWidget.content;
@@ -227,13 +226,13 @@ plt.show()`;
                 window.notebook = notebook; // debugging
                 window.cell = cell; // debugging
 
-                console.log('notebook', notebook);
-                console.log('cell', cell);
+                // console.log('notebook', notebook);
+                // console.log('cell', cell);
 
-                perhaps_rewrite(content, cell, notebook);
+                perhaps_rewrite(content, metadata, cell, notebook);
 
-                console.log("Code sent to kernel:");
-                console.log(content.code);
+                // console.log("Code sent to kernel:");
+                // console.log(content.code);
               }
 
               // Call the original method

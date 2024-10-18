@@ -30,6 +30,7 @@ export type State = {
   // **** Actual state ****
 
   last_cell_code_executed: string;
+  outstanding_kernel_request_time: undefined | number;
   dragging_layers: Layer[]
 
   is_in_dom: () => boolean; // false after a hard rerun of the cell; everything is old then
