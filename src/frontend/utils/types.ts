@@ -56,14 +56,15 @@ function offset_to_cm5_pos(doc: CM6Doc, offset: number) : CodeMirror.Position {
 }
 
 // These are globally exposed by our extension in snp_jupyter/snp_jupyter.js
+// They should already be on window, but this makes them available but undefined if they're not.
 declare const __CM6StateEffect: any;
-(window as any).__CM6StateEffect ||= __CM6StateEffect;
+(window as any).__CM6StateEffect  ||= (window as any).__CM6StateEffect
 declare const __CM6StateField: any;
-(window as any).__CM6StateField ||= __CM6StateField;
+(window as any).__CM6StateField  ||= (window as any).__CM6StateField
 declare const __CM6EditorView: any;
-(window as any).__CM6EditorView ||= __CM6EditorView;
-declare const __CM6Decoration: any
-(window as any).__CM6Decoration ||= __CM6Decoration;
+(window as any).__CM6EditorView  ||= (window as any).__CM6EditorView
+declare const __CM6Decoration: any;
+(window as any).__CM6Decoration  ||= (window as any).__CM6Decoration
 
 type CM5Mark = {
   mark_id: number;
@@ -266,13 +267,28 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
 
 
 declare const __JupyterCodeCellModule: JupyterCodeCellModule | undefined;
-(window as any).__JupyterCodeCellModule ||= __JupyterCodeCellModule;
+(window as any).__JupyterCodeCellModule ||= (window as any).__JupyterCodeCellModule
 
 type JupyterLabSessionContext = {
   session?: {
     kernel: {
       status: string;
-      // execute: (code: string) => Promise<any>;
+      requestExecute: (
+        content: {
+          code: string;
+          silent?: boolean;
+          store_history?: boolean;
+          user_expressions?: any;
+          allow_stdin?: boolean;
+          stop_on_error?: boolean;
+        },
+        disposeOnDone?: boolean,
+        metadata?: any,
+      ) => {
+        onIOPub: (msg: CellMessage) => void;
+        onReply: (msg: CellMessage) => void;
+        done: Promise<any>;
+      };
     }
   }
 }
@@ -283,7 +299,7 @@ export type JupyterCodeCellModule = {
 }
 
 declare const __JupyterNotebookActionsModule: JupyterNotebookActionsModule | undefined;
-(window as any).__JupyterNotebookActionsModule ||= __JupyterNotebookActionsModule;
+(window as any).__JupyterNotebookActionsModule ||= (window as any).__JupyterNotebookActionsModule
 
 // https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/notebook/src/actions.tsx#L579
 type JupyterNotebookActionsModule = {

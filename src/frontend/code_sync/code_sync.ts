@@ -13,7 +13,7 @@ export function hard_rerun(state: State) {
   state.cell.code_mirror.getAllMarks().forEach(mark => mark.clear());
   if (IPython) { // Notebooks v6, avoid the flash of clearing the output
     execute_cell_but_delay_clearing_output(state.cell);
-  } else { // JupyterLab, not going to work as hard
+  } else { // JupyterLab, not going to try to try hack it
     state.cell.execute();
   }
 }
@@ -84,8 +84,8 @@ export function add_sync_code_on_change_watcher(
     const code = get_code();
 
     if (curr_code != code) {
-      sync_code_range(marks, code, state);
       curr_code = code;
+      sync_code_range(marks, code, state);
     }
 
     // requestAnimationFrame(keep_synced);
@@ -184,7 +184,7 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
   state.last_cell_code_executed = code_executing;
 
   const request_time = new Date().getTime();
-  state.outstanding_kernel_request_time = new Date().getTime();
+  state.outstanding_kernel_request_time = request_time;
 
   state.stdout_stderr.innerHTML = "";
 
@@ -488,24 +488,23 @@ export function refresh_hover_regions(state: State) {
 
   state.stdout_stderr.innerHTML = "";
 
-  if (!cell.kernel) { // JupyterLab
-    hard_rerun(state);
-    return;
-  }
-
   const code_executing = cell.get_text();
   state.last_cell_code_executed = code_executing;
 
   const request_time = new Date().getTime();
-  state.outstanding_kernel_request_time = new Date().getTime();
+  state.outstanding_kernel_request_time = request_time;
 
-  // Hacktastic way to get live feedback
-  const callbacks = cell.get_callbacks();
+  const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
+  const postfix =
+`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureAndHoverRegions) # Store to a variable for debugging
+last_snp`;
 
-  callbacks.iopub!.output = function (msg: CellMessage) {
+  const on_iopub_output = (msg: CellMessage) => {
+
     // Replace hover regions
+    const msg_type = msg.header.msg_type;
     if (
-      msg.header.msg_type === "execute_result" &&
+      msg_type === "execute_result" &&
       msg.content.data["image/svg+xml"]
     ) {
       // console.log("Replacing hover regions");
@@ -513,12 +512,14 @@ export function refresh_hover_regions(state: State) {
       state.hover_regions_container.classList.remove("hidden");
       attach_events_to_hover_regions(state);
       reposition_plot_widgets(state);
+    } else if (msg_type === "status" || msg_type === "execute_input") {
+      // Swallow these JupyterLab-specific messages
     } else {
       handle_error_or_stdout_stderr(state, msg);
     }
   };
 
-  callbacks.shell!.reply = function (_msg: CellMessage) {
+  const on_shell_reply = (_msg: CellMessage) => {
     if (state.outstanding_kernel_request_time == request_time) {
       state.outstanding_kernel_request_time = undefined;
     }
@@ -527,18 +528,15 @@ export function refresh_hover_regions(state: State) {
     redraw_cell(state, true);
   }
 
-  const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
-  const postfix =
-`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureAndHoverRegions) # Store to a variable for debugging
-last_snp`;
+  // cell.kernel.execute(code_executing + postfix, callbacks, {
+  //   silent: false,
+  //   store_history: false,
+  //   stop_on_error: true,
+  //   cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
+  //   doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
+  // });
 
-  cell.kernel.execute(code_executing + postfix, callbacks, {
-    silent: false,
-    store_history: false,
-    stop_on_error: true,
-    cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
-    doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
-  });
+  kernel_execute(code_executing, postfix, on_iopub_output, on_shell_reply, state);
 }
 
 
