@@ -1,8 +1,7 @@
 import { hard_rerun } from "../code_sync/code_sync";
 import { State } from "../types";
-import { DocOrEditor } from "../utils/codemirror";
 import { prompt_llm } from "../utils/llm";
-import { create_el } from "../utils/misc";
+import { create_el, notebook_cells } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
 
 export function create_ai_panel(state: State): HTMLElement {
@@ -38,13 +37,13 @@ function is_not_magic(code: string): boolean {
 declare const Jupyter: JupyterType | undefined;
 (window as any).Jupyter ||= (window as any).Jupter
 
-function prompt_for_llm(user_prompt: string, cm: DocOrEditor): string {
-  const cell_code = cm.getValue();
-  const code_cells: Cell[] = Jupyter.notebook.get_cells().filter((cell: Cell) => cell.cell_type === "code" && is_not_magic(cell.get_text()));
+function prompt_for_llm(user_prompt: string, state: State): string {
+  const cells = notebook_cells(state.snp_outer);
+  const code_cells: Cell[] = cells.filter((cell: Cell) => cell.cell_type === "code" && is_not_magic(cell.get_text()));
 
   const code_cells_through_cell = code_cells.slice(
     0,
-    1 + code_cells.findLastIndex(cell => cell.get_text() === cell_code)
+    1 + code_cells.findLastIndex(c => c.element[0] === state.cell.element[0]) // They won't be the same object in JupyterLab because notebook_cells makes a new wrapper each time it is called
   );
 
   let notebook_code = ""
@@ -83,13 +82,12 @@ Return only the new code of Cell ${last_cell_no}`;
 }
 
 function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, state: State) {
+  const cm = state.cell.code_mirror;
   const user_prompt = prompt_el.value;
   prompt_el.blur();
   prompt_el.disabled = true;
   prompt_el.style.opacity = "0.5";
   spinner_el.style.display = "block";
-
-  const cm = state.cell.code_mirror;
 
   function success(reply: string) {
     let code: string;
@@ -101,14 +99,25 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
     }
     code = code.replace(/### Cell \d.*\n/, '');
 
+    // Focus code cell so user can undo changes
+    if (!Jupyter) { // JupyterLab
+      // Set cursor before setValue so it (hopefully) doesn't race with setValue or something.
+      cm.setCursor(9999, 9999, { scroll: false })
+      cm.focus();
+    }
+
     cm.setValue(code);
     hard_rerun(state);
-    cm.setCursor(9999, 9999, { scroll: false })
-    cm.focus({ preventScroll: true }); // Focus so the user can undo
+
+    if (Jupyter) { // Notebooks v6
+      // Set cursor after setValue so the cursor is at the end of the cell
+      cm.setCursor(9999, 9999, { scroll: false })
+      cm.focus({ preventScroll: true });
+    }
   }
 
   prompt_llm(
-    prompt_for_llm(user_prompt, cm),
+    prompt_for_llm(user_prompt, state),
     success,
     () => {
       prompt_el.parentElement!.append("Oops there was an error.");

@@ -19,6 +19,7 @@ import {
   cm_end_pos,
   get_persistent_item,
   set_persistent_item,
+  notebook_cells,
 } from "./utils/misc";
 import { Cell, JupyterLabNotebookPanel, JupyterType, jupyterlab_cell_to_notebook_v6_cell } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
@@ -35,20 +36,6 @@ import { create_ai_panel } from "./ai_panel/ai_panel";
 // These will exist in Notebooks v6, but not in JupyterLab.
 declare const Jupyter: JupyterType | undefined;
 (window as any).Jupyter ||= (window as any).Jupter
-
-// Our extension throws the JS object onto the DOM object
-// so we can get it here.
-function jupyterlab_notebook_panel(snp_outer: HTMLElement): JupyterLabNotebookPanel {
-  return (snp_outer.closest(".jp-NotebookPanel") as any).__panel;
-}
-
-function jupyterlab_cells(snp_outer: HTMLElement): Cell[] {
-  return jupyterlab_notebook_panel(snp_outer).content.cellsArray.map(jupyterlab_cell_to_notebook_v6_cell);
-}
-
-function notebook_cells(snp_outer: HTMLElement): Cell[] {
-  return Jupyter ? Jupyter.notebook.get_cells() : jupyterlab_cells(snp_outer);
-}
 
 function find_cell(snp_outer: HTMLElement): Cell {
   const cell_el = snp_outer.closest(Jupyter ? ".code_cell" : ".jp-Cell");

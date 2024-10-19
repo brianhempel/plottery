@@ -14,7 +14,7 @@ import {
 } from "../types";
 import { unzip } from "./stdlib";
 import { TextMarker, MarkerRange } from "./codemirror";
-import { JupyterLabCell, JupyterType } from "./types";
+import { Cell, jupyterlab_cell_to_notebook_v6_cell, JupyterLabCell, JupyterLabNotebookPanel, JupyterType } from "./types";
 
 // declare global {
 //   interface EventTarget {
@@ -51,6 +51,20 @@ import { JupyterLabCell, JupyterType } from "./types";
 // These will exist in Notebooks v6, but not in JupyterLab
 declare const Jupyter: JupyterType | undefined;
 (window as any).Jupyter ||= (window as any).Jupter
+
+
+// Our extension throws the JS object onto the DOM object
+// so we can get it here.
+function jupyterlab_notebook_panel(snp_outer: HTMLElement): JupyterLabNotebookPanel {
+  return (snp_outer.closest(".jp-NotebookPanel") as any).__panel;
+}
+function jupyterlab_cells(snp_outer: HTMLElement): Cell[] {
+  return jupyterlab_notebook_panel(snp_outer).content.cellsArray.map(jupyterlab_cell_to_notebook_v6_cell);
+}
+export function notebook_cells(snp_outer: HTMLElement): Cell[] {
+  return Jupyter ? Jupyter.notebook.get_cells() : jupyterlab_cells(snp_outer);
+}
+
 
 // Things than need to last between cell reruns
 //

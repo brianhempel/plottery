@@ -48,7 +48,13 @@ export type JupyterLabCodeCell = {
 // https://codemirror.net/docs/migration/#positions
 // CodeMirror 6 the first line has number 1, whereas CodeMirror 5 lines started at 0.
 function cm5_pos_to_offset(doc: CM6Doc, pos: CodeMirror.Position): number {
-  return doc.line(pos.line + 1).from + pos.ch
+  // CM5 is sometimes robust to positions after the end of the document, whereas CM6 errors.
+  const cm6_lineno = Math.min(pos.line + 1, doc.lines);
+  // console.log("doc", cm6_lineno)
+  // console.log("cm6_lineno", cm6_lineno)
+  const line = doc.line(cm6_lineno);
+  let cm6_ch = Math.min(pos.ch, line.length);
+  return doc.line(cm6_lineno).from + cm6_ch
 }
 function offset_to_cm5_pos(doc: CM6Doc, offset: number) : CodeMirror.Position {
   let line = doc.lineAt(offset)
@@ -88,9 +94,9 @@ type CM5Mock = {
   getLine: (line: number) => string;
   replaceRange: (text: string, from: CodeMirror.Position, to: CodeMirror.Position) => void;
   setValue: (text: string) => void;
-  setCursor: (pos: CodeMirror.Position, options: { scroll: boolean }) => void;
+  setCursor: (line: number, ch: number, options: { scroll: boolean }) => void;
   posFromIndex: (index: number) => CodeMirror.Position;
-  focus: () => void;
+  focus: (options?: { preventScroll: boolean }) => void;
   markText: (from: CodeMirror.Position, to: CodeMirror.Position, options: { inclusiveLeft: boolean, inclusiveRight: boolean, clearWhenEmpty: boolean }) => CM5Mark;
   getAllMarks: () => CM5Mark[];
 
@@ -111,6 +117,7 @@ type CM6Editor = {
 type CM6Doc = {
   lineAt(pos: number): CM6Line;
   line(n: number): CM6Line;
+  lines: number;
   length: number;
 }
 // https://codemirror.net/docs/ref/#state.Line
@@ -196,19 +203,19 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
 
     setValue: (text: string) => {
       return cm6.dispatch({
-        changes: {from: 0, to: cm6.state.doc.length, insert: text}
+        changes: {from: 0, to: cm6.state.doc.length, insert: text, addToHistory: true}
       });
     },
 
-    setCursor: (pos: CodeMirror.Position, options: { scroll: boolean }) => {
-      return cm6.dispatch({selection: {anchor: cm5_pos_to_offset(cm6doc, pos), scrollIntoView: options.scroll}});
+    setCursor: (line: number, ch: number, options: { scroll: boolean }) => {
+      return cm6.dispatch({selection: {anchor: cm5_pos_to_offset(cm6doc, { line, ch }), scrollIntoView: options.scroll}});
     },
 
     posFromIndex : (index: number) => {
       return offset_to_cm5_pos(cm6doc, index);
     },
 
-    focus: cm6.focus,
+    focus: () => cm6.focus.apply(cm6),
 
     markText: (from: CodeMirror.Position, to: CodeMirror.Position, options: { inclusiveLeft: boolean, inclusiveRight: boolean, clearWhenEmpty: boolean }) => {
       // In our usage, clearWhenEmpty is always false, so don't bother supporting it

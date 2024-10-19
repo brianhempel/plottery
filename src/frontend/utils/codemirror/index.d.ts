@@ -783,6 +783,8 @@ declare namespace CodeMirror {
     }
 
     interface DocOrEditor {
+        focus(options?: { preventScroll: boolean }): void; // maybe supposed to only be on Editor
+
         /** Get the mode option */
         modeOption: string | ModeSpec<ModeSpecOptions>;
 
