@@ -6,6 +6,8 @@
 }
 
 .snp-bool-switch {
+  box-sizing: border-box; /* JupyterLab */
+
   display: inline-block;
   width: calc(var(--knob-size) + 2px + var(--travel));
   height: calc(var(--knob-size) + 2px);
@@ -19,6 +21,8 @@
 }
 
 .snp-bool-switch > .switch-knob {
+  box-sizing: border-box; /* JupyterLab */
+
   display: inline-block;
   height: calc(var(--knob-size) - 2px);
   width: calc(var(--knob-size) - 2px);

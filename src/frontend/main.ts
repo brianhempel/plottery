@@ -122,7 +122,15 @@ function attach_snp(
 
   console.time('time make layers');
   const make_stuff_nice_for_screenshots = window.sessionStorage.getItem('make_stuff_nice_for_screenshots') === 'true'
-  set_margin_right_to_width(state.sidebar_el, 20, 83 + (make_stuff_nice_for_screenshots ? 113 : 0));
+
+  const sidebar_margin_right = 20;
+  // In Notebooks v6, put the sidebar somewhat into the left gutter so the whole UI is centered.
+  if (Jupyter) {
+    set_margin_right_to_width(state.sidebar_el, sidebar_margin_right, 83 + (make_stuff_nice_for_screenshots ? 113 : 0));
+  } else {
+    // In JupyterLab, the cell codebox is the full width of the page, so it's not necessary.
+    state.sidebar_el.style.marginRight = `${sidebar_margin_right}px`;
+  }
 
   // Put stdout_stderr at the bottom
   // state.stdout_stderr.remove();

@@ -37,10 +37,12 @@
 }
 
 .snp-menu-item {
+  box-sizing: border-box; /* JupyterLab */
+
   margin: 0;
-  padding: 0.4rem 1rem;
+  padding: 4px 10px;
   line-height: 1.5;
-  min-width: 15rem;
+  min-width: 150px;
 
   /* This is what Jupyter's menu's use: */
   display: flex;

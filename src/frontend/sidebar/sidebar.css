@@ -9,7 +9,7 @@
   /* position: relative;
   height: 2em;
   width: 33em;
-  height: 2.75rem;
+  height: 27.5px;
   overflow: visible;
   border-bottom: solid 1px black;
   background-color: white;
@@ -23,7 +23,7 @@
 }
 
 .snp-sidebar-menu-bar > .snp-menu > .snp-menu-name {
-  padding: 0.4rem 1rem;
+  padding: 4px 10px;
 }
 
 .snp-fig-selector {
