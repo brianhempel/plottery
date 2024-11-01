@@ -540,9 +540,6 @@ last_snp`;
 }
 
 
-// START HERE test the refactor below in Notebooks v6 and JuptyerLab
-// and then refactor refresh_hover_regions to use it.
-
 // Handle Notebooks v6 and JupyterLab.
 // Also tell the extension not to add the snp.show_ui call, presumably it is in postfix.
 function kernel_execute(

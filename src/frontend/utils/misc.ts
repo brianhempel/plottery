@@ -607,10 +607,12 @@ export function sig_figs(x: number, ndigits: number): number {
   return Math.round(x * factor) / factor;
 }
 
+// Returns the last line number of the inserted code, excluding the postfix newline
+// (for noting new_calls after a hard rerun)
 export function add_line_of_code(
   code: string, // without newline, unless you want to add an extra newline after
   state: State
-): TextMarker<MarkerRange> {
+): number {
   const cm = state.cell.code_mirror;
 
   const plt_show_line = (cm.getLine(state.plt_show_lineno_in_cell - 1) || '');
@@ -628,17 +630,13 @@ export function add_line_of_code(
   const line_before_has_set = line_before.includes('.set_');
   const new_code_has_set    = code.includes('.set_');
   const perhaps_prefix_newline = (line_before_has_set != new_code_has_set && line_before !== '') ? '\n' : '';
+  const new_code = perhaps_prefix_newline + code.replaceAll(/^/mg, indentation) + '\n';
 
-  let mark = cm.markText(
-    { line: insert_line, ch: 0 },
-    { line: insert_line, ch: 0 },
-    { inclusiveRight: true, inclusiveLeft: true, clearWhenEmpty: false }
-  );
+  const insert_pos = { line: insert_line, ch: 0 };
 
-  let { from, to } = mark.find()!;
-  cm.replaceRange(perhaps_prefix_newline + code.replaceAll(/^/mg, indentation) + '\n', from, to);
+  cm.replaceRange(new_code, insert_pos);
 
-  return mark;
+  return insert_line + new_code.split('\n').length - 2; // -1 because of added newline, another -1 because single line should be insert_line
 }
 
 // So that 0.1 + 0.2 actually prints 0.3

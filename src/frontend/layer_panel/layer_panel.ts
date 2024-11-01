@@ -329,11 +329,9 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
     // or into itself and deleted below
     // hard_rerun() below will reset this.
 
-    // START HERE fix for JuptyerLab
+    // console.log('layer.mark.find_cm6_mark!()!', layer.mark.find_cm6_mark!()!);
     layer.mark.inclusiveLeft = false;
     layer.target_mark.inclusiveLeft = false;
-    // layer.mark.inclusiveRight = false;
-    // layer.target_mark.inclusiveRight = false;
   });
   cm.replaceRange(source_code, target_pos);
 

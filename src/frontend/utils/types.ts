@@ -76,6 +76,8 @@ type CM5Mark = {
   mark_id: number;
   clear: () => void;
   find: () => CodeMirror.MarkerRange | undefined;
+  find_cm6_mark?: () => CM6Mark | undefined;  // debugging
+  inclusiveLeft: boolean;
 }
 type CM6Mark = {
   from: number;
@@ -87,15 +89,17 @@ type CM6Deco = {
     mark_id: number;
     cm5_mark: CM5Mark;
   }
+  startSide: number;
 }
 type CM5Mock = {
   getValue: () => string;
   getRange: (from: CodeMirror.Position, to: CodeMirror.Position) => string;
   getLine: (line: number) => string;
-  replaceRange: (text: string, from: CodeMirror.Position, to: CodeMirror.Position) => void;
+  replaceRange: (text: string, from: CodeMirror.Position, to?: CodeMirror.Position) => void;
   setValue: (text: string) => void;
   setCursor: (line: number, ch: number, options: { scroll: boolean }) => void;
   posFromIndex: (index: number) => CodeMirror.Position;
+  indexFromPos: (pos: CodeMirror.Position) => number;
   focus: (options?: { preventScroll: boolean }) => void;
   markText: (from: CodeMirror.Position, to: CodeMirror.Position, options: { inclusiveLeft: boolean, inclusiveRight: boolean, clearWhenEmpty: boolean }) => CM5Mark;
   getAllMarks: () => CM5Mark[];
@@ -131,7 +135,7 @@ type CM6Line = {
 
 // Returns an object that imitates the CodeMirror 5 API, but is backed by CodeMirror 6
 export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMirror.DocOrEditor {
-  const cm6doc = cm6.state.doc;
+  const cm6doc = cm6.state.doc; // DO NOT USE THIS. USE cm6.state.doc every time to make sure you're getting the latest version.
 
   // Marks based on https://codemirror.net/docs/migration/#marked-text
 
@@ -168,7 +172,7 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
   })
 
   // Add the extension
-  // START HERE don't add if it already exists
+  // START HERE is there a way to remove the old versions in main.ts?
   cm6.dispatch({ effects: __CM6StateEffect.appendConfig.of(mark_handler) });
 
 
@@ -186,16 +190,16 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     getValue: () => (cm6 as any).state.doc.toString(),
 
     getRange: (from: CodeMirror.Position, to: CodeMirror.Position) => {
-      const from_offset = cm5_pos_to_offset(cm6doc, from);
-      const to_offset = cm5_pos_to_offset(cm6doc, to);
+      const from_offset = cm5_pos_to_offset(cm6.state.doc, from);
+      const to_offset = cm5_pos_to_offset(cm6.state.doc, to);
       return (cm6 as any).state.sliceDoc(from_offset, to_offset)
     },
 
-    getLine: (line: number) => cm6doc.line(line + 1).text,
+    getLine: (line: number) => cm6.state.doc.line(line + 1).text,
 
-    replaceRange: (text: string, from: CodeMirror.Position, to: CodeMirror.Position) => {
-      const from_offset = cm5_pos_to_offset(cm6doc, from);
-      const to_offset = cm5_pos_to_offset(cm6doc, to);
+    replaceRange: (text: string, from: CodeMirror.Position, to?: CodeMirror.Position) => {
+      const from_offset = cm5_pos_to_offset(cm6.state.doc, from);
+      const to_offset = cm5_pos_to_offset(cm6.state.doc, to || from);
       return cm6.dispatch({
         changes: {from: from_offset, to: to_offset, insert: text}
       });
@@ -208,11 +212,15 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     },
 
     setCursor: (line: number, ch: number, options: { scroll: boolean }) => {
-      return cm6.dispatch({selection: {anchor: cm5_pos_to_offset(cm6doc, { line, ch }), scrollIntoView: options.scroll}});
+      return cm6.dispatch({selection: {anchor: cm5_pos_to_offset(cm6.state.doc, { line, ch }), scrollIntoView: options.scroll}});
     },
 
     posFromIndex : (index: number) => {
-      return offset_to_cm5_pos(cm6doc, index);
+      return offset_to_cm5_pos(cm6.state.doc, index);
+    },
+
+    indexFromPos: (pos: CodeMirror.Position) => {
+      return cm5_pos_to_offset(cm6.state.doc, pos);
     },
 
     focus: () => cm6.focus.apply(cm6),
@@ -222,11 +230,15 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
       if (options.clearWhenEmpty) {
         throw new Error("snp: clearWhenEmpty is not supported in our hacky monkey-patch of CodeMirror 6")
       }
-      const from_offset = cm5_pos_to_offset(cm6doc, from);
-      const to_offset = cm5_pos_to_offset(cm6doc, to);
+      const from_offset = cm5_pos_to_offset(cm6.state.doc, from);
+      const to_offset = cm5_pos_to_offset(cm6.state.doc, to);
 
       const mark_id = mark_id_counter;
       mark_id_counter += 1;
+
+      const find_cm6_mark = () => {
+        return all_cm6_marks().find(({ value: deco }) => deco.spec.mark_id === mark_id)
+      };
 
       const cm5_mark: CM5Mark = {
         mark_id: mark_id,
@@ -234,17 +246,28 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
           cm6.dispatch({ effects: filter_marks.of((_from: number, _to: number, value: any) => value.spec.mark_id !== mark_id) })
         },
         find: () => {
-          const cm6_mark = all_cm6_marks().find(({ value: deco }) => deco.spec.mark_id === mark_id)
+          const cm6_mark = find_cm6_mark()
           if (cm6_mark) {
             const range: CodeMirror.MarkerRange = {
-              from: offset_to_cm5_pos(cm6doc, cm6_mark.from),
-              to:   offset_to_cm5_pos(cm6doc, cm6_mark.to),
+              from: offset_to_cm5_pos(cm6.state.doc, cm6_mark.from),
+              to:   offset_to_cm5_pos(cm6.state.doc, cm6_mark.to),
             }
             return range;
           } else {
             return undefined;
           }
-        }
+        },
+        set inclusiveLeft(bool: boolean) {
+          const cm6_mark = find_cm6_mark();
+          if (cm6_mark) {
+            if (bool === false) {
+              cm6_mark.value.startSide = 500000000
+            } else {
+              cm6_mark.value.startSide = -1
+            }
+          }
+        },
+        find_cm6_mark, // debugging
       };
 
       // https://codemirror.net/docs/ref/#view.Decoration%5Emark

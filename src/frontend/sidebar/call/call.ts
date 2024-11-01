@@ -45,8 +45,8 @@ import "./call.css";
 // than line number.
 //
 // Line number here is relative to the notebook, not the cell.
-export function id_as_new_call(call: CallInfo) {
-  return id_of_new_call(call.func_code, call.call.pos.line);
+export function id_as_new_call(call_info: CallInfo) {
+  return id_of_new_call(call_info.func_code, call_info.call.pos.line);
 }
 
 // 20 | ax.bar(...) -> "ax.bar at line 20"

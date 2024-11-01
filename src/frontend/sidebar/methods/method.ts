@@ -29,9 +29,9 @@ export function add_method_call(
   method: MethodWithCode,
   state: State
 ) {
-  const mark = add_line_of_code(method.code, state);
-  const line = mark.find()!.to.line + state.cell_lineno - 1;
-  set_persistent_item(state, 'new_calls', `["${id_of_new_call(method.receiver_dot_name, line)}"]`);
+  const call_lineno = add_line_of_code(method.code, state);
+  const call_lineno_in_notebook = state.cell_lineno + call_lineno;
+  set_persistent_item(state, 'new_calls', `["${id_of_new_call(method.receiver_dot_name, call_lineno_in_notebook)}"]`);
   hard_rerun(state);
 }
 

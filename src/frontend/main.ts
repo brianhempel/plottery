@@ -42,12 +42,8 @@ function find_cell(snp_outer: HTMLElement): Cell {
   return notebook_cells(snp_outer).filter(cell => cell.element[0] === cell_el)[0];
 }
 
-// START HERE
-// We only use Jupyter for Jupyter.notebook.get_cells(), so we should be able to
-// consolidate that.
-//
-// Then somehow we want to build an object that imitates a Notebook v6 Cell
-// that delegates to the JupyterLab Cell object.
+
+// START HERE do some demos to test all the features in JupyterLab
 
 // Entry point
 function attach_snp(
@@ -69,12 +65,9 @@ function attach_snp(
 
   console.time('time init state');
   // Initialize state
-  // const cell_el = snp_outer.closest(".code_cell");
-  // START HERE getting it to run in JupyterLab
   const cell = find_cell(snp_outer);
   console.log("cell", cell);
   (window as any).cell = cell;
-  // const cell = Jupyter.notebook.get_cells().filter(cell => cell.element[0] === cell_el)[0];
   const state: State = {
     cell: cell,
     cell_lineno: cell_lineno,

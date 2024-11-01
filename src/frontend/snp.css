@@ -3,7 +3,7 @@
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 /* Shift everything left when the properites panel is open */
