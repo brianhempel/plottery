@@ -23,6 +23,7 @@
   margin: 0.3em;
   width: calc(100% - 0.6em);
   box-sizing: border-box; /* JupyterLab */
+  line-height: 20px; /* JupyterLab */
 }
 
 .snp-spinner {
@@ -36,6 +37,7 @@
   border-radius: 50%;
   border-top-color: rgba(0, 0, 0, .8);
   animation: spin 0.7s linear infinite;
+  box-sizing: border-box; /* JupyterLab */
 }
 
 @keyframes spin {

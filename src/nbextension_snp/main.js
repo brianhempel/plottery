@@ -59,11 +59,11 @@ define(["require", "base/js/namespace", "base/js/events"], function (
           const notebook_code_through_selected_cell = get_notebook_code_through(selected_cell)[1];
 
           let needed_import_lines = [];
-          // if(!notebook_code_through_selected_cell.includes('import matplotlib as mpl')) {
-          //   needed_import_lines.push('import matplotlib as mpl');
-          // }
           if (!notebook_code_through_selected_cell.includes('import numpy as np')) {
             needed_import_lines.push('import numpy as np');
+          }
+          if(!notebook_code_through_selected_cell.includes('import matplotlib as mpl')) {
+            needed_import_lines.push('import matplotlib as mpl');
           }
           if (!notebook_code_through_selected_cell.includes('import matplotlib.pyplot as plt')) {
             needed_import_lines.push('import matplotlib.pyplot as plt');
