@@ -324,9 +324,9 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
   }
 
   state.layers_panel.layers.forEach(layer => {
-    // this seems to work better for moving layers around
+    // this seems to work better for moving layers around.
     // otherwise a layer might be moved into another layer,
-    // or into itself and deleted below
+    // or into itself and deleted below.
     // hard_rerun() below will reset this.
 
     // console.log('layer.mark.find_cm6_mark!()!', layer.mark.find_cm6_mark!()!);

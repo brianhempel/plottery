@@ -49,12 +49,15 @@ export type JupyterLabCodeCell = {
 // CodeMirror 6 the first line has number 1, whereas CodeMirror 5 lines started at 0.
 function cm5_pos_to_offset(doc: CM6Doc, pos: CodeMirror.Position): number {
   // CM5 is sometimes robust to positions after the end of the document, whereas CM6 errors.
-  const cm6_lineno = Math.min(pos.line + 1, doc.lines);
+  if (pos.line + 1 > doc.lines) {
+    return doc.length;
+  }
+  const cm6_lineno = pos.line + 1;
   // console.log("doc", cm6_lineno)
   // console.log("cm6_lineno", cm6_lineno)
   const line = doc.line(cm6_lineno);
   let cm6_ch = Math.min(pos.ch, line.length);
-  return doc.line(cm6_lineno).from + cm6_ch
+  return line.from + cm6_ch
 }
 function offset_to_cm5_pos(doc: CM6Doc, offset: number) : CodeMirror.Position {
   let line = doc.lineAt(offset)
@@ -123,6 +126,7 @@ type CM6Doc = {
   line(n: number): CM6Line;
   lines: number;
   length: number;
+  toString(): string;
 }
 // https://codemirror.net/docs/ref/#state.Line
 type CM6Line = {
@@ -187,7 +191,7 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
   let mark_id_counter = 1;
 
   const cm5: CM5Mock = {
-    getValue: () => (cm6 as any).state.doc.toString(),
+    getValue: () => cm6.state.doc.toString(),
 
     getRange: (from: CodeMirror.Position, to: CodeMirror.Position) => {
       const from_offset = cm5_pos_to_offset(cm6.state.doc, from);
@@ -200,6 +204,8 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     replaceRange: (text: string, from: CodeMirror.Position, to?: CodeMirror.Position) => {
       const from_offset = cm5_pos_to_offset(cm6.state.doc, from);
       const to_offset = cm5_pos_to_offset(cm6.state.doc, to || from);
+      // console.log("replaceRange", from_offset, to_offset, text);
+      // console.log("doc", cm6.state.doc.toString());
       return cm6.dispatch({
         changes: {from: from_offset, to: to_offset, insert: text}
       });
