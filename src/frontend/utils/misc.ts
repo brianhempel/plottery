@@ -78,14 +78,14 @@ export function get_persistent_item(state: State, key: string) {
     return persistent_dataset(state)[key];
   } else { // JupyterLab
     // this needs to match our labextension's get_persistent_item() function
-    return sessionStorage.getItem(`cell-${state.cell.jupyterlab_cell!.id}-snp-${key}`);
+    return sessionStorage.getItem(`cell-${state.cell.jupyterlab_cell!.model.sharedModel.id}-snp-${key}`);
   }
 }
 export function set_persistent_item(state: State, key: string, value: string) {
   if (Jupyter) { // Notebooks v6, cells may not have ids
     persistent_dataset(state)[key] = value;
   } else { // JupyterLab
-    sessionStorage.setItem(`cell-${state.cell.jupyterlab_cell!.id}-snp-${key}`, value);
+    sessionStorage.setItem(`cell-${state.cell.jupyterlab_cell!.model.sharedModel.id}-snp-${key}`, value);
   }
 }
 

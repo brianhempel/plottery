@@ -20,104 +20,107 @@ import {StateField, StateEffect} from "@codemirror/state"
 import {EditorView, Decoration} from "@codemirror/view"
 
 
-function is_not_magic(code) {
-  return !code.startsWith("%%");
-}
-
-function notebook_cells(notebook) {
-  return notebook.model.sharedModel.cells;
-}
-
-function cell_type(cell) {
-  return cell.cell_type;
-}
-
-function cell_code(cell) {
-  return cell.source;
-}
-
-function get_persistent_item(cell, key) {
-  return sessionStorage.getItem(`cell-${cell.id}-snp-${key}`);
-}
-
-function get_notebook_code_through(notebook, cell) {
-  const cells = notebook_cells(notebook);
-
-  const notebook_code_before_cell =
-    cells.slice(0, cells.findIndex(c => c === cell))
-      .filter(c => cell_type(c) === "code")
-      .map(cell_code)
-      .filter(is_not_magic)
-      .join("\n");
-
-  const notebook_code_through_cell = `${notebook_code_before_cell}\n${cell_code(cell)}`;
-
-  const cell_lineno = notebook_code_before_cell.split("\n").length + 1;
-
-  return [cell_lineno, notebook_code_through_cell];
-}
-
-// Will mutate content.code
-function perhaps_rewrite(content, metadata, cell, notebook) {
-  const cell_code = content.code || '';
-
-  if (is_not_magic(cell_code) && cell_code.includes('show')) {
-    // console.log('content', content);
-    const [cell_lineno, notebook_code_through_cell] = get_notebook_code_through(notebook, cell);
-
-    // console.log('cell_lineno', cell_lineno);
-    // console.log('notebook_code_through_cell', notebook_code_through_cell);
-
-    // look for
-    // import matplotlib.pyplot as SOMETHING
-    // from matplotlib.pyplot import show
-    // from matplotlib.pyplot import *
-
-    const matplotlib_show_names = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib as (\w+)/mg)].map(m => `${m[1]}.pyplot.show`)
-    const pyplot_show_names = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib\.pyplot as (\w+)/mg)].map(m => `${m[1]}.show`)
-    const just_show_names = [...notebook_code_through_cell.matchAll(/^\s*from matplotlib\.pyplot import .*(\*|\bshow\b)/mg)].map(_ => `show`)
-    const targets = ['matplotlib.pyplot.show', ...matplotlib_show_names, ...pyplot_show_names, ...just_show_names];
-
-    // console.log('cell_lineno', cell_lineno);
-    // console.log('notebook_code_through_cell', notebook_code_through_cell);
-    // console.log('targets', targets);
-
-    const provenance_is_off_by_n_lines = 0; // Change this if you need to prefix the cell with extra code (we used to but don't now)
-
-    let cell_code_show_replaced = cell_code;
-    for (const target of targets) {
-      const regex = new RegExp(`\\b${target}\\b\\s*\\(`, 'g');
-      cell_code_show_replaced =
-        cell_code_show_replaced.replaceAll(regex, function (_match, index) {
-          const plt_show_lineno_in_cell = cell_code_show_replaced.substr(0, index).split('\n').length; // 1-indexed
-          const notebook_code_as_python_str = JSON.stringify(notebook_code_through_cell);
-          return `snp.show(globals() | locals(), ${cell_lineno}, ${plt_show_lineno_in_cell}, ${provenance_is_off_by_n_lines}, ${notebook_code_as_python_str},`;;
-        });
-    }
-
-    // Only replace code if the cell is somehow using plt.show()
-    if (cell_code_show_replaced.includes('snp.show(')) {
-      // Sometimes the front end explicitly adds snp.show_ui(snp_class=FigureOnly) etc to
-      // do a quick render, then we don't need to add another show_ui
-      if (metadata.doesnt_need_snp_show_ui) {
-        // console.log('metadata.doesnt_need_snp_show_ui', metadata.doesnt_need_snp_show_ui);
-        content.code = cell_code_show_replaced;
-      } else {
-        const fig_idx = get_persistent_item(cell, 'fig_idx') || '0'; // Recall which fig is selected in the UI by querying the front-end's state.persistent_dataset
-        content.code =
-`${cell_code_show_replaced}
-last_snp = snp.show_ui(fig_idx=${fig_idx}) # Store to a variable for debugging
-last_snp`;
-      }
-    }
-  }
-}
-
 const plugin = {
   id: 'snp_jupyter',
   autoStart: true,
   requires: [INotebookTracker],
   activate: function(app, tracker) {
+
+    function is_not_magic(code) {
+      return !code.startsWith("%%");
+    }
+
+    function notebook_cells(notebook) {
+      return notebook.cellsArray;
+    }
+
+    function cell_type(cell) {
+      return cell.model.sharedModel.cell_type;
+    }
+
+    function cell_code(cell) {
+      return cell.model.sharedModel.source;
+    }
+
+    function get_persistent_item(cell, key) {
+      console.log("get_persistent_item cell", cell)
+      return sessionStorage.getItem(`cell-${cell.model.sharedModel.id}-snp-${key}`);
+    }
+
+    function get_notebook_code_through(notebook, cell) {
+      const cells = notebook_cells(notebook);
+
+      const notebook_code_before_cell =
+        cells.slice(0, cells.findIndex(c => c === cell))
+          .filter(c => cell_type(c) === "code")
+          .map(cell_code)
+          .filter(is_not_magic)
+          .join("\n");
+
+      const notebook_code_through_cell = `${notebook_code_before_cell}\n${cell_code(cell)}`;
+
+      const cell_lineno = notebook_code_before_cell.split("\n").length + 1;
+
+      return [cell_lineno, notebook_code_through_cell];
+    }
+
+    // Will mutate content.code
+    function perhaps_rewrite(content, metadata, cell, notebook) {
+      const cell_code = content.code || '';
+
+      if (is_not_magic(cell_code) && cell_code.includes('show')) {
+        // console.log('content', content);
+        const [cell_lineno, notebook_code_through_cell] = get_notebook_code_through(notebook, cell);
+
+        // console.log('cell_lineno', cell_lineno);
+        // console.log('notebook_code_through_cell', notebook_code_through_cell);
+
+        // look for
+        // import matplotlib.pyplot as SOMETHING
+        // from matplotlib.pyplot import show
+        // from matplotlib.pyplot import *
+
+        const matplotlib_show_names = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib as (\w+)/mg)].map(m => `${m[1]}.pyplot.show`)
+        const pyplot_show_names = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib\.pyplot as (\w+)/mg)].map(m => `${m[1]}.show`)
+        const just_show_names = [...notebook_code_through_cell.matchAll(/^\s*from matplotlib\.pyplot import .*(\*|\bshow\b)/mg)].map(_ => `show`)
+        const targets = ['matplotlib.pyplot.show', ...matplotlib_show_names, ...pyplot_show_names, ...just_show_names];
+
+        // console.log('cell_lineno', cell_lineno);
+        // console.log('notebook_code_through_cell', notebook_code_through_cell);
+        // console.log('targets', targets);
+
+        const provenance_is_off_by_n_lines = 0; // Change this if you need to prefix the cell with extra code (we used to but don't now)
+
+        let cell_code_show_replaced = cell_code;
+        for (const target of targets) {
+          const regex = new RegExp(`\\b${target}\\b\\s*\\(`, 'g');
+          cell_code_show_replaced =
+            cell_code_show_replaced.replaceAll(regex, function (_match, index) {
+              const plt_show_lineno_in_cell = cell_code_show_replaced.substr(0, index).split('\n').length; // 1-indexed
+              const notebook_code_as_python_str = JSON.stringify(notebook_code_through_cell);
+              return `snp.show(globals() | locals(), ${cell_lineno}, ${plt_show_lineno_in_cell}, ${provenance_is_off_by_n_lines}, ${notebook_code_as_python_str},`;;
+            });
+        }
+
+        // Only replace code if the cell is somehow using plt.show()
+        if (cell_code_show_replaced.includes('snp.show(')) {
+          // Sometimes the front end explicitly adds snp.show_ui(snp_class=FigureOnly) etc to
+          // do a quick render, then we don't need to add another show_ui
+          if (metadata.doesnt_need_snp_show_ui) {
+            // console.log('metadata.doesnt_need_snp_show_ui', metadata.doesnt_need_snp_show_ui);
+            content.code = cell_code_show_replaced;
+          } else {
+            const fig_idx = get_persistent_item(cell, 'fig_idx') || '0'; // Recall which fig is selected in the UI by querying the front-end's state.persistent_dataset
+            content.code =
+`${cell_code_show_replaced}
+last_snp = snp.show_ui(fig_idx=${fig_idx}) # Store to a variable for debugging
+last_snp`;
+          }
+        }
+      }
+    }
+
+
     console.log('Activating snp_jupyter');
     console.log('app', app);
     console.log('tracker', tracker);
@@ -155,9 +158,34 @@ const plugin = {
         console.log('NotebookActions', NotebookActions);
         window.NotebookActions = NotebookActions; // debugging
 
-        NotebookActions.insertBelow(notebook);
+        let cell = notebook.activeCell || notebook.selectedCells.at(-1) || notebook.cellsArray.at(-1);
 
-        const cell = notebook.activeCell;
+        const [_, notebook_code_through_selected_cell] = get_notebook_code_through(notebook, cell);
+
+        let needed_import_lines = [];
+        if (!notebook_code_through_selected_cell.includes('import numpy as np')) {
+          needed_import_lines.push('import numpy as np');
+        }
+        if(!notebook_code_through_selected_cell.includes('import matplotlib as mpl')) {
+          needed_import_lines.push('import matplotlib as mpl');
+        }
+        if (!notebook_code_through_selected_cell.includes('import matplotlib.pyplot as plt')) {
+          needed_import_lines.push('import matplotlib.pyplot as plt');
+        }
+        if (needed_import_lines.length > 0) {
+          if (cell.model.sharedModel.source !== '' || cell.model.sharedModel.cell_type !== 'code') {
+            NotebookActions.insertBelow(notebook);
+            cell = notebook.activeCell;
+          }
+          cell.model.sharedModel.source = needed_import_lines.join('\n');
+          NotebookActions.focusActiveCell(notebook);
+          NotebookActions.runCells(notebook, [cell], panel.sessionContext);
+        }
+
+        if (cell.model.sharedModel.source !== '' || cell.model.sharedModel.cell_type !== 'code') {
+          NotebookActions.insertBelow(notebook);
+          cell = notebook.activeCell;
+        }
         console.log('cell', cell);
         window.cell = cell; // debugging
 
@@ -167,7 +195,6 @@ ax = fig.add_subplot(1, 1, 1)
 
 
 plt.show()`;
-
         NotebookActions.focusActiveCell(notebook);
         NotebookActions.runCells(notebook, [cell], panel.sessionContext);
       }
@@ -203,12 +230,13 @@ plt.show()`;
           console.log("Kernel ready, importing snp");
           kernel.requestExecute({ code: 'import snp' });
         }
-      });
+      // });
 
       // Add wrapper to rewrite normal Matplotlib code to call our functions
-      panel.sessionContext.ready.then(() => {
-        const session = panel.sessionContext.session;
-        const kernel = session?.kernel;
+
+      // panel.sessionContext.ready.then(() => {
+        // const session = panel.sessionContext.session;
+        // const kernel = session?.kernel;
         if (!kernel) {
           return;
         }
@@ -221,10 +249,10 @@ plt.show()`;
 
               if (header.msg_type === 'execute_request') {
                 const notebook = tracker.currentWidget.content;
-                const cell = notebook.model.sharedModel.cells.find(c => c.id == metadata.cellId)
+                const cell = notebook.cellsArray.find(c => c.model.sharedModel.id == metadata.cellId)
 
-                window.notebook = notebook; // debugging
-                window.cell = cell; // debugging
+                // window.notebook = notebook; // debugging
+                // window.cell = cell; // debugging
 
                 // console.log('notebook', notebook);
                 // console.log('cell', cell);
