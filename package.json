@@ -9,7 +9,7 @@
     "disable-nbextension": "jupyter nbextension disable nbextension_snp/main",
     "build-ts": "vite build",
     "watch-ts": "vite build --watch",
-    "build": "npm run install-nbextension && npm run enable-nbextension && npm run install-labextension && npm run build-ts",
+    "build": "npm run install-nbextension; npm run enable-nbextension; npm run install-labextension && npm run build-ts",
     "uninstall-labextension": "rm -r $(ruby -e 'print(`jupyter lab path`[/Application directory:\\s*(.*)/, 1].sub(/\\/lab$/, \"\"))')/labextensions/snp_jupyter",
     "install-labextension": "cd src/snp_jupyter && npm run build && cd ../.. && npm run uninstall-labextension; cp -r src/snp_jupyter/labextension $(ruby -e 'print(`jupyter lab path`[/Application directory:\\s*(.*)/, 1].sub(/\\/lab$/, \"\"))')/labextensions/snp_jupyter"
   },
