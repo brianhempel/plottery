@@ -1,3 +1,14 @@
+:root {
+  /* Dev likes this */
+  /* https://www.joshwcomeau.com/shadow-palette/ */
+  --shadow-color: 0deg 0% 72%;
+  --shadow-elevation-medium:
+    0.3px 0.5px 0.7px hsl(var(--shadow-color) / 0.26),
+    0.7px 1.5px 1.9px -0.8px hsl(var(--shadow-color) / 0.26),
+    1.8px 3.6px 4.5px -1.7px hsl(var(--shadow-color) / 0.26),
+    4.4px 8.7px 11px -2.5px hsl(var(--shadow-color) / 0.26);
+}
+
 .output_subarea,
 .jp-OutputArea-output,
 .jp-Cell-outputArea,
@@ -44,7 +55,8 @@
 
   z-index: 5;
 
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25);
+  /* box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.25); */
+  box-shadow: var(--shadow-elevation-medium);
 }
 .snp-sidebar {
   margin: 10px 0;  /* JS overrides the right margin .snp-sidebar to keep it on the left */
