@@ -24,11 +24,6 @@ import {
   // make_proxy_arg_el,
   // make_proxy_arg_view,
 } from "../arg/arg";
-import {
-  collapse_collapsable,
-  create_collapsable_els,
-  open_collapsable,
-} from "../collapsable/collapsable";
 import { Boundses } from "../hover-regions/hover_regions";
 import "./call.css";
 
@@ -71,8 +66,6 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   );
 
   // Call container
-
-  // const { el: call_el, body_el, header_el } = create_collapsable_els();
 
   const call_el = create_el("div", []);
   const header_el = create_el("div", [], call_el);
@@ -121,28 +114,6 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   // Keyword args (optional)
   add_args(missing_keyword_args, true);
 
-  // Don't need the below, **args are flattened into the keyword args
-  // if (kwargs != null) {
-  //   const kwargs_collapsable = create_collapsable_els();
-  //   kwargs_collapsable.el.classList.add("snp-kwargs");
-
-  //   collapse_collapsable(kwargs_collapsable.el);
-
-  //   body_el.append(kwargs_collapsable.el);
-  //   const kwargs_label = create_el(
-  //     "div",
-  //     "snp-call-kwargs-label",
-  //     kwargs_collapsable.header_el
-  //   );
-  //   kwargs_label.innerText = "See more";
-
-  //   kwargs.forEach(arg => {
-  //     const arg_view = create_arg_view(arg, {disabled: true});
-  //     kwargs_collapsable.body_el.append(arg_view.el);
-  //     arg_and_views.push({ arg, view: arg_view });
-  //   });
-  // }
-
   const call_view: CallView = {
     els: {
       el: call_el,
@@ -151,7 +122,6 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
       // proxies_el,
       properties_el,
     },
-    is_elided: false,
     mark: mark,
     arguments: arg_and_views,
   };

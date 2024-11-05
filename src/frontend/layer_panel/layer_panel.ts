@@ -2,7 +2,6 @@ import { P_stmt } from "../ast_types";
 import { add_sync_code_on_change_watcher, hard_rerun, redraw_cell } from "../code_sync/code_sync";
 import { add_menu_item, add_submenu, create_menu_el } from "../menus/menus";
 import { call_to_code, create_call_view, id_of_new_call } from "../sidebar/call/call";
-import { open_collapsable } from "../sidebar/collapsable/collapsable";
 import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_regions";
 import { add_method_call } from "../sidebar/methods/method";
 import { create_arbitrary_code_widget } from "../sidebar/widgets/arbitrary_code/arbitrary_code";
@@ -541,7 +540,6 @@ export function select_layer(layer: Layer, state: State, call_view?: CallView) {
   deselect_all_layers(state);
   // console.log(layer.el)
   layer.el.classList.add("selected");
-  // open_collapsable(layer.el.querySelector('.snp-collapsable')!);
   set_properties_panel_on(call_view || layer.call_views[0], state);
   compute_selected_hover_regions(state);
   save_selected_layers(state);
