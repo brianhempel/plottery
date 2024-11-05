@@ -1735,7 +1735,7 @@ class GatherTypedCalls(TraverserVisitor):
 
         # print(func_code, callee_type)
 
-        if isinstance(callee_type, mypy.types.CallableType):
+        if isinstance(callee_type, mypy.types.CallableType) and not func_code is None: # func_code is None for string interpolation
             given_args = []
             for arg, name in zip(node.args, node.arg_names):
                 given_arg = type_json_with_node_loc(arg, self.types_dict.get(arg), self.user_typed_snippets)
