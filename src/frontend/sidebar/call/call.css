@@ -5,11 +5,13 @@
 
 .snp-call-name {
   /* font-style: italic; */
-  background: #6f0eff17;
-  color: #6a006a;
-  padding: 0px 4px;
-  border-radius: 2px;
-  margin-left: 2px;
+  /* background: #6f0eff17; */
+  font-weight: bold;
+  /* color: #6a006a; */
+  color: #2f67ac;
+  /* padding: 0px 4px; */
+  /* border-radius: 2px; */
+  /* margin-left: 2px; */
 }
 
 /* .snp-call-name::before {

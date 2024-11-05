@@ -61,8 +61,8 @@
   font-family: monospace;
   white-space: pre-wrap;
   margin: 0;
-  padding: 0.5em 0.25em;
-  border-bottom: solid 1px gray;
+  padding: 0.35em 0.25em;
+  border-bottom: solid 1px #efefef;
   display: flex;
   --indent-spacing: 2em;
 }
