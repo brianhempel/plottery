@@ -1,5 +1,12 @@
-.output_subarea {
+.output_subarea,
+.jp-OutputArea-output,
+.jp-Cell-outputArea,
+.jp-OutputArea-executeResult {
   overflow: visible !important;
+}
+
+.jp-Cell-inputWrapper {
+  z-index: 1; /* so hover regions don't cover the code */
 }
 
 .hidden {
