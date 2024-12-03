@@ -4,3 +4,9 @@ numpy<2
 ipython==8.21.0
 mypy==1.8.0
 shapely==2.0.2
+nest-asyncio==1.5.8
+tornado==6.3.3
+pyzmq==24.0.1
+jupyter_client==7.4.9
+jupyter_core==4.12.0
+jupyterlab

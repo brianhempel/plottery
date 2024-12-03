@@ -21,7 +21,15 @@ Install node packages.
 npm install
 ```
 
-Install and enable `nbextension`, and build `snp.ts`.
+The JupyterLab extension also requires some stuff.
+
+```
+cd src/snp_jupyter
+npm install
+cd ../..
+```
+
+Install and enable the , and build `snp.ts`.
 
 ```
 npm run build
@@ -35,3 +43,9 @@ OPENAI_API_KEY=your_key jupyter notebook
 ```
 
 If `OPENAI_API_KEY` is not provided, the AI panel will not show.
+
+It should also work in Jupyter Lab:
+
+```
+OPENAI_API_KEY=your_key jupyter lab
+```
