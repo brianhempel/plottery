@@ -95,6 +95,7 @@ function widgets_from_type(type: Type): Widget[] {
   } else if (type[".class"] == "UnionType") {
     return type.items.flatMap(t => widgets_from_type(t));
   } else if (type[".class"] == "TypeAliasType") {
+    console.warn("I don't think we are creating TypeAliasType widgets anymore...but we got here somehow??", type);
     return [create_alias_widget(type)];
   } else if ((type[".class"] == "Instance" && type.type_ref == "builtins.str") ||
              type[".class"] == "NoneType" ||

@@ -24,7 +24,7 @@ export function prompt_llm(prompt: string, success: (reply: string) => void, fai
   xhr.addEventListener('load', handle_llm_response);
   xhr.addEventListener('error',   () => { console.warn('prompt error', xhr); failure() });
   xhr.addEventListener('timeout', () => { console.warn('prompt timeout'); failure() });
-  xhr.timeout = 30*1000;
+  xhr.timeout = 60*1000;
 
   const query = {
       'model':    'gpt-4o',
