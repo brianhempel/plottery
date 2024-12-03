@@ -1262,7 +1262,7 @@ class SNP(SNPFigureAndHoverRegions):
         # Gather all the type information for function calls in the notebook
         with Timer("GatherTypedCalls"):
             if tree is not None:
-                visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets)
+                visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets, self.cell_lineno)
                 visitor.visit_mypy_file(tree)
                 self.calls = visitor.out
                 for call in self.calls:
@@ -1707,17 +1707,21 @@ def is_subtype(subtype, type):
 
 
 class GatherTypedCalls(TraverserVisitor):
-    def __init__(self, notebook_code_lines, types_dict, user_typed_snippets):
+    def __init__(self, notebook_code_lines, types_dict, user_typed_snippets, cell_lineno):
         self.call_nums = {} # I checked and the traversal order is the same as for ast.NodeTransformer
         self.notebook_code_lines = notebook_code_lines
         self.types_dict = types_dict
         self.user_typed_snippets = user_typed_snippets
+        self.cell_lineno = cell_lineno
         self.out = []
         global call_typed_nodes # for debugging
         call_typed_nodes = []
 
     def visit_call_expr(self, node: mypy.nodes.CallExpr) -> None:
         super().visit_call_expr(node)
+
+        if node.callee.line < self.cell_lineno:
+            return
 
         func_code = code_at_range(self.notebook_code_lines, node.callee.line, node.callee.column, node.callee.end_line, node.callee.end_column)
         call_num = self.call_nums.get(func_code, 0) + 1
