@@ -1,4 +1,5 @@
 import { State } from "../types";
+import { log_event } from "../utils/instrumentation";
 import { create_el } from "../utils/misc";
 
 // classes will be added both to the menu and the items holder, since the items
@@ -42,17 +43,23 @@ export function add_menu_item(
   const menu_items = menu.querySelector(".snp-menu-items")!;
   const menu_item = create_el("div", "snp-menu-item", menu_items);
   menu_item.innerHTML = innerHTML;
+
+  function do_action(state: State) {
+    const menu_name: string = menu.querySelector(".snp-menu-name")?.textContent || '';
+    const menu_item_name: string = menu_item.innerText;
+    close_menu(menu);
+    action(state);
+    log_event('gui', 'invoke menu item', {menu: menu_name, menu_item: menu_item_name, code: state.cell.code_mirror.getValue()});
+  }
+
   if (command) {
     command = command.toUpperCase();
     const command_key = window.navigator.platform.match(/Mac|iPhone/) ? "⌘" : "Ctrl+";
     menu_item.innerHTML += `<kbd>${command_key}${command}</kbd>`
-    state.command_shortcuts[command] = state => { close_menu(menu); action(state) };
+    state.command_shortcuts[command] = do_action;
   }
 
-  menu_item.addEventListener("click", _ => {
-    close_menu(menu);
-    action(state);
-  });
+  menu_item.addEventListener("click", _ => do_action(state));
 
   menu.addEventListener("click", _ => {
     enabled_predicate(menu_item, state) ? enable_menu_item(menu_item) : disable_menu_item(menu_item);
@@ -82,6 +89,9 @@ export function add_submenu(
 }
 
 export function open_menu(menu: HTMLElement) {
+  const menu_name: string = menu.querySelector(".snp-menu-name")?.textContent || '';
+  log_event('gui', 'open menu', {menu: menu_name});
+
   const rect = menu.getBoundingClientRect();
   menu.classList.add("open");
   const overlay = create_el("div", "snp-menu-click-to-close-overlay");
@@ -101,6 +111,9 @@ export function open_menu(menu: HTMLElement) {
 }
 
 export function close_menu(menu: HTMLElement) {
+  const menu_name: string = menu.querySelector(".snp-menu-name")?.textContent || '';
+  log_event('gui', 'close menu', {menu: menu_name});
+
   // menu.querySelector(".snp-menu-click-to-close-overlay")?.remove();
   menu.classList.remove("open");
   // const items_el = document.body.querySelector(".snp-menu-items")! as HTMLElement;

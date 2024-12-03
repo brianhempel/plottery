@@ -1,3 +1,4 @@
+import { log_event } from "../../../utils/instrumentation";
 import { create_el, is_numeric, number_to_string_not_ugly, sig_figs } from "../../../utils/misc";
 import { Widget } from "../widget";
 
@@ -42,6 +43,7 @@ export function create_int_widget(code: string): IntWidget {
     if (sibling) {
       (sibling as HTMLElement).style.width = sibling.getBoundingClientRect().width + "px";
     }
+    log_event("gui", "slider widget drag begin", { arg_code: widget.to_code() });
   });
 
   slider.addEventListener("mouseup", ev => {
@@ -52,6 +54,8 @@ export function create_int_widget(code: string): IntWidget {
     }
 
     adjust_slider_range(widget.slider);
+
+    log_event("gui", "slider widget drag end", { arg_code: widget.to_code() });
   });
 
   // console.log(widget);

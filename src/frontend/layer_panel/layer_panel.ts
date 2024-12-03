@@ -12,6 +12,7 @@ import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
 import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type, non_colliding_name, set_persistent_item, get_persistent_item } from "../utils/misc";
 import { Position } from "../types";
 import { set_properties_panel_on } from "../properties_panel/properties_panel";
+import { log_event } from "../utils/instrumentation";
 
 
 export type Layer = {
@@ -224,6 +225,7 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
   const { el: layer_el, mark } = layer;
 
   layer_el.addEventListener("click", ev => {
+    log_event("gui", "layers panel click-select layer", {layer: layer_el.innerText});
     select_layer(layer, state);
   });
 
@@ -243,8 +245,10 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
 
     if (!visible_checkbox.checked) {
       replace_all_preserving_marks(cm, /^([ \t]*)/mg, '$1# ', (_match, start_pos, _end_pos) => start_pos.line >= layer_range.from.line && start_pos.line <= layer_range.to.line)
+      log_event("gui", "layers panel layer visibility click off", {layer: layer_el.innerText, code: cm.getValue()});
     } else {
       replace_all_preserving_marks(cm, /^([ \t]*)# /mg, '$1', (_match, start_pos, _end_pos) => start_pos.line >= layer_range.from.line && start_pos.line <= layer_range.to.line)
+      log_event("gui", "layers panel layer visibility click on", {layer: layer_el.innerText, code: cm.getValue()});
     }
 
     clean_up_passes(cm);
@@ -341,6 +345,8 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
 
   clean_up_passes(cm);
 
+  log_event("gui", "layers panel layer drag end", {layer: state.dragging_layers[0].el.innerText, code: cm.getValue()});
+
   hard_rerun(state);
 }
 
@@ -396,6 +402,7 @@ function clean_up_passes(cm: DocOrEditor) {
 
 function dragstart(ev: DragEvent, layer: Layer, state: State) {
   state.dragging_layers = [layer];
+  log_event("gui", "layers panel layer drag begin", {layer: layer.el.innerText, code: state.cell.code_mirror.getValue()});
   ev.stopImmediatePropagation();
 }
 

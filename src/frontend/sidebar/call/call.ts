@@ -9,6 +9,7 @@ import {
   CallWithArgs,
   State,
 } from "../../types";
+import { log_event, rate_limit } from "../../utils/instrumentation";
 import {
   create_el,
   cm_end_pos,
@@ -184,7 +185,10 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
         const mouse_axes_x = (mouse_x / client_px_per_fig_px - (axes_x0 - fig_x0)) / (axes_x1 - axes_x0) - 0.05; // Not quite the corner
         const mouse_axes_y = (mouse_y / client_px_per_fig_px - (axes_y0 - fig_y0)) / (axes_y1 - axes_y0) - 0.05; // Not quite the corner
 
-        view.widget.set_code(`(${number_to_string_not_ugly(sig_figs(mouse_axes_x, 2))}, ${number_to_string_not_ugly(sig_figs(mouse_axes_y, 2))})`);
+        const arg_code = `(${number_to_string_not_ugly(sig_figs(mouse_axes_x, 2))}, ${number_to_string_not_ugly(sig_figs(mouse_axes_y, 2))})`
+        view.widget.set_code(arg_code);
+
+        rate_limit("dragging", 500, () => { log_event("gui", "on-plot dragging", {arg: "loc", arg_code, drag_direction: "xy"}); });
       };
     }
   }
@@ -368,5 +372,7 @@ function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', reversed: b
       new_arg_code = `${code_lhs.trimEnd()} + ${number_to_string_not_ugly(new_number)}`;
     }
     view.widget.set_code(new_arg_code);
+
+    rate_limit("dragging", 500, () => { log_event("gui", "on-plot dragging", {arg: view.el.querySelector('.snp-arg-name')?.textContent || '', arg_code: new_arg_code, drag_direction: x_or_y}); });
   };
 }

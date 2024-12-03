@@ -2,6 +2,7 @@ import { attach_events_to_hover_regions } from "../sidebar/hover-regions/hover_r
 import { reposition_plot_widgets } from "../sidebar/plot-widget/plot_widget";
 import { State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
+import { debounce, log_event } from "../utils/instrumentation";
 import { get_persistent_item } from "../utils/misc";
 import { CellCallbacks, CellMessage, JupyterType } from "../utils/types";
 
@@ -62,7 +63,7 @@ function execute_cell_but_delay_clearing_output(cell: any) {
   });
   // CodeCell.msg_cells[cell.last_msg_id] = cell;
   cell.render();
-  cell.events.trigger('execute.CodeCell', {cell: cell});
+  cell.events.trigger('execute.CodeCell', {cell: cell, plottery_hard_rerun: true});
   var that = cell;
   function handleFinished(_evt: any, data: any) {
       if (that.kernel.id === data.kernel.id && that.last_msg_id === data.msg_id) {
@@ -86,6 +87,7 @@ export function add_sync_code_on_change_watcher(
     if (curr_code != code) {
       curr_code = code;
       sync_code_range(marks, code, state);
+      debounce('code sync', 333, () => log_event('other', 'code sync', {code: state.cell.code_mirror.getValue()}));
     }
 
     // requestAnimationFrame(keep_synced);

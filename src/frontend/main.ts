@@ -30,6 +30,8 @@ import { id_as_new_call } from "./sidebar/call/call";
 import { method_info_to_method_with_args } from "./sidebar/methods/method";
 import { ParseableComment } from "./layer_panel/layer_panel";
 import { create_ai_panel } from "./ai_panel/ai_panel";
+import { log_event, rate_limit } from "./utils/instrumentation";
+import { DocOrEditor } from "./utils/codemirror";
 
 
 
@@ -180,7 +182,7 @@ function attach_snp(
 
   // Clicks on non-selectable elements on plot should deselect.
   // (Clicks on selectable elements do not propogate to the container.)
-  state.hover_regions_container.addEventListener("click", _ => { deselect_all_layers(state); });
+  state.hover_regions_container.addEventListener("click", _ => { log_event('gui', 'plot background click deselect all'); deselect_all_layers(state); });
 
   state.sidebar_el.append(state.layers_panel.el);
 
@@ -277,6 +279,63 @@ div.cell.selected::before,
     `);
     document.getElementsByTagName("head")[0].appendChild(style);
   }
+
+
+  function attach_code_cell_logging(): void {
+    // Jupyter.notebook.events.on('execute.CodeCell', (event, data) => {
+    //   console.log("execute.CodeCell", data);
+    //   state.last_cell_code_executed = data.cell.get_text();
+    // }
+    if (Jupyter) {
+
+      if (!(window as any)['plottery notebook logging events attached']) {
+        (window as any)['plottery notebook logging events attached'] = true;
+        (Jupyter.notebook as any).events.on('execute.CodeCell', (_ev: any, data: any) => {
+          if (!data.plottery_hard_rerun) {
+            // triggered by user, not a plottery GUI action
+            const cellno = Jupyter.notebook.get_cells().indexOf(data.cell);
+            log_event("code", "code cell manual execute", { cellno, code: data.cell.get_text() });
+          }
+        });
+
+        (Jupyter.notebook as any).events.on('create.Cell', (_ev: any, data: any) => {
+          // also triggered on undo of delete cell, but not sure how to tell if that's the case
+          log_event("code", "code cell create", { cellno: data.index });
+        });
+
+        (Jupyter.notebook as any).events.on('delete.Cell', (_ev: any, data: any) => {
+          log_event("code", "code cell delete", { cellno: data.index, code: data.cell.get_text() });
+        });
+
+
+        window.setInterval(attach_code_cell_logging, 2000); // Ensure new cells get the events below
+      }
+
+      Jupyter.notebook.get_cells().forEach((cell: Cell) => {
+        if (cell.cell_type === "code" && !(cell.code_mirror as any)['plottery logging events attached']) {
+
+          const cellno = Jupyter.notebook.get_cells().indexOf(cell);
+
+          (cell.code_mirror as any)['plottery logging events attached'] = true;
+          (cell.code_mirror as any).on("mousedown", (cm: DocOrEditor) => {
+            log_event("code", "code cell click", { cellno, code: cm.getValue() });
+          });
+          (cell.code_mirror as any).on("change", (cm: DocOrEditor, change: { origin: string}) => {
+            if (change.origin === "undo")   { log_event("code", "code cell undo", { cellno, code: cm.getValue() }); }
+            if (change.origin === "redo")   { log_event("code", "code cell redo", { cellno, code: cm.getValue() }); }
+            if (change.origin === "+input") { rate_limit("code cell keydown", 1000, () => log_event("code", "code cell keydown", { cellno, code: cm.getValue() })); } // this catches additions, but not backspace
+          });
+          (cell.code_mirror as any).on("keydown", (cm: DocOrEditor, ev: KeyboardEvent) => {
+            if (ev.key === "Backspace") { rate_limit("code cell keydown", 1000, () => log_event("code", "code cell keydown", { cellno, code: cm.getValue() })); }
+            // if (!ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+            // }
+          });
+        }
+      });
+    }
+  }
+
+  attach_code_cell_logging();
 
   (window as any)["last_snp_state"] = state;
 

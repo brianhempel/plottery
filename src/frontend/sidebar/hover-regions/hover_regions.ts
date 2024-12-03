@@ -10,6 +10,7 @@ import { perhaps_get_drag_bottom_edge_handler, perhaps_get_drag_left_edge_handle
 import { add_method_call } from "../methods/method";
 import "./hover_regions.css";
 import { add_menu_item, create_menu_el } from "../../menus/menus";
+import { log_event, rate_limit } from "../../utils/instrumentation";
 
 
 export function place_add_method_buttons_on_plot(state: State) {
@@ -50,7 +51,10 @@ export function place_add_method_buttons_on_plot(state: State) {
         el = create_el("div", "snp-method-view");
         el.innerText = methods[0].receiver_dot_name; // "ax.bar"
         el.title = methods[0].method_info.docstring_first_line || `No documenation for ${methods[0].receiver_dot_name}`;
-        el.addEventListener("click", _ => add_method_call(methods[0], state));
+        el.addEventListener("click", _ => {
+          add_method_call(methods[0], state)
+          log_event('gui', 'on-plot add method button click', {button: el.innerText, code: state.cell.code_mirror.getValue()});
+        });
       } else {
 
         // Hmm, could probably pull this off the methods somehow
@@ -179,6 +183,7 @@ export function attach_events_to_hover_regions(state: State) {
       hover_regions.forEach(hover_region => {
 
         let pressed = false;
+        let moved = false;
         let click_start: Date = new Date();
         let start_x = 0;
         let start_y = 0;
@@ -270,6 +275,7 @@ export function attach_events_to_hover_regions(state: State) {
           // console.log(evt)
           // console.log(hover_region.getBoundingClientRect())
           // console.log(hover_region.getClientRects())
+          moved = false;
           pressed = true;
           click_start = new Date();
           start_x = evt.clientX;
@@ -291,6 +297,10 @@ export function attach_events_to_hover_regions(state: State) {
 
         document.addEventListener("mousemove", evt => {
           if (pressed) {
+            if (!moved) {
+              log_event("gui", "on-plot drag start", {call: call_info.func_code, code: state.cell.code_mirror.getValue()});
+            }
+            moved = true;
             const dx = evt.clientX - start_x;
             const dy = evt.clientY - start_y;
             const client_px_in_fig: [number, number] = [evt.clientX - fig_bb.x, fig_bb.bottom - evt.clientY];
@@ -309,14 +319,17 @@ export function attach_events_to_hover_regions(state: State) {
             // state.hover_regions_container.classList.remove("hidden");
             state.hover_regions_container.classList.remove("hide_during_interaction");
 
-            // Consider it a click if the mouse didn't move
-            const dx = evt.clientX - start_x;
-            const dy = evt.clientY - start_y;
-            if (dx === 0 && dy === 0 && new Date().getTime() - click_start.getTime() < 200) {
+            // // Consider it a click if the mouse didn't move
+            // const dx = evt.clientX - start_x;
+            // const dy = evt.clientY - start_y;
+            if (!moved) {
+              log_event("gui", "on-plot layer click-select", {layer: layer.el.innerText});
               select_layer(layer, state)
+            } else {
+              moved = false;
+              refresh_hover_regions(state);
+              log_event("gui", "on-plot drag end", {call: call_info.func_code, code: state.cell.code_mirror.getValue()});
             }
-
-            refresh_hover_regions(state);
           }
         });
       });

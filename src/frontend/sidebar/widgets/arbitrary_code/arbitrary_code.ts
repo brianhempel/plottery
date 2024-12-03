@@ -1,3 +1,4 @@
+import { log_event } from "../../../utils/instrumentation";
 import { create_el, select_code_text } from "../../../utils/misc";
 import { Widget } from "../widget";
 
@@ -11,11 +12,14 @@ export function create_arbitrary_code_widget(code: string): ArbitraryCodeWidget 
   el.contentEditable = "true";
   el.addEventListener("keydown", ev => {
     if (ev.code === "Enter") {
+      log_event("gui", "code widget enter", { arg_code: el.innerText });
       ev.stopPropagation();
       ev.preventDefault();
       el.closest('.snp-dropdown.expanded')?.classList.remove('expanded');
       el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
       el.blur();
+    } else {
+      log_event("gui", "code widget keydown", { arg_code: el.innerText });
     }
   });
 
@@ -34,7 +38,7 @@ export function create_arbitrary_code_widget(code: string): ArbitraryCodeWidget 
   el.addEventListener('mouseleave', () => el.closest(".snp-layer")?.setAttribute("draggable", "true")  );
 
   // When el is clicked, select its text
-  el.addEventListener("focus", ev => { select_code_text(el); });
+  el.addEventListener("focus", ev => { select_code_text(el); log_event("gui", "code widget focus", { arg_code: el.innerText }); });
 
   return widget
 }

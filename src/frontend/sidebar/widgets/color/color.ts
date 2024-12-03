@@ -1,4 +1,5 @@
 import { TypeAliasType } from "../../../types";
+import { log_event } from "../../../utils/instrumentation";
 import { create_el, hex_to_rgb } from "../../../utils/misc";
 import { Widget } from "../widget";
 import "./color.css";
@@ -33,6 +34,7 @@ export function create_color_widget(type: TypeAliasType): ColorWidget {
 
   // Don't open dropdown when clicking on the color picker
   color_picker.addEventListener("click", ev => {
+    log_event("gui", "color picker widget open", { arg_code: widget.to_code() });
     ev.stopPropagation();
   });
 

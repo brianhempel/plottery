@@ -1,3 +1,4 @@
+import { log_event } from "../../../utils/instrumentation";
 import { create_el } from "../../../utils/misc";
 import { Widget } from "../widget";
 
@@ -31,6 +32,11 @@ export function create_bool_widget(code: string): BoolWidget {
   switchEl.addEventListener("click", ev => {
     widget.isOn = !widget.isOn;
     move_knob(widget)
+    if (widget.isOn) {
+      log_event("gui", "bool widget click on", { arg_code: widget.to_code() });
+    } else {
+      log_event("gui", "bool widget click off", { arg_code: widget.to_code() });
+    }
     ev.stopPropagation();
     ev.preventDefault();
   });

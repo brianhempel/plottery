@@ -1,4 +1,5 @@
 import { Arg, ArgView, State } from "../../types";
+import { log_event } from "../../utils/instrumentation";
 import { create_el } from "../../utils/misc";
 import { Widget, make_widget_for_code_and_type } from "../widgets/widget";
 import "./arg.css";
@@ -53,6 +54,7 @@ export function create_arg_view(
       enable_arg_view(view);
       // ev.stopPropagation();
       // ev.preventDefault();
+      log_event('gui', 'inspector click arg on', {arg: arg.name, arg_code: widget.to_code()});
     }
   });
 
@@ -60,6 +62,7 @@ export function create_arg_view(
   prefixEl.addEventListener("mousedown", ev => {
     if (!view.disabled && !arg.required) {
       disable_arg_view(view);
+      log_event('gui', 'inspector click arg off', {arg: arg.name, arg_code: widget.to_code()});
       ev.stopPropagation();
       ev.preventDefault();
     }
@@ -102,7 +105,7 @@ export function enable_arg_view(arg_view: ArgView) {
   arg_view.disabled = false;
 }
 
-export function disable_arg_view(arg_view: ArgView) {
+function disable_arg_view(arg_view: ArgView) {
   arg_view.el.classList.add("snp-arg-disabled");
   arg_view.disabled = true;
 }

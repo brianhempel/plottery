@@ -3,6 +3,7 @@ import { State } from "../types";
 import { create_el, set_persistent_item, snp_logo_svg_html } from "../utils/misc";
 import { add_menu_item, create_menu_el } from "../menus/menus";
 import { hard_rerun } from "../code_sync/code_sync";
+import { log_event } from "../utils/instrumentation";
 
 
 export function set_margin_right_to_width(el: HTMLElement, margin_right: number, dx: number) {
@@ -73,6 +74,7 @@ export function create_sidebar_menu_bar(state: State, fig_idx: number, fig_names
 
     // On fig change, set persitent_dataset.fig_idx and rerun
     fig_selector.addEventListener("change", () => {
+      log_event('gui', 'change figure', {fig_idx: fig_selector.value});
       set_persistent_item(state, 'fig_idx', fig_selector.value);
       hard_rerun(state);
     })

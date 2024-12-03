@@ -1,3 +1,4 @@
+import { log_event } from "../../../utils/instrumentation";
 import { create_el } from "../../../utils/misc";
 import { Widget } from "../widget";
 import "./dropdown.css";
@@ -40,24 +41,28 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
     el.classList.toggle("expanded");
     if (el.classList.contains("expanded")) {
       // And hide the selected layer while previewing dropdown items
+      log_event("gui", "dropdown suggestions open");
       el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.add("hide_during_interaction");
     } else {
+      log_event("gui", "dropdown suggestions close");
       el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
     }
   });
 
-  document.body.addEventListener("click", e => {
-    if (
-      e.target != null &&
-      !(e.target == el) &&
-      !el.contains(e.target as HTMLElement)
-    ) {
+  function deselect(e: MouseEvent) {
+    if (e.target != null && !(e.target == el) && !el.contains(e.target as HTMLElement)) {
       if (el.classList.contains("expanded")) {
+        log_event("gui", "dropdown suggestions close");
         el.classList.remove("expanded");
         el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
-      }
+      }// else if (!!el.closest("body")) { // Not in DOM anymore
+      //  console.log("removing event listener from DOM");
+      //  document.body.removeEventListener("click", deselect);
+      //}
     }
-  });
+  }
+
+  document.body.addEventListener("click", deselect);
 
   // Drawer items
   const drawer_el = create_el("div", "snp-dropdown-drawer", el);
@@ -113,7 +118,9 @@ function add_item_to_dropdown_widget(
   const item_overlay_el = create_el("div", "snp-dropdown-item-overlay", item_holder);
 
   item_overlay_el.addEventListener("mouseover", ev => {
-    dropdown.previewing_code = widget.to_code();
+    const arg_code = widget.to_code();
+    log_event("gui", "dropdown suggestion preview", { arg_code });
+    dropdown.previewing_code = arg_code;
     ev.stopPropagation();
     ev.preventDefault();
   });
@@ -122,6 +129,7 @@ function add_item_to_dropdown_widget(
     // Close the dropdown
     dropdown.el.classList.remove("expanded");
     dropdown.el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
+    log_event("gui", "dropdown suggestion choose", { arg_code: widget.to_code() });
     select_dropdown_item(dropdown, widget);
     ev.stopPropagation();
     ev.preventDefault();

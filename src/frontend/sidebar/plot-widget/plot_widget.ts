@@ -4,6 +4,7 @@ import {
   ArgView,
   State,
 } from "../../types";
+import { debounce, log_event } from "../../utils/instrumentation";
 import { select_code_text } from "../../utils/misc";
 import {
   create_edit_icon,
@@ -120,11 +121,16 @@ export function make_plot_widgets(state: State) {
         plot_widget_el.focus();
         select_code_text(plot_widget_el);
         select_call_view(target_call.view, state);
+        // auto-triggered after method add, so don't log it as a user action, which would be misleading here
+        // log_event("gui", "on-plot text widget click open", {call: target_call.info.func_code, arg: target_arg.arg.name, arg_code: plot_widget_el.innerText});
       });
 
       plot_widget_el.addEventListener("input", () => {
         enable_arg_view(target_arg.view);
         widget.set_code(plot_widget_el.innerText);
+        debounce("on-plot text widget input", 1000, () => {
+          log_event("gui", "on-plot text widget input", {call: target_call.info.func_code, arg: target_arg.arg.name, arg_code: plot_widget_el.innerText, code: state.cell.code_mirror.getValue()});
+        });
       });
 
       // Clicking anywhere else, hides the widget

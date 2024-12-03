@@ -1,3 +1,4 @@
+import { log_event } from "../../../utils/instrumentation";
 import { create_el, is_numeric, maybe_round_number, number_to_string_not_ugly, sig_figs } from "../../../utils/misc";
 import { Widget } from "../widget";
 
@@ -54,6 +55,7 @@ export function create_float_widget(code: string): FloatWidget {
       (sibling as HTMLElement).style.width = sibling.getBoundingClientRect().width + "px";
     }
     slider.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.add("hide_during_interaction");
+    log_event("gui", "slider widget drag begin", { arg_code: widget.to_code() });
   });
 
   slider.addEventListener("mouseup", ev => {
@@ -68,6 +70,8 @@ export function create_float_widget(code: string): FloatWidget {
     // Reset the slider to the middle and adjust its range
     widget.base = position_to_float(widget.slider, widget.base);
     widget.slider.value = "0";
+
+    log_event("gui", "slider widget drag end", { arg_code: widget.to_code() });
   });
 
   // console.log(widget);

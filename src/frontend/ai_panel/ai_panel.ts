@@ -1,5 +1,6 @@
 import { hard_rerun } from "../code_sync/code_sync";
 import { State } from "../types";
+import { rate_limit, log_event } from "../utils/instrumentation";
 import { prompt_llm } from "../utils/llm";
 import { create_el, notebook_cells } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
@@ -21,10 +22,10 @@ export function create_ai_panel(state: State): HTMLElement {
       ev.stopPropagation();
       ev.preventDefault();
       submit_prompt(prompt_el, spinner_el, state);
+    } else {
+      rate_limit("ai prompt writing", 2000, () => { log_event("ai", "prompt writing", {prompt: prompt_el.value}); });
     }
   });
-
-
 
   return panel_el;
 }
@@ -89,6 +90,8 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
   prompt_el.style.opacity = "0.5";
   spinner_el.style.display = "block";
 
+  log_event("ai", "prompt submit", {prompt: user_prompt, code: cm.getValue()});
+
   function success(reply: string) {
     let code: string;
     if (reply.match(/^```(\w*)\n([\s\S]*)\n```/m)) {
@@ -105,6 +108,7 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
       cm.setCursor(9999, 9999, { scroll: false })
       cm.focus();
     }
+    log_event("ai", "llm response", {prompt: user_prompt, code: code});
 
     cm.setValue(code);
     hard_rerun(state);
@@ -120,6 +124,8 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
     prompt_for_llm(user_prompt, state),
     success,
     () => {
+      log_event("ai", "llm timeout or error", {prompt: user_prompt});
+
       prompt_el.parentElement!.append("Oops there was an error.");
       prompt_el.disabled = false;
       prompt_el.focus();
