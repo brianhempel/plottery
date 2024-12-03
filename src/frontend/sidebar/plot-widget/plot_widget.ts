@@ -50,6 +50,10 @@ export function make_plot_widgets(state: State) {
       method_name: "text",
       arg_name: "s",
     },
+    {
+      method_name: "suptitle",
+      arg_name: "t",
+    },
     // {
     //   method_name: "set_ylim",
     //   arg_name: "bottom",

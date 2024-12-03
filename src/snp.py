@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import math
 import os
 import sys
 import pathlib
@@ -353,7 +354,10 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
                 max([y for _, y in px_coords]),
             )
 
-            my_geom = shapely.union_all([box_around(x, y, line_pad) for x, y in px_coords])
+            # less padding for more points
+            pad = max(2, math.ceil(line_pad / math.sqrt(1 + len(px_coords)/3)))
+
+            my_geom = shapely.union_all([box_around(x, y, pad) for x, y in px_coords])
             # print(my_geom)
         case mpl.axes.Axes():
             my_geom = None
@@ -839,7 +843,7 @@ fig_method_associations = [
     # ([''], 'clear', float('inf'), ''),
     # ([''], 'clf', float('inf'), '[*Discouraged*] Alias for the `clear()` method.'),
     # ([''], 'clipbox', float('inf'), ''),
-    # ([''], 'colorbar', float('inf'), 'Add a colorbar to a plot.'),
+    ([''], 'colorbar', float('inf'), 'Add a colorbar to a plot.'),
     # ([''], 'contains', float('inf'), 'Test whether the mouse event occurred on the figure.'),
     # ([''], 'convert_xunits', float('inf'), 'Convert *x* using the unit type of the xaxis.'),
     # ([''], 'convert_yunits', float('inf'), 'Convert *y* using the unit type of the yaxis.'),
