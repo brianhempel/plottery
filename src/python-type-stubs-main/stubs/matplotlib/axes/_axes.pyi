@@ -10,7 +10,7 @@ from typing import Annotated, Any, Callable, Dict, Generic, List, Literal, Optio
 from typing_extensions import Unpack
 
 # from matplotlib._typing import * seems not to work, need the explicit imports:
-from matplotlib._typing import PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, Linestyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, AnnotateProps, XYCoordSystem
+from matplotlib._typing import Scalar, PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, Linestyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, AnnotateProps, XYCoordSystem
 
 from matplotlib.backend_tools import Cursors
 from matplotlib.contour import QuadContourSet
@@ -693,16 +693,16 @@ class Axes(_AxesBase):
         density: bool = ...,
         weights: None = ...,
         cumulative: bool | Literal[-1] = ...,
-        bottom=...,
-        histtype: Literal["bar", "barstacked", "step", "stepfilled"] = ...,
-        align: Literal["left", "mid", "right"] = ...,
-        orientation: Literal["vertical", "horizontal"] = ...,
-        rwidth: float | None = ...,
-        log: bool = ...,
-        color: ColorType | None = ...,
-        label: str | None = ...,
+        bottom: ArrayLike | float | None = ...,
+        histtype: Literal["bar", "barstacked", "step", "stepfilled"] = "bar",
+        align: Literal["left", "mid", "right"] = "mid",
+        orientation: Literal["vertical", "horizontal"] = "vertical",
+        rwidth: float | None = None,
+        log: bool = False,
+        color: ColorType | Iterable[float] | None = ...,
+        label: str | Iterable[str] | None = ...,
         stacked: bool = ...,
-        **kwargs,
+        **kwargs: PatchProps,
     ) -> tuple[list[list[float]], list[float], BarContainer | list]: ...
     @overload
     def hist(

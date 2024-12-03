@@ -6,24 +6,6 @@ import { add_line_of_code } from "../../utils/misc";
 import { id_of_new_call } from "../call/call";
 import { non_colliding_name } from "../../utils/misc";
 
-// /**
-//  * Buttons to click to add method calls to the code.
-//  */
-// export function create_method_view(
-//   method: MethodWithCode,
-//   state: State
-// ): MethodView {
-
-//   const el = create_el("div", "snp-method-view");
-//   el.innerText = method.receiver_dot_name; // "ax.bar"
-//   el.title = method.method_info.docstring_first_line;
-
-//   el.addEventListener("click", _ => add_method_call(method, state));
-
-//   return {
-//     el,
-//   };
-// }
 
 export function add_method_call(
   method: MethodWithCode,
