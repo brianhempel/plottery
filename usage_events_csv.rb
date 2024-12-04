@@ -1,12 +1,21 @@
-dir = ARGV[0] || STDERR.puts("Usage: ruby usage_events_csv.rb <path>") || exit(1)
+if ARGV == []
+  STDERR.puts "Usage: ruby usage_events_csv.rb <directories>"
+  STDERR.puts ""
+  STDERR.puts "Reads all the files in <directories>, presuming each is a JSON blob representing an event."
+  STDERR.puts "Each event is expected to have a 'timestamp' and a 'n' field."
+  STDERR.puts "Events are sorted by (timestamp, n) and then output to STDOUT as a CSV, all other fields become CSV columns."
+  exit(1)
+end
+dirs = ARGV
 
 require 'json'
 require 'set'
 
 events =
-  Dir.glob("#{dir}/*")
-    .map     { |path| JSON.parse(File.read(path)) }
-    .sort_by { |event| [event['timestamp'], event['n']] }
+  dirs
+    .flat_map { |dir| Dir.glob("#{dir}/*") }
+    .map      { |path| JSON.parse(File.read(path)) }
+    .sort_by  { |event| [event['timestamp'], event['n']] }
 
 headers = events.flat_map(&:keys).uniq
 

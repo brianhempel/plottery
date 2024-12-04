@@ -307,6 +307,10 @@ div.cell.selected::before,
           log_event("code", "code cell delete", { cellno: data.index, code: data.cell.get_text() });
         });
 
+        // Log when user tabs out and back
+        document.addEventListener('visibilitychange', () => {
+          log_event("other", document.hidden ? "browser tab hidden" : "browser tab visible");
+        });
 
         window.setInterval(attach_code_cell_logging, 2000); // Ensure new cells get the events below
       }
