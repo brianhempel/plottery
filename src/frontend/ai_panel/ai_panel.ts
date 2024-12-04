@@ -1,5 +1,6 @@
 import { hard_rerun } from "../code_sync/code_sync";
 import { State } from "../types";
+import { LineHandle } from "../utils/codemirror";
 import { rate_limit, log_event } from "../utils/instrumentation";
 import { prompt_llm } from "../utils/llm";
 import { create_el, notebook_cells } from "../utils/misc";
@@ -28,6 +29,21 @@ export function create_ai_panel(state: State): HTMLElement {
   });
 
   return panel_el;
+}
+
+export function attach_ai_line_highlight_clearing_handlers() {
+  if (Jupyter) {
+    if (!(window as any)['plottery notebook ai line highlight clearing attached']) {
+      (window as any)['plottery notebook ai line highlight clearing attached'] = true;
+      (Jupyter.notebook as any).events.on('execute.CodeCell', (_ev: any, data: any) => {
+        const cm = data.cell.code_mirror;
+        cm.eachLine((line: LineHandle) => {
+          cm.removeLineClass(line, "gutter", "snp-ai-line-changed");
+          cm.removeLineClass(line, "background", "snp-ai-line-changed");
+        });
+      });
+    }
+  }
 }
 
 // some of this is is duplicated with the extension
@@ -110,8 +126,21 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
     }
     log_event("ai", "llm response", {prompt: user_prompt, code: code});
 
+    const old_code_lines = cm.getValue().split("\n");
     cm.setValue(code);
     hard_rerun(state);
+
+    // console.log("old_code_lines", old_code_lines);
+    cm.eachLine(line => {
+      // console.log("line.text", line.text);
+      if(old_code_lines.includes(line.text)) {
+        cm.removeLineClass(line, "gutter", "snp-ai-line-changed");
+        cm.removeLineClass(line, "background", "snp-ai-line-changed");
+      } else {
+        cm.addLineClass(line, "gutter", "snp-ai-line-changed");
+        cm.addLineClass(line, "background", "snp-ai-line-changed");
+      }
+    });
 
     if (Jupyter) { // Notebooks v6
       // Set cursor after setValue so the cursor is at the end of the cell
@@ -135,3 +164,4 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
     state.llm_api_key
   )
 }
+

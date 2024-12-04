@@ -1,6 +1,6 @@
 import { P_stmt } from "../ast_types";
 import { add_sync_code_on_change_watcher, hard_rerun, redraw_cell } from "../code_sync/code_sync";
-import { add_menu_item, add_submenu, create_menu_el } from "../menus/menus";
+import { add_menu_item, add_search, add_submenu, create_menu_el } from "../menus/menus";
 import { call_to_code, create_call_view, id_of_new_call } from "../sidebar/call/call";
 import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_regions";
 import { add_method_call } from "../sidebar/methods/method";
@@ -479,6 +479,7 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
   layers_panel_heading.append("Layers")
 
   const add_layer_menu = create_menu_el('<span class="snp-add-layer-button">＋ Add Layer</span>', 'add-layer-menu', layers_panel_heading)
+  add_search(add_layer_menu);
 
   const default_iterable = default_code_for_type({".class": "Instance", "type_ref": "matplotlib._typing.ArrayLike", "args": []});
   const default_iterable_code = `for i, x in enumerate(${default_iterable}):\n    pass`;
@@ -491,20 +492,21 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
     }),
     _ => true, // Enabled?
     state
-  ).title = default_iterable_code.trim()
+  ).title = default_iterable_code.trim();
 
-  const user_iterables_menu =
-    add_submenu(
-      add_layer_menu,
-      'For-loop over...',
-      _ => true, // Enabled?
-      state
-    );
+  // const user_iterables_menu =
+  //   add_submenu(
+  //     add_layer_menu,
+  //     'For-loop over...',
+  //     _ => true, // Enabled?
+  //     state
+  //   );
   [default_iterable, ...state.user_iterables].forEach(iterable => {
     const code = `for i, x in enumerate(${iterable}):\n    pass`;
     add_menu_item(
-      user_iterables_menu,
-      iterable, null,
+      // user_iterables_menu,
+      add_layer_menu,
+      `For-loop over ${iterable}`, null,
       (state => {
         add_line_of_code(code, state);
         hard_rerun(state);
@@ -536,6 +538,7 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
 function deselect_layer(layer: Layer, state: State) {
   layer.el.classList.remove("selected");
   compute_selected_hover_regions(state);
+  highlight_lines_for_selected_layers(state);
   save_selected_layers(state);
 }
 
@@ -547,8 +550,11 @@ export function select_layer(layer: Layer, state: State, call_view?: CallView) {
   deselect_all_layers(state);
   // console.log(layer.el)
   layer.el.classList.add("selected");
-  set_properties_panel_on(call_view || layer.call_views[0], state);
+  if (call_view || layer.call_views[0]) {
+    set_properties_panel_on(call_view || layer.call_views[0], state);
+  }
   compute_selected_hover_regions(state);
+  highlight_lines_for_selected_layers(state);
   save_selected_layers(state);
   // console.log(layer.el)
 }
@@ -618,3 +624,20 @@ export function load_selected_layers(state: State) {
   });
 }
 
+
+function highlight_lines_for_selected_layers(state: State) {
+  const cm = state.cell.code_mirror;
+  cm.eachLine(line => {
+    cm.removeLineClass(line, "gutter", "snp-line-selected");
+    cm.removeLineClass(line, "background", "snp-line-selected");
+  });
+  state.layers_panel.layers.forEach(layer => {
+    if (is_layer_selected(layer)) {
+      const range = layer.mark.find()!;
+      for(let i = range.from.line; i <= range.to.line; i++) {
+        cm.addLineClass(i, "gutter", "snp-line-selected");
+        cm.addLineClass(i, "background", "snp-line-selected");
+      }
+    }
+  });
+}

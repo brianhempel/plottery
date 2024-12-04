@@ -17,10 +17,13 @@
   color: #b8b8b8;
 }
 
-.snp-method-view.snp-menu-items {
+.snp-method-view.snp-menu-panel {
   max-width: 33vw;
-  overflow-x: auto;
   background-color: rgba(77, 77, 77, 1);
+}
+
+.snp-method-view .snp-menu-items {
+  overflow-x: auto;
 }
 
 .snp-method-view .snp-menu-item {
@@ -28,9 +31,10 @@
   color: #b8b8b8;
 }
 
-.snp-method-view:hover,
+.snp-method-view.snp-menu:hover,
 .snp-method-view.open,
-.snp-method-view .snp-menu-item:hover:not(.disabled) {
+.snp-method-view .snp-menu-item:hover:not(.disabled),
+.snp-method-view .snp-menu-item.active:not(.disabled) {
   background-color: rgba(0, 0, 0, 1);
   color: #e3e3e3;
 }

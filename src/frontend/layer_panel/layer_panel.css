@@ -26,11 +26,12 @@
 .snp-layers-panel h2,
 .snp-properties-panel h2,
 .add-layer-menu,
-.add-layer-menu .snp-menu-items { /* submenu */
+.add-layer-menu .snp-menu-panel { /* submenu */
   background-color: #656565;
   color: #f2f2f2;
 }
-.add-layer-menu .snp-menu-item:hover {
+.add-layer-menu .snp-menu-item:hover,
+.add-layer-menu .snp-menu-item.active {
   background-color: #929292;
 }
 
@@ -61,7 +62,7 @@
   font-family: monospace;
   white-space: pre-wrap;
   margin: 0;
-  padding: 0.35em 0.25em;
+  padding: 0.25em 0.35em;
   border-bottom: solid 1px #efefef;
   display: flex;
   --indent-spacing: 2em;
@@ -82,7 +83,7 @@
 
 input.snp-layer-checkbox {
   cursor: pointer;
-  margin: 0 0.3em;
+  margin: 0;
 }
 
 /* Unchecked layers */
@@ -172,3 +173,10 @@ input.snp-layer-checkbox {
   left: calc(-6px + var(--indent-spacing) * 5);
 }
 
+.CodeMirror .snp-line-selected .CodeMirror-gutter-elt {
+  background-color: #c0def8;
+  color: #444
+}
+.CodeMirror .snp-line-selected.CodeMirror-linebackground {
+  background-color: #e8f3fc;
+}

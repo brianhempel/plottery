@@ -29,7 +29,7 @@ import { close_all_menus } from "./menus/menus";
 import { id_as_new_call } from "./sidebar/call/call";
 import { method_info_to_method_with_args } from "./sidebar/methods/method";
 import { ParseableComment } from "./layer_panel/layer_panel";
-import { create_ai_panel } from "./ai_panel/ai_panel";
+import { attach_ai_line_highlight_clearing_handlers, create_ai_panel } from "./ai_panel/ai_panel";
 import { log_event, rate_limit } from "./utils/instrumentation";
 import { DocOrEditor } from "./utils/codemirror";
 
@@ -144,6 +144,7 @@ function attach_snp(
 
   if (llm_api_key.length > 10) {
     state.sidebar_el.append(create_ai_panel(state));
+    attach_ai_line_highlight_clearing_handlers();
   } else {
     console.log("No LLM API key provided, not showing AI panel.");
   }

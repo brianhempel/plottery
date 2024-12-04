@@ -689,7 +689,7 @@ class Axes(_AxesBase):
         self,
         x: Iterable[ArrayLike],
         bins: int | ArrayLike | str = ...,
-        range: tuple | None = ...,
+        range: Tuple[float, float] | None = (0, 1),
         density: bool = ...,
         weights: None = ...,
         cumulative: bool | Literal[-1] = ...,

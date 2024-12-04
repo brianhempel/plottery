@@ -43,3 +43,11 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.CodeMirror .snp-ai-line-changed:not(.snp-line-selected) .CodeMirror-gutter-elt {
+  background-color: #c7ebbe;
+  color: #555;
+}
+.CodeMirror .snp-ai-line-changed:not(.snp-line-selected).CodeMirror-linebackground {
+  background-color: #e8f4e6;
+}
