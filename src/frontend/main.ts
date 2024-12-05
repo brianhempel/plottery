@@ -314,6 +314,9 @@ div.cell.selected::before,
         });
 
         window.setInterval(attach_code_cell_logging, 2000); // Ensure new cells get the events below
+
+        // In case the browser crashes, lose less work.
+        Jupyter.notebook.set_autosave_interval(10 * 1000); // 10sec
       }
 
       Jupyter.notebook.get_cells().forEach((cell: Cell) => {

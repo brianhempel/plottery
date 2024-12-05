@@ -1,5 +1,6 @@
 import datetime
 from matplotlib.contour import QuadContourSet
+from matplotlib.layout_engine import LayoutEngine
 import numpy as np
 from typing import Any, Callable, ContextManager, List, Literal, Sequence, overload
 from matplotlib import rcParams as rcParams
@@ -82,14 +83,15 @@ class _xkcd:
     def __exit__(self, *args)-> None: ...
 
 def figure(
-    num: int | str | Figure | SubFigure| None = None,
-    figsize: Sequence[float]|None = None,
-    dpi: float|None = None,
-    facecolor: Color|None = None,
-    edgecolor: Color|None = None,
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: Color = 'white',
+    edgecolor: Color = 'white',
     frameon: bool = True,
-    FigureClass = ...,
+    FigureClass: type[Figure] | None = None,
     clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **kwargs
 ) -> Figure: ...
 def gcf() -> Figure: ...

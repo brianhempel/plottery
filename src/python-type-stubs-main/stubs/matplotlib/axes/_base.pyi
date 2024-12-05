@@ -200,7 +200,37 @@ class _AxesBase(Artist):
     def locator_params(
         self, axis: Literal["both", "x", "y"] = ..., tight: bool | None = ..., **kwargs
     ) -> None: ...
-    def tick_params(self, axis: Literal["x", "y", "both"] = ..., **kwargs) -> None: ...
+    def tick_params(
+        self,
+        axis: Literal['x', 'y', 'both'] = 'both',
+        which: Literal['major', 'minor', 'both'] = 'major',
+        reset: bool = False,
+        *,
+        direction: Literal['in', 'out', 'inout'] | None = None,
+        length: float | None = None,
+        width: float | None = None,
+        color: Color | None = None,
+        pad: float | None = None,
+        labelsize: float | str | None = None,
+        labelcolor: Color | None = None,
+        labelfontfamily: NamedFontName | str | None = None,
+        colors: Color | None = None,
+        zorder: float | None = None,
+        bottom: bool | None = None,
+        top: bool | None = None,
+        left: bool | None = None,
+        right: bool | None = None,
+        labelbottom: bool | None = None,
+        labeltop: bool | None = None,
+        labelleft: bool | None = None,
+        labelright: bool | None = None,
+        labelrotation: float | None = None,
+        grid_color: Color | None = None,
+        grid_alpha: float = 1.0,
+        grid_linewidth: float | None = None,
+        grid_linestyle: str | None = '-',
+        **kwargs
+    ) -> None: ...
     def set_axis_off(self) -> None: ...
     def set_axis_on(self) -> None: ...
     def get_xlabel(self) -> str: ...
