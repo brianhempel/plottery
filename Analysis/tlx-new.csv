@@ -1,0 +1,31 @@
+Timestamp,Participant ID,Task,How mentally demanding was the task?,How hurried or rushed were you during the task?,How successful were you in accomplishing the task? (Please pay attention to the scale),How hard did you have to work to achieve your level of performance?,"How insecure, discouraged, irritated, stressed, and annoyed were you?",Condition
+8/23/2024 14:24:19,P2,Boxplot - Task 1,2,1,1,2,1,AI
+8/23/2024 14:32:48,P2,Boxplot - Task 2,4,3,1,4,3,DM
+8/23/2024 14:38:39,P2,Soundwave,1,1,1,1,1,Mixed
+8/26/2024 15:27:52,P1,Boxplot - Task 1,2,4,2,3,1,AI
+8/26/2024 15:39:30,P1,Boxplot - Task 2,4,5,6,4,3,DM
+8/26/2024 15:50:21,P1,Soundwave,3,4,1,2,2,Mixed
+8/30/2024 14:30:37,P3,Boxplot - Task 1,4,3,6,4,4,DM
+8/30/2024 14:42:02,P3,Boxplot - Task 2,5,3,1,4,3,AI
+8/30/2024 14:57:01,P3,Soundwave,2,1,1,2,1,Mixed
+8/30/2024 16:26:51,P4,Boxplot - Task 1,7,1,7,6,5,DM
+8/30/2024 16:33:00,P4,Boxplot - Task 2,2,1,1,1,1,AI
+8/30/2024 16:41:29,P4,Soundwave,1,1,1,1,1,Mixed
+9/5/2024 14:24:48,P5,Boxplot - Task 1,3,2,2,4,1,AI
+9/5/2024 14:27:38,P5,Boxplot - Task 2,2,1,1,1,1,DM
+9/5/2024 14:36:55,P5,Soundwave,3,2,2,2,2,Mixed
+9/6/2024 11:40:00,P6,Boxplot - Task 1,2,1,2,2,1,DM
+9/6/2024 11:51:42,P6,Boxplot - Task 2,5,5,6,5,5,AI
+9/6/2024 12:00:38,P6,Soundwave,3,1,1,3,1,Mixed
+11/20/2024 12:40:20,P7,Boxplot - Task 1,3,3,1,2,1,AI
+11/20/2024 12:51:39,P7,Boxplot - Task 2,6,5,7,6,5,DM
+11/20/2024 12:57:48,P7,Soundwave,4,2,1,2,1,Mixed
+11/21/2024 17:01:33,P8,Boxplot - Task 1,4,5,5,5,5,DM
+11/21/2024 17:05:08,P8,Boxplot - Task 2,2,2,1,2,2,AI
+11/21/2024 17:21:56,P8,Soundwave,4,4,3,4,4,Mixed
+11/25/2024 12:43:19,P9,Boxplot - Task 1,1,2,1,1,1,DM
+11/25/2024 12:57:36,P9,Boxplot - Task 2,3,2,1,3,2,AI
+11/25/2024 13:10:24,P9,Soundwave,2,2,1,2,1,Mixed
+11/26/2024 11:53:27,P10,Boxplot - Task 1,3,3,2,2,2,AI
+11/26/2024 12:04:56,P10,Boxplot - Task 2,6,6,2,6,2,DM
+11/26/2024 12:21:52,P10,Soundwave,3,6,1,4,6,Mixed
