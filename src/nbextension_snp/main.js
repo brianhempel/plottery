@@ -88,7 +88,10 @@ plt.show()`
           Jupyter.notebook.select(Jupyter.notebook.get_cells().indexOf(new_cell));
           selected_cell = new_cell;
           Jupyter.notebook.focus_cell();
-          new_cell.execute();
+          const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true';
+          if (!in_demo_mode) {
+            new_cell.execute();
+          }
         }
       }
     ])

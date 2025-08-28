@@ -6,7 +6,7 @@ from matplotlib.table import Table
 from matplotlib.text import Text
 import numpy as np
 from typing import Any, Callable, Collection, Iterable, Literal, MutableSequence, overload
-from matplotlib._typing import Color, ArrayLike, TextProps
+from matplotlib._typing import ColorType, ArrayLike, TextProps, LineStyle, Line2DProps, NamedFontName, NamedFontSize
 from matplotlib.transforms import Bbox, BboxBase, Transform, TransformedBbox
 from matplotlib.backend_bases import RendererBase
 from matplotlib.patches import Patch
@@ -31,7 +31,7 @@ class _AxesBase(Artist):
         fig: Figure,
         rect: Iterable[float],
         *,
-        facecolor: Color|None=None,
+        facecolor: ColorType | None=None,
         frameon: bool = True,
         sharex: Axes|None = None,
         sharey: Axes|None = None,
@@ -83,8 +83,8 @@ class _AxesBase(Artist):
     @property
     def texts(self)-> MutableSequence: ...
     def cla(self) -> None: ...
-    def get_facecolor(self) -> Color: ...
-    def set_facecolor(self, color: Color)-> None: ...
+    def get_facecolor(self) -> ColorType: ...
+    def set_facecolor(self, color: ColorType)-> None: ...
     def set_prop_cycle(self, *args, **kwargs)-> None: ...
     def get_aspect(self) -> Literal["auto"] | float: ...
     def set_aspect(
@@ -185,7 +185,7 @@ class _AxesBase(Artist):
         visible: bool | None = ...,
         which: Literal["major", "minor", "both"] = ...,
         axis: Literal["both", "x", "y"] = ...,
-        **kwargs
+        **kwargs: Line2DProps
     ) -> None: ...
     def ticklabel_format(
         self,
@@ -206,29 +206,29 @@ class _AxesBase(Artist):
         which: Literal['major', 'minor', 'both'] = 'major',
         reset: bool = False,
         *,
-        direction: Literal['in', 'out', 'inout'] | None = None,
-        length: float | None = None,
-        width: float | None = None,
-        color: Color | None = None,
-        pad: float | None = None,
-        labelsize: float | str | None = None,
-        labelcolor: Color | None = None,
-        labelfontfamily: NamedFontName | str | None = None,
-        colors: Color | None = None,
-        zorder: float | None = None,
-        bottom: bool | None = None,
-        top: bool | None = None,
-        left: bool | None = None,
-        right: bool | None = None,
-        labelbottom: bool | None = None,
-        labeltop: bool | None = None,
-        labelleft: bool | None = None,
-        labelright: bool | None = None,
-        labelrotation: float | None = None,
-        grid_color: Color | None = None,
+        direction: Literal['in', 'out', 'inout'] = ...,
+        length: float = ...,
+        width: float = ...,
+        color: ColorType = ...,
+        pad: float = ...,
+        labelsize: float | NamedFontSize = ...,
+        labelcolor: ColorType = ...,
+        labelfontfamily: NamedFontName | str = ...,
+        colors: ColorType = ...,
+        zorder: float = ...,
+        bottom: bool = ...,
+        top: bool = ...,
+        left: bool = ...,
+        right: bool = ...,
+        labelbottom: bool = ...,
+        labeltop: bool = ...,
+        labelleft: bool = ...,
+        labelright: bool = ...,
+        labelrotation: float = ...,
+        grid_color: ColorType = ...,
         grid_alpha: float = 1.0,
-        grid_linewidth: float | None = None,
-        grid_linestyle: str | None = '-',
+        grid_linewidth: float = ...,
+        grid_linestyle: LineStyle = ...,
         **kwargs
     ) -> None: ...
     def set_axis_off(self) -> None: ...

@@ -282,6 +282,13 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
                     if not hasattr(child, "_snp_came_from_call_id") and hasattr(container, "_snp_came_from_call_id"): # Don't overwrite if already set.
                         child._snp_came_from_call_id = container._snp_came_from_call_id
 
+            # Annoyingly, colorbar is not in the artist scene graph, but is returned by the fig.colorbar function.
+            # Transfer the colorbar provenance to the ax IF this axes is a color.
+
+            if hasattr(ax, "_colorbar") and ax._colorbar is not None:
+                if not hasattr(ax, "_snp_came_from_call_id") and hasattr(ax._colorbar, "_snp_came_from_call_id"):
+                    ax._snp_came_from_call_id = ax._colorbar._snp_came_from_call_id
+
             children = sorted(children, key=get_zorder) # this is also in Axes.draw()
     else:
         children = []
@@ -289,7 +296,9 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
     match artist:
         case mpl.axis.Tick():
             # Remove invisible tick text (i.e. the labels for the opposite axes, which is mispositioned when not actively used.)
-            children = [child for child in children if child.get_visible()]
+            # Also don't include the gridline as a child of the tick, this makes the tick axis region too big.
+            children = [child for child in children if child.get_visible() and child is not artist.gridline]
+
 
     # print(artist.__class__.__name__, len(children))
 
@@ -418,7 +427,7 @@ def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names):
     geom_svg = re.sub(r'fill="[^"]*"', 'fill="transparent"', geom_svg)  # can't be "none", otherwise no mouse events are triggered inside the region
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
     # geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="1"', geom_svg)
-    # geom_svg = re.sub(r'stroke="[^"]*"', 'stroke="#AB312A"', geom_svg)
+    # geom_svg = re.sub(r'stroke="[^"]*"', 'stroke="#81C4FF"', geom_svg)
     child_svgs_str = "\n".join([region2_to_svg_g(child, artist_names) for child in children])
 
     name = shortest_qualified_name(artist_names.get(id(artist), (None, {}))[1])
@@ -444,7 +453,7 @@ def _artist_names_deep(out, obj, name, max_depth):
             _artist_names_deep(out, item, f"{name}[{str(i)}]", max_depth)
         if len(obj) >= 1:
             _artist_names_deep(out, obj[-1], f"{name}[-1]", max_depth)
-    elif isinstance(obj, mpl.artist.Artist):
+    elif isinstance(obj, mpl.artist.Artist) or isinstance(obj, mpl.colorbar.Colorbar):
         key = id(obj)
         _obj, names = out.get(key, (obj, set()))
         out[key] = (_obj, names.union({name}))
@@ -772,7 +781,7 @@ axes_method_associations = [
     # (['.patch'], 'tables', float('inf'), 'A sublist of Axes children based on their type.'),
     (['.patch'], 'text', float('inf'), 'Add text to the Axes.'),
     # (['.patch'], 'texts', float('inf'), 'A sublist of Axes children based on their type.'),
-    (['.patch'], 'tick_params', 1, 'Change the appearance of ticks, tick labels, and gridlines.'),
+    (['.patch'], 'tick_params', float('inf'), 'Change the appearance of ticks, tick labels, and gridlines.'),
     # (['.patch'], 'ticklabel_format', float('inf'), 'Configure the `.ScalarFormatter` used by default for linear Axes.'),
     # (['.patch'], 'title', float('inf'), 'Handle storing and drawing of text in window or data coordinates.'),
     # (['.patch'], 'titleOffsetTrans', float('inf'), 'A transformation that translates by *xt* and *yt*, after *xt* and *yt*'),

@@ -82,7 +82,9 @@ ${notebook_code}
 
 Modify the code of Cell ${last_cell_no} to ${user_prompt}
 
-Notes: If I asked above to add more subplots, use the following form:
+Note: If I asked to create a function for a subplot and you need to pass in an ax argument, give that parameter a type annotation of mpl.axes._axes.Axes, but _only_ if there is a custom function for the subplot.
+
+Note: If I asked above to add more subplots, use the following form:
 
 \`\`\`
 fig = plt.figure(...)

@@ -1,11 +1,16 @@
 import datetime
+from matplotlib.axis import Tick
+from matplotlib.cm import ScalarMappable
+from matplotlib.colorbar import Colorbar
 from matplotlib.contour import QuadContourSet
 from matplotlib.layout_engine import LayoutEngine
+from matplotlib.pylab import ArrayLike
+from matplotlib.ticker import Formatter, Locator
 import numpy as np
-from typing import Any, Callable, ContextManager, List, Literal, Sequence, overload
+from typing import Any, Callable, ContextManager, Iterable, List, Literal, Sequence, overload
 from matplotlib import rcParams as rcParams
 from matplotlib import style as style
-from ._typing import *
+from ._typing import CmapType, ColorType, FileLike, PathLike, Scalar
 from .tri.tricontour import TriContourSet
 from .transforms import Bbox, Transform
 from .text import Text, Annotation
@@ -86,8 +91,8 @@ def figure(
     num: int | str | Figure | SubFigure | None = None,
     figsize: tuple[float, float] = (6.4, 4.8),
     dpi: float = 100,
-    facecolor: Color = 'white',
-    edgecolor: Color = 'white',
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
     frameon: bool = True,
     FigureClass: type[Figure] | None = None,
     clear: bool = False,
@@ -271,8 +276,32 @@ def thetagrids(
     **kwargs
 ) -> tuple[list[Line2D], list[Text]]: ...
 def get_plot_commands() -> list: ...
-def colorbar(mappable=..., cax: Axes = ..., ax: Axes = ..., **kwargs): ...
+def colorbar(
+    mappable: ScalarMappable | None = None,
+    cax: Axes = ...,
+    ax: Axes | Iterable[Axes] = ...,
+    use_gridspec: bool = ...,
+    location: Literal['left', 'right', 'top', 'bottom'] = ...,
+    orientation: Literal['vertical', 'horizontal'] = ...,
+    fraction: float = 0.15,
+    shrink: float = 1.0,
+    aspect: float = 20,
+    pad: float = 0.05,
+    anchor: tuple[float, float] = ...,
+    panchor: tuple[float, float] | Literal[False] = ...,
+    extend: Literal['neither', 'both', 'min', 'max'] = ...,
+    extendfrac: Literal['auto'] | float | Iterable[float] = ...,
+    extendrect: bool = False,
+    spacing: Literal['uniform', 'proportional'] = ...,
+    ticks: Iterable[Tick] | Locator | None = ...,
+    format: Literal["%04.1f"] | str | Formatter | None = ...,
+    drawedges: bool = ...,
+    label: str = ...,
+    boundaries: Iterable[float] = ...,
+    values: Iterable[float] =...
+) -> Colorbar: ...
 def clim(vmin: float | None = ..., vmax: float | None = ...): ...
+def get_cmap(name: CmapType | None = ..., lut: int | None = ...) -> Colormap: ...
 def set_cmap(cmap: Colormap | str): ...
 def imread(fname: str | FileLike, format: str = ...) -> np.ndarray: ...
 def imsave(fname: str | PathLike | FileLike, arr: ArrayLike, **kwargs): ...
@@ -286,7 +315,7 @@ def figimage(
     yo: float = ...,
     alpha: None | float = ...,
     norm: Normalize = ...,
-    cmap: str | Colormap = ...,
+    cmap: CmapType = ...,
     vmin: float = ...,
     vmax: float = ...,
     origin: Literal["upper", "lower"] = ...,
@@ -470,7 +499,7 @@ def errorbar(
     yerr: float | ArrayLike = ...,
     xerr: float | ArrayLike = ...,
     fmt: str = ...,
-    ecolor: Color = ...,
+    ecolor: ColorType = ...,
     elinewidth: float = ...,
     capsize: float = ...,
     barsabove: bool = ...,
@@ -561,7 +590,7 @@ def hist(
     orientation: Literal["vertical", "horizontal"] = ...,
     rwidth: float | None = ...,
     log: bool = ...,
-    color: Color | None = ...,
+    color: ColorType | None = ...,
     label: str | None = ...,
     stacked: bool = ...,
     *,
@@ -604,7 +633,7 @@ def hlines(
 ) -> LineCollection: ...
 def imshow(
     X: ArrayLike,
-    cmap: str | Colormap = ...,
+    cmap: CmapType = ...,
     norm: Normalize = ...,
     aspect: Literal["equal", "auto"] | float = ...,
     interpolation: str = ...,
@@ -647,7 +676,7 @@ def pcolor(
     shading: Literal["flat", "nearest", "auto"] = ...,
     alpha: float = ...,
     norm: Normalize = ...,
-    cmap: str | Colormap = ...,
+    cmap: CmapType = ...,
     vmin: float = ...,
     vmax: float = ...,
     data=...,
@@ -657,7 +686,7 @@ def pcolormesh(
     *args,
     alpha: float = ...,
     norm: Normalize = ...,
-    cmap: str | Colormap = ...,
+    cmap: CmapType = ...,
     vmin: float = ...,
     vmax: float = ...,
     shading: Literal["flat", "nearest", "gouraud", "auto"] = ...,
@@ -733,7 +762,7 @@ def scatter(
     s: float | ArrayLike = ...,
     c: ArrayLike | Sequence[ColorType] | ColorType = ...,
     marker: MarkerStyle = ...,
-    cmap: str | Colormap = ...,
+    cmap: CmapType = ...,
     norm: Normalize = ...,
     vmin: float = ...,
     vmax: float = ...,
@@ -755,7 +784,7 @@ def specgram(
     detrend: Literal["none", "mean", "linear"] | Callable = ...,
     window: Callable | np.ndarray = ...,
     noverlap: int = ...,
-    cmap: Colormap = ...,
+    cmap: CmapType = ...,
     xextent=...,
     pad_to: float = ...,
     sides: Literal["default", "onesided", "twosided"] = ...,
@@ -812,8 +841,8 @@ def streamplot(
     v,
     density: float = ...,
     linewidth: float = ...,
-    color: Color = ...,
-    cmap: Colormap = ...,
+    color: ColorType = ...,
+    cmap: CmapType = ...,
     norm: Normalize = ...,
     arrowsize: float = ...,
     arrowstyle: str = ...,

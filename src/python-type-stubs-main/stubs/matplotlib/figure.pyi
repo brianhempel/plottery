@@ -1,8 +1,12 @@
 from io import BufferedWriter, BytesIO
+
+from matplotlib.axis import Tick
+from matplotlib.cm import ScalarMappable
+from matplotlib.ticker import Formatter, Locator
 from .colorbar import Colorbar
 import numpy as np
-from typing import Callable, List, Literal, Sequence, overload
-from ._typing import *
+from typing import Callable, Iterable, List, Literal, Sequence, overload
+from ._typing import CmapType, TextProps, ColorType, ArrayLike, PathLike, FileLike
 from .text import Text
 from .gridspec import GridSpec, SubplotSpec
 from .backend_bases import (
@@ -181,11 +185,28 @@ class FigureBase(Artist):
     ) -> Text: ...
     def colorbar(
         self,
-        mappable,
+        mappable: ScalarMappable,
         cax: Axes = ...,
-        ax=...,
+        ax: Axes | Iterable[Axes] = ...,
         use_gridspec: bool = ...,
-        **kwargs,
+        location: Literal['left', 'right', 'top', 'bottom'] = ...,
+        orientation: Literal['vertical', 'horizontal'] = ...,
+        fraction: float = 0.15,
+        shrink: float = 1.0,
+        aspect: float = 20,
+        pad: float = 0.05,
+        anchor: tuple[float, float] = ...,
+        panchor: tuple[float, float] | Literal[False] = ...,
+        extend: Literal['neither', 'both', 'min', 'max'] = ...,
+        extendfrac: Literal['auto'] | float | Iterable[float] = ...,
+        extendrect: bool = False,
+        spacing: Literal['uniform', 'proportional'] = ...,
+        ticks: Iterable[Tick] | Locator | None = ...,
+        format: Literal["%04.1f"] | str | Formatter | None = ...,
+        drawedges: bool = ...,
+        label: str = ...,
+        boundaries: Iterable[float] = ...,
+        values: Iterable[float] =...
     ) -> Colorbar: ...
     def subplots_adjust(
         self,
@@ -244,8 +265,8 @@ class Figure(FigureBase):
         self,
         figsize: tuple[float, float] = ...,
         dpi: float = ...,
-        facecolor: Color = ...,
-        edgecolor: Color = ...,
+        facecolor: ColorType = ...,
+        edgecolor: ColorType = ...,
         linewidth: float = ...,
         frameon: bool = ...,
         subplotpars: SubplotParams = ...,
@@ -288,7 +309,7 @@ class Figure(FigureBase):
         yo: int = ...,
         alpha: None | float = ...,
         norm: Normalize = ...,
-        cmap: str | Colormap = ...,
+        cmap: CmapType = ...,
         vmin: float = ...,
         vmax: float = ...,
         origin: Literal["upper", "lower"] = ...,
@@ -350,8 +371,8 @@ class SubFigure(FigureBase):
         parent: FigureBase,
         subplotspec: SubplotSpec,
         *,
-        facecolor: Color = ...,
-        edgecolor: Color = ...,
+        facecolor: ColorType = ...,
+        edgecolor: ColorType = ...,
         linewidth: float = ...,
         frameon: bool = ...,
         **kwargs,

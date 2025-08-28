@@ -10,7 +10,7 @@ from typing import Annotated, Any, Callable, Dict, Generic, List, Literal, Optio
 from typing_extensions import Unpack
 
 # from matplotlib._typing import * seems not to work, need the explicit imports:
-from matplotlib._typing import Scalar, PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, Linestyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, AnnotateProps, XYCoordSystem
+from matplotlib._typing import Scalar, PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, LineStyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, AnnotateProps, XYCoordSystem, CmapType
 
 from matplotlib.backend_tools import Cursors
 from matplotlib.contour import QuadContourSet
@@ -277,7 +277,7 @@ class Axes(_AxesBase):
         linewidths: float | ArrayLike = 1.5,
         colors: ColorType | Iterable[ColorType] = "C0",
         alpha: float | ArrayLike = 1,
-        linestyles: Linestyle | Iterable[Linestyle] = "solid",
+        linestyles: LineStyle | Iterable[LineStyle] = "solid",
         **kwargs: EventCollectionProps,
     ) -> list[EventCollection]: ...
     # def plot(
@@ -567,7 +567,7 @@ class Axes(_AxesBase):
         s: float | ArrayLike = 36.0,
         c: ColorType | Iterable[ColorType] | None = ...,
         marker: MarkerType = 'o',
-        cmap: str | Colormap = 'viridis',
+        cmap: CmapType = ...,
         norm: Literal['asinh', 'function', 'functionlog', 'linear', 'log', 'logit', 'symlog'] | str | Normalize | None = None,
         vmin: float | None = None,
         vmax: float | None = None,
@@ -587,7 +587,7 @@ class Axes(_AxesBase):
         xscale: Literal["linear", "log"] = "linear",
         yscale: Literal["linear", "log"] = "linear",
         extent: Iterable[float] | None = None,
-        cmap=...,
+        cmap: CmapType=...,
         norm=...,
         vmin=...,
         vmax=...,
@@ -631,7 +631,7 @@ class Axes(_AxesBase):
     def imshow(
         self,
         X: ArrayLike,
-        cmap: str | Colormap = ...,
+        cmap: CmapType = ...,
         norm: Normalize = ...,
         aspect: Literal["equal", "auto"] | float = ...,
         interpolation: str = ...,
@@ -654,7 +654,7 @@ class Axes(_AxesBase):
         shading: Literal["flat", "nearest", "auto"] = ...,
         alpha: float | None = None,
         norm: Normalize = ...,
-        cmap: str | Colormap = ...,
+        cmap: CmapType = ...,
         vmin: float | None = None,
         vmax: float | None = None,
         **kwargs,
@@ -664,7 +664,7 @@ class Axes(_AxesBase):
         *args,
         alpha: float | None = None,
         norm: Normalize = ...,
-        cmap: str | Colormap = ...,
+        cmap: CmapType = ...,
         vmin: float | None = None,
         vmax: float | None = None,
         shading: Literal["flat", "nearest", "gouraud", "auto"] = ...,
@@ -676,7 +676,7 @@ class Axes(_AxesBase):
         *args,
         alpha: float | None = None,
         norm: Normalize = ...,
-        cmap: str | Colormap = ...,
+        cmap: CmapType = ...,
         vmin: float | None = None,
         vmax: float | None = None,
         **kwargs,
@@ -834,7 +834,7 @@ class Axes(_AxesBase):
         detrend: Literal["none", "mean", "linear"] | Callable = ...,
         window: Callable | np.ndarray = ...,
         noverlap: int = 128,
-        cmap: Colormap = ...,
+        cmap: CmapType = ...,
         xextent=...,
         pad_to: int = ...,
         sides: Literal["default", "onesided", "twosided"] = ...,

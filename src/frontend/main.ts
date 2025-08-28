@@ -117,17 +117,56 @@ function attach_snp(
 
   console.time('time make layers');
   const make_stuff_nice_for_screenshots = window.sessionStorage.getItem('make_stuff_nice_for_screenshots') === 'true'
+  const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true';
 
   const sidebar_margin_right = 20;
   if (Jupyter) {
     // In Notebooks v6, put the sidebar somewhat into the left gutter so the whole UI is centered.
-    set_margin_right_to_width(state.sidebar_el, sidebar_margin_right, 83 + (make_stuff_nice_for_screenshots ? 113 : 0));
+    set_margin_right_to_width(state.sidebar_el, sidebar_margin_right, 83 + (make_stuff_nice_for_screenshots || in_demo_mode ? 113 : 0));
   } else if (document.body.dataset.notebook == 'notebooks') {
     // In Notebooks v7, the constant to center it is different.
-    set_margin_right_to_width(state.sidebar_el, sidebar_margin_right, 83 + 84 + (make_stuff_nice_for_screenshots ? 113 : 0));
+    set_margin_right_to_width(state.sidebar_el, sidebar_margin_right, 83 + 84 + (make_stuff_nice_for_screenshots || in_demo_mode ? 113 : 0));
   } else {
     // In JupyterLab, the cell codebox is the full width of the page, so it's not necessary.
     state.sidebar_el.style.marginRight = `${sidebar_margin_right}px`;
+  }
+
+  // FOR SCREENSHOTS, SET window.sessionStorage.setItem('make_stuff_nice_for_screenshots', 'true') IN JAVASCRIPT
+  // %%javascript
+  // window.sessionStorage.removeItem('make_stuff_nice_for_screenshots')
+  // window.sessionStorage.setItem('make_stuff_nice_for_screenshots', 'true')
+
+  if (make_stuff_nice_for_screenshots || in_demo_mode) {
+    document.body.style.backgroundColor = 'white';
+    document.querySelectorAll('.prompt_container,.output_prompt,.out_prompt_overlay').forEach(el => { (el as HTMLElement).style.display = 'none'; });
+    document.querySelectorAll('#notebook-container').forEach(el => (el as HTMLElement).style.boxShadow = 'none');
+
+    if (in_demo_mode) {
+      state.plot_area.style.minWidth = '460px';
+      state.plot_area.style.maxWidth = '460px';
+
+      document.getElementById('header')!.style.height = '0px';
+      document.getElementById('header')!.style.overflow = 'hidden';
+
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    const style = document.createElement("style");
+    // link.type = "text/css";
+    // link.rel = "stylesheet";
+    style.append(`
+div.cell.selected,
+.edit_mode div.cell.selected \{
+    border-color: transparent;
+\}
+div.cell.selected::before,
+.edit_mode div.cell.selected::before \{
+    background-color: transparent;
+\}
+
+div#notebook .CodeMirror { font-size: 17px }
+    `);
+    document.getElementsByTagName("head")[0].appendChild(style);
   }
 
   // Put stdout_stderr at the bottom
@@ -254,31 +293,6 @@ function attach_snp(
   // Be sure fig_idx is stored so that re-runs of the cell preserve it
   if (!get_persistent_item(state, "fig_idx")) {
     set_persistent_item(state, "fig_idx", fig_idx.toString());
-  }
-
-  // FOR SCREENSHOTS, SET window.sessionStorage.setItem('make_stuff_nice_for_screenshots', 'true') IN JAVASCRIPT
-  // %%javascript
-  // window.sessionStorage.removeItem('make_stuff_nice_for_screenshots')
-  // window.sessionStorage.setItem('make_stuff_nice_for_screenshots', 'true')
-  if (make_stuff_nice_for_screenshots) {
-    document.body.style.backgroundColor = 'white';
-    document.querySelectorAll('.prompt_container,.output_prompt,.out_prompt_overlay').forEach(el => { el.remove() });
-    document.querySelectorAll('#notebook-container').forEach(el => (el as HTMLElement).style.boxShadow = 'none');
-
-    const style = document.createElement("style");
-    // link.type = "text/css";
-    // link.rel = "stylesheet";
-    style.append(`
-div.cell.selected,
-.edit_mode div.cell.selected \{
-    border-color: transparent;
-\}
-div.cell.selected::before,
-.edit_mode div.cell.selected::before \{
-    background-color: transparent;
-\}
-    `);
-    document.getElementsByTagName("head")[0].appendChild(style);
   }
 
 

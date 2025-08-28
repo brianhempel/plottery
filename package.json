@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "install-nbextension": "jupyter nbextension install src/nbextension_snp --debug --overwrite --user",
+    "install-nbextension": "jupyter nbextension install src/nbextension_snp --debug --overwrite --user # will install to /Users/USERNAME/Library/Jupyter/nbextensions/",
     "enable-nbextension": "jupyter nbextension enable nbextension_snp/main",
     "disable-nbextension": "jupyter nbextension disable nbextension_snp/main",
     "build-ts": "vite build",
