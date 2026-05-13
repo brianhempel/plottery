@@ -209,10 +209,7 @@ last_snp`;
     // let targets: number[] | undefined;
 
     const msg_type = msg.header.msg_type;
-    if (
-      msg_type == "execute_result" &&
-      msg.content.data["image/png"]
-    ) {
+    if ( msg_type == "execute_result" && msg.content.data["image/png"] ) {
       // Replace background image
       const img = state.plot_area.querySelector("img")!;
       img.src = "data:image/png;base64," + msg.content.data["image/png"];
@@ -514,6 +511,12 @@ last_snp`;
       state.hover_regions_container.classList.remove("hidden");
       attach_events_to_hover_regions(state);
       reposition_plot_widgets(state);
+
+      if ( msg.content.data["image/png"] ) {
+        // Replace background image with higher DPI version
+        const img = state.plot_area.querySelector("img")!;
+        img.src = "data:image/png;base64," + msg.content.data["image/png"];
+      }
     } else if (msg_type === "status" || msg_type === "execute_input") {
       // Swallow these JupyterLab-specific messages
     } else {

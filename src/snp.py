@@ -1027,7 +1027,7 @@ def get_user_nameset(code):
     return name_extractor.nameset
 
 
-# For when you want quick redraws during mouse manipulations.
+# For when you want quick redraws during mouse manipulations. Also reduces DPI
 # The frontend calls this by explicitly adding snp.show_ui(snp_class=SNPFigureOnly) to the cell code.
 class SNPFigureOnly:
     def __init__(
@@ -1044,14 +1044,14 @@ class SNPFigureOnly:
         self.figure = figure
         self.cached_png = None
 
-    def _repr_png_(self):
+    def _repr_png_(self, fast=True): # subclasses below set fast=False, so only transient drags reduce DPI
         with Timer("_repr_png_"):
             if self.cached_png == None:
                 buf = io.BytesIO()
                 self.figure.canvas.print_figure(
                     buf,
                     format="png",
-                    dpi="figure",
+                    dpi="figure" if not fast else min(self.figure.dpi, 120),
                 )
                 self.cached_png = buf.getvalue()
 
@@ -1097,7 +1097,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
     def _repr_svg_(self):
         with Timer("_repr_svg_"):
             if self.cached_svg_hover_regions == None:
-                self._repr_png_()  # Ensure elements are laid out.
+                self._repr_png_(fast=False)  # Ensure elements are laid out at user's desired DPI.
 
                 fig = self.figure
                 # bbox_inches = fig.get_tightbbox(fig.canvas.renderer).padded(mpl.rcParams["savefig.pad_inches"])
@@ -1294,7 +1294,7 @@ class SNP(SNPFigureAndHoverRegions):
     def _repr_html_(self):
         # ripped the below from ipympl/backend_nbagg.py
         with Timer("base64_image"):
-            base64_image = base64.b64encode(self._repr_png_()).decode("utf-8")
+            base64_image = base64.b64encode(self._repr_png_(fast=False)).decode("utf-8")
             data_url = f"data:image/png;base64,{base64_image}"
 
         self.methods = []
