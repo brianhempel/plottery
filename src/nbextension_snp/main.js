@@ -133,6 +133,7 @@ plt.show()`
         if (is_not_magic(cell_code) && cell_code.includes('show')) {
           // console.log('content', content);
           const cell = content.cell || cell_executing; // content.cell if SNP called kernel.execute directly, cell_executing from above if user manually ran the cell
+          delete content['cell'] // otherwise, the whole cell memory graph gets serialized!
           const [cell_lineno, notebook_code_through_cell] = get_notebook_code_through(cell);
 
           // look for

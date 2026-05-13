@@ -563,7 +563,7 @@ function kernel_execute(
       silent: false,
       store_history: false,
       stop_on_error: true,
-      cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
+      cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly, the nbextension will then remove this field because it's wasteful and causes 'message too large' crashes if the cell gets serialized and sent to python
       doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
     });
   } else { // JupyterLab
