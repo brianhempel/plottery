@@ -1,4 +1,4 @@
-import { create_layers_panel, deselect_all_layers, duplicate_selected_layers, layers_from_parseable_comment, layers_from_typed_node, load_selected_layers, select_layer } from "./layer_panel/layer_panel";
+import { create_layers_panel, deselect_all_layers, is_layer_selected, layers_from_parseable_comment, layers_from_typed_node, load_selected_layers, select_layer } from "./layer_panel/layer_panel";
 // import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets, reposition_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
@@ -224,6 +224,32 @@ div#notebook .CodeMirror { font-size: 17px }
   // (Clicks on selectable elements do not propogate to the container.)
   state.hover_regions_container.addEventListener("click", _ => { log_event('gui', 'plot background click deselect all'); deselect_all_layers(state); });
 
+  // Track cursor movement in the cell to keep the layer selection in sync with where the user is editing.
+  // Only available in Notebooks v6 right now; the JupyterLab CM6 facade doesn't expose these APIs.
+  const cm = state.cell.code_mirror as any;
+  if (typeof cm.on === 'function' && typeof cm.getCursor === 'function') {
+    cm.on("cursorActivity", () => {
+      // Don't fight a real text selection (e.g. user is highlighting code).
+      if (cm.somethingSelected && cm.somethingSelected()) return;
+
+      const cursor_idx = cm.indexFromPos(cm.getCursor());
+
+      // Iterate in reverse so the innermost (most specific) enclosing layer wins;
+      // children come after their parent in state.layers_panel.layers.
+      const containing = [...state.layers_panel.layers].reverse().find(layer => {
+        const range = layer.mark.find();
+        if (!range) return false;
+        return cm.indexFromPos(range.from) <= cursor_idx && cursor_idx <= cm.indexFromPos(range.to);
+      });
+
+      // If the cursor isn't inside any layer (e.g. blank line, plt.show, etc.),
+      // leave the existing selection alone.
+      if (containing && !is_layer_selected(containing)) {
+        select_layer(containing, state);
+      }
+    });
+  }
+
   state.sidebar_el.append(state.layers_panel.el);
 
 
@@ -330,7 +356,7 @@ div#notebook .CodeMirror { font-size: 17px }
         window.setInterval(attach_code_cell_logging, 2000); // Ensure new cells get the events below
 
         // In case the browser crashes, lose less work.
-        Jupyter.notebook.set_autosave_interval(10 * 1000); // 10sec
+        (Jupyter.notebook as any).set_autosave_interval(10 * 1000); // 10sec
       }
 
       Jupyter.notebook.get_cells().forEach((cell: Cell) => {
