@@ -1051,7 +1051,7 @@ class SNPFigureOnly:
                 self.figure.canvas.print_figure(
                     buf,
                     format="png",
-                    dpi="figure" if not fast else min(self.figure.dpi, 120),
+                    dpi="figure" if not fast else min(self.figure.dpi, int(1_000 / self.figure.get_figwidth())), # max 1000 pixels wide during drags
                 )
                 self.cached_png = buf.getvalue()
 
