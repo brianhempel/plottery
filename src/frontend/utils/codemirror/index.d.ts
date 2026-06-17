@@ -785,6 +785,20 @@ declare namespace CodeMirror {
     interface DocOrEditor {
         focus(options?: { preventScroll: boolean }): void; // maybe supposed to only be on Editor
 
+        // The following are really Editor-only methods, but our snp code (and the
+        // CM6-backed facade in utils/types.ts) treats code_mirror as both Doc and
+        // Editor, so they're declared here to keep the call sites type-clean.
+        getScrollerElement(): HTMLElement;
+        scrollIntoView(
+            pos: Position | null | { line: number; ch: number } | {
+                left: number;
+                top: number;
+                right: number;
+                bottom: number;
+            } | { from: Position; to: Position },
+            margin?: number,
+        ): void;
+
         /** Get the mode option */
         modeOption: string | ModeSpec<ModeSpecOptions>;
 

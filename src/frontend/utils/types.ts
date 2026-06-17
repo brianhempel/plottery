@@ -101,6 +101,8 @@ type CM5Mock = {
   replaceRange: (text: string, from: CodeMirror.Position, to?: CodeMirror.Position) => void;
   setValue: (text: string) => void;
   setCursor: (line: number, ch: number, options: { scroll: boolean }) => void;
+  getScrollerElement: () => HTMLElement;
+  scrollIntoView: (pos: CodeMirror.Position | { from: CodeMirror.Position, to: CodeMirror.Position }, margin?: number) => void;
   posFromIndex: (index: number) => CodeMirror.Position;
   indexFromPos: (pos: CodeMirror.Position) => number;
   focus: (options?: { preventScroll: boolean }) => void;
@@ -120,6 +122,7 @@ type CM6Editor = {
   };
   dispatch: (transaction: any) => void;
   focus: () => void;
+  scrollDOM: HTMLElement; // the .cm-scroller element
 };
 type CM6Doc = {
   lineAt(pos: number): CM6Line;
@@ -217,6 +220,18 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
 
     setCursor: (line: number, ch: number, options: { scroll: boolean }) => {
       return cm6.dispatch({selection: {anchor: cm5_pos_to_offset(cm6.state.doc, { line, ch }), scrollIntoView: options.scroll}});
+    },
+
+    getScrollerElement: () => cm6.scrollDOM,
+
+    scrollIntoView: (pos: CodeMirror.Position | { from: CodeMirror.Position, to: CodeMirror.Position }, _margin?: number) => {
+      // EditorView.scrollIntoView is a static that returns a StateEffect. Scroll
+      // without moving the cursor/selection, unlike setCursor's scrollIntoView.
+      const from_pos = "from" in pos ? pos.from : pos;
+      const from_offset = cm5_pos_to_offset(cm6.state.doc, from_pos);
+      return cm6.dispatch({
+        effects: __CM6EditorView.scrollIntoView(from_offset, { y: "nearest" })
+      });
     },
 
     posFromIndex : (index: number) => {

@@ -555,8 +555,20 @@ export function select_layer(layer: Layer, state: State, call_view?: CallView) {
   }
   compute_selected_hover_regions(state);
   highlight_lines_for_selected_layers(state);
+  scroll_selected_layer_into_view(layer, state);
   save_selected_layers(state);
   // console.log(layer.el)
+}
+
+// Scroll the selected layer's code into view (without moving the cursor) so its
+// line is visible even when the editor is capped at max-height and scrolled.
+// Target the start of the line (column 0) so we scroll vertically only and stay
+// pinned at the left edge instead of scrolling horizontally to the call.
+function scroll_selected_layer_into_view(layer: Layer, state: State) {
+  const range = layer.mark.find();
+  if (range) {
+    state.cell.code_mirror.scrollIntoView({ line: range.from.line, ch: 0 });
+  }
 }
 
 export function select_call_view(call_view: CallView, state: State) {

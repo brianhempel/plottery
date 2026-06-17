@@ -218,6 +218,11 @@ div#notebook .CodeMirror { font-size: 17px }
 
   state.layers_panel = create_layers_panel(layers, state);
 
+  // Cap cell height and let it scroll, so we can see both plot and code on the screen at the same time.
+  // Uses the CodeMirror scroller element, which works for both the real CM5 editor
+  // (Notebooks v6) and the CM6-backed facade (JupyterLab / Notebooks v7).
+  state.cell.code_mirror.getScrollerElement().style.maxHeight = "42vh";
+
   // Clicks on non-selectable elements on plot should deselect.
   // (Clicks on selectable elements do not propogate to the container.)
   state.hover_regions_container.addEventListener("click", _ => { log_event('gui', 'plot background click deselect all'); deselect_all_layers(state); });
