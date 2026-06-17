@@ -26,8 +26,8 @@ def get_trivial_names():
 #
 # Usage: See('code')
 class See():
-    def __init__(self, code):
-        self.obj = eval(code)
+    def __init__(self, obj, code='obj'):
+        self.obj = obj
         self.code = code
 
     def _repr_html_(self):

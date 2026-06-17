@@ -259,14 +259,8 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
 
             axes_unit_bounds = (x_min, y_min, x_max, y_max)
 
-
-            # For some reason, the background patch is last in the children list when it should be first so it doesn't cover everything.
-            # (It has special handling in Axes.draw() so this isn't any hackier than that is.)
-            children.remove(artist.patch)
-            children.insert(0, artist.patch)
-
             # Axes get_children() flattens its container children.
-            # But the provenance that the artist is the result of a call is on the container.
+            # But the provenance is on the container, not the children.
 
             # Two possible solutions.
 
@@ -289,7 +283,12 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
                 if not hasattr(ax, "_snp_came_from_call_id") and hasattr(ax._colorbar, "_snp_came_from_call_id"):
                     ax._snp_came_from_call_id = ax._colorbar._snp_came_from_call_id
 
-            children = sorted(children, key=get_zorder) # this is also in Axes.draw()
+            # For some reason, the background patch is last in the children list when it should be first so it doesn't cover everything.
+            # (It has special handling in Axes.draw() so this isn't any hackier than that is.)
+            children.remove(artist.patch)
+            children = sorted(children, key=get_zorder)
+            children.insert(0, artist.patch)
+
     else:
         children = []
 
@@ -351,9 +350,11 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
             # path_collection.contains() will have the code to make sense of all of the above
             # transform, offset_trf, offsets, paths = path_collection._prepare_points()
 
-            # I'm not smart enough to trace the code...hmmm thanks GPT-4o
+            offsets_potentially_masked = path_collection.get_offsets() # can return a masked ndarray :(
+            offsets_clean = offsets_potentially_masked[np.isfinite(np.ma.filled(offsets_potentially_masked, np.nan)).all(axis=1)] # apply the mask
 
-            px_coords = path_collection.axes.transData.transform(path_collection.get_offsets())
+            px_coords = path_collection.axes.transData.transform(offsets_clean)
+            # print(np.asarray(px_coords))
             # print(px_coords)
 
             region_px_bounds = (
@@ -448,7 +449,7 @@ def _artist_names_deep(out, obj, name, max_depth):
     if max_depth <= 0 or callable(obj):
         return
 
-    if isinstance(obj, list) or (isinstance(obj, np.ndarray) and len(obj) <= 10):
+    if isinstance(obj, list) or (isinstance(obj, np.ndarray) and obj.ndim > 0 and len(obj) <= 10):
         for i, item in enumerate(obj):
             _artist_names_deep(out, item, f"{name}[{str(i)}]", max_depth)
         if len(obj) >= 1:
@@ -1324,10 +1325,6 @@ class SNP(SNPFigureAndHoverRegions):
 
         # print(ast.parse(self.notebook_code_through_cell).)
         # notebook_ast = json.dumps(ast.parse(self.notebook_code_through_cell), default=lambda o: o.__dict__)
-        # with Timer("notebook_ast"):
-        #     ast_v = visitor_ast.MyVisitor()
-        #     # print(json.dumps(ast_v.visit(ast.parse(self.notebook_code_through_cell)))
-        #     notebook_ast = ast_v.visit(ast.parse(self.notebook_code_through_cell))
 
         def type_node_to_json(node):
             def extra_attrs(obj):

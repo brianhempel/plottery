@@ -176,9 +176,7 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
   })
 
   // Add the extension
-  // START HERE is there a way to remove the old versions in main.ts?
   cm6.dispatch({ effects: __CM6StateEffect.appendConfig.of(mark_handler) });
-
 
   function all_cm6_marks() : { from: number, to: number, value: CM6Deco }[] {
     let cm6_marks: any[] = [];

@@ -45,8 +45,6 @@ function find_cell(snp_outer: HTMLElement): Cell {
 }
 
 
-// START HERE do some demos to test all the features in JupyterLab
-
 // Entry point
 function attach_snp(
   snp_outer: HTMLElement,
