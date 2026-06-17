@@ -121,6 +121,22 @@ def do_mypy_inference(code):
         options.check_untyped_defs = True # Otherwise the bodies of user functions will not get inferred.
         options.ignore_errors = True
 
+        # Don't type-check the notebook runtime. A user's `import matplotlib.pyplot` transitively
+        # pulls PIL -> IPython -> prompt_toolkit / ipykernel / zmq / jupyter_client / black / ...
+        # (~470 of ~950 modules), none of which Plottery needs types for. Marking these
+        # `follow_imports = "skip"` replaces them with `Any` without parsing them or their deps,
+        # roughly halving the resident mypy build (memory) and the first-build time. PIL itself is
+        # left in so matplotlib image arg/return types still resolve; only its IPython edge is cut.
+        snp_skip_runtime_pkgs = [
+            "IPython", "ipykernel", "jupyter_client", "jupyter_core", "traitlets", "comm", "debugpy",
+            "prompt_toolkit", "pygments", "jedi", "parso", "pickleshare",
+            "zmq", "tornado", "nbformat", "nbconvert", "fastjsonschema",
+            "black", "blib2to3", "click", "pathspec",
+        ]
+        options.per_module_options = {
+            f"{pkg}.*": {"follow_imports": "skip"} for pkg in snp_skip_runtime_pkgs
+        }
+
         mypy_fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
         mypy_result = mypy.build.build(sources, options=options, fscache=mypy_fscache)
 
@@ -1421,6 +1437,11 @@ class SNP(SNPFigureAndHoverRegions):
 
 cell_figs = []
 
+# The most recent full-UI (SNP) output. Its figure is released when the next full
+# render supersedes it, so stale outputs sitting in IPython's Out[N] cache don't
+# pin a Figure (and its data/canvas) for the life of the kernel and bloat memory usage.
+_snp_prev_full_snp = None
+
 # The notebook extension replaces plt.show() with this snp.show() instead.
 #
 # Unlike plt.show(), this will only show the most recent fig if multiple figs were created since
@@ -1442,6 +1463,7 @@ def show(locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_li
 
 def show_ui(fig_idx=0, snp_class=SNP):
     global cell_figs
+    global _snp_prev_full_snp
     if len(cell_figs) == 0:
         print("No figures to show. Be sure plt.show() is called within the cell.")
         return None
@@ -1461,7 +1483,27 @@ def show_ui(fig_idx=0, snp_class=SNP):
             fig_names.append(fig_name)
 
         cell_figs = []
-        return snp_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names)
+        result = snp_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names)
+
+        # A full SNP render becomes the cell's output, which IPython pins in Out[N] for the life
+        # of the kernel. Its repr (PNG/SVG/HTML) is generated immediately on return, after which
+        # none of its heavy per-render data is needed again — most importantly the serialized
+        # mypy type graph in `calls`/`methods` (several MB of nested dicts per render) and the
+        # figure. So when a new full render supersedes the previous one, drop the previous
+        # output's data to keep stale Out[N] entries from bloating our memory usage.
+        if snp_class is SNP:
+            prev = _snp_prev_full_snp
+            if prev is not None and prev is not result:
+                prev_fig = prev.__dict__.get("figure")
+                if prev_fig is not None:
+                    try:
+                        plt.close(prev_fig)
+                    except Exception:
+                        pass
+                prev.__dict__.clear()
+            _snp_prev_full_snp = result
+
+        return result
 
 
 # -------------------------------------------------------- #
