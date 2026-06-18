@@ -100,7 +100,7 @@ function attach_snp(
     hover_regions_svg: () => state.hover_regions_container.querySelector("svg") as SVGElement | undefined,
     set_hover_regions_html: (html_svg_str: string) => { state.hover_regions_container.innerHTML = html_svg_str; },
 
-    is_in_dom: () => !!(state.snp_outer.parentElement?.parentElement?.parentElement),
+    is_in_dom: () => state.snp_outer.isConnected,
 
     plot_widgets: [],
 
@@ -231,7 +231,16 @@ div#notebook .CodeMirror { font-size: 17px }
   // Only available in Notebooks v6 right now; the JupyterLab CM6 facade doesn't expose these APIs.
   const cm = state.cell.code_mirror as any;
   if (typeof cm.on === 'function' && typeof cm.getCursor === 'function') {
-    cm.on("cursorActivity", () => {
+    // This listener lives on the cell's *input* editor, which survives re-runs, so a new
+    // one would pile up on every render and keep acting on dead renders. Remove the previous
+    // render's listener so exactly one (the live render's) is ever attached at a time.
+    cm.__snp_cursor_activity_off?.();
+
+    const on_cursor_activity = () => {
+      // Guard the brief window between this render's output being cleared and the next
+      // render attaching (which removes this listener): don't act on a detached render.
+      if (!state.is_in_dom()) return;
+
       // Don't fight a real text selection (e.g. user is highlighting code).
       if (cm.somethingSelected && cm.somethingSelected()) return;
 
@@ -250,7 +259,10 @@ div#notebook .CodeMirror { font-size: 17px }
       if (containing && !is_layer_selected(containing)) {
         select_layer(containing, state);
       }
-    });
+    };
+
+    cm.on("cursorActivity", on_cursor_activity);
+    cm.__snp_cursor_activity_off = () => cm.off("cursorActivity", on_cursor_activity);
   }
 
   state.sidebar_el.append(state.layers_panel.el);

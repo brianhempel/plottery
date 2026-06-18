@@ -133,8 +133,9 @@ export function make_plot_widgets(state: State) {
         });
       });
 
-      // Clicking anywhere else, hides the widget
-      document.addEventListener("mousedown", e => {
+      // Clicking anywhere else, hides the widget.
+      const on_document_mousedown = (e: MouseEvent) => {
+        if (!plot_widget_el.isConnected) { document.removeEventListener("mousedown", on_document_mousedown); return; } // Remove self once stale after rerender
         if (
           !plot_widget_el.classList.contains("hidden") &&
           e.target != plot_widget_el
@@ -144,7 +145,8 @@ export function make_plot_widgets(state: State) {
           plot_widget_el.blur();
           reposition_plot_widgets(state); // The widget was not repositioned during the edits.
         }
-      });
+      };
+      document.addEventListener("mousedown", on_document_mousedown);
 
       state.plot_widgets.push({
         el,

@@ -50,15 +50,13 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
   });
 
   function deselect(e: MouseEvent) {
+    if (!el.isConnected) { document.body.removeEventListener("click", deselect); return; } // Remove self once stale after rerender
     if (e.target != null && !(e.target == el) && !el.contains(e.target as HTMLElement)) {
       if (el.classList.contains("expanded")) {
         log_event("gui", "dropdown suggestions close");
         el.classList.remove("expanded");
         el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
-      }// else if (!!el.closest("body")) { // Not in DOM anymore
-      //  console.log("removing event listener from DOM");
-      //  document.body.removeEventListener("click", deselect);
-      //}
+      }
     }
   }
 
