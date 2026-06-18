@@ -47,6 +47,233 @@ define(["require", "base/js/namespace", "base/js/events"], function (
     return [cell_lineno, notebook_code_through_cell];
   }
 
+  // ---- Figure/axes parameter annotation pre-pass ----------------------------
+  //
+  // When the user passes a figure/axes/array-of-axes into one of their own
+  // functions, the parameter is otherwise untyped (mypy treats it as Any), so
+  // calls on it (e.g. ax.plot(...)) aren't recognized as matplotlib calls and
+  // don't render in the Layers panel. We infer those parameter types from the
+  // call sites and inject annotations into the user's visible code, using the
+  // same deliberately-simple, regex-based style as the "what is plt called"
+  // logic below. annotate_figure_axes_params() returns the (possibly rewritten)
+  // cell code; it is a no-op when nothing matches.
+
+  function regex_escape(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  // Split a comma-separated argument/parameter list on top-level commas only
+  // (i.e. ignoring commas inside (), [], {} or string literals).
+  function split_top_level(str) {
+    const parts = [];
+    let depth = 0, cur = "", in_str = null;
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (in_str) {
+        cur += c;
+        if (c === in_str && str[i - 1] !== "\\") in_str = null;
+      } else if (c === '"' || c === "'") {
+        in_str = c; cur += c;
+      } else if (c === "(" || c === "[" || c === "{") {
+        depth++; cur += c;
+      } else if (c === ")" || c === "]" || c === "}") {
+        depth = Math.max(0, depth - 1); cur += c;
+      } else if (c === "," && depth === 0) {
+        parts.push(cur); cur = "";
+      } else {
+        cur += c;
+      }
+    }
+    if (cur.trim() !== "" || parts.length > 0) parts.push(cur);
+    return parts;
+  }
+
+  // Given the index of an opening "(", return the index of its matching ")".
+  function index_of_matching_paren(code, open_idx) {
+    let depth = 0, in_str = null;
+    for (let i = open_idx; i < code.length; i++) {
+      const c = code[i];
+      if (in_str) {
+        if (c === in_str && code[i - 1] !== "\\") in_str = null;
+      } else if (c === '"' || c === "'") {
+        in_str = c;
+      } else if (c === "(") {
+        depth++;
+      } else if (c === ")") {
+        depth--;
+        if (depth === 0) return i;
+      }
+    }
+    return -1;
+  }
+
+  // Classify what plt.subplots(...) / fig.subplots(...) returns for the axes slot, matching
+  // how the bundled matplotlib stub types it: a single Axes, a 1-D list of Axes, or a 2-D list
+  // of lists of Axes (squeeze=False, or nrows>1 and ncols>1).
+  function subplots_axes_kind(args_str) {
+    if (/\bsqueeze\s*=\s*False\b/.test(args_str)) return "axes_list2d";
+    let nrows = 1, ncols = 1, pos_idx = 0;
+    for (const part of split_top_level(args_str)) {
+      const trimmed = part.trim();
+      if (trimmed === "") continue;
+      const kw = trimmed.match(/^(\w+)\s*=\s*(.+)$/);
+      if (kw) {
+        if (kw[1] === "nrows") nrows = parseInt(kw[2]) || nrows;
+        else if (kw[1] === "ncols") ncols = parseInt(kw[2]) || ncols;
+      } else {
+        const n = parseInt(trimmed);
+        if (!isNaN(n)) {
+          if (pos_idx === 0) nrows = n;
+          else if (pos_idx === 1) ncols = n;
+        }
+        pos_idx++;
+      }
+    }
+    if (nrows > 1 && ncols > 1) return "axes_list2d";
+    if (nrows > 1 || ncols > 1) return "axes_list";
+    return "axes";
+  }
+
+  // Map variable name -> 'figure' | 'axes' | 'axes_list' | 'axes_list2d' for the common ways
+  // of creating figures/axes with pyplot.
+  function track_figure_axes_vars(notebook_code, plt) {
+    const kinds = {};
+    const P = regex_escape(plt);
+
+    // fig, ax = plt.subplots(...)
+    for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*,[ \\t]*(\\w+)[ \\t]*=[ \\t]*${P}\\.subplots[ \\t]*\\(([^\\n]*?)\\)`, "mg"))) {
+      kinds[m[1]] = "figure";
+      kinds[m[2]] = subplots_axes_kind(m[3]);
+    }
+    // fig = plt.figure(...) / plt.gcf()
+    for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*=[ \\t]*${P}\\.(?:figure|gcf)[ \\t]*\\(`, "mg"))) {
+      kinds[m[1]] = "figure";
+    }
+    // ax = plt.gca() / plt.subplot(...)
+    for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*=[ \\t]*${P}\\.(?:gca|subplot)[ \\t]*\\(`, "mg"))) {
+      kinds[m[1]] = "axes";
+    }
+    // ax = fig.add_subplot(...) ; axs = fig.subplots(...)  (for already-known figure vars)
+    for (const fig_var of Object.keys(kinds).filter(v => kinds[v] === "figure")) {
+      const F = regex_escape(fig_var);
+      for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*=[ \\t]*${F}\\.add_subplot[ \\t]*\\(`, "mg"))) {
+        kinds[m[1]] = "axes";
+      }
+      for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*=[ \\t]*${F}\\.subplots[ \\t]*\\(([^\\n]*?)\\)`, "mg"))) {
+        kinds[m[1]] = subplots_axes_kind(m[2]);
+      }
+    }
+    return kinds;
+  }
+
+  // Parse a parameter list into { raw, name, is_star, has_annotation }.
+  function parse_params(params_str) {
+    return split_top_level(params_str).map(raw => {
+      const trimmed = raw.trim();
+      if (trimmed === "") return null;
+      const name_match = trimmed.match(/^(\*{0,2})\s*(\w+)/);
+      if (!name_match) return { raw, name: null, is_star: trimmed.startsWith("*"), has_annotation: false };
+      return {
+        raw,
+        name: name_match[2],
+        is_star: name_match[1].length > 0,
+        has_annotation: /^\*{0,2}\s*\w+\s*:/.test(trimmed),
+      };
+    }).filter(p => p !== null);
+  }
+
+  // Inject ": <annotation>" into a single (unannotated) parameter, preserving any default.
+  function annotate_param_raw(raw, annotation) {
+    const m = raw.match(/^(\s*)(\w+)\s*(=\s*[\s\S]+)?$/);
+    if (!m) return raw;
+    const default_part = m[3] ? ` = ${m[3].replace(/^=\s*/, "")}` : "";
+    return `${m[1]}${m[2]}: ${annotation}${default_part}`;
+  }
+
+  // Return the (top-level-split) argument list of the first call to `name(...)`
+  // that is not the function definition itself, or null if none found.
+  function find_first_call_args(code, name) {
+    const re = new RegExp(`\\b${regex_escape(name)}\\s*\\(`, "g");
+    let m;
+    while ((m = re.exec(code)) !== null) {
+      if (/\bdef\s+$/.test(code.slice(0, m.index))) continue; // the definition itself
+      const open_idx = m.index + m[0].length - 1;
+      const close_idx = index_of_matching_paren(code, open_idx);
+      if (close_idx === -1) return null;
+      return split_top_level(code.slice(open_idx + 1, close_idx));
+    }
+    return null;
+  }
+
+  function annotate_figure_axes_params(cell_code, notebook_code_through_cell) {
+    const plt_aliases = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib\.pyplot as (\w+)/mg)].map(m => m[1]);
+    if (plt_aliases.length === 0) return cell_code;
+    const plt = plt_aliases[0];
+
+    const var_kind = track_figure_axes_vars(notebook_code_through_cell, plt);
+    if (Object.keys(var_kind).length === 0) return cell_code;
+
+    // plt.Figure / plt.Axes resolve to the matplotlib classes (the stub re-exports them); the
+    // stub types subplots() as returning lists of Axes, so arrays are annotated as list[...].
+    const annotation_for = {
+      figure: `${plt}.Figure`,
+      axes: `${plt}.Axes`,
+      axes_list: `list[${plt}.Axes]`,
+      axes_list2d: `list[list[${plt}.Axes]]`,
+    };
+
+    const edits = []; // { start, end, text } over cell_code, applied last-to-first
+    const def_re = /^[ \t]*def[ \t]+(\w+)[ \t]*\(/mg;
+    let dm;
+    while ((dm = def_re.exec(cell_code)) !== null) {
+      const name = dm[1];
+      const open_idx = dm.index + dm[0].length - 1;
+      const close_idx = index_of_matching_paren(cell_code, open_idx);
+      if (close_idx === -1) continue;
+
+      const params = parse_params(cell_code.slice(open_idx + 1, close_idx));
+      if (params.length === 0) continue;
+
+      const call_args = find_first_call_args(notebook_code_through_cell, name);
+      if (!call_args) continue;
+
+      // Map call arguments to parameters (positional, then keyword).
+      let pi = 0;
+      for (const arg_raw of call_args) {
+        const arg = arg_raw.trim();
+        if (arg === "") continue;
+        const kw = arg.match(/^(\w+)\s*=\s*([\s\S]+)$/);
+        if (kw) {
+          const kind = var_kind[kw[2].trim()];
+          if (kind && annotation_for[kind]) {
+            const p = params.find(p => p.name === kw[1] && !p.has_annotation && !p.is_star);
+            if (p) p._kind = kind;
+          }
+        } else {
+          while (pi < params.length && params[pi].is_star) pi++;
+          if (pi >= params.length) break;
+          const kind = var_kind[arg];
+          if (kind && annotation_for[kind] && !params[pi].has_annotation) params[pi]._kind = kind;
+          pi++;
+        }
+      }
+
+      if (!params.some(p => p._kind)) continue;
+
+      const new_params = params.map(p => p._kind ? annotate_param_raw(p.raw, annotation_for[p._kind]) : p.raw).join(",");
+      edits.push({ start: open_idx + 1, end: close_idx, text: new_params });
+    }
+
+    if (edits.length === 0) return cell_code;
+    edits.sort((a, b) => b.start - a.start);
+    let result = cell_code;
+    for (const e of edits) result = result.slice(0, e.start) + e.text + result.slice(e.end);
+    return result;
+  }
+
+  // Expose for the bundle (the AI panel reuses this on LLM results) so the logic isn't duplicated.
+  window.__snp_annotate_figure_axes_params = annotate_figure_axes_params;
+
   // Thanks, GPT-4o!
   function add_new_plot_button() {
     Jupyter.toolbar.add_buttons_group([
@@ -119,6 +346,21 @@ plt.show()`
     let cell_executing = undefined;
     IPython.CodeCell.prototype.execute = function (stop_on_error) {
       cell_executing = this;
+
+      // Annotate figure/axes parameters ONLY on a real manual execution. This override is the
+      // user's Shift+Enter / Run path; GUI redraws and hard_rerun go through kernel.execute
+      // directly (bypassing this), so drags/toggles/reorders never trigger the rewrite.
+      try {
+        const code = this.get_text();
+        if (is_not_magic(code) && code.includes('show')) {
+          const notebook_code_through_cell = get_notebook_code_through(this)[1];
+          const annotated = annotate_figure_axes_params(code, notebook_code_through_cell);
+          if (annotated !== code) this.set_text(annotated);
+        }
+      } catch (e) {
+        console.error('snp: figure/axes annotation pre-pass failed', e);
+      }
+
       const out = orig_cell_execute.call(this, stop_on_error);
       cell_executing = undefined;
       return out;

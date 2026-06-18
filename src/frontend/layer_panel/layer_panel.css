@@ -71,7 +71,9 @@
 .for-loop > div > .snp-widget,
 .for-loop > div > .snp-dropdown,
 .func-def > div > .snp-widget,
-.func-def > div > .snp-dropdown {
+.func-def > div > .snp-dropdown,
+.if-stmt > div > .snp-widget,
+.if-stmt > div > .snp-dropdown {
   border: solid 1px lightgray;
   display: inline-block;
 }

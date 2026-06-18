@@ -30,7 +30,7 @@ from .collections import (
 from .lines import Line2D
 from .legend import Legend
 from .image import AxesImage, FigureImage
-from .figure import Figure, SubFigure
+from .figure import Figure as Figure, SubFigure as SubFigure
 from .scale import ScaleBase
 from .backend_bases import _Backend
 from .axes import Axes as Axes

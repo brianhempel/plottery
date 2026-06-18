@@ -6,6 +6,11 @@ import { prompt_llm } from "../utils/llm";
 import { create_el, notebook_cells } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
 
+// Globally exposed by our extension (nbextension_snp/main.js and snp_jupyter/snp_jupyter.js)
+// so we don't duplicate the figure/axes annotation logic in this bundle.
+declare const __snp_annotate_figure_axes_params: ((cell_code: string, notebook_code_through_cell: string) => string) | undefined;
+(window as any).__snp_annotate_figure_axes_params ||= (window as any).__snp_annotate_figure_axes_params;
+
 export function create_ai_panel(state: State): HTMLElement {
   const panel_el = create_el("div", "snp-ai-panel");
   const panel_heading = create_el("h2", [], panel_el);
@@ -119,6 +124,18 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
         code = reply;
     }
     code = code.replace(/### Cell \d.*\n/, '');
+
+    // Inject figure/axes parameter type annotations (mirrors the manual-execution pre-pass in
+    // the notebook extensions) so calls inside any function the model wrote get recognized. The
+    // function is shared via the extension-exposed global rather than duplicated here.
+    if (__snp_annotate_figure_axes_params) {
+      const code_cells = notebook_cells(state.snp_outer).filter((cell: Cell) => cell.cell_type === "code" && is_not_magic(cell.get_text()));
+      const prior_code = code_cells
+        .slice(0, code_cells.findLastIndex(c => c.element[0] === state.cell.element[0]))
+        .map(c => c.get_text())
+        .join("\n");
+      code = __snp_annotate_figure_axes_params(code, `${prior_code}\n${code}`);
+    }
 
     // Focus code cell so user can undo changes
     if (!Jupyter) { // JupyterLab

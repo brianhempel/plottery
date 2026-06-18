@@ -32,6 +32,10 @@ export type LayersPanel = {
 };
 
 export function layers_from_typed_node(typed_node: any, state: State, indent_level: number = 0): Layer[] {
+  // An if/elif/else chain is a single IfStmt node but we want one independent layer
+  // group per clause, so it can't use the single-layer flow below.
+  if (typed_node['.class'] === 'mypy.nodes.IfStmt') return if_stmt_layers(typed_node, state, indent_level);
+
   const layer_el = create_el("div", "snp-layer");
 
   // console.log('layer typed node:', typed_node)
@@ -220,7 +224,131 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   return [layer, ...sublayers];
 }
 
-function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked: boolean = true, hard_run_on_enable: boolean = false) {
+// Render an if/elif/else chain as one independent layer group per clause. mypy (like Python's
+// own ast) does NOT flatten the chain: each IfStmt holds a single `if`/`elif` clause in
+// expr[0]/body[0], and any `elif`/`else` is nested as an IfStmt/Block inside else_body. So we
+// walk the else_body chain to collect the sibling clauses.
+function if_stmt_layers(typed_node: any, state: State, indent_level: number): Layer[] {
+  const cm = state.cell.code_mirror;
+  const cell_lineno = state.cell_lineno;
+
+  // The outermost IfStmt encloses the whole chain (nested elif/else included).
+  const chain_end = cm_end_pos(typed_node, cell_lineno);
+
+  type Clause = {
+    kind: 'if' | 'elif' | 'else';
+    header_line: number; // editor line of the clause's header keyword
+    condition?: any;     // the expr node, for if/elif
+    body_block: any;     // a Block whose .body holds the clause's statements
+  };
+
+  const clauses: Clause[] = [];
+  let node: any = typed_node;
+  let first = true;
+  while (node) {
+    const condition = node.expr[0];
+    clauses.push({
+      kind: first ? 'if' : 'elif',
+      header_line: cm_start_pos(condition, cell_lineno).line,
+      condition,
+      body_block: node.body[0],
+    });
+    first = false;
+
+    const else_body = node.else_body;
+    if (!else_body) break;
+
+    // An `elif` is a lone nested IfStmt whose source line begins with `elif`; a real `else:`
+    // (which may itself contain a nested `if`) is anything else.
+    const only = else_body.body?.length === 1 ? else_body.body[0] : null;
+    const is_elif = !!only && only['.class'] === 'mypy.nodes.IfStmt'
+      && (cm.getLine(cm_start_pos(only, cell_lineno).line) || '').trim().startsWith('elif');
+    if (is_elif) {
+      node = only;
+      continue;
+    }
+
+    // Real `else:` clause. It has no condition node, so find its header line by scanning upward
+    // from its first statement for the nearest `else:` (Block positions aren't reliable).
+    const first_else_stmt = else_body.body?.[0];
+    let else_header_line = chain_end.line;
+    if (first_else_stmt) {
+      let scan = cm_start_pos(first_else_stmt, cell_lineno).line - 1;
+      while (scan >= 0 && !/^\s*else\s*:/.test(cm.getLine(scan) || '')) scan--;
+      if (scan >= 0) else_header_line = scan;
+    }
+    clauses.push({ kind: 'else', header_line: else_header_line, body_block: else_body });
+    break;
+  }
+
+  const clause_end = (c: number) => {
+    if (c < clauses.length - 1) {
+      const end_line = clauses[c + 1].header_line - 1;
+      return { line: end_line, ch: (cm.getLine(end_line) || '').length };
+    }
+    return chain_end;
+  };
+
+  const layers: Layer[] = [];
+
+  clauses.forEach((clause, c) => {
+    const layer_el = create_el("div", "snp-layer");
+    const layer_code_line = create_el('div', [], layer_el);
+
+    const header_start = { line: clause.header_line, ch: 0 };
+
+    if (clause.kind === 'else') {
+      layer_code_line.append("else:");
+    } else {
+      const cond_widget = create_arbitrary_code_widget(clause.condition.unparsed.trim());
+      layer_code_line.append(clause.kind === 'if' ? "if " : "elif ", cond_widget.el, ":");
+
+      const edit_mark = cm.markText(
+        cm_start_pos(clause.condition, cell_lineno),
+        cm_end_pos(clause.condition, cell_lineno),
+        { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
+      );
+      add_sync_code_on_change_watcher(() => cond_widget.to_code(), [edit_mark], state);
+    }
+
+    // mark spans the whole clause (header + body): used for toggling and as the drag source.
+    const mark = cm.markText(
+      header_start,
+      clause_end(c),
+      { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
+    );
+    // target_mark spans the header line so dropping below a clause lands at the top of its body.
+    const end_of_header_line = { line: clause.header_line, ch: (cm.getLine(clause.header_line) || '').length + 1000 };
+    const target_mark = cm.markText(
+      header_start,
+      end_of_header_line,
+      { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
+    );
+
+    layer_el.classList.add(`indent-${indent_level}`);
+    layer_el.classList.add(`indentbelow-${indent_level + 1}`);
+    layer_el.classList.add(`if-stmt`);
+
+    const layer: Layer = {
+      el: layer_el,
+      calls_with_args: [],
+      call_views: [],
+      mark,
+      target_mark,
+    };
+
+    // Clause toggles change if/elif/else keywords (via normalize_if_chains), so always do a
+    // hard rerun to rebuild the layer labels to match.
+    add_listeners_and_checkbox_to_layer(layer, state, true, false, true);
+
+    layers.push(layer);
+    layers.push(...(clause.body_block.body || []).flatMap((node: any) => layers_from_typed_node(node, state, indent_level + 1)));
+  });
+
+  return layers;
+}
+
+function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked: boolean = true, hard_run_on_enable: boolean = false, hard_run_always: boolean = false) {
   const cm = state.cell.code_mirror;
   const { el: layer_el, mark } = layer;
 
@@ -253,7 +381,7 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
 
     clean_up_passes(cm);
 
-    if (visible_checkbox.checked && hard_run_on_enable) {
+    if (hard_run_always || (visible_checkbox.checked && hard_run_on_enable)) {
       hard_rerun(state); // Layers rendered as plain text need a full rerun to generate their full UI.
     } else {
       redraw_cell(state);
@@ -291,8 +419,22 @@ export function layers_from_parseable_comment(comment: ParseableComment, state: 
   return [layer]
 }
 
+// Re-indent a (possibly multi-line) block so its first line sits at `indentation`, while
+// preserving the relative indentation of the remaining lines. Dedenting by the first line's
+// own indentation (rather than flattening every line to `indentation`) keeps the bodies of
+// dragged multi-line constructs (for-loops, if/elif/else clauses, ...) nested correctly.
 function replace_indentation(code: string, indentation: string) {
-  return code.replaceAll(/^[ \t]*/mg, indentation)
+  const lines = code.split('\n');
+  const first_nonblank = lines.find(line => line.trim() !== '') ?? '';
+  const base = first_nonblank.match(/^[ \t]*/)![0];
+  return lines
+    .map(line => {
+      if (line.trim() === '') return '';
+      const dedented = line.startsWith(base) ? line.slice(base.length) : line.replace(/^[ \t]*/, '');
+      return indentation + dedented;
+    })
+    .join('\n')
+    .replace(/\n+$/, ''); // drop trailing blank lines
 }
 
 function drop(ev: DragEvent, target_layer: Layer, state: State) {
@@ -315,8 +457,12 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
   let source_code = ''
   for (const source_layer of state.dragging_layers) {
     let source_range = source_layer.mark.find()!;
-    const layer_code = cm.getRange(source_range.from, source_range.to);
-    source_code += replace_indentation(layer_code.trim(), indentation) + '\n'
+    // Capture full lines (from column 0, including the first line's indentation) so
+    // replace_indentation can preserve the block's relative indentation. The source is also
+    // removed line-by-line below, so whole-line capture stays consistent.
+    const to_line = source_range.to.line;
+    const layer_code = cm.getRange({ line: source_range.from.line, ch: 0 }, { line: to_line, ch: (cm.getLine(to_line) || '').length });
+    source_code += replace_indentation(layer_code, indentation) + '\n'
   }
   console.log(source_code);
 
@@ -387,9 +533,74 @@ function replace_all_preserving_marks(cm: DocOrEditor, target: RegExp, replaceme
 }
 
 
+// Keep if/elif/else chains syntactically valid after a clause is toggled off (commented),
+// dragged out, or reordered. Promote-only and indentation-aware: a dangling `elif` (no open
+// chain at its indent) becomes `if`, and a dangling `else` becomes `if True`. We never demote
+// an active `if` to `elif`, so two genuinely separate `if`s are never merged. Best-effort:
+// drops that would need demotion (e.g. an `elif` dragged strictly above its `if`) are left for
+// the user to fix.
+function normalize_if_chains(cm: DocOrEditor) {
+  // open_at_indent[indent] === true when a conditional chain is currently open at that indent.
+  const open_at_indent: Record<number, boolean> = {};
+  const close_deeper_than = (indent: number) => {
+    for (const key of Object.keys(open_at_indent)) {
+      if (Number(key) >= indent) open_at_indent[Number(key)] = false;
+    }
+  };
+
+  type Edit = { line: number; from_ch: number; to_ch: number; text: string };
+  const edits: Edit[] = [];
+
+  const line_count = cm.lineCount();
+  for (let line = 0; line < line_count; line++) {
+    const text = cm.getLine(line) || '';
+
+    // Blank and comment-only lines don't open, continue, or break a chain.
+    if (/^\s*$/.test(text) || /^\s*#/.test(text)) continue;
+
+    const indent = text.match(/^[ \t]*/)![0].length;
+    const header = text.match(/^([ \t]*)(if|elif|else)\b/);
+
+    if (!header) {
+      // A regular statement ends any chain at its own indent and deeper.
+      close_deeper_than(indent);
+      continue;
+    }
+
+    const kw = header[2];
+    const kw_start = header[1].length;
+    close_deeper_than(indent + 1); // entering any clause closes strictly-deeper chains
+
+    if (kw === 'if') {
+      open_at_indent[indent] = true;
+    } else if (kw === 'elif') {
+      if (!open_at_indent[indent]) {
+        edits.push({ line, from_ch: kw_start, to_ch: kw_start + 'elif'.length, text: 'if' });
+        open_at_indent[indent] = true;
+      }
+    } else { // else
+      if (!open_at_indent[indent]) {
+        edits.push({ line, from_ch: kw_start, to_ch: kw_start + 'else'.length, text: 'if True' });
+        open_at_indent[indent] = true;
+      } else {
+        open_at_indent[indent] = false; // a valid else closes the chain
+      }
+    }
+  }
+
+  // Each edit is confined to a single line and doesn't change line numbers, so applying them
+  // in order keeps every other edit's positions valid. replaceRange keeps marks adjusted.
+  for (const e of edits) {
+    cm.replaceRange(e.text, { line: e.line, ch: e.from_ch }, { line: e.line, ch: e.to_ch });
+  }
+}
+
+
 // Remove unecessary "pass" statements
 // Add missing "pass" statements
 function clean_up_passes(cm: DocOrEditor) {
+  normalize_if_chains(cm);
+
   // Add passes everywhere...not perfect but we'll roll with it
   replace_all_preserving_marks(cm, /(^[ \t]*)((for|def|if|elif|else|try|except)\b.*:[ \t]*\n)^/mg, '$1$2$1    pass\n')
 
@@ -493,6 +704,18 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
     _ => true, // Enabled?
     state
   ).title = default_iterable_code.trim();
+
+  const default_if_code = `if True:\n    pass`;
+  add_menu_item(
+    add_layer_menu,
+    'If-statement', null,
+    (state => {
+      add_line_of_code(default_if_code, state);
+      hard_rerun(state);
+    }),
+    _ => true, // Enabled?
+    state
+  ).title = default_if_code.trim();
 
   // const user_iterables_menu =
   //   add_submenu(
