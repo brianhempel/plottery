@@ -28,6 +28,7 @@ export function prompt_llm(prompt: string, success: (reply: string) => void, fai
 
   const query = {
       'model':    'gpt-4o',
+      // 'model':    'gpt-5.4-nano',
       'messages': [{ 'role': 'user', content: prompt }],
       'stream':   false,
   };

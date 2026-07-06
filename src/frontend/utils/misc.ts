@@ -454,6 +454,16 @@ export function create_search_icon(): HTMLElement {
   return svgContainer.children[0] as HTMLElement;
 }
 
+export function red_x_button_svg_html() {
+  return `<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#ff1d1d" fill-rule="evenodd" d="M8,0 C12.4183,0,16,3.58172,16,8 C16,12.4183,12.4183,16,8,16 C3.58172,16,0,12.4183,0,8 C0,3.58172,3.58172,0,8,0 z"/><path fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4.5,11.5 C4.5,11.5,11.5,4.5,11.5,4.5"/><path fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4.5,4.5 C4.5,4.5,11.5,11.5,11.5,11.5"/></svg>`
+}
+
+export function create_red_x_button_icon(): HTMLElement {
+  const svgContainer = create_el("div");
+  svgContainer.innerHTML = red_x_button_svg_html();
+  return svgContainer.children[0] as HTMLElement;
+}
+
 // export function create_dropdown_arrow() {
 //   const svgContainer = create_el("div");
 

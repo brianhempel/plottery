@@ -326,7 +326,7 @@ export function attach_events_to_hover_regions(state: State) {
             // const dy = evt.clientY - start_y;
             if (!moved) {
               log_event("gui", "on-plot layer click-select", {layer: layer.el.innerText});
-              select_layer(layer, state)
+              select_layer(layer, state, call_view);
             } else {
               moved = false;
               refresh_hover_regions(state);

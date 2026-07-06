@@ -18,7 +18,7 @@ export type Widget = {
 };
 
 // Always returns a dropdown widget. So if you edit the code, you can revert to the original.
-export function make_widget_for_code_and_type(code: string, type: Type | null, default_code: string | null, type_compatible_code_snippets: string[] | undefined): DropdownWidget {
+export function make_widget_for_code_and_type(code: string, type: Type | null, default_code: string | null, type_compatible_code_snippets: string[] | undefined, extra_widgets?: Widget[]): DropdownWidget {
 
   let widgets: Widget[] = type ? widgets_from_type(type) : [];
 
@@ -36,6 +36,10 @@ export function make_widget_for_code_and_type(code: string, type: Type | null, d
 
   // Code snippet widgets
   widgets = widgets.concat((type_compatible_code_snippets ?? []).map(create_arbitrary_code_widget));
+
+  // Extra dropdown items, e.g. cross-call link suggestions (which never match arg code, so
+  // they can't become the auto-selected item below)
+  widgets = widgets.concat(extra_widgets ?? []);
 
   let widget_to_select = widgets.find(w => w.does_match_arg_code(code));
 

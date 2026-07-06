@@ -2,4 +2,5 @@ input.snp-slider {
   width: 120px;
   margin: 0; /* JupyterLab */
   display: block; /* JupyterLab */
+  filter: saturate(0) brightness(0.8) contrast(2); /* remove the MacOS system selection color */
 }

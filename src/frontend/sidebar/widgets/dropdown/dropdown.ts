@@ -1,6 +1,7 @@
 import { log_event } from "../../../utils/instrumentation";
 import { create_el } from "../../../utils/misc";
 import { Widget } from "../widget";
+import { is_link_widget } from "../link/link";
 import "./dropdown.css";
 
 export type DropdownWidget = Widget & {
@@ -94,7 +95,7 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
 }
 
 
-function add_item_to_dropdown_widget(
+export function add_item_to_dropdown_widget(
   dropdown: DropdownWidget,
   widget: Widget
 ) {
@@ -116,7 +117,9 @@ function add_item_to_dropdown_widget(
   const item_overlay_el = create_el("div", "snp-dropdown-item-overlay", item_holder);
 
   item_overlay_el.addEventListener("mouseover", ev => {
-    const arg_code = widget.to_code();
+    // Link items preview the linked call's live value: locally previewing that value is
+    // visually identical to the shared-variable state that choosing the item would create.
+    const arg_code = is_link_widget(widget) ? widget.preview_code() : widget.to_code();
     log_event("gui", "dropdown suggestion preview", { arg_code });
     dropdown.previewing_code = arg_code;
     ev.stopPropagation();
@@ -127,8 +130,17 @@ function add_item_to_dropdown_widget(
     // Close the dropdown
     dropdown.el.classList.remove("expanded");
     dropdown.el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
-    log_event("gui", "dropdown suggestion choose", { arg_code: widget.to_code() });
-    select_dropdown_item(dropdown, widget);
+    if (is_link_widget(widget)) {
+      // A link item is an action (introduce a shared variable), not a selectable value.
+      // Clear the hover preview so the flushed call text doesn't pick it up over the
+      // committed value (to_code prefers previewing_code).
+      dropdown.previewing_code = undefined;
+      log_event("gui", "dropdown link suggestion choose", { arg_code: widget.preview_code(), linked_call: widget.suggestion.call_id });
+      widget.on_choose();
+    } else {
+      log_event("gui", "dropdown suggestion choose", { arg_code: widget.to_code() });
+      select_dropdown_item(dropdown, widget);
+    }
     ev.stopPropagation();
     ev.preventDefault();
   });

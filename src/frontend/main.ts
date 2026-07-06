@@ -255,8 +255,9 @@ div#notebook .CodeMirror { font-size: 17px }
       });
 
       // If the cursor isn't inside any layer (e.g. blank line, plt.show, etc.),
-      // leave the existing selection alone.
-      if (containing && !is_layer_selected(containing)) {
+      // leave the existing selection alone. Only sync selection for function-call
+      // layers — body layers (if/for/def/plain code) scroll the editor out of view.
+      if (containing && containing.call_views.length > 0 && !is_layer_selected(containing)) {
         select_layer(containing, state);
       }
     };
@@ -431,6 +432,12 @@ export function call_info_to_call_with_args(
 
   let arg_defaults = arg_defaults_from_callee_type(callee);
 
+  // Cross-call link suggestions apply to given and missing args alike (given args spread
+  // their template below, and the missing-arg lists are built from these same templates).
+  arg_defaults.forEach(arg => {
+    arg.link_suggestions = call_info.link_suggestions_by_arg_name?.[arg.name];
+  });
+
   const given_args: Arg[] = call_info.given_args.map((given_arg, arg_i: number) => {
     const arg_val_code = code_mirror.getRange(
       cm_start_pos(given_arg.pos, cell_lineno),
@@ -452,6 +459,8 @@ export function call_info_to_call_with_args(
         // code_type: null,
         default_code: null,
         type_compatible_code_snippets: [],
+        provenance: given_arg.provenance,
+        link_suggestions: given_arg.name ? call_info.link_suggestions_by_arg_name?.[given_arg.name] : undefined,
       };
     }
 
@@ -459,6 +468,7 @@ export function call_info_to_call_with_args(
       ...arg_template,
       is_positional: given_arg.name == null,
       code: arg_val_code,
+      provenance: given_arg.provenance,
     };
   });
 

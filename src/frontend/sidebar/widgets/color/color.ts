@@ -48,7 +48,7 @@ function clone_color_widget(widget: ColorWidget): ColorWidget {
 }
 
 // "(0.90, 0.39, 0.40)" => "#e66465"
-function code_to_hex(code: string) : string | undefined {
+export function code_to_hex(code: string) : string | undefined {
   const match = code.replaceAll(/\s/g, "").match(/^\((-?[\d\.]+),(-?[\d\.]+),(-?[\d\.]+)\)$/);
   if (!match) return undefined;
   const hex =

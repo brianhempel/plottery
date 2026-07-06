@@ -92,9 +92,18 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
   const arg_and_views: { arg: Arg; view: ArgView }[] = [];
 
+  // Synchronously write the call's current widget state into the cell. Used when breaking the
+  // first link of a variable-sharing chain (which edits the call argument, and so has no
+  // dedicated mark) before a structural rerun. `call_view` is assigned below but only read at
+  // call time (on a later click), so the forward reference is safe.
+  const flush_call = () => {
+    const range = mark.find();
+    if (range) code_mirror.replaceRange(call_to_code(call_view), range.from, range.to);
+  };
+
   const add_args = (args: Arg[], disabled: boolean) => {
     args.forEach(arg => {
-      const arg_view = create_arg_view(arg, call.call_info.docstring, {disabled});
+      const arg_view = create_arg_view(arg, call.call_info.docstring, {disabled}, state, flush_call, mark);
       // const proxy_arg_el = make_proxy_arg_el(arg, arg_view, state);
       properties_el.append(arg_view.el);
       // proxies_el.append(proxy_arg_el);
@@ -314,7 +323,16 @@ export function perhaps_get_drag_bottom_edge_handler(call_view: CallView) : unde
 
 
 function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', reversed: boolean = false, coord_sys: 'axes_units' | 'axes_size' = 'axes_units') : ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
-  const starting_arg_code = view.widget.to_code();
+  // If the value reached this arg through variables ending in a numeric literal (e.g. w2 ▸ w1 ▸ 0.5),
+  // direct manipulation edits that trailing literal (the last chain link) in place; otherwise it edits
+  // the arg's own code via the usual EXPR + NUMBER scheme on the first widget. Only consider links that
+  // are still active (an upstream edit may have torn down the trailing literal).
+  const last_link = view.chain_links?.filter(l => l.active).at(-1);
+  const target_widget = (last_link && last_link.widget.to_code().trim().match(/^-?[0-9\.]+$/))
+    ? last_link.widget
+    : view.widget;
+
+  const starting_arg_code = target_widget.to_code();
 
   // The branches below will set these two, based on what kind of code we have
   let code_lhs: string | undefined = undefined;
@@ -371,7 +389,7 @@ function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', reversed: b
     } else {
       new_arg_code = `${code_lhs.trimEnd()} + ${number_to_string_not_ugly(new_number)}`;
     }
-    view.widget.set_code(new_arg_code);
+    target_widget.set_code(new_arg_code);
 
     rate_limit("dragging", 500, () => { log_event("gui", "on-plot dragging", {arg: view.el.querySelector('.snp-arg-name')?.textContent || '', arg_code: new_arg_code, drag_direction: x_or_y}); });
   };

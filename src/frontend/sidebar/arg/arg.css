@@ -37,6 +37,65 @@
   margin-bottom: -3px;
 }
 
+/* Variable-sharing provenance chain separator, e.g. the ▸ in `w2 ▸ w1 ▸ 0.5` */
+.snp-chain-sep {
+  position: relative;
+  color: #9a9a9a;
+  margin: 0 4px;
+  user-select: none;
+}
+
+.snp-chain-sep:hover {
+  color: #686868;
+}
+
+/* Red × that replaces the arrow on hover to break the chain at that link (inline the value,
+   stop sharing), previewing the drop by striking out the variable to its left. */
+.snp-chain-break {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  visibility: hidden;
+  line-height: 0;
+}
+
+.snp-chain-sep:hover .snp-chain-arrow {
+  visibility: hidden;
+}
+
+.snp-chain-sep:hover .snp-chain-break {
+  visibility: visible;
+}
+
+.snp-chain-break > svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* Preview of a chain break: the variable that would be dropped, struck through in red. */
+.snp-chain-strike {
+  position: relative;
+  opacity: 0.5;
+}
+
+.snp-chain-strike::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1.5px solid #b00;
+  pointer-events: none;
+}
+
+/* Sliders inside a var usage chain are narrower than standalone arg sliders. */
+.snp-chain-link input.snp-slider {
+  width: 60px;
+}
+
 .snp-arg-disabled {
   opacity: 0.5;
   filter: saturate(0.15);

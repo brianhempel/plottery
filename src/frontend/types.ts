@@ -76,11 +76,34 @@ export type CallViewEls = {
 //   el: HTMLElement;
 // };
 
+// One editable link in a variable-sharing provenance chain (e.g. the w1 or 0.5 in `w2 ▸ w1 ▸ 0.5`),
+// bound to its source location via a CodeMirror mark + sync watcher. `active` flips to false when the
+// link is torn down because an upstream link changed (making it stale).
+export type ChainLink = {
+  widget: Widget;
+  mark: TextMarker<MarkerRange>;
+  pos: Position;
+  sep_el: HTMLElement;
+  link_el: HTMLElement;
+  active: boolean;
+};
+
 export type ArgView = {
   el: HTMLElement;
   widget: Widget;
   disabled: boolean;
   positional: boolean;
+  chain_links?: ChainLink[];
+};
+
+// One node of a variable-sharing provenance chain: how a value reached an argument
+// through variable bindings. `pos` is the editable RHS expression; `children` is the
+// provenance of that expression (0 or 1 for a plain variable; more for future operations).
+export type ProvNode = {
+  kind: "var";
+  var_name: string | null;
+  pos: Position;
+  children: ProvNode[];
 };
 
 
@@ -117,7 +140,22 @@ export type CallInfo = {
   given_args: ((Type | {}) & {
     name: string | null; // "align"
     pos: Position;
+    provenance?: ProvNode; // variable-sharing provenance chain, if the arg is a tracked variable
   })[];
+
+  // Per-parameter "link" suggestions: type-compatible non-variable arguments at *other*
+  // call sites. Choosing one introduces a variable shared by both call sites.
+  link_suggestions_by_arg_name?: { [arg_name: string]: LinkSuggestion[] };
+};
+
+// A type-compatible non-variable argument at another call site. No source position: positions
+// go stale as soon as any soft GUI edit rewrites the cell, so the frontend resolves the target
+// at hover/click time via call_id + arg_name through the live CallViews (whose marks track edits).
+export type LinkSuggestion = {
+  code: string;       // the expression at the other call site, e.g. "(0, 0, 1)" (for the label; may be stale, live value read at use time)
+  arg_name: string;   // parameter name at the other call, e.g. "color"
+  call_label: string; // 'ax.bar(["a", "b", "c"], ...)'
+  call_id: string;    // "ax.bar #1"
 };
 
 export type Arg = {
@@ -130,6 +168,8 @@ export type Arg = {
   type_compatible_code_snippets: string[];
   required: boolean;
   is_positional: boolean;
+  provenance?: ProvNode; // variable-sharing provenance chain, if this arg is a tracked variable
+  link_suggestions?: LinkSuggestion[]; // type-compatible non-variable args at other call sites
 };
 
 export type CallWithArgs = {

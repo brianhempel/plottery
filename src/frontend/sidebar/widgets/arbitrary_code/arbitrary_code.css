@@ -6,3 +6,8 @@
   border: solid 1px gray;
   margin: -1px 1px -1px -1px;
 }
+
+.snp-chain-link .snp-widget.arbitrary-code-widget {
+  /* Lessen chances of code going off the edge of the properties panel: */
+  max-width: 133px;
+}

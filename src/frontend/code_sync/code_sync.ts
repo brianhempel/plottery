@@ -77,11 +77,14 @@ function execute_cell_but_delay_clearing_output(cell: any) {
 export function add_sync_code_on_change_watcher(
   get_code: () => string,
   marks: TextMarker<MarkerRange>[],
-  state: State
+  state: State,
+  is_active: () => boolean = () => true // stop watching (e.g. a chain link torn down because an upstream link changed)
 ) {
   let curr_code = get_code();
 
   function keep_synced() {
+    if (!is_active()) return; // stop the loop; don't reschedule
+
     const code = get_code();
 
     if (curr_code != code) {
@@ -91,7 +94,7 @@ export function add_sync_code_on_change_watcher(
     }
 
     // requestAnimationFrame(keep_synced);
-    state.is_in_dom() && requestAnimationFrame(keep_synced);
+    state.is_in_dom() && is_active() && requestAnimationFrame(keep_synced);
   }
   requestAnimationFrame(keep_synced);
 }

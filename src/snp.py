@@ -1057,6 +1057,7 @@ class SNPFigureOnly:
         notebook_code_through_cell,
         fig_idx,
         fig_names,
+        var_provenance_snapshot=None,
     ):
         self.figure = figure
         self.cached_png = None
@@ -1088,6 +1089,7 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         notebook_code_through_cell,
         fig_idx,
         fig_names,
+        var_provenance_snapshot=None,
     ):
         with Timer("plot.close('all') and get_user_nameset"):
             plt.close('all') # Suppress "RuntimeWarning: More than 20 figures have been opened"
@@ -1171,9 +1173,10 @@ class SNP(SNPFigureAndHoverRegions):
         provenance_is_off_by_n_lines,
         notebook_code_through_cell,
         fig_idx,
-        fig_names
+        fig_names,
+        var_provenance_snapshot=None,
     ):
-        super().__init__(figure, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names)
+        super().__init__(figure, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names, var_provenance_snapshot)
 
         with Timer("avoid_names etc"):
             self.avoid_names = self.user_nameset | locals.keys() | keywordset
@@ -1182,6 +1185,7 @@ class SNP(SNPFigureAndHoverRegions):
             self.cell_lineno = cell_lineno
             self.plt_show_lineno_in_cell = plt_show_lineno_in_cell
             self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
+            self.var_provenance_snapshot = var_provenance_snapshot or {}
 
             # self.notebook_code_through_cell = notebook_code_through_cell
             self.notebook_code_lines        = notebook_code_through_cell.split("\n")
@@ -1292,11 +1296,13 @@ class SNP(SNPFigureAndHoverRegions):
         # Gather all the type information for function calls in the notebook
         with Timer("GatherTypedCalls"):
             if tree is not None:
-                visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets, self.cell_lineno)
+                visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets, self.cell_lineno, self.var_provenance_snapshot, self.provenance_is_off_by_n_lines)
                 visitor.visit_mypy_file(tree)
                 self.calls = visitor.out
                 for call in self.calls:
                     try_to_add_docstring_to_call(locals, call)
+                with Timer("add_link_suggestions"):
+                    add_link_suggestions(self.calls, visitor.link_meta)
             else:
                 self.calls = []
 
@@ -1456,7 +1462,9 @@ def show(locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_li
 
     if len(fig_managers) > 0:
         fig = fig_managers[-1].canvas.figure
-        cell_figs.append((fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell))
+        # Snapshot the variable-sharing provenance log as it stands at this show(),
+        # so each figure captures the values that were live for it.
+        cell_figs.append((fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, dict(var_provenance_at_call)))
 
     return None
 
@@ -1473,17 +1481,17 @@ def show_ui(fig_idx=0, snp_class=SNP):
 
         fig_idx = np.clip(fig_idx, 0, len(cell_figs) - 1)
 
-        fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell = cell_figs[fig_idx]
+        fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, var_provenance_snapshot = cell_figs[fig_idx]
 
         # What should we name the figs in the UI?
         fig_names = []
-        for figg, _, _, _, _, _ in cell_figs: # figg bc don't want to clobber fig above
+        for figg, _, _, _, _, _, _ in cell_figs: # figg bc don't want to clobber fig above
             # Join the fig title and all the axes titles
             fig_name = ' '.join([title for title in ([figg.get_suptitle()] + [axes.get_title() for axes in figg.get_axes()]) if title != ''])
             fig_names.append(fig_name)
 
         cell_figs = []
-        result = snp_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names)
+        result = snp_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names, var_provenance_snapshot)
 
         # A full SNP render becomes the cell's output, which IPython pins in Out[N] for the life
         # of the kernel. Its repr (PNG/SVG/HTML) is generated immediately on return, after which
@@ -1522,13 +1530,13 @@ def show_ui(fig_idx=0, snp_class=SNP):
 # lines = ax.plot(xs, ys)
 
 # Output:
-# fig, ax = snp.tag_with_provenance(plt.subplots(), 'plt.subplots #1')
-# snp.tag_with_provenance(ax.set_title('My Plot'), 'ax.set_title #1')
-# xs = snp.tag_with_provenance(np.linspace(0, 2 * np.pi, 20), 'np.linspace #1')
-# ys = snp.tag_with_provenance(np.sin(xs), 'np.sin #1')
-# lines = snp.tag_with_provenance(ax.plot(xs, ys), 'ax.plot #1')
+# fig, ax = snp.tag_with_call_provenance(plt.subplots(), 'plt.subplots #1')
+# snp.tag_with_call_provenance(ax.set_title('My Plot'), 'ax.set_title #1')
+# xs = snp.tag_with_call_provenance(np.linspace(0, 2 * np.pi, 20), 'np.linspace #1')
+# ys = snp.tag_with_call_provenance(np.sin(xs), 'np.sin #1')
+# lines = snp.tag_with_call_provenance(ax.plot(xs, ys), 'ax.plot #1')
 
-# snp.tag_with_provenance() gives the returned object an `_snp_came_from_call_id` attribute, which references calls by code and occurance number in the code, e.g. "ax.bar #1"
+# snp.tag_with_call_provenance() gives the returned object an `_snp_came_from_call_id` attribute, which references calls by code and occurance number in the code, e.g. "ax.bar #1"
 
 
 # "ax.bar #1"
@@ -1537,76 +1545,55 @@ def make_call_id(func_code, call_num):
 
 
 # Thanks GPT-4, this works, apparently.
+# The call_id is optional so these can also carry _snp_provenance (variable
+# sharing provenance) without a call id.
 class TaggedTuple(tuple):
-    def __new__(cls, iterable, call_id):
+    def __new__(cls, iterable, call_id=None):
         out = tuple.__new__(cls, iterable)
-        out._snp_came_from_call_id = call_id
+        if call_id is not None:
+            out._snp_came_from_call_id = call_id
         return out
 
 
 class TaggedStr(str):
-    def __new__(cls, string, call_id):
+    def __new__(cls, string, call_id=None):
         out = str.__new__(cls, string)
-        out._snp_came_from_call_id = call_id
+        if call_id is not None:
+            out._snp_came_from_call_id = call_id
         return out
 
 
 class TaggedList(list):
-    def __init__(self, iterable, call_id):
-        self._snp_came_from_call_id = call_id
+    def __init__(self, iterable, call_id=None):
+        if call_id is not None:
+            self._snp_came_from_call_id = call_id
         super().__init__(iterable)
 
 
 class TaggedDict(dict):
-    def __init__(self, dictionary, call_id):
-        self._snp_came_from_call_id = call_id
+    def __init__(self, dictionary, call_id=None):
+        if call_id is not None:
+            self._snp_came_from_call_id = call_id
         super().__init__(dictionary)
 
 
 class TaggedInt(int):
-    def __new__(cls, x, call_id):
+    def __new__(cls, x, call_id=None):
         out = int.__new__(cls, x)
-        out._snp_came_from_call_id = call_id
+        if call_id is not None:
+            out._snp_came_from_call_id = call_id
         return out
 
 
 class TaggedFloat(float):
-    def __new__(cls, x, call_id):
+    def __new__(cls, x, call_id=None):
         out = float.__new__(cls, x)
-        out._snp_came_from_call_id = call_id
+        if call_id is not None:
+            out._snp_came_from_call_id = call_id
         return out
 
 
-def tag_with_provenance(
-    ret_obj,
-    # receiver,
-    call_id,
-    # lineno,
-    # col_offset,
-    # end_lineno,
-    # end_col_offset,
-):
-    # Two methods for referring to the same call:
-    # 1. call code and number e.g. ("ax.set_title", 3) for the front end selection state, to be somewhat robust to code changes
-    # 2. code location e.g.(7,0,7,23) for matching with call information from the type checker
-
-    # call_loc = (
-    #     (func_code, call_num),
-    #     (lineno, col_offset, end_lineno, end_col_offset),
-    # )
-
-    # try:
-    #     method_call_locs = receiver._snp_method_call_locs
-    # except:
-    #     method_call_locs = set()
-
-    # method_call_locs.add(call_loc)
-
-    # try:
-    #     receiver._snp_method_call_locs = method_call_locs
-    # except:
-    #     pass
-
+def tag_with_call_provenance(ret_obj, call_id):
     if hasattr(ret_obj, "_snp_came_from_call_id"):
         return ret_obj  # Don't rewrite oldest loc.
 
@@ -1615,11 +1602,11 @@ def tag_with_provenance(
         return ret_obj
     except:
         if isinstance(ret_obj, tuple):
-            return TaggedTuple(tuple(tag_with_provenance(child, call_id) for child in ret_obj), call_id)
+            return TaggedTuple(tuple(tag_with_call_provenance(child, call_id) for child in ret_obj), call_id)
         elif isinstance(ret_obj, str):
             return TaggedStr(ret_obj, call_id)
         elif isinstance(ret_obj, list):
-            return TaggedList([tag_with_provenance(child, call_id) for child in ret_obj], call_id)
+            return TaggedList([tag_with_call_provenance(child, call_id) for child in ret_obj], call_id)
         elif isinstance(ret_obj, dict):
             return TaggedDict(ret_obj, call_id)
         elif isinstance(ret_obj, int):
@@ -1627,6 +1614,78 @@ def tag_with_provenance(
         elif isinstance(ret_obj, float):
             return TaggedFloat(ret_obj, call_id)
         return ret_obj
+
+
+# -------------------------------------------------------- #
+#               Variable-sharing provenance                #
+# -------------------------------------------------------- #
+#
+# Dynamic provenance that rides on values. tag_with_var_provenance attaches a
+# nested provenance node to a value at each variable binding (assignment RHS and
+# same-cell user-function arguments), recording where the value came from. The
+# node nests the value's prior provenance, so a chain like w2 = w1 = 0.5 yields
+#   {'kind': 'var', 'var_name': 'w2', <loc of the w1 RHS>,
+#    'children': [{'kind': 'var', 'var_name': 'w1', <loc of 0.5>, 'children': []}]}
+# Locations are cell-relative (converted to notebook coordinates at serialize).
+
+
+def _attach_var_provenance(value, node):
+    # Immutables are fresh-copied so that distinct names never alias provenance
+    # (e.g. `w2 = w1` must not overwrite w1's chain). bool is handled as int.
+    if isinstance(value, tuple):
+        fresh = TaggedTuple(value)
+    elif isinstance(value, str):
+        fresh = TaggedStr(value)
+    elif isinstance(value, int):
+        fresh = TaggedInt(value)
+    elif isinstance(value, float):
+        fresh = TaggedFloat(value)
+    else:
+        fresh = None
+
+    if fresh is not None:
+        if hasattr(value, "_snp_came_from_call_id"):
+            fresh._snp_came_from_call_id = value._snp_came_from_call_id
+        fresh._snp_provenance = node
+        return fresh
+
+    # Mutable objects: attach in place (aliased names legitimately share a value).
+    # Use object.__setattr__ to bypass custom __setattr__ hooks (e.g. pandas', which
+    # otherwise warns "Pandas doesn't allow columns to be created via a new attribute name").
+    try:
+        object.__setattr__(value, "_snp_provenance", node)
+    except:
+        pass
+    return value
+
+
+def tag_with_var_provenance(value, var_name, lineno, col_offset, end_lineno, end_col_offset):
+    child = getattr(value, "_snp_provenance", None)
+    node = {
+        "kind": "var",
+        "var_name": var_name,
+        "lineno": lineno,
+        "col_offset": col_offset,
+        "end_lineno": end_lineno,
+        "end_col_offset": end_col_offset,
+        "children": [child] if child is not None else [],
+    }
+    return _attach_var_provenance(value, node)
+
+
+# (call_id, arg_key) -> provenance node (or None), written at matplotlib call
+# sites by note_arg_provenance. A dict, so repeat executions of a call (e.g. in
+# a loop) overwrite the entry. Reset per cell run; snapshotted per figure in show().
+var_provenance_at_call = {}
+
+
+def _reset_var_provenance_at_call():
+    var_provenance_at_call.clear()
+
+
+def note_arg_provenance(value, call_id, arg_key):
+    var_provenance_at_call[(call_id, arg_key)] = getattr(value, "_snp_provenance", None)
+    return value
 
 
 # This assumes the typed node is in the notebook.
@@ -1647,48 +1706,120 @@ def code_at_range(notebook_code_lines, line, column, end_line, end_column):
 def ast_loc(node):
     return (node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
 
+
+def _snp_attr_call(func_name, args):
+    # snp.<func_name>(*args)
+    return ast.Call(
+        ast.Attribute(ast.Name('snp', ast.Load()), func_name, ast.Load()),
+        args,
+        [],
+    )
+
+
+# {func_name: [param_name, ...]} for functions defined in this cell, so we can
+# flow provenance into them by parameter name.
+def collect_user_defs(module_node):
+    defs = {}
+    for n in ast.walk(module_node):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            defs[n.name] = [a.arg for a in n.args.posonlyargs] + [a.arg for a in n.args.args]
+    return defs
+
+
 class ProvenanceTagger(ast.NodeTransformer):
-    def __init__(self) -> None:
+    def __init__(self, user_defs=None) -> None:
         self.call_nums = {} # I checked and the traversal order is the same as for GatherTypedCalls
+        self.user_defs = user_defs or {}
         super().__init__()
 
+    # name = <rhs>  ->  name = snp.tag_with_var_provenance(<rhs>, 'name', <rhs loc>)
+    def visit_Assign(self, node):
+        match node.targets:
+            case [ast.Name(id=var_name)]:
+                loc = ast_loc(node.value) # capture original RHS loc before generic_visit rewrites it
+                node = self.generic_visit(node)
+                node.value = _snp_attr_call(
+                    'tag_with_var_provenance',
+                    [node.value, ast.Constant(var_name), *[ast.Constant(x) for x in loc]],
+                )
+                return node
+            case _:
+                return self.generic_visit(node)
+
     def visit_Call(self, node):
+        # Capture original argument locations before generic_visit rewrites children.
+        arg_locs = [ast_loc(a) for a in node.args]
+        kw_locs  = [ast_loc(kw.value) for kw in node.keywords]
+
         node = self.generic_visit(node)
 
-        # When the form is receiver.attribute(...), log that there is call on this receiver.
         match node:
-            case ast.Call(func=ast.Attribute(value)):
+            # receiver.attribute(...): tag the result, and note each arg's provenance at this call site.
+            case ast.Call(func=ast.Attribute()):
                 func_code = ast.unparse(node.func)
-                # receiver = value
                 call_num = self.call_nums.get(func_code, 0) + 1
                 self.call_nums[func_code] = call_num
                 call_id = make_call_id(func_code, call_num) # "ax.bar #1"
-                wrapped = ast.Call(
-                    ast.Attribute(ast.Name('snp', ast.Load()), 'tag_with_provenance', ast.Load()), # snp.tag_with_provenance
-                    [
-                        node,
-                        # receiver,
-                        ast.Constant(call_id),
-                        # ast.Constant(node.lineno),
-                        # ast.Constant(node.col_offset),
-                        # ast.Constant(node.end_lineno),
-                        # ast.Constant(node.end_col_offset),
-                    ],
-                    [],
-                )
 
-                # print(call_num, ast.unparse(node))
+                self._note_call_args(node, call_id)
 
-                return wrapped
+                return _snp_attr_call('tag_with_call_provenance', [node, ast.Constant(call_id)])
+
+            # same-cell user function: flow provenance into it by parameter name.
+            case ast.Call(func=ast.Name(id=func_name)) if func_name in self.user_defs:
+                self._tag_user_func_args(node, self.user_defs[func_name], arg_locs, kw_locs)
+                return node
+
             case _:
                 return node
+
+    # Wrap each (non-*) positional and (non-**) keyword arg with note_arg_provenance,
+    # keyed by positional index / keyword name.
+    def _note_call_args(self, node, call_id):
+        new_args = []
+        pos_idx = 0
+        for a in node.args:
+            if isinstance(a, ast.Starred):
+                new_args.append(a)
+            else:
+                new_args.append(_snp_attr_call('note_arg_provenance', [a, ast.Constant(call_id), ast.Constant(pos_idx)]))
+                pos_idx += 1
+        node.args = new_args
+        for kw in node.keywords:
+            if kw.arg is None:
+                continue
+            kw.value = _snp_attr_call('note_arg_provenance', [kw.value, ast.Constant(call_id), ast.Constant(kw.arg)])
+
+    # Wrap each arg mapped to a parameter with tag_with_var_provenance(arg, param_name, <arg loc>).
+    def _tag_user_func_args(self, node, param_names, arg_locs, kw_locs):
+        new_args = []
+        for i, a in enumerate(node.args):
+            if isinstance(a, ast.Starred) or i >= len(param_names) or i >= len(arg_locs):
+                new_args.append(a)
+            else:
+                new_args.append(_snp_attr_call(
+                    'tag_with_var_provenance',
+                    [a, ast.Constant(param_names[i]), *[ast.Constant(x) for x in arg_locs[i]]],
+                ))
+        node.args = new_args
+        for j, kw in enumerate(node.keywords):
+            if kw.arg is None or kw.arg not in param_names or j >= len(kw_locs):
+                continue
+            kw.value = _snp_attr_call(
+                'tag_with_var_provenance',
+                [kw.value, ast.Constant(kw.arg), *[ast.Constant(x) for x in kw_locs[j]]],
+            )
 
 
 # We need a new ProvenanceTagger each time, to reset call_nums
 class RootProvenanceTagger:
     def visit(self, node):
         with Timer("ProvenanceTagger"):
-            out = ProvenanceTagger().visit(node)
+            user_defs = collect_user_defs(node)
+            out = ProvenanceTagger(user_defs).visit(node)
+            # Reset the per-call provenance log at the start of each cell run.
+            out.body.insert(0, ast.Expr(_snp_attr_call('_reset_var_provenance_at_call', [])))
+            ast.fix_missing_locations(out)
         # print(ast.unparse(out))
         return out
 
@@ -1744,6 +1875,25 @@ def type_json_with_node_loc(node, type, user_typed_snippets):
     return add_pos_json(type_json_dict, node)
 
 
+# Convert a (cell-relative) variable-sharing provenance node to notebook
+# coordinates, recursively, matching the {line, column, end_line, end_column}
+# shape that add_pos_json produces for the rest of a call's positions.
+def _provenance_to_notebook_coords(node, cell_lineno, provenance_is_off_by_n_lines):
+    if node is None:
+        return None
+    return {
+        "kind": node["kind"],
+        "var_name": node.get("var_name"),
+        "pos": {
+            "line":       node["lineno"]     + cell_lineno - 1 - provenance_is_off_by_n_lines,
+            "column":     node["col_offset"],
+            "end_line":   node["end_lineno"] + cell_lineno - 1 - provenance_is_off_by_n_lines,
+            "end_column": node["end_col_offset"],
+        },
+        "children": [_provenance_to_notebook_coords(c, cell_lineno, provenance_is_off_by_n_lines) for c in node["children"]],
+    }
+
+
 # MyPy's is_subtype accepts AnyType on both LHS and RHS, which is maddening.
 # And I can't get its is_proper_subtype to reliably match things like tuples with e.g. Collection[Any] or ListLike
 # So this version rejects bare AnyType as a subtype of everything (but is not recursive).
@@ -1759,13 +1909,16 @@ def is_subtype(subtype, type):
 
 
 class GatherTypedCalls(TraverserVisitor):
-    def __init__(self, notebook_code_lines, types_dict, user_typed_snippets, cell_lineno):
+    def __init__(self, notebook_code_lines, types_dict, user_typed_snippets, cell_lineno, var_provenance_snapshot=None, provenance_is_off_by_n_lines=0):
         self.call_nums = {} # I checked and the traversal order is the same as for ast.NodeTransformer
         self.notebook_code_lines = notebook_code_lines
         self.types_dict = types_dict
         self.user_typed_snippets = user_typed_snippets
         self.cell_lineno = cell_lineno
+        self.var_provenance_snapshot = var_provenance_snapshot or {}
+        self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
         self.out = []
+        self.link_meta = [] # non-serialized per-call metadata (mypy types etc.) for add_link_suggestions, parallel to self.out
         global call_typed_nodes # for debugging
         call_typed_nodes = []
 
@@ -1792,10 +1945,22 @@ class GatherTypedCalls(TraverserVisitor):
         # print(func_code, callee_type)
 
         if isinstance(callee_type, mypy.types.CallableType) and not func_code is None: # func_code is None for string interpolation
+            call_id = make_call_id(func_code, call_num)
             given_args = []
+            pos_idx = 0
             for arg, name in zip(node.args, node.arg_names):
                 given_arg = type_json_with_node_loc(arg, self.types_dict.get(arg), self.user_typed_snippets)
                 given_arg["name"] = name
+
+                # Variable-sharing provenance: positional args are keyed by index, keyword args by name,
+                # matching how note_arg_provenance logged them at the call site.
+                arg_key = name if name is not None else pos_idx
+                if name is None:
+                    pos_idx += 1
+                raw_prov = self.var_provenance_snapshot.get((call_id, arg_key))
+                if raw_prov is not None:
+                    given_arg["provenance"] = _provenance_to_notebook_coords(raw_prov, self.cell_lineno, self.provenance_is_off_by_n_lines)
+
                 given_args.append(given_arg)
 
             # The callee_type here is partially applied (self is already removed from the argument list).
@@ -1815,12 +1980,98 @@ class GatherTypedCalls(TraverserVisitor):
                     "call_id": make_call_id(func_code, call_num), # "ax.bar #1"
                 }
             )
+            self.link_meta.append(self._link_meta_for_call(node, callee_type, func_code, call_id))
+
+    # Non-serialized metadata for add_link_suggestions (below): the call's parameter
+    # names + mypy types (target side) and its non-variable argument expressions with
+    # their mypy types (source side). `callee_type` is the unapplied CallableType.
+    def _link_meta_for_call(self, node, callee_type, func_code, call_id):
+        definition_fullname = callee_type.definition.fullname if callee_type.definition else None
+        # Only calls the frontend renders as layers get CallViews (needed to apply a link), see layer_panel.ts
+        is_rendered = definition_fullname is not None and ("matplotlib." in definition_fullname or "__plottery_mypy_temp." in definition_fullname)
+
+        # Parameter names, mirroring the frontend's arg_defaults_from_callee_type: prefer
+        # definition names (positional-only params are None in arg_names) and skip bound self.
+        if callee_type.definition is not None and callee_type.definition.arguments:
+            param_names = [arg.variable.name for arg in callee_type.definition.arguments]
+        else:
+            param_names = callee_type.arg_names
+        first_arg_offset = 1 if callee_type.def_extras.get("first_arg") else 0
+
+        params = []
+        for i, (param_name, param_type, param_kind) in enumerate(zip(param_names, callee_type.arg_types, callee_type.arg_kinds)):
+            if i < first_arg_offset or param_name is None:
+                continue
+            if param_kind in (mypy.nodes.ARG_STAR, mypy.nodes.ARG_STAR2):
+                continue
+            params.append((param_name, param_type))
+
+        # e.g. 'ax.bar(["a", "b", "c"], ...)'
+        first_arg_code = code_at_range(self.notebook_code_lines, node.args[0].line, node.args[0].column, node.args[0].end_line, node.args[0].end_column) if node.args else None
+        if first_arg_code is not None and len(first_arg_code) > 30:
+            first_arg_code = first_arg_code[:27] + "..."
+        call_label = f"{func_code}({first_arg_code}, ...)" if first_arg_code is not None else f"{func_code}(...)"
+
+        literal_args = []
+        pos_idx = 0
+        for arg, name in zip(node.args, node.arg_names):
+            if name is None:
+                arg_name = param_names[pos_idx + first_arg_offset] if pos_idx + first_arg_offset < len(param_names) else None
+                pos_idx += 1
+            else:
+                arg_name = name
+            # Variables are already offered as in-scope suggestions; links are for non-variable expressions.
+            if isinstance(arg, mypy.nodes.NameExpr):
+                continue
+            arg_type = self.types_dict.get(arg)
+            arg_code = code_at_range(self.notebook_code_lines, arg.line, arg.column, arg.end_line, arg.end_column)
+            if arg_name is None or arg_type is None or arg_code is None:
+                continue
+            literal_args.append({"code": arg_code, "arg_name": arg_name, "type": arg_type})
+
+        return {
+            "call_id": call_id,
+            "call_label": call_label,
+            "is_rendered": is_rendered,
+            "params": params,
+            "literal_args": literal_args,
+        }
 
     # def visit_member_expr(self, node: mypy.nodes.MemberExpr) -> None:
     #     super().visit_member_expr(node)
 
     # def visit_name_expr(self, node: mypy.nodes.NameExpr) -> None:
     #     super().visit_name_expr(node)
+
+
+# Cross-call "link" suggestions: for each parameter of each call, offer the type-compatible
+# non-variable arguments used at *other* call sites. Choosing one in the frontend introduces
+# a shared variable for both call sites. Keyed by parameter name (not arg index) because the
+# frontend expands **kwargs params, which would shift indices.
+#
+# `calls` and `link_meta` are parallel lists from GatherTypedCalls (self.out / self.link_meta).
+def add_link_suggestions(calls, link_meta):
+    for call, meta in zip(calls, link_meta):
+        if not meta["is_rendered"]:
+            continue
+        suggestions_by_arg_name = {}
+        for param_name, param_type in meta["params"]:
+            suggestions = []
+            for other_meta in link_meta:
+                if other_meta is meta or not other_meta["is_rendered"]:
+                    continue
+                for literal_arg in other_meta["literal_args"]:
+                    if is_subtype(literal_arg["type"], param_type):
+                        suggestions.append({
+                            "code": literal_arg["code"],
+                            "arg_name": literal_arg["arg_name"],
+                            "call_label": other_meta["call_label"],
+                            "call_id": other_meta["call_id"],
+                        })
+            if suggestions:
+                suggestions_by_arg_name[param_name] = suggestions
+        if suggestions_by_arg_name:
+            call["link_suggestions_by_arg_name"] = suggestions_by_arg_name
 
 
 class JsonDict:
