@@ -1,8 +1,8 @@
-# Plottery (formerly sketch-n-plot/SNP)
+# Plottery
 
 Plottery is an in-notebook graphical interface for Matplotlib (MPL). Instead of a static image, with Plottery `plt.show()` produces a rich graphical interface that lets you add plot elements, drag and resize shapes, tweak plot arguments with live preview, and prompt an LLM to make changes. All changes are written to the code live—the code is the ground truth—and code editing is supported at any time.
 
-*Naming note:* internally the code still uses the old name **snp** / **SNP** ("sketch-n-plot").
+*Naming note:* internally the code still uses the old name SNP ("Sketch-n-Plot").
 
 ## Install instructions
 
@@ -27,7 +27,7 @@ Install node packages.
 npm install
 ```
 
-The JupyterLab extension has its own npm package; install its dependencies too.
+The **JupyterLab / Notebook v7** extension has its own npm package; install its dependencies too.
 
 ```
 cd src/snp_jupyter
@@ -35,16 +35,16 @@ npm install
 cd ../..
 ```
 
-Build and install the extension. For **classic Jupyter Notebook (v6)**, `npm run build` installs + enables the nbextension and builds the frontend bundle (`dist/plugin.js`):
+Build and install the extension. This will build the **JupyterLab / Notebook v7** labextension and copy it into Jupyter's `labextensions/` directory:
 
 ```
 npm run build
 ```
 
-For **JupyterLab / Notebook v7**, build the labextension and copy it into Jupyter's `labextensions/` directory:
+For **classic Jupyter Notebook (v6)**, `npm run build-nbv6` installs + enables the nbextension:
 
 ```
-npm run install-labextension
+npm run build-nbv6
 ```
 
 While developing the frontend, `npm run watch-ts` rebuilds `dist/plugin.js` on change. The bundle is re-inlined into the output on each manual cell re-run, so you just re-run the cell to pick up changes.
@@ -79,6 +79,8 @@ window.sessionStorage.setItem('in_demo_mode', 'true')
 ```
 
 ---
+
+The remaining sections below are a technical explanation of Plottery's operation.
 
 ## 1. Big picture & data flow
 

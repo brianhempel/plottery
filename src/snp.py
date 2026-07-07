@@ -369,21 +369,24 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
             offsets_potentially_masked = path_collection.get_offsets() # can return a masked ndarray :(
             offsets_clean = offsets_potentially_masked[np.isfinite(np.ma.filled(offsets_potentially_masked, np.nan)).all(axis=1)] # apply the mask
 
-            px_coords = path_collection.axes.transData.transform(offsets_clean)
-            # print(np.asarray(px_coords))
-            # print(px_coords)
+            if len(offsets_clean) == 0:
+                my_geom = None
+            else:
+                px_coords = path_collection.axes.transData.transform(offsets_clean)
+                # print(np.asarray(px_coords))
+                # print(px_coords)
 
-            region_px_bounds = (
-                min([x for x, _ in px_coords]),
-                min([y for _, y in px_coords]),
-                max([x for x, _ in px_coords]),
-                max([y for _, y in px_coords]),
-            )
+                region_px_bounds = (
+                    min([x for x, _ in px_coords]),
+                    min([y for _, y in px_coords]),
+                    max([x for x, _ in px_coords]),
+                    max([y for _, y in px_coords]),
+                )
 
-            # less padding for more points
-            pad = max(2, math.ceil(line_pad / math.sqrt(1 + len(px_coords)/3)))
+                # less padding for more points
+                pad = max(2, math.ceil(line_pad / math.sqrt(1 + len(px_coords)/3)))
 
-            my_geom = shapely.union_all([box_around(x, y, pad) for x, y in px_coords])
+                my_geom = shapely.union_all([box_around(x, y, pad) for x, y in px_coords])
             # print(my_geom)
         case mpl.axes.Axes():
             my_geom = None
@@ -1092,7 +1095,10 @@ class SNPFigureAndHoverRegions(SNPFigureOnly):
         var_provenance_snapshot=None,
     ):
         with Timer("plot.close('all') and get_user_nameset"):
-            plt.close('all') # Suppress "RuntimeWarning: More than 20 figures have been opened"
+            # Suppress "RuntimeWarning: More than 20 figures have been opened"
+            for num in list(plt.get_fignums()):
+                if plt.figure(num) is not figure: # closing the current figure causes problems in newer matplotlib
+                    plt.close(num)
 
             self.figure = figure
             self.cached_png = None
@@ -1356,6 +1362,8 @@ class SNP(SNPFigureAndHoverRegions):
                     unparsed = None
                 return { 'unparsed': unparsed } if unparsed is not None else {}
             def no_types(obj):
+                if type(obj) is mypy.nodes.FakeInfo:
+                    return False  # shallow-serialize; never dir() this
                 type_str = str(type(obj))
                 return 'mypy.types.' not in type_str and 'mypy.nodes.MypyFile' not in type_str
             return serialize.arbitrary_to_json(node, recurse=no_types, extra_attrs=extra_attrs)
@@ -1630,10 +1638,13 @@ def tag_with_call_provenance(ret_obj, call_id):
 
 
 def _attach_var_provenance(value, node):
-    # Immutables are fresh-copied so that distinct names never alias provenance
-    # (e.g. `w2 = w1` must not overwrite w1's chain). bool is handled as int.
+    # Immutables (and lists — plain list has no __dict__) are fresh-copied so that
+    # distinct names never alias provenance (e.g. `w2 = w1` must not overwrite w1's chain).
+    # bool is handled as int.
     if isinstance(value, tuple):
         fresh = TaggedTuple(value)
+    elif isinstance(value, list):
+        fresh = TaggedList(value)
     elif isinstance(value, str):
         fresh = TaggedStr(value)
     elif isinstance(value, int):

@@ -94,13 +94,32 @@ type CM6Deco = {
   }
   startSide: number;
 }
+type CM5LineHandle = CodeMirror.LineHandle & {
+  lineNo: number;
+}
+type CM5EventHandler = (...args: any[]) => void;
 type CM5Mock = {
   getValue: () => string;
   getRange: (from: CodeMirror.Position, to: CodeMirror.Position) => string;
   getLine: (line: number) => string;
+  lineCount: () => number;
+  firstLine: () => number;
+  lastLine: () => number;
+  getLineHandle: (num: number) => CM5LineHandle;
+  getLineNumber: (handle: CM5LineHandle) => number | null;
+  eachLine: {
+    (f: (line: CM5LineHandle) => void): void;
+    (start: number, end: number, f: (line: CM5LineHandle) => void): void;
+  };
   replaceRange: (text: string, from: CodeMirror.Position, to?: CodeMirror.Position) => void;
   setValue: (text: string) => void;
+  getCursor: (start?: string) => CodeMirror.Position;
   setCursor: (line: number, ch: number, options: { scroll: boolean }) => void;
+  somethingSelected: () => boolean;
+  on: (eventName: string, handler: CM5EventHandler) => void;
+  off: (eventName: string, handler: CM5EventHandler) => void;
+  addLineClass: (line: number | CM5LineHandle, where: string, className: string) => CM5LineHandle;
+  removeLineClass: (line: number | CM5LineHandle, where: string, className?: string) => CM5LineHandle;
   getScrollerElement: () => HTMLElement;
   scrollIntoView: (pos: CodeMirror.Position | { from: CodeMirror.Position, to: CodeMirror.Position }, margin?: number) => void;
   posFromIndex: (index: number) => CodeMirror.Position;
@@ -119,11 +138,23 @@ type CM6Editor = {
   state: {
     doc: CM6Doc;
     field: (field: any) => any;
+    selection: CM6Selection;
   };
   dispatch: (transaction: any) => void;
   focus: () => void;
   scrollDOM: HTMLElement; // the .cm-scroller element
 };
+type CM6Selection = {
+  main: CM6SelectionRange;
+  ranges: CM6SelectionRange[];
+}
+type CM6SelectionRange = {
+  from: number;
+  to: number;
+  anchor: number;
+  head: number;
+  empty: boolean;
+}
 type CM6Doc = {
   lineAt(pos: number): CM6Line;
   line(n: number): CM6Line;
@@ -142,7 +173,9 @@ type CM6Line = {
 
 // Returns an object that imitates the CodeMirror 5 API, but is backed by CodeMirror 6
 export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMirror.DocOrEditor {
-  const cm6doc = cm6.state.doc; // DO NOT USE THIS. USE cm6.state.doc every time to make sure you're getting the latest version.
+  if ((cm6 as any).__plottery_cm5_facade) {
+    return (cm6 as any).__plottery_cm5_facade;
+  }
 
   // Marks based on https://codemirror.net/docs/migration/#marked-text
 
@@ -150,6 +183,10 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
 
   const add_marks    = __CM6StateEffect.define()
   const filter_marks = __CM6StateEffect.define()
+  const add_line_classes    = __CM6StateEffect.define()
+  const filter_line_classes = __CM6StateEffect.define()
+  const cursor_activity_handlers = new Set<CM5EventHandler>();
+  let cm5: CM5Mock;
 
   // From https://codemirror.net/docs/migration/#marked-text
   const mark_handler = __CM6StateField.define({
@@ -178,8 +215,35 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     provide: (f: any) => __CM6EditorView.decorations.from(f)
   })
 
+  const line_class_handler = __CM6StateField.define({
+    create() { return __CM6Decoration.none },
+
+    update(value: any, tr: any) {
+      value = value.map(tr.changes)
+
+      for (let effect of tr.effects) {
+        if (effect.is(add_line_classes)) {
+          value = value.update({ add: effect.value, sort: true })
+        }
+        else if (effect.is(filter_line_classes)) {
+          value = value.update({ filter: effect.value })
+        }
+      }
+
+      return value
+    },
+
+    provide: (f: any) => __CM6EditorView.decorations.from(f)
+  })
+
+  const cursor_activity_handler = __CM6EditorView.updateListener.of((update: any) => {
+    if (update.selectionSet) {
+      cursor_activity_handlers.forEach(handler => handler(cm5));
+    }
+  });
+
   // Add the extension
-  cm6.dispatch({ effects: __CM6StateEffect.appendConfig.of(mark_handler) });
+  cm6.dispatch({ effects: __CM6StateEffect.appendConfig.of([mark_handler, line_class_handler, cursor_activity_handler]) });
 
   function all_cm6_marks() : { from: number, to: number, value: CM6Deco }[] {
     let cm6_marks: any[] = [];
@@ -191,7 +255,20 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
 
   let mark_id_counter = 1;
 
-  const cm5: CM5Mock = {
+  function line_handle(line_no: number): CM5LineHandle {
+    return {
+      text: cm6.state.doc.line(line_no + 1).text,
+      lineNo: line_no,
+      on: () => {},
+      off: () => {},
+    };
+  }
+
+  function line_number(line: number | CM5LineHandle): number {
+    return typeof line === "number" ? line : line.lineNo;
+  }
+
+  cm5 = {
     getValue: () => cm6.state.doc.toString(),
 
     getRange: (from: CodeMirror.Position, to: CodeMirror.Position) => {
@@ -201,6 +278,28 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     },
 
     getLine: (line: number) => cm6.state.doc.line(line + 1).text,
+
+    lineCount: () => cm6.state.doc.lines,
+
+    firstLine: () => 0,
+
+    lastLine: () => cm6.state.doc.lines - 1,
+
+    getLineHandle: line_handle,
+
+    getLineNumber: (handle: CM5LineHandle) => {
+      return handle.lineNo < cm6.state.doc.lines ? handle.lineNo : null;
+    },
+
+    eachLine: ((startOrF: number | ((line: CM5LineHandle) => void), end?: number, f?: (line: CM5LineHandle) => void) => {
+      const start = typeof startOrF === "number" ? startOrF : 0;
+      const stop = typeof startOrF === "number" ? end! : cm6.state.doc.lines;
+      const callback = typeof startOrF === "number" ? f! : startOrF;
+
+      for (let line_no = start; line_no < stop; line_no++) {
+        callback(line_handle(line_no));
+      }
+    }) as CM5Mock["eachLine"],
 
     replaceRange: (text: string, from: CodeMirror.Position, to?: CodeMirror.Position) => {
       const from_offset = cm5_pos_to_offset(cm6.state.doc, from);
@@ -218,8 +317,38 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
       });
     },
 
+    getCursor: (start?: string) => {
+      const selection = cm6.state.selection.main;
+      let offset = selection.head;
+      if (start === "from") {
+        offset = selection.from;
+      } else if (start === "to") {
+        offset = selection.to;
+      } else if (start === "anchor") {
+        offset = selection.anchor;
+      }
+
+      return offset_to_cm5_pos(cm6.state.doc, offset);
+    },
+
     setCursor: (line: number, ch: number, options: { scroll: boolean }) => {
       return cm6.dispatch({selection: {anchor: cm5_pos_to_offset(cm6.state.doc, { line, ch }), scrollIntoView: options.scroll}});
+    },
+
+    somethingSelected: () => {
+      return cm6.state.selection.ranges.some(range => !range.empty);
+    },
+
+    on: (eventName: string, handler: CM5EventHandler) => {
+      if (eventName === "cursorActivity") {
+        cursor_activity_handlers.add(handler);
+      }
+    },
+
+    off: (eventName: string, handler: CM5EventHandler) => {
+      if (eventName === "cursorActivity") {
+        cursor_activity_handlers.delete(handler);
+      }
     },
 
     getScrollerElement: () => cm6.scrollDOM,
@@ -243,6 +372,37 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     },
 
     focus: () => cm6.focus.apply(cm6),
+
+    addLineClass: (line: number | CM5LineHandle, where: string, className: string) => {
+      const line_no = line_number(line);
+      const cm6_line = cm6.state.doc.line(line_no + 1);
+      const deco = __CM6Decoration.line({
+        class: className,
+        cm5_where: where,
+        cm5_class_name: className,
+      }).range(cm6_line.from);
+
+      cm6.dispatch({ effects: add_line_classes.of([deco]) });
+      return line_handle(line_no);
+    },
+
+    removeLineClass: (line: number | CM5LineHandle, where: string, className?: string) => {
+      const line_no = line_number(line);
+
+      cm6.dispatch({
+        effects: filter_line_classes.of((from: number, _to: number, value: any) => {
+          const spec = value.spec || {};
+          const deco_line_no = cm6.state.doc.lineAt(from).number - 1;
+          return !(
+            deco_line_no === line_no &&
+            spec.cm5_where === where &&
+            (className === undefined || spec.cm5_class_name === className)
+          );
+        })
+      });
+
+      return line_handle(line_no);
+    },
 
     markText: (from: CodeMirror.Position, to: CodeMirror.Position, options: { inclusiveLeft: boolean, inclusiveRight: boolean, clearWhenEmpty: boolean }) => {
       // In our usage, clearWhenEmpty is always false, so don't bother supporting it
@@ -311,6 +471,7 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     all_cm6_marks,
   };
 
+  (cm6 as any).__plottery_cm5_facade = cm5;
   return (cm5 as any) as CodeMirror.DocOrEditor;
 }
 

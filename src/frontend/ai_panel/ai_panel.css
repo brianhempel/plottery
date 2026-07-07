@@ -48,6 +48,7 @@
   background-color: #c7ebbe;
   color: #555;
 }
-.CodeMirror .snp-ai-line-changed:not(.snp-line-selected).CodeMirror-linebackground {
+.CodeMirror .snp-ai-line-changed:not(.snp-line-selected).CodeMirror-linebackground,
+.cm-editor .cm-line.snp-ai-line-changed:not(.snp-line-selected) {
   background-color: #e8f4e6;
 }

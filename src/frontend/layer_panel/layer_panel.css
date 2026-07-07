@@ -180,6 +180,7 @@ input.snp-layer-checkbox {
   background-color: #c0def8;
   color: #444
 }
-.CodeMirror .snp-line-selected.CodeMirror-linebackground {
+.CodeMirror .snp-line-selected.CodeMirror-linebackground,
+.cm-editor .cm-line.snp-line-selected {
   background-color: #e8f3fc;
 }

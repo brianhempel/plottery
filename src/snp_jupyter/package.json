@@ -14,9 +14,9 @@
     "@codemirror/view": "^6"
   },
   "devDependencies": {
-    "@jupyterlab/builder": "^4.2.5"
+    "@jupyter/builder": "^1.0.0"
   },
   "scripts": {
-    "build": "jupyter labextension build  --development True ."
+    "build": "jupyter-builder build --development True ."
   }
 }
