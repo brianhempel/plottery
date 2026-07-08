@@ -154,45 +154,45 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
       [func_name_mark, ...use_marks], state
     );
 
-    // Set up editable function args
+    // Set up editable function params
 
-    const args_unparsed = typed_node.arguments.map((arg: any) => arg.unparsed + (arg.initializer ? '=' + arg.initializer.unparsed : '')).join(', ');
-    const args_widget = create_arbitrary_code_widget(args_unparsed);
+    const params_unparsed = typed_node.arguments.map((arg: any) => arg.unparsed + (arg.initializer ? '=' + arg.initializer.unparsed : '')).join(', ');
+    const params_widget = create_arbitrary_code_widget(params_unparsed);
 
     const layer_code_line = create_el('div', [], layer_el);
 
-    layer_code_line.append("def ", func_name_widget.el, "(", args_widget.el, "):")
+    layer_code_line.append("def ", func_name_widget.el, "(", params_widget.el, "):")
 
-    let args_start: {line: number, ch: number};
-    let args_end: {line: number, ch: number};
+    let params_start: {line: number, ch: number};
+    let params_end: {line: number, ch: number};
 
     if (typed_node.arguments.length > 0) {
-      args_start = cm_start_pos(typed_node.arguments[0], state.cell_lineno);
+      params_start = cm_start_pos(typed_node.arguments[0], state.cell_lineno);
       const last_arg = typed_node.arguments.at(-1)!;
-      args_end = cm_end_pos(last_arg.initializer || last_arg, state.cell_lineno);
+      params_end = cm_end_pos(last_arg.initializer || last_arg, state.cell_lineno);
     } else {
       // For zero-arg functions, this presumes the colon is on the same line because I don't want to do the math to add extra line numbers
       const func_def_parens_match = typed_node.unparsed.match(/(?<=^\s*def\s+[^:\(\n]+)\([^:\)\n]*\)/)!
       if (!func_def_parens_match) { console.error('Could not find function def parens in:', typed_node.unparsed); return [] }
 
-      args_start = { line: func_start.line,  ch: func_start.ch + func_def_parens_match.index! + 1 }
-      args_end   = { line: func_start.line,  ch: func_start.ch + func_def_parens_match.index! + func_def_parens_match[0].length - 1 }
+      params_start = { line: func_start.line,  ch: func_start.ch + func_def_parens_match.index! + 1 }
+      params_end   = { line: func_start.line,  ch: func_start.ch + func_def_parens_match.index! + func_def_parens_match[0].length - 1 }
     }
-    const args_mark = cm.markText(
-      args_start,
-      args_end,
+    const params_mark = cm.markText(
+      params_start,
+      params_end,
       { inclusiveLeft: true, inclusiveRight: true, clearWhenEmpty: false }
     );
     add_sync_code_on_change_watcher(
-      () => args_widget.to_code(),
-      [args_mark], state
+      () => params_widget.to_code(),
+      [params_mark], state
     );
 
     // Set up the mark for the function definition line (used for managing drag-n-drops on this layer)
 
     const end_of_def_line = {
-      line: args_end.line,
-      ch: args_end.ch + 1000
+      line: params_end.line,
+      ch: params_end.ch + 1000
     }
     target_mark = cm.markText(
       cm_start_pos(typed_node, state.cell_lineno),
