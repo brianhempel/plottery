@@ -758,20 +758,15 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
   };
 }
 
-function deselect_layer(layer: Layer, state: State) {
-  layer.el.classList.remove("selected");
+export function deselect_all_layers(state: State) {
+  state.layers_panel.layers.forEach(layer => layer.el.classList.remove("selected"));
   compute_selected_hover_regions(state);
   highlight_lines_for_selected_layers(state);
   save_selected_layers(state);
 }
 
-export function deselect_all_layers(state: State) {
-  state.layers_panel.layers.forEach(layer => deselect_layer(layer, state));
-}
-
 export function select_layer(layer: Layer, state: State, call_view?: CallView) {
-  deselect_all_layers(state);
-  // console.log(layer.el)
+  state.layers_panel.layers.forEach(layer => layer.el.classList.remove("selected"));
   layer.el.classList.add("selected");
   if (call_view || layer.call_views[0]) {
     set_properties_panel_on(call_view || layer.call_views[0], state);
