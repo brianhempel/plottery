@@ -2016,6 +2016,29 @@ def _provenance_to_notebook_coords(node, cell_lineno, provenance_is_off_by_n_lin
     }
 
 
+# As of mypy 1.16 (python/mypy#18967), a decorated function's CallableType.definition is the
+# Decorator node rather than the underlying FuncDef; unwrap to preserve the old behavior
+# (.arguments, .fullname, and .type of the undecorated function).
+def definition_func_def(callable_type):
+    definition = getattr(callable_type, "definition", None)
+    if isinstance(definition, mypy.nodes.Decorator):
+        definition = definition.func
+    return definition
+
+
+# mypy <=1.15 exposed this as CallableType.def_extras["first_arg"] (removed upstream in 1.16,
+# python/mypy#18967): the name of the implicit first argument (e.g. "self") when the callable
+# is a non-static method. Reconstructed here from the definition, mirroring the old
+# CallableType.__init__ logic, because the frontend uses it to skip the bound first parameter.
+def first_arg_name(callable_type):
+    definition = definition_func_def(callable_type)
+    if isinstance(definition, mypy.nodes.FuncDef) and definition.arg_names and definition.info and not definition.is_static:
+        if getattr(definition, "arguments", None):
+            return definition.arguments[0].variable.name
+        return definition.arg_names[0]
+    return None
+
+
 # MyPy's is_subtype accepts AnyType on both LHS and RHS, which is maddening.
 # And I can't get its is_proper_subtype to reliably match things like tuples with e.g. Collection[Any] or ListLike
 # So this version rejects bare AnyType as a subtype of everything (but is not recursive).
@@ -2087,8 +2110,9 @@ class GatherTypedCalls(TraverserVisitor):
 
             # The callee_type here is partially applied (self is already removed from the argument list).
             # For consistency with places where where that is not the case, let us unapply it
-            if callee_type.definition is not None and callee_type.definition.type is not None:
-                callee_type = callee_type.definition.type
+            callee_definition = definition_func_def(callee_type)
+            if callee_definition is not None and callee_definition.type is not None:
+                callee_type = callee_definition.type
 
             # callee = callable_type_json(callee_type, self.user_typed_snippets)
             # add_pos_json(callee, node.callee)
@@ -2131,17 +2155,18 @@ class GatherTypedCalls(TraverserVisitor):
     # names + mypy types (target side) and its non-variable argument expressions with
     # their mypy types (source side). `callee_type` is the unapplied CallableType.
     def _link_meta_for_call(self, node, callee_type, func_code, call_id):
-        definition_fullname = callee_type.definition.fullname if callee_type.definition else None
+        definition = definition_func_def(callee_type)
+        definition_fullname = definition.fullname if definition else None
         # Only calls the frontend renders as layers get CallViews (needed to apply a link), see layer_panel.ts
         is_rendered = definition_fullname is not None and ("matplotlib." in definition_fullname or "__plottery_mypy_temp." in definition_fullname)
 
         # Parameter names, mirroring the frontend's arg_defaults_from_callee_type: prefer
         # definition names (positional-only params are None in arg_names) and skip bound self.
-        if callee_type.definition is not None and callee_type.definition.arguments:
-            param_names = [arg.variable.name for arg in callee_type.definition.arguments]
+        if definition is not None and getattr(definition, "arguments", None):
+            param_names = [arg.variable.name for arg in definition.arguments]
         else:
             param_names = callee_type.arg_names
-        first_arg_offset = 1 if callee_type.def_extras.get("first_arg") else 0
+        first_arg_offset = 1 if first_arg_name(callee_type) else 0
 
         params = []
         for i, (param_name, param_type, param_kind) in enumerate(zip(param_names, callee_type.arg_types, callee_type.arg_kinds)):
@@ -2349,11 +2374,12 @@ def serialize_type(_type: mypy.types.Type, user_typed_snippets: Dict[str, mypy.t
         arg_names_at_definition = None
         type_compatible_code_snippets_by_arg_i = []
 
-        definition_fullname = _type.definition.fullname if hasattr(_type, "definition") and _type.definition else None
+        definition = definition_func_def(_type)
+        definition_fullname = definition.fullname if definition else None
 
-        if hasattr(_type, "definition") and _type.definition and _type.definition.arguments:
-            default_code_by_arg_idx = [unparse_mypy_expr(arg.initializer) for arg in _type.definition.arguments]
-            arg_names_at_definition = [arg.variable.name for arg in _type.definition.arguments] # for positional arguments, mypy doesn't store the names in the arg_names list so we need to re-gen
+        if definition and getattr(definition, "arguments", None):
+            default_code_by_arg_idx = [unparse_mypy_expr(arg.initializer) for arg in definition.arguments]
+            arg_names_at_definition = [arg.variable.name for arg in definition.arguments] # for positional arguments, mypy doesn't store the names in the arg_names list so we need to re-gen
 
         for arg_type in _type.arg_types:
             compatible_snippets = [name for name, snippet_type in user_typed_snippets.items() if is_subtype(snippet_type, arg_type)]
@@ -2374,8 +2400,7 @@ def serialize_type(_type: mypy.types.Type, user_typed_snippets: Dict[str, mypy.t
             "variables": [serialize_type(v, user_typed_snippets) for v in _type.variables],
             "is_ellipsis_args": _type.is_ellipsis_args,
             "implicit": _type.implicit,
-            "bound_args": [(None if t is None else serialize_type(t, user_typed_snippets)) for t in _type.bound_args],
-            "def_extras": dict(_type.def_extras),
+            "def_extras": {"first_arg": first_arg_name(_type)},  # reconstructed; removed from mypy itself in 1.16
             "type_guard": (serialize_type(_type.type_guard, user_typed_snippets) if _type.type_guard is not None else None),
             # "type_is": (serialize(_type.type_is) if _type.type_is is not None else None),
             "from_concatenate": _type.from_concatenate,

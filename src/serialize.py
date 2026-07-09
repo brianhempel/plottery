@@ -100,17 +100,20 @@ def _arbitrary_to_json(obj, graph, recurse, extra_attrs):
 
         for child_name in child_dir:
             if child_name not in trivial_names and not child_name.startswith("__"):
-                if hasattr(obj, child_name):
+                # Property getters may raise anything, not just AttributeError (e.g. mypy 1.16+
+                # OverloadedFuncDef.setter asserts); treat any raising attribute as absent.
+                try:
                     child = getattr(obj, child_name)
-                    if not callable(child):
-                        len_before = len(graph)
-                        me[child_name] = _arbitrary_to_json(getattr(obj, child_name), graph, recurse, extra_attrs)
-                        dlen = len(graph) - len_before
-                        if dlen > 500:
-                            me[child_name + '_DLEN'] = _arbitrary_to_json(dlen, graph, recurse, extra_attrs)
-                            # print(dlen, me['.class'], child_name)
-                else:
+                except Exception:
                     me[child_name] = _arbitrary_to_json(None, graph, recurse, extra_attrs)
+                    continue
+                if not callable(child):
+                    len_before = len(graph)
+                    me[child_name] = _arbitrary_to_json(child, graph, recurse, extra_attrs)
+                    dlen = len(graph) - len_before
+                    if dlen > 500:
+                        me[child_name + '_DLEN'] = _arbitrary_to_json(dlen, graph, recurse, extra_attrs)
+                        # print(dlen, me['.class'], child_name)
 
     for key, child in extra_attrs(obj).items():
         me[key] = _arbitrary_to_json(child, graph, recurse, extra_attrs)

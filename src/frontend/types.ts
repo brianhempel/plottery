@@ -235,7 +235,6 @@ export type CallableType = {
   type_compatible_code_snippets_by_arg_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
   arg_types: Type[];
 
-  bound_args: null[]; // ?
   def_extras: {
     first_arg: string; // 'self'
   };

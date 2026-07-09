@@ -103,12 +103,15 @@ from mypy.nodes import StarExpr as StarExpr
 from mypy.nodes import StrExpr as StrExpr
 from mypy.nodes import SuperExpr as SuperExpr
 from mypy.nodes import TempNode as TempNode
+from mypy.nodes import TemplateStrExpr as TemplateStrExpr
 from mypy.nodes import TryStmt as TryStmt
 from mypy.nodes import TupleExpr as TupleExpr
 from mypy.nodes import TypeAlias as TypeAlias
 from mypy.nodes import TypeAliasExpr as TypeAliasExpr
+from mypy.nodes import TypeAliasStmt as TypeAliasStmt
 from mypy.nodes import TypeApplication as TypeApplication
 from mypy.nodes import TypedDictExpr as TypedDictExpr
+from mypy.nodes import TypeFormExpr as TypeFormExpr
 from mypy.nodes import TypeVarExpr as TypeVarExpr
 from mypy.nodes import TypeVarTupleExpr as TypeVarTupleExpr
 from mypy.nodes import UnaryExpr as UnaryExpr
@@ -223,6 +226,9 @@ class TraverserVisitor:
     def visit_cast_expr(self, o: CastExpr) -> None:
         accept(o.expr, self)
 
+    def visit_type_form_expr(self, o: TypeFormExpr) -> None:
+        pass
+
     def visit_assert_type_expr(self, o: AssertTypeExpr) -> None:
         accept(o.expr, self)
 
@@ -252,6 +258,17 @@ class TraverserVisitor:
             if k is not None:
                 accept(k, self)
             accept(v, self)
+
+    def visit_template_str_expr(self, o: TemplateStrExpr) -> None:
+        # PEP 750 t-strings. Each item is either a StrExpr (literal segment) or a tuple
+        # (value_expr, source_text, conversion, format_spec_expr).
+        for item in o.items:
+            if isinstance(item, tuple):
+                accept(item[0], self)
+                if item[3] is not None:
+                    accept(item[3], self)
+            else:
+                accept(item, self)
 
     def visit_tuple_expr(self, o: TupleExpr) -> None:
         for item in o.items:
@@ -485,6 +502,10 @@ class TraverserVisitor:
                 accept(guard, self)
             accept(o.bodies[i], self)
 
+    def visit_type_alias_stmt(self, o: TypeAliasStmt) -> None:
+        accept(o.name, self)
+        accept(o.value, self)
+
     def visit_as_pattern(self, o: AsPattern) -> None:
         if o.pattern is not None:
             accept(o.pattern, self)
@@ -701,6 +722,12 @@ def _(node: MatchStmt, visitor: TraverserVisitor) -> None:
 
 
 @accept.register
+def _(node: TypeAliasStmt, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
+    return visitor.visit_type_alias_stmt(node)
+
+
+@accept.register
 def _(node: IntExpr, visitor: TraverserVisitor) -> None:
     visitor.visit(node)
     return visitor.visit_int_expr(node)
@@ -815,6 +842,12 @@ def _(node: CastExpr, visitor: TraverserVisitor) -> None:
 
 
 @accept.register
+def _(node: TypeFormExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
+    return visitor.visit_type_form_expr(node)
+
+
+@accept.register
 def _(node: AssertTypeExpr, visitor: TraverserVisitor) -> None:
     visitor.visit(node)
     return visitor.visit_assert_type_expr(node)
@@ -848,6 +881,12 @@ def _(node: ListExpr, visitor: TraverserVisitor) -> None:
 def _(node: DictExpr, visitor: TraverserVisitor) -> None:
     visitor.visit(node)
     return visitor.visit_dict_expr(node)
+
+
+@accept.register
+def _(node: TemplateStrExpr, visitor: TraverserVisitor) -> None:
+    visitor.visit(node)
+    return visitor.visit_template_str_expr(node)
 
 
 @accept.register
