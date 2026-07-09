@@ -355,13 +355,34 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     getScrollerElement: () => cm6.scrollDOM,
 
     scrollIntoView: (pos: CodeMirror.Position | { from: CodeMirror.Position, to: CodeMirror.Position }, _margin?: number) => {
-      // EditorView.scrollIntoView is a static that returns a StateEffect. Scroll
-      // without moving the cursor/selection, unlike setCursor's scrollIntoView.
+      // Scroll ONLY the editor's own scroller so the target line lands near the
+      // bottom of the code box (with a couple of lines of context below it),
+      // without moving the cursor/selection. If the line is already fully visible
+      // (e.g. the user just clicked it in the editor), don't scroll at all.
+      //
+      // We deliberately avoid EditorView.scrollIntoView here: it scrolls every
+      // scrollable ancestor (including the page/viewport) to reveal the position,
+      // and its y:"end" didn't reliably bottom-align. Instead we set
+      // scrollDOM.scrollTop directly. lineBlockAt reads CM6's height map, so it
+      // works even for lines outside the currently-rendered viewport; documentTop
+      // maps document coordinates into the scroller's scroll space.
+      const LINES_BELOW = 2; // leave the selected line as the third-to-last line.
+      const view = cm6 as any;
       const from_pos = "from" in pos ? pos.from : pos;
       const from_offset = cm5_pos_to_offset(cm6.state.doc, from_pos);
-      return cm6.dispatch({
-        effects: __CM6EditorView.scrollIntoView(from_offset, { y: "nearest" })
-      });
+      const scroller = cm6.scrollDOM;
+      const scroller_rect = scroller.getBoundingClientRect();
+      const block = view.lineBlockAt(from_offset);
+      const line_screen_top = view.documentTop + block.top;
+      const line_screen_bottom = view.documentTop + block.bottom;
+      const already_visible =
+        line_screen_top >= scroller_rect.top && line_screen_bottom <= scroller_rect.bottom;
+      if (already_visible) return;
+      const content_top_in_scroller =
+        view.documentTop - scroller_rect.top + scroller.scrollTop;
+      const line_bottom_in_scroller = content_top_in_scroller + block.bottom;
+      scroller.scrollTop =
+        line_bottom_in_scroller + LINES_BELOW * view.defaultLineHeight - scroller.clientHeight; // browser clamps <0.
     },
 
     posFromIndex : (index: number) => {

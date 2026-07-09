@@ -778,15 +778,42 @@ export function select_layer(layer: Layer, state: State, call_view?: CallView) {
   // console.log(layer.el)
 }
 
+// Number of lines to leave visible below the selected line, so it lands as the
+// third-to-last line of the code box (instead of flush with the bottom edge).
+const LINES_BELOW_SELECTED = 2;
+
 // Scroll the selected layer's code into view (without moving the cursor) so its
 // line is visible even when the editor is capped at max-height and scrolled.
 // Target the start of the line (column 0) so we scroll vertically only and stay
 // pinned at the left edge instead of scrolling horizontally to the call.
+//
+// Position the line near the bottom of the (max-height-capped) code box, leaving
+// LINES_BELOW_SELECTED lines of context below it. Only the code box is scrolled —
+// the browser viewport is intentionally left untouched. If the line is already
+// fully visible (e.g. the user just clicked it in the editor), don't scroll.
 function scroll_selected_layer_into_view(layer: Layer, state: State) {
   const range = layer.mark.find();
-  if (range) {
-    state.cell.code_mirror.scrollIntoView({ line: range.from.line, ch: 0 });
+  if (!range) return;
+  const cm = state.cell.code_mirror as any;
+  const line = range.from.line;
+
+  // Scroll *within* the code editor so the selected line sits near the bottom.
+  if (typeof cm.charCoords === "function" && typeof cm.scrollTo === "function") {
+    // Real CodeMirror 5 (classic Notebook v6): position the scroller manually.
+    const coords = cm.charCoords({ line, ch: 0 }, "local");
+    const { top, clientHeight } = cm.getScrollInfo();
+    const already_visible = coords.top >= top && coords.bottom <= top + clientHeight;
+    if (already_visible) return;
+    const line_height = cm.defaultTextHeight();
+    cm.scrollTo(null, coords.bottom + LINES_BELOW_SELECTED * line_height - clientHeight); // CM clamps negatives to 0.
+  } else {
+    // CM6-backed facade (JupyterLab / Notebook v7): use its native bottom scroll.
+    cm.scrollIntoView({ line, ch: 0 });
   }
+
+  // Previously we also scrolled the browser viewport so the code box itself was
+  // on screen; disabled so only the code box scrolls:
+  // cm.getScrollerElement?.().scrollIntoView?.({ block: "nearest" });
 }
 
 export function select_call_view(call_view: CallView, state: State) {
