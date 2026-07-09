@@ -70,10 +70,7 @@ class Timer:
         # print(f"{self.message}: {self.elapsed_time:.2f} seconds")
 
 
-def get_trivial_names():
-    """Returns stuff like __class__, __doc__, etc."""
-    return set(dir(object()))
-
+snp_trivial_names = set(dir(object())) # stuff like __class__, __doc__, etc.
 
 # File path that the notebook code will be written to for mypy
 notebook_as_code_file_path = "__plottery_mypy_temp.py"
@@ -482,9 +479,8 @@ def _artist_names_deep(out, obj, name, max_depth):
         if max_depth <= 1:
             return
 
-        trivial_names = get_trivial_names()
         for prop_name in dir(obj):
-            if prop_name not in trivial_names:
+            if prop_name not in snp_trivial_names:
                 prop = getattr(obj, prop_name)
                 _artist_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
 
@@ -499,10 +495,9 @@ def _artist_names_deep(out, obj, name, max_depth):
 # hard-coded in method_associations()
 def artist_names(locals, user_nameset, max_depth=4):
     out = {}
-    trivial_names = get_trivial_names()
 
     with mpl._api.deprecation.suppress_matplotlib_deprecation_warning():
-        for name, value in [(name, value) for name, value in locals.items() if name in user_nameset and name not in trivial_names]:
+        for name, value in [(name, value) for name, value in locals.items() if name in user_nameset and name not in snp_trivial_names]:
             _artist_names_deep(out, value, f"{name}", max_depth)
 
     return out
@@ -1230,7 +1225,7 @@ class SNP(SNPFigureAndHoverRegions):
             dict_values_node = self.type_graph['_collections_abc'].tree.names['dict_values'].node # <TypeInfo _collections_abc.dict_values>
             dict_items_node = self.type_graph['_collections_abc'].tree.names['dict_items'].node # <TypeInfo _collections_abc.dict_items>
             for name, value in locals.items():
-                if name in self.user_nameset and name not in get_trivial_names() and not callable(value):
+                if name in self.user_nameset and name not in snp_trivial_names and not callable(value):
                     name_type = None
                     if name in tree.names:
                         name_type = tree.names[name].type
