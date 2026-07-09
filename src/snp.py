@@ -466,18 +466,20 @@ def _artist_names_deep(out, obj, name, max_depth):
     if max_depth <= 0 or callable(obj):
         return
 
-    if isinstance(obj, list) or (isinstance(obj, np.ndarray) and obj.ndim > 0 and len(obj) <= 10):
+    if isinstance(obj, list) or (isinstance(obj, np.ndarray) and obj.ndim > 0):
+        if max_depth <= 1:
+            return
+
         for i, item in enumerate(obj):
-            _artist_names_deep(out, item, f"{name}[{str(i)}]", max_depth)
+            if i >= 30:
+                break
+            _artist_names_deep(out, item, f"{name}[{str(i)}]", max_depth - 1)
         if len(obj) >= 1:
-            _artist_names_deep(out, obj[-1], f"{name}[-1]", max_depth)
+            _artist_names_deep(out, obj[-1], f"{name}[-1]", max_depth - 1)
     elif isinstance(obj, mpl.artist.Artist) or isinstance(obj, mpl.colorbar.Colorbar):
         key = id(obj)
         _obj, names = out.get(key, (obj, set()))
         out[key] = (_obj, names.union({name}))
-
-        if max_depth <= 1:
-            return
 
         for prop_name in dir(obj):
             if prop_name not in snp_trivial_names:
@@ -1192,6 +1194,11 @@ class SNP(SNPFigureAndHoverRegions):
             # self.notebook_code_through_cell = notebook_code_through_cell
             self.notebook_code_lines        = notebook_code_through_cell.split("\n")
 
+        # Fresh per-render cache for is_subtype. Reset here so id()-keyed entries from a
+        # previous render (whose mypy type objects may have been freed/reused) can't leak in.
+        global _is_subtype_cache
+        _is_subtype_cache = {}
+
         with Timer("do_mypy_inference"):
             self.mypy_result = do_mypy_inference(notebook_code_through_cell)
         self.type_graph = self.mypy_result.graph
@@ -1365,7 +1372,15 @@ class SNP(SNPFigureAndHoverRegions):
             return serialize.arbitrary_to_json(node, recurse=no_types, extra_attrs=extra_attrs)
 
         with Timer("notebook_typed_ast"):
-            notebook_typed_ast = type_node_to_json(self.type_tree.defs)
+            # The frontend (main.ts) only ever keeps typed defs with line >= cell_lineno
+            # (it filters earlier-cell defs out before building layers), so serializing the
+            # whole notebook's typed AST is wasted time + payload. Filter to the current
+            # cell here. Defs missing a line attribute are kept, to be safe.
+            current_cell_defs = [
+                node for node in self.type_tree.defs
+                if getattr(node, "line", None) is None or node.line >= self.cell_lineno
+            ]
+            notebook_typed_ast = type_node_to_json(current_cell_defs)
 
         with Timer("notebook_parseable_comments"):
             self.notebook_parseable_comments = []
@@ -2081,17 +2096,34 @@ def first_arg_name(callable_type):
     return None
 
 
+# Per-render memoization cache for is_subtype, keyed on (id(subtype), id(type)).
+# MUST be reset (to a fresh dict) at the start of every render in SNP.__init__: mypy
+# reuses/frees type objects across fine-grained incremental builds, so an id() from a
+# prior render can alias a different object. None disables caching outside a render.
+_is_subtype_cache = None
+
 # MyPy's is_subtype accepts AnyType on both LHS and RHS, which is maddening.
 # And I can't get its is_proper_subtype to reliably match things like tuples with e.g. Collection[Any] or ListLike
 # So this version rejects bare AnyType as a subtype of everything (but is not recursive).
 def is_subtype(subtype, type):
-    subtype = mypy.types.get_proper_type(subtype)
-    type = mypy.types.get_proper_type(type)
+    cache = _is_subtype_cache
+    if cache is not None:
+        key = (id(subtype), id(type))
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
 
-    if isinstance(subtype, mypy.types.AnyType) and not isinstance(type, mypy.types.AnyType):
-        return False
+    proper_subtype = mypy.types.get_proper_type(subtype)
+    proper_type = mypy.types.get_proper_type(type)
 
-    return mypy.subtypes.is_subtype(subtype, type)
+    if isinstance(proper_subtype, mypy.types.AnyType) and not isinstance(proper_type, mypy.types.AnyType):
+        result = False
+    else:
+        result = mypy.subtypes.is_subtype(proper_subtype, proper_type)
+
+    if cache is not None:
+        cache[key] = result
+    return result
 
 
 
