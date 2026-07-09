@@ -717,7 +717,7 @@ export function number_to_string_not_ugly(n: number): string {
 }
 
 export function select_code_text(code_el: HTMLElement) {
-  const code = code_el.innerText;
+  const code = code_el.textContent ?? "";
 
   const selection = window.getSelection();
   if (selection) {

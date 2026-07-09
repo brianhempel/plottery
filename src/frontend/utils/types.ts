@@ -127,6 +127,7 @@ type CM5Mock = {
   focus: (options?: { preventScroll: boolean }) => void;
   markText: (from: CodeMirror.Position, to: CodeMirror.Position, options: { inclusiveLeft: boolean, inclusiveRight: boolean, clearWhenEmpty: boolean }) => CM5Mark;
   getAllMarks: () => CM5Mark[];
+  clear_all_marks: () => void;
 
   // for debugging
   cm6: CM6Editor;
@@ -464,6 +465,17 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
 
     getAllMarks: () => {
       return all_cm6_marks().map(({ value: deco }) => deco.spec.cm5_mark);
+    },
+
+    // Drop ALL of our marks (and selected-layer line classes) in a single transaction.
+    // getAllMarks().forEach(m => m.clear()) dispatches once per mark, and each dispatch
+    // re-filters the whole decoration RangeSet — O(n^2) in the number of marks. This is one
+    // O(n) filter dispatch. attach_snp calls it up front: the underlying CM6 editor persists
+    // across cell reruns, so without clearing, every render's marks piled onto the previous
+    // render's (only GUI hard_rerun cleared them), making each attach re-sort an ever-larger
+    // set — attach time grew ~4s per manual rerun (7s -> 38s over 8 runs on a big cell).
+    clear_all_marks: () => {
+      cm6.dispatch({ effects: [filter_marks.of(() => false), filter_line_classes.of(() => false)] });
     },
 
     // for debugging:

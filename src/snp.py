@@ -10,6 +10,7 @@ import pathlib
 import re
 import ast
 import time
+import enum
 import keyword
 from typing import Dict, List, Tuple
 
@@ -1601,26 +1602,112 @@ class TaggedFloat(float):
         return out
 
 
+# `bool` is final ("type 'bool' is not an acceptable base type"), so a faithful TaggedBool is
+# impossible. This subclasses int and restores bool's repr, so it keeps the 0/1 value, truthiness,
+# == True/False, and prints as True/False — and can carry provenance. Tradeoff: it is NOT `is True`
+# and NOT isinstance(x, bool). Fine for a value flowing into a plot; an `is`/identity check is not.
+class TaggedBool(int):
+    def __new__(cls, value, call_id=None):
+        out = int.__new__(cls, bool(value))
+        if call_id is not None:
+            out._snp_came_from_call_id = call_id
+        return out
+    def __repr__(self):
+        return "True" if self else "False"
+    __str__ = __repr__
+
+
+# structseqs (os.stat_result, resource.struct_rusage, time.struct_time, ...) are C tuple subclasses
+# that also can't be subclassed and have no __dict__. TaggedStructSeq copies the sequence values
+# into a taggable tuple subclass and re-attaches every public non-callable attribute — the named
+# fields like .ru_maxrss / .st_mtime_ns, *including* the non-sequence ones __match_args__ omits.
+# Field access and provenance both work. Tradeoff: it is NOT isinstance the original structseq type.
+class TaggedStructSeq(tuple):
+    def __new__(cls, structseq, call_id=None):
+        out = tuple.__new__(cls, structseq)
+        if call_id is not None:
+            out._snp_came_from_call_id = call_id
+        for name in dir(structseq):
+            if name.startswith("_"):
+                continue
+            try:
+                attr = getattr(structseq, name)
+                if not callable(attr):
+                    setattr(out, name, attr)
+            except Exception:
+                pass
+        return out
+
+
+# TaggedNamedTuple: a namedtuple can't hold a `_snp_came_from_call_id` attribute (its __slots__ is
+# ()), but a *subclass* without __slots__ gets a __dict__ while inheriting the field names and
+# behavior (isinstance still holds). Cache one tagged subclass per namedtuple type so we don't
+# build a new class on every call.
+_tagged_namedtuple_classes = {}
+
+def _make_tagged_namedtuple(value, call_id):
+    cls = type(value)
+    tagged_cls = _tagged_namedtuple_classes.get(cls)
+    if tagged_cls is None:
+        tagged_cls = type("Tagged" + cls.__name__, (cls,), {})
+        _tagged_namedtuple_classes[cls] = tagged_cls
+    # _make builds from an iterable via tuple.__new__, bypassing any custom __new__ (so we don't
+    # re-run field validation); the fields keep their names, and children stay tagged for provenance.
+    out = tagged_cls._make(tag_with_call_provenance(child, call_id) for child in value)
+    out._snp_came_from_call_id = call_id
+    return out
+
+
 def tag_with_call_provenance(ret_obj, call_id):
     if hasattr(ret_obj, "_snp_came_from_call_id"):
         return ret_obj  # Don't rewrite oldest loc.
+
+    # TaggedEnum: an enum member is a shared singleton, so there's no class that could stand in for
+    # it without breaking identity (x is Color.RED, x in Color). Tag the member in place — the
+    # attribute is invisible to every enum behavior (name/value/==/is/hash). Caveat: provenance is
+    # then sticky and process-global (the hasattr short-circuit above locks in whichever call first
+    # returned the member). Enum members rarely become plot artists, so this is acceptable.
+    if isinstance(ret_obj, enum.Enum):
+        try:
+            ret_obj._snp_came_from_call_id = call_id
+        except Exception:
+            pass
+        return ret_obj
 
     try:
         ret_obj._snp_came_from_call_id = call_id
         return ret_obj
     except:
-        if isinstance(ret_obj, tuple):
+        # Match the *exact* builtin type, not isinstance: a subclass rebuilt through the wrong base
+        # (a namedtuple as a plain tuple, True as int 1) would be silently flattened. Order matters —
+        # bool before int, and the namedtuple/structseq checks are their own tuple-subclass branches.
+        t = type(ret_obj)
+        if t is tuple:
             return TaggedTuple(tuple(tag_with_call_provenance(child, call_id) for child in ret_obj), call_id)
-        elif isinstance(ret_obj, str):
+        elif t is str:
             return TaggedStr(ret_obj, call_id)
-        elif isinstance(ret_obj, list):
+        elif t is list:
             return TaggedList([tag_with_call_provenance(child, call_id) for child in ret_obj], call_id)
-        elif isinstance(ret_obj, dict):
+        elif t is dict:
             return TaggedDict(ret_obj, call_id)
-        elif isinstance(ret_obj, int):
+        elif t is bool:  # before int: bool is an int subclass, but `type(True) is bool`
+            return TaggedBool(ret_obj, call_id)
+        elif t is int:
             return TaggedInt(ret_obj, call_id)
-        elif isinstance(ret_obj, float):
+        elif t is float:
             return TaggedFloat(ret_obj, call_id)
+        elif isinstance(ret_obj, tuple) and hasattr(ret_obj, "_fields"):
+            try:
+                return _make_tagged_namedtuple(ret_obj, call_id)  # namedtuple
+            except Exception:
+                return ret_obj
+        elif isinstance(ret_obj, tuple):
+            try:
+                return TaggedStructSeq(ret_obj, call_id)  # structseq / other opaque tuple subclass
+            except Exception:
+                return ret_obj
+        # Some other un-taggable object (no __dict__, not a type we handle): leave it untouched
+        # rather than corrupt it — losing provenance on it is cheaper than changing its type.
         return ret_obj
 
 
@@ -1699,11 +1786,33 @@ def note_arg_provenance(value, call_id, arg_key):
     return value
 
 
+# mypy and CPython's `ast` report columns as UTF-8 *byte* offsets, but both our slicing of
+# notebook_code_lines below and the frontend's CodeMirror marks (ch = pos.column) treat them
+# as character offsets. They agree only for ASCII; a non-ASCII character earlier on the line
+# (e.g. "≥" is 3 bytes but 1 char) shifts every following offset, so arg/call source slices
+# and marks land wrong and a GUI writeback corrupts the cell. Convert byte offsets to
+# character (code-point) offsets against the real source line. (Astral-plane characters,
+# which are 2 UTF-16 units in a CodeMirror `ch`, remain a rare edge case.)
+def byte_col_to_char_col(line_str, byte_col):
+    if byte_col is None or byte_col <= 0 or line_str.isascii():
+        return byte_col
+    return len(line_str.encode("utf-8")[:byte_col].decode("utf-8", "replace"))
+
+
+# Convert a (1-based line, byte column) into a character column, guarding out-of-range lines.
+def char_col(notebook_code_lines, line, byte_col):
+    if line is None or byte_col is None or line < 1 or line > len(notebook_code_lines):
+        return byte_col
+    return byte_col_to_char_col(notebook_code_lines[line - 1], byte_col)
+
+
 # This assumes the typed node is in the notebook.
 # The nodes do not specify which file they actually came from.
 def code_at_range(notebook_code_lines, line, column, end_line, end_column):
     if end_line is None or end_line > len(notebook_code_lines) or line < 1:
         return None
+    column     = char_col(notebook_code_lines, line, column)
+    end_column = char_col(notebook_code_lines, end_line, end_column)
     if line == end_line:
         return notebook_code_lines[line-1][column:end_column]
     else:
@@ -1871,37 +1980,39 @@ def unparse_mypy_expr(expr: mypy.nodes.Expression):
             return str(expr)
 
 
-def add_pos_json(type_json_dict, node):
+def add_pos_json(type_json_dict, node, notebook_code_lines):
     type_json_dict["pos"] = {
         "line": node.line,
-        "column": node.column,
+        "column": char_col(notebook_code_lines, node.line, node.column),
         "end_line": node.end_line,
-        "end_column": node.end_column,
+        "end_column": char_col(notebook_code_lines, node.end_line, node.end_column),
     }
     return type_json_dict
 
 
-def type_json_with_node_loc(node, type, user_typed_snippets):
+def type_json_with_node_loc(node, type, user_typed_snippets, notebook_code_lines):
     type_json_dict = serialize_type(type, user_typed_snippets)
-    return add_pos_json(type_json_dict, node)
+    return add_pos_json(type_json_dict, node, notebook_code_lines)
 
 
 # Convert a (cell-relative) variable-sharing provenance node to notebook
 # coordinates, recursively, matching the {line, column, end_line, end_column}
 # shape that add_pos_json produces for the rest of a call's positions.
-def _provenance_to_notebook_coords(node, cell_lineno, provenance_is_off_by_n_lines):
+def _provenance_to_notebook_coords(node, cell_lineno, provenance_is_off_by_n_lines, notebook_code_lines):
     if node is None:
         return None
+    line     = node["lineno"]     + cell_lineno - 1 - provenance_is_off_by_n_lines
+    end_line = node["end_lineno"] + cell_lineno - 1 - provenance_is_off_by_n_lines
     return {
         "kind": node["kind"],
         "var_name": node.get("var_name"),
         "pos": {
-            "line":       node["lineno"]     + cell_lineno - 1 - provenance_is_off_by_n_lines,
-            "column":     node["col_offset"],
-            "end_line":   node["end_lineno"] + cell_lineno - 1 - provenance_is_off_by_n_lines,
-            "end_column": node["end_col_offset"],
+            "line":       line,
+            "column":     char_col(notebook_code_lines, line, node["col_offset"]),
+            "end_line":   end_line,
+            "end_column": char_col(notebook_code_lines, end_line, node["end_col_offset"]),
         },
-        "children": [_provenance_to_notebook_coords(c, cell_lineno, provenance_is_off_by_n_lines) for c in node["children"]],
+        "children": [_provenance_to_notebook_coords(c, cell_lineno, provenance_is_off_by_n_lines, notebook_code_lines) for c in node["children"]],
     }
 
 
@@ -1960,7 +2071,7 @@ class GatherTypedCalls(TraverserVisitor):
             given_args = []
             pos_idx = 0
             for arg, name in zip(node.args, node.arg_names):
-                given_arg = type_json_with_node_loc(arg, self.types_dict.get(arg), self.user_typed_snippets)
+                given_arg = type_json_with_node_loc(arg, self.types_dict.get(arg), self.user_typed_snippets, self.notebook_code_lines)
                 given_arg["name"] = name
 
                 # Variable-sharing provenance: positional args are keyed by index, keyword args by name,
@@ -1970,7 +2081,7 @@ class GatherTypedCalls(TraverserVisitor):
                     pos_idx += 1
                 raw_prov = self.var_provenance_snapshot.get((call_id, arg_key))
                 if raw_prov is not None:
-                    given_arg["provenance"] = _provenance_to_notebook_coords(raw_prov, self.cell_lineno, self.provenance_is_off_by_n_lines)
+                    given_arg["provenance"] = _provenance_to_notebook_coords(raw_prov, self.cell_lineno, self.provenance_is_off_by_n_lines, self.notebook_code_lines)
 
                 given_args.append(given_arg)
 
@@ -1982,10 +2093,33 @@ class GatherTypedCalls(TraverserVisitor):
             # callee = callable_type_json(callee_type, self.user_typed_snippets)
             # add_pos_json(callee, node.callee)
 
+            call_json   = type_json_with_node_loc(node, self.types_dict.get(node), self.user_typed_snippets, self.notebook_code_lines)
+            callee_json = type_json_with_node_loc(node.callee, callee_type, self.user_typed_snippets, self.notebook_code_lines)
+
+            # A call always begins where its callee begins. mypy 1.8 reports a CallExpr inside an
+            # f-string replacement field (PEP 701, Python 3.12+) as starting one char early — at
+            # the "{" — while the callee's start stays correct. Anchoring the call mark's start to
+            # the callee keeps the mark from swallowing the "{", whose deletion on a GUI writeback
+            # would yield `f"...expr}"` -> SyntaxError. Trim a trailing "}" for the same reason.
+            # This is a no-op for every normal call.
+            in_fstring_replacement = (
+                call_json["pos"]["line"] == callee_json["pos"]["line"]
+                and call_json["pos"]["column"] < callee_json["pos"]["column"]
+            )
+            call_json["pos"]["line"]   = callee_json["pos"]["line"]
+            call_json["pos"]["column"] = callee_json["pos"]["column"]
+            if in_fstring_replacement:
+                end_line = call_json["pos"]["end_line"]
+                end_col = call_json["pos"]["end_column"]
+                if end_line is not None and 1 <= end_line <= len(self.notebook_code_lines):
+                    line_str = self.notebook_code_lines[end_line - 1]
+                    if end_col is not None and 0 < end_col <= len(line_str) and line_str[end_col - 1] == "}":
+                        call_json["pos"]["end_column"] = end_col - 1
+
             self.out.append(
                 {
-                    "call": type_json_with_node_loc(node, self.types_dict.get(node), self.user_typed_snippets),
-                    "callee": type_json_with_node_loc(node.callee, callee_type, self.user_typed_snippets),
+                    "call": call_json,
+                    "callee": callee_json,
                     "given_args": given_args,
                     "func_code": func_code, # e.g. "ax.bar" or "len"
                     "call_id": make_call_id(func_code, call_num), # "ax.bar #1"

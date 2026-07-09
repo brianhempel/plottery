@@ -77,7 +77,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   const name_el = create_el("div", "snp-call-name", header_el);
 
 
-  name_el.innerText = call.call_info.func_code;
+  name_el.textContent = call.call_info.func_code;
   name_el.title = call.call_info.docstring || `No docstring available for ${call.call_info.func_code}`;
 
 
@@ -150,7 +150,10 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 }
 
 export function call_to_code(call_view: CallView) : string {
-  const func_code = call_view.els.name_el.innerText;
+  // textContent (not innerText): innerText returns "" for elements inside non-rendered
+  // subtrees (Notebook 7 windows offscreen cells with content-visibility:auto). Reading
+  // "" here let the code-sync watcher rewrite the call as `func(...)` with all args blanked.
+  const func_code = call_view.els.name_el.textContent ?? "";
   const args_str =
     call_view.arguments.
       filterMap(({ arg, view }) => view.disabled ? null : arg_view_to_code(arg, view)).
@@ -167,7 +170,7 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
   // move legend handler
   //
   // changed legend loc to e.g. (0.5, 0.5) which is the bot left corner, relative to the axes bounds
-  if (call_view.els.name_el.innerText.endsWith(".legend")) {
+  if ((call_view.els.name_el.textContent ?? "").endsWith(".legend")) {
     let perhaps_view = call_view.arguments.find(({ arg }) => arg.name == 'loc')?.view;
 
     if (perhaps_view) {
@@ -226,7 +229,7 @@ export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | ((
   let coord_sys: 'axes_units' | 'axes_size' = 'axes_units'
 
   // the y for ax.set_title is relative to the axes height
-  if (call_view.els.name_el.innerText.endsWith(".set_title")) {
+  if ((call_view.els.name_el.textContent ?? "").endsWith(".set_title")) {
     coord_sys = 'axes_size'
   }
 

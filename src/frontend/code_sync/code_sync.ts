@@ -74,6 +74,18 @@ function execute_cell_but_delay_clearing_output(cell: any) {
   cell.events.on('finished_iopub.Kernel', handleFinished);
 }
 
+// Is the Plottery UI actually being rendered? Notebook 7 (JupyterLab) windows the notebook
+// and marks offscreen cells `content-visibility: auto`, whose subtrees Chrome does not lay
+// out or render. The code-sync RAF loop keeps running there (the element is still connected),
+// so without this guard it would read/write the cell source while it's offscreen. We pass
+// contentVisibilityAuto so a skipped content-visibility subtree counts as not-rendered, and
+// fall back to "rendered" on browsers without checkVisibility.
+function ui_is_rendered(state: State): boolean {
+  const el = state.snp_outer as any;
+  if (typeof el.checkVisibility !== "function") return true;
+  return el.checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true });
+}
+
 export function add_sync_code_on_change_watcher(
   get_code: () => string,
   marks: TextMarker<MarkerRange>[],
@@ -85,12 +97,24 @@ export function add_sync_code_on_change_watcher(
   function keep_synced() {
     if (!is_active()) return; // stop the loop; don't reschedule
 
-    const code = get_code();
+    // Hold all writes while the cell isn't being rendered (e.g. scrolled offscreen under
+    // Notebook 7's windowing). We deliberately don't read/refresh curr_code here, so
+    // scrolling back into view can't trigger a spurious sync. Just reschedule and re-check.
+    if (ui_is_rendered(state)) {
+      const code = get_code();
 
-    if (curr_code != code) {
-      curr_code = code;
-      sync_code_range(marks, code, state);
-      debounce('code sync', 333, () => log_event('other', 'code sync', {code: state.cell.code_mirror.getValue()}));
+      // Never sync a transient empty value back into the source. In CodeMirror 5 a
+      // clearWhenEmpty:false mark survived its range going empty; CodeMirror 6 mark
+      // decorations cannot be empty (mapping drops them, and re-adding one throws
+      // "Mark decorations may not be empty"), so writing "" mid-edit (e.g. while the
+      // user is clearing a contenteditable chain-link widget) blanks the source
+      // expression AND loses the mark that tracks it. Keeping the last non-empty value
+      // avoids the disappearing RHS; committing/rerunning re-derives everything anyway.
+      if (curr_code != code && code.trim() !== "") {
+        curr_code = code;
+        sync_code_range(marks, code, state);
+        debounce('code sync', 333, () => log_event('other', 'code sync', {code: state.cell.code_mirror.getValue()}));
+      }
     }
 
     // requestAnimationFrame(keep_synced);
@@ -108,8 +132,9 @@ function sync_code_range(
   const cm = state.cell.code_mirror;
 
   marks.forEach(mark => {
-    let { from, to } = mark.find()!;
-    cm.replaceRange(code, from, to);
+    const range = mark.find();
+    if (!range) return; // mark was dropped (e.g. cleared by a concurrent rerun); nothing to sync
+    cm.replaceRange(code, range.from, range.to);
   });
 
   // Selecting the code leaves a highlight on what has changed, BUT it scrolls

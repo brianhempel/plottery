@@ -113,6 +113,17 @@ function attach_snp(
   };
   console.timeEnd('time init state');
 
+  // Marks from prior renders are all stale now — this attach rebuilds every layer/call/arg and
+  // its marks from scratch. Clear them up front so they don't accumulate across manual cell
+  // reruns (the cell's editor persists, and only GUI hard_rerun cleared marks before), which
+  // made each successive attach re-sort an ever-larger decoration set and grow slower.
+  const cm_for_clearing = state.cell.code_mirror as any;
+  if (typeof cm_for_clearing.clear_all_marks === "function") {
+    cm_for_clearing.clear_all_marks(); // CM6 facade (JupyterLab / Notebooks v7): one O(n) dispatch
+  } else {
+    cm_for_clearing.getAllMarks?.().forEach((m: any) => m.clear()); // real CM5 (Notebooks v6)
+  }
+
   console.time('time make layers');
   const make_stuff_nice_for_screenshots = window.sessionStorage.getItem('make_stuff_nice_for_screenshots') === 'true'
   const in_demo_mode = window.sessionStorage.getItem('plottery_demo_mode') === 'true';

@@ -112,7 +112,7 @@ export function make_plot_widgets(state: State) {
         }
       });
 
-      plot_widget_el.innerText = widget.to_code();
+      plot_widget_el.textContent = widget.to_code();
 
       // Clicking on the el, triggers the input box to show above the el
       icon.addEventListener("click", () => {
@@ -127,9 +127,9 @@ export function make_plot_widgets(state: State) {
 
       plot_widget_el.addEventListener("input", () => {
         enable_arg_view(target_arg.view);
-        widget.set_code(plot_widget_el.innerText);
+        widget.set_code(plot_widget_el.textContent ?? "");
         debounce("on-plot text widget input", 1000, () => {
-          log_event("gui", "on-plot text widget input", {call: target_call.info.func_code, arg: target_arg.arg.name, arg_code: plot_widget_el.innerText, code: state.cell.code_mirror.getValue()});
+          log_event("gui", "on-plot text widget input", {call: target_call.info.func_code, arg: target_arg.arg.name, arg_code: plot_widget_el.textContent ?? "", code: state.cell.code_mirror.getValue()});
         });
       });
 

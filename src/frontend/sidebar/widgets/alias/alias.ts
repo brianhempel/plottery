@@ -14,7 +14,7 @@ export type AliasWidget = Widget & {
 export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
   const el = create_el("div", ["snp-arg", "snp-arg-alias"]);
   const value = default_code_for_type(a_type);
-  el.innerText = value;
+  el.textContent = value;
 
   // Should be editable
   el.contentEditable = "true";
@@ -33,8 +33,9 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
     el,
     kind_label_for_dropdown: a_type.type_ref == "matplotlib._typing.ArrayLike" ? "list" : "???",
     does_match_arg_code: (arg_code: string) => arg_code_matches_alias_widget(widget, arg_code),
-    to_code: () => widget.el.innerText,
-    set_code: (new_code: string) => { widget.el.innerText = new_code },
+    // textContent, not innerText: see arbitrary_code.ts (innerText reads "" in non-rendered subtrees).
+    to_code: () => widget.el.textContent ?? "",
+    set_code: (new_code: string) => { widget.el.textContent = new_code },
     clone: () => clone_alias_widget(widget),
     a_type,
   };
@@ -44,7 +45,7 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
 
 export function clone_alias_widget(widget: AliasWidget): AliasWidget {
   let new_widget = create_alias_widget(widget.a_type);
-  new_widget.el.innerText = widget.el.innerText;
+  new_widget.el.textContent = widget.el.textContent;
   return new_widget;
 }
 

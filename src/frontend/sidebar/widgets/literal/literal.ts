@@ -13,7 +13,7 @@ export type LiteralWidget = Widget & {
 export function create_literal_widget(type: LiteralType): LiteralWidget {
 
   const el = create_el("div", ["snp-widget", "literal-widget"]);
-  el.innerText = type.value_unparsed;
+  el.textContent = type.value_unparsed;
 
   if ((type.fallback as IInstanceType)?.type_ref == 'builtins.str') {
     el.classList.add("snp-arg-str");
@@ -27,7 +27,8 @@ export function create_literal_widget(type: LiteralType): LiteralWidget {
     el,
     kind_label_for_dropdown: "lit",
     does_match_arg_code: (arg_code: string) => arg_code == widget.to_code(),
-    to_code:             ()                 => widget.el.innerText,
+    // textContent, not innerText: see arbitrary_code.ts (innerText reads "" in non-rendered subtrees).
+    to_code:             ()                 => widget.el.textContent ?? "",
     set_code:            ()                 => undefined, // Not editable
     clone:               ()                 => create_arbitrary_code_widget(widget.to_code()), // Turn into a regular code widget when chosen from a dropdown
   };

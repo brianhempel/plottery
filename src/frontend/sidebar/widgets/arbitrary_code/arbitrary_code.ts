@@ -8,7 +8,7 @@ export type ArbitraryCodeWidget = Widget & {
 
 export function create_arbitrary_code_widget(code: string): ArbitraryCodeWidget {
   const el = create_el("div", ["snp-widget", "arbitrary-code-widget"]);
-  el.innerText = code;
+  el.textContent = code;
   el.contentEditable = "true";
   el.addEventListener("keydown", ev => {
     if (ev.code === "Enter") {
@@ -28,8 +28,12 @@ export function create_arbitrary_code_widget(code: string): ArbitraryCodeWidget 
     el,
     kind_label_for_dropdown: "code",
     does_match_arg_code: (arg_code: string) => arg_code == widget.to_code(),
-    to_code:             ()                 => widget.el.innerText,
-    set_code:            (new_code: string) => { widget.el.innerText = new_code },
+    // textContent (not innerText): innerText returns "" for elements in non-rendered
+    // subtrees (e.g. Notebook 7 windows offscreen cells with content-visibility:auto),
+    // which made the code-sync watcher blank this arg out of the cell source. textContent
+    // is layout-independent (and cheaper: no forced reflow).
+    to_code:             ()                 => widget.el.textContent ?? "",
+    set_code:            (new_code: string) => { widget.el.textContent = new_code },
     clone:               ()                 => create_arbitrary_code_widget(widget.to_code()),
   };
 
