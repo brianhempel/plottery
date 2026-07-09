@@ -297,7 +297,7 @@ export function attach_events_to_hover_regions(state: State) {
           evt.stopPropagation();
         });
 
-        document.addEventListener("mousemove", evt => {
+        const on_document_mousemove = (evt: MouseEvent) => {
           if (pressed) {
             if (!moved) {
               log_event("gui", "on-plot drag start", {call: call_info.func_code, code: state.cell.code_mirror.getValue()});
@@ -312,10 +312,14 @@ export function attach_events_to_hover_regions(state: State) {
             state.hover_regions_container.classList.add("hide_during_interaction");
             evt.preventDefault();
             evt.stopPropagation();
+          } else if (!hover_region.isConnected) {
+            // Remove self once stale after rerender
+            document.removeEventListener("mousemove", on_document_mousemove); return;
           }
-        });
+        };
+        document.addEventListener("mousemove", on_document_mousemove);
 
-        document.addEventListener("mouseup", evt => {
+        const on_document_mouseup = (_evt: MouseEvent) => {
           if (pressed) {
             pressed = false;
             // state.hover_regions_container.classList.remove("hidden");
@@ -332,8 +336,12 @@ export function attach_events_to_hover_regions(state: State) {
               refresh_hover_regions(state);
               log_event("gui", "on-plot drag end", {call: call_info.func_code, code: state.cell.code_mirror.getValue()});
             }
+          } else if (!hover_region.isConnected) {
+            // Remove self once stale after rerender
+            document.removeEventListener("mouseup", on_document_mouseup); return;
           }
-        });
+        };
+        document.addEventListener("mouseup", on_document_mouseup);
       });
     });
   });
