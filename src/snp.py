@@ -1842,13 +1842,20 @@ def collect_user_defs(module_node):
 
 
 class ProvenanceTagger(ast.NodeTransformer):
-    def __init__(self, user_defs=None) -> None:
+    def __init__(self, user_defs=None, tag_calls=True, tag_vars=True) -> None:
         self.call_nums = {} # I checked and the traversal order is the same as for GatherTypedCalls
         self.user_defs = user_defs or {}
+        # tag_calls: emit tag_with_call_provenance (needed for hover-region -> code mapping).
+        # tag_vars:  emit the variable-sharing wrappers (tag_with_var_provenance / note_arg_provenance),
+        #            only consumed by the full SNP render's GatherTypedCalls.
+        self.tag_calls = tag_calls
+        self.tag_vars = tag_vars
         super().__init__()
 
     # name = <rhs>  ->  name = snp.tag_with_var_provenance(<rhs>, 'name', <rhs loc>)
     def visit_Assign(self, node):
+        if not self.tag_vars:
+            return self.generic_visit(node)
         match node.targets:
             case [ast.Name(id=var_name)]:
                 loc = ast_loc(node.value) # capture original RHS loc before generic_visit rewrites it
@@ -1876,13 +1883,17 @@ class ProvenanceTagger(ast.NodeTransformer):
                 self.call_nums[func_code] = call_num
                 call_id = make_call_id(func_code, call_num) # "ax.bar #1"
 
-                self._note_call_args(node, call_id)
+                if self.tag_vars:
+                    self._note_call_args(node, call_id)
 
-                return _snp_attr_call('tag_with_call_provenance', [node, ast.Constant(call_id)])
+                if self.tag_calls:
+                    return _snp_attr_call('tag_with_call_provenance', [node, ast.Constant(call_id)])
+                return node
 
             # same-cell user function: flow provenance into it by parameter name.
             case ast.Call(func=ast.Name(id=func_name)) if func_name in self.user_defs:
-                self._tag_user_func_args(node, self.user_defs[func_name], arg_locs, kw_locs)
+                if self.tag_vars:
+                    self._tag_user_func_args(node, self.user_defs[func_name], arg_locs, kw_locs)
                 return node
 
             case _:
@@ -1928,12 +1939,48 @@ class ProvenanceTagger(ast.NodeTransformer):
 
 # We need a new ProvenanceTagger each time, to reset call_nums
 class RootProvenanceTagger:
+    # The frontend (code_sync.ts) appends one of:
+    #   last_snp = snp.show_ui(fig_idx=N, snp_class=snp.SNPFigureOnly)
+    #   last_snp = snp.show_ui(fig_idx=N, snp_class=snp.SNPFigureAndHoverRegions)
+    # Read that trailing snp_class so we can tag only as much provenance as the render consumes.
+    def _detect_render_class(self, node):
+        for stmt in node.body:
+            value = stmt.value if isinstance(stmt, (ast.Assign, ast.Expr)) else None
+            if not (isinstance(value, ast.Call)
+                    and isinstance(value.func, ast.Attribute)
+                    and value.func.attr == "show_ui"):
+                continue
+            for kw in value.keywords:
+                if kw.arg == "snp_class":
+                    # snp.SNPFigureOnly (Attribute) or a bare SNPFigureOnly (Name).
+                    if isinstance(kw.value, ast.Attribute):
+                        return kw.value.attr
+                    if isinstance(kw.value, ast.Name):
+                        return kw.value.id
+        return None
+
     def visit(self, node):
         with Timer("ProvenanceTagger"):
+            render_class = self._detect_render_class(node)
+            if render_class == "SNPFigureOnly":
+                # Fast drag redraw: figure PNG only, reads no provenance, so skip the
+                # tagging *and* the per-cell reset entirely.
+                tag_calls, tag_vars = False, False
+            elif render_class == "SNPFigureAndHoverRegions":
+                # Hover regions need call ids (_snp_came_from_call_id) but not var-sharing provenance.
+                tag_calls, tag_vars = True, False
+            else:
+                # Full SNP render (or a normal run with no explicit snp_class): tag everything.
+                tag_calls, tag_vars = True, True
+
+            if not tag_calls and not tag_vars:
+                return node
+
             user_defs = collect_user_defs(node)
-            out = ProvenanceTagger(user_defs).visit(node)
-            # Reset the per-call provenance log at the start of each cell run.
-            out.body.insert(0, ast.Expr(_snp_attr_call('_reset_var_provenance_at_call', [])))
+            out = ProvenanceTagger(user_defs, tag_calls=tag_calls, tag_vars=tag_vars).visit(node)
+            if tag_vars:
+                # Reset the per-call provenance log at the start of each cell run.
+                out.body.insert(0, ast.Expr(_snp_attr_call('_reset_var_provenance_at_call', [])))
             ast.fix_missing_locations(out)
         # print(ast.unparse(out))
         return out
