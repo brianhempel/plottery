@@ -778,10 +778,6 @@ export function select_layer(layer: Layer, state: State, call_view?: CallView) {
   // console.log(layer.el)
 }
 
-// Number of lines to leave visible below the selected line, so it lands as the
-// third-to-last line of the code box (instead of flush with the bottom edge).
-const LINES_BELOW_SELECTED = 2;
-
 // Scroll the selected layer's code into view (without moving the cursor) so its
 // line is visible even when the editor is capped at max-height and scrolled.
 // Target the start of the line (column 0) so we scroll vertically only and stay
@@ -792,6 +788,10 @@ const LINES_BELOW_SELECTED = 2;
 // the browser viewport is intentionally left untouched. If the line is already
 // fully visible (e.g. the user just clicked it in the editor), don't scroll.
 function scroll_selected_layer_into_view(layer: Layer, state: State) {
+  // Number of lines to leave visible below the selected line, so it lands as the
+  // third-to-last line of the code box (instead of flush with the bottom edge).
+  const LINES_BELOW_SELECTED = 2;
+
   const range = layer.mark.find();
   if (!range) return;
   const cm = state.cell.code_mirror as any;
