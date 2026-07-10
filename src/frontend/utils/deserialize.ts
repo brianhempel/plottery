@@ -1,11 +1,15 @@
 // Inverse of `arbitrary_to_json` in serialize.py
+//
+// Graph format: an array where index 0 is the root object and later indices
+// are other objects in discovery order. Cross-refs are integer indices into
+// this array.
 
 export function python_objects_to_js(graph_json : any) : any {
   // Deep copy is clean but unnecessary.
   let graph = JSON.parse(JSON.stringify(graph_json))
 
-  for (let key in graph) {
-    let obj = graph[key]
+  for (let i = 0; i < graph.length; i++) {
+    let obj = graph[i]
 
     // If the obj is a string, int, float, bool, or None, do nothing
     if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean' || obj === null) {
@@ -14,19 +18,19 @@ export function python_objects_to_js(graph_json : any) : any {
 
     // If dictionary or array
     for (let key in obj) {
-      if (key === '.class' || !obj.hasOwnProperty(key)) {
+      if (!obj.hasOwnProperty(key)) {
         continue
       }
 
-      let child_id = obj[key]
+      let child_index = obj[key]
 
-      if (!(child_id in graph)) {
+      if (typeof child_index !== 'number' || child_index < 0 || child_index >= graph.length) {
         console.error(obj)
-        throw new Error(`Could not find ${child_id} in ${graph_json} for ${obj}['${key}']`)
+        throw new Error(`Could not find index ${child_index} in graph for ${obj}['${key}']`)
       }
-      obj[key] = graph[child_id]
+      obj[key] = graph[child_index]
     }
   }
 
-  return graph[graph['root']]
+  return graph[0]
 }

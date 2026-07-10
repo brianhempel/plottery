@@ -60,43 +60,64 @@ def obj_class_str(obj):
 
 
 def arbitrary_to_json(obj, recurse=lambda obj: True, extra_attrs=lambda obj: {}):
-    graph = { 'root': id(obj) }
-    _arbitrary_to_json(obj, graph, recurse=recurse, extra_attrs=extra_attrs)
+    # Array graph: index 0 is the root; later indices are other objects in
+    # discovery order. Cross-refs are integer indices (not Python id()s),
+    # which keeps the JSON much smaller.
+    graph = []
+    id_or_str_to_index = {}
+    dont_gc = [] # ensure potentially transient objects don't free up their object id's
+    _arbitrary_to_json(obj, graph, id_or_str_to_index, dont_gc, recurse=recurse, extra_attrs=extra_attrs)
     return graph
 
 
-def _arbitrary_to_json(obj, graph, recurse, extra_attrs):
+def _arbitrary_to_json(obj, graph, id_or_str_to_index, dont_gc, recurse, extra_attrs):
     obj_id = id(obj)
 
-    if obj_id in graph:
-        return obj_id
+    if obj_id in id_or_str_to_index:
+        return id_or_str_to_index[obj_id]
 
-    if not recurse(obj):
-        graph[obj_id] = { '.class': obj_class_str(obj) }
-        return obj_id
+    index = len(graph)
 
-    if isinstance(obj, str) or isinstance(obj, int) or isinstance(obj, float) or isinstance(obj, bool) or obj is None:
-        graph[obj_id] = obj
-        return obj_id
+    # de-duplicate strings
+    if isinstance(obj, str):
+        if obj in id_or_str_to_index:
+            return id_or_str_to_index[obj]
+        id_or_str_to_index[obj] = index
+        graph.append(obj)
+        return index
+
+    id_or_str_to_index[obj_id] = index
+
+    if isinstance(obj, int) or isinstance(obj, float) or isinstance(obj, bool) or obj is None:
+        graph.append(obj)
+        return index
 
     # Put a placeholder in the graph so we don't recurse back to us when visiting children.
     me = {}
-    graph[obj_id] = me
+    graph.append(me)
+
+    if not recurse(obj):
+        me['.class'] = _arbitrary_to_json(obj_class_str(obj), graph, id_or_str_to_index, dont_gc, recurse, extra_attrs)
+        return index
 
     if isinstance(obj, dict):
-        out_dict = {key: _arbitrary_to_json(child, graph, recurse, extra_attrs) for key, child in obj.items()}
+        out_dict = {key: _arbitrary_to_json(child, graph, id_or_str_to_index, dont_gc, recurse, extra_attrs) for key, child in obj.items()}
         for key, child in extra_attrs(obj).items():
-            out_dict[key] = _arbitrary_to_json(child, graph, recurse, extra_attrs)
-        graph[obj_id] = out_dict
-        return obj_id
-
+            if not (isinstance(child, str) or isinstance(child, int) or isinstance(child, float) or isinstance(child, bool) or child is None):
+                dont_gc.append(child) # if child is a computed property, it could be GC'd and its index reused unless we hold a reference
+            out_dict[key] = _arbitrary_to_json(child, graph, id_or_str_to_index, dont_gc, recurse, extra_attrs)
+        graph[index] = out_dict
+        return index
 
     child_dir = dir(obj)
 
     if "__iter__" in child_dir:
-        graph[obj_id] = [_arbitrary_to_json(child, graph, recurse, extra_attrs) for child in obj]
+        as_list = [child for child in obj]
+        dont_gc.append(as_list) # if child is a computed property, it could be GC'd and its index reused unless we hold a reference
+        me = [_arbitrary_to_json(child, graph, id_or_str_to_index, dont_gc, recurse, extra_attrs) for child in as_list]
+        graph[index] = me
     else:
-        me['.class'] = obj_class_str(obj)
+        me['.class'] = _arbitrary_to_json(obj_class_str(obj), graph, id_or_str_to_index, dont_gc, recurse, extra_attrs)
 
         for child_name in child_dir:
             if child_name not in trivial_names and not child_name.startswith("__"):
@@ -105,20 +126,24 @@ def _arbitrary_to_json(obj, graph, recurse, extra_attrs):
                 try:
                     child = getattr(obj, child_name)
                 except Exception:
-                    me[child_name] = _arbitrary_to_json(None, graph, recurse, extra_attrs)
+                    me[child_name] = _arbitrary_to_json(None, graph, id_or_str_to_index, dont_gc, recurse, extra_attrs)
                     continue
                 if not callable(child):
-                    len_before = len(graph)
-                    me[child_name] = _arbitrary_to_json(child, graph, recurse, extra_attrs)
-                    dlen = len(graph) - len_before
-                    if dlen > 500:
-                        me[child_name + '_DLEN'] = _arbitrary_to_json(dlen, graph, recurse, extra_attrs)
-                        # print(dlen, me['.class'], child_name)
+                    if not (isinstance(child, str) or isinstance(child, int) or isinstance(child, float) or isinstance(child, bool) or child is None):
+                        dont_gc.append(child) # if child is a computed property, it could be GC'd and its index reused unless we hold a reference
+                    # len_before = len(graph)
+                    me[child_name] = _arbitrary_to_json(child, graph, id_or_str_to_index, dont_gc, recurse, extra_attrs)
+                    # dlen = len(graph) - len_before
+                    # if dlen > 500:
+                    #     me[child_name + '_DLEN'] = _arbitrary_to_json(dlen, graph, id_or_str_to_index, recurse, extra_attrs)
+                    #     print(dlen, me['.class'], child_name)
 
     for key, child in extra_attrs(obj).items():
-        me[key] = _arbitrary_to_json(child, graph, recurse, extra_attrs)
+        if not (isinstance(child, str) or isinstance(child, int) or isinstance(child, float) or isinstance(child, bool) or child is None):
+            dont_gc.append(child) # if child is a computed property, it could be GC'd and its index reused unless we hold a reference
+        me[key] = _arbitrary_to_json(child, graph, id_or_str_to_index, dont_gc, recurse, extra_attrs)
 
-    return obj_id
+    return index
 
 
 

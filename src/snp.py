@@ -56,7 +56,7 @@ def get_index_or_default(lst, i, default):
     except IndexError:
         return default
 
-# thanks GPT-4
+
 class Timer:
     def __init__(self, message=""):
         self.message = message
@@ -147,22 +147,31 @@ def do_mypy_inference(code):
     return mypy_result
 
 
-html_chars_re = re.compile("[&<>\"']")
+# html_chars_re = re.compile("[&<>\"']")
 
-def escape_html(string):
-    html_subs = {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;",
-    }
+# def escape_html(string):
+    # html_subs = {
+    #     "&": "&amp;",
+    #     "<": "&lt;",
+    #     ">": "&gt;",
+    #     '"': "&quot;",
+    #     "'": "&#039;",
+    # }
 
-    return html_chars_re.sub(lambda match: html_subs[match.group(0)], string)
+    # return html_chars_re.sub(lambda match: html_subs[match.group(0)], string)
 
+def escape_for_double_quoted_html_attr(string):
+    return string.replace("&", "&amp;").replace('"', "&quot;")
 
-def json_for_attr(x):
-    return escape_html(json.dumps(x))
+def escape_for_single_quoted_html_attr(string):
+    return string.replace("&", "&amp;").replace("'", "&#039;")
+
+def json_for_double_quoted_attr(x):
+    return escape_for_double_quoted_html_attr(json.dumps(x))
+
+# putting JSON into single quoted HTML attrs saves a LOT of space because we don't have to escape all the double quotes
+def json_for_single_quoted_attr(x):
+    return escape_for_single_quoted_html_attr(json.dumps(x))
 
 
 def full_names_dict(type_node):
@@ -451,7 +460,7 @@ def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names):
     name = shortest_qualified_name(artist_names.get(id(artist), (None, {}))[1])
 
     perhaps_name = f'data-artist-name="{name}"' if name is not None else ""
-    perhaps_call_loc = f'data-call-id="{escape_html(artist._snp_came_from_call_id)}" data-fig-px-bounds="{json_for_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_attr(region_px_bounds)}"' if hasattr(artist, "_snp_came_from_call_id") else ""
+    perhaps_call_loc = f'data-call-id="{escape_for_double_quoted_html_attr(artist._snp_came_from_call_id)}" data-fig-px-bounds="{json_for_double_quoted_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_double_quoted_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_double_quoted_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_double_quoted_attr(region_px_bounds)}"' if hasattr(artist, "_snp_came_from_call_id") else ""
     return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" {perhaps_name} {perhaps_call_loc}>
     {geom_svg}
     {child_svgs_str}
@@ -1341,17 +1350,18 @@ class SNP(SNPFigureAndHoverRegions):
 
                     type_json = method_type_json(artist, method_name, self.type_graph)
 
-                    type_json is not None and self.methods.append(
-                        {
-                            "name": method_name,
-                            "docstring_first_line": docstring_first_line,
-                            "receiver": artist_id,
-                            "receiver_name": shortest_qualified_name(names),
-                            "show_on": show_on,
-                            "type": type_json,
-                            "max_calls": max_calls,
-                        }
-                    )
+                    if type_json is not None:
+                        self.methods.append(
+                            {
+                                "name": method_name,
+                                "docstring_first_line": docstring_first_line,
+                                "receiver": artist_id,
+                                "receiver_name": shortest_qualified_name(names),
+                                "show_on": show_on,
+                                "type": type_json,
+                                "max_calls": max_calls,
+                            }
+                        )
 
 
         # print(ast.parse(self.notebook_code_through_cell).)
@@ -1373,9 +1383,7 @@ class SNP(SNPFigureAndHoverRegions):
 
         with Timer("notebook_typed_ast"):
             # The frontend (main.ts) only ever keeps typed defs with line >= cell_lineno
-            # (it filters earlier-cell defs out before building layers), so serializing the
-            # whole notebook's typed AST is wasted time + payload. Filter to the current
-            # cell here. Defs missing a line attribute are kept, to be safe.
+            # so don't bother serializing earlier lines
             current_cell_defs = [
                 node for node in self.type_tree.defs
                 if getattr(node, "line", None) is None or node.line >= self.cell_lineno
@@ -1451,11 +1459,28 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- properties panel added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload="attach_snp(this.closest('.snp_outer'), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_attr(self.methods)}, {json_for_attr(self.calls)}, {json_for_attr(notebook_typed_ast)}, {json_for_attr(self.notebook_parseable_comments)}, {json_for_attr(self.user_iterables)}, {json_for_attr(list(self.avoid_names))}, {json_for_attr(llm_api_key)}, {self.fig_idx}, {json_for_attr(self.fig_names)})">
+                <style onload='attach_snp(this.closest(".snp_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(llm_api_key)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
                     {frontend_css}
                 </style>
                 </div>
             """
+
+        # l = globals() | locals()
+
+        # def log(code):
+        #     s = eval(code, l)
+        #     print(f"{code} ({len(s)}): {s[:1000]}")
+
+        # log("out_html")
+        # log("json_for_single_quoted_attr(self.methods)")
+        # log("json_for_single_quoted_attr(self.calls)")
+        # log("json_for_single_quoted_attr(notebook_typed_ast)")
+        # log("json_for_single_quoted_attr(self.notebook_parseable_comments)")
+        # log("json_for_single_quoted_attr(self.user_iterables)")
+        # log("json_for_single_quoted_attr(list(self.avoid_names))")
+        # log("json_for_single_quoted_attr(self.user_iterables)")
+        # log("json_for_single_quoted_attr(llm_api_key)")
+        # log("json_for_single_quoted_attr(self.fig_names)")
 
         return out_html
 
