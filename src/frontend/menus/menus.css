@@ -47,14 +47,15 @@ input.snp-menu-search {
   color: #000;
   border-radius: 1em;
   padding: 0.1em 0.5em;
-  padding-left: 26px;
+  padding-left: 23px;
   font-size: 12px;
 }
 .snp-search-icon {
   position: absolute;
   left: 10px;
-  height: 16px;
-  top: calc(50% - 8px);
+  height: 14px;
+  width: 14px;
+  top: calc(50% - 7px);
   opacity: 0.7;
 }
 
