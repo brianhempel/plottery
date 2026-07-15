@@ -1516,7 +1516,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- properties panel added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload='attach_snp(this.closest(".snp_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(llm_api_key)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
+                <style onload='attach_snp(this.closest(".snp_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(llm_api_key)}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
                     {frontend_css}
                 </style>
                 </div>

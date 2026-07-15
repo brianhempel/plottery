@@ -26,6 +26,7 @@ export type State = {
   avoid_names: string[];
 
   llm_api_key: string;
+  mpl_version: string;
 
   // **** Actual state ****
 

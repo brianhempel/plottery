@@ -59,6 +59,7 @@ function attach_snp(
   user_iterables: string[],
   avoid_names: string[],
   llm_api_key: string,
+  mpl_version: string,
   fig_idx: number,
   fig_names: string[],
 ) {
@@ -87,6 +88,7 @@ function attach_snp(
     methods_with_code: methods.map(m => method_info_to_method_with_args(m, avoid_names)),
 
     llm_api_key: llm_api_key,
+    mpl_version: mpl_version,
 
     layers_panel: { el: create_el("div"), layers: [] }, // Dummy, replaced immediately below.
 

@@ -79,7 +79,7 @@ function prompt_for_llm(user_prompt: string, state: State): string {
   })
 
   const prompt =
-`I am writing matplotlib code in the last cell of the following notebook:
+`I am writing matplotlib v${state.mpl_version} code in the last cell of the following notebook:
 
 \`\`\`
 ${notebook_code}
