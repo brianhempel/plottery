@@ -13,6 +13,10 @@ Quick orientation (details in `README.md`):
 
 The product is "Plottery" but the code still uses the old name `snp` / `SNP`.
 
+## No Outer-Level consts in Typescript
+
+Because the Javascript is re-injected on every cell run, you cannot use `const` at any global scope. Otherwise the user will get "Identifier 'xyz' has already been declared" and the new code will not run.
+
 ## Matplotlib
 
 To answer questions about Matplotlib's internals, reference its current source at `pip show matplotlib | grep Location:`.

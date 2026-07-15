@@ -89,9 +89,71 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
   // Select the first item
   select_dropdown_item(dropdown, items[0]);
 
+  // Collapse long runs of same-prefixed suggestions (e.g. df['a'], df['b'], …) into accordions
+  group_dropdown_items(dropdown);
+
   drawer_el.addEventListener("mouseout", () => { dropdown.previewing_code = undefined; });
 
   return dropdown;
+}
+
+// Suggestions sharing a `foo.` or `foo[` prefix clutter the drawer (a wide dataframe turns
+// every column into its own row). When at least GROUP_THRESHOLD items share a prefix, tuck them
+// into a collapsible accordion labeled by that prefix. This is a one-shot DOM layout pass over
+// the initial items; `dropdown.items` stays flat and items re-added later (e.g. an off-list
+// selected value) simply land ungrouped at the top level.
+// Declared inside the function: the JS bundle is re-injected on every cell run, so a
+// module-scope `const` would throw "already been declared" (see AGENTS.md).
+function group_dropdown_items(dropdown: DropdownWidget) {
+  const GROUP_THRESHOLD = 3;
+  // The prefix up to and including a `.`, `[`, or `(`, ignoring anything after a quote (so
+  // `df['a']` groups by `df[` while `df.b` groups by `df.`). When several regexes match, keep
+  // the longest match.
+  // const PREFIX_REGEXES = [
+  //   /^[^'"\[]+\[/,
+  //   /^[^'"\(]+\(/,
+  //   /^[^'"\.]+\./,
+  // ];
+  const PREFIX_REGEX = /^[^'"\(\[]+\[|^[^'"\(\[]+\(|^[^'"\.]+\./;
+
+  const holders_by_prefix = new Map<string, HTMLElement[]>();
+  for (const item of dropdown.items) {
+    const holder = item.el.parentElement; // the .snp-dropdown-item row
+    if (!holder || holder.parentElement !== dropdown.drawer_el) continue;
+    const prefix = item.to_code().match(PREFIX_REGEX)?.[0];
+    // // When several regexes match, keep the longest match.
+    // const code = item.to_code();
+    // const prefix = PREFIX_REGEXES
+    //   .map(re => code.match(re)?.[0] ?? "")
+    //   .sort((a, b) => b.length - a.length)[0];
+    if (!prefix) continue;
+    (holders_by_prefix.get(prefix) ?? holders_by_prefix.set(prefix, []).get(prefix)!).push(holder);
+  }
+
+  for (const [prefix, holders] of holders_by_prefix) {
+    if (holders.length < GROUP_THRESHOLD) continue;
+
+    const group_el = create_el("div", "snp-dropdown-group");
+    const header_el = create_el("div", "snp-dropdown-group-header", group_el);
+    const chevron_el = create_el("span", "snp-dropdown-group-chevron", header_el);
+    chevron_el.textContent = "›";
+    const label_el = create_el("span", "snp-dropdown-group-label", header_el);
+    label_el.textContent = `${prefix.replace('(', '').replace('[', '')}...`;
+    const count_el = create_el("span", "snp-dropdown-group-count", header_el);
+    count_el.textContent = String(holders.length);
+
+    const items_el = create_el("div", "snp-dropdown-group-items", group_el);
+
+    // Put the accordion where the first item was, then move all the rows inside it.
+    dropdown.drawer_el.insertBefore(group_el, holders[0]);
+    holders.forEach(h => items_el.append(h));
+
+    header_el.addEventListener("click", ev => {
+      const expanded = group_el.classList.toggle("expanded");
+      log_event("gui", expanded ? "dropdown group open" : "dropdown group close", { prefix });
+      ev.stopPropagation();
+    });
+  }
 }
 
 

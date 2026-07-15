@@ -1240,6 +1240,24 @@ class SNP(SNPFigureAndHoverRegions):
             dict_keys_node = self.type_graph['_collections_abc'].tree.names['dict_keys'].node # <TypeInfo _collections_abc.dict_keys>
             dict_values_node = self.type_graph['_collections_abc'].tree.names['dict_values'].node # <TypeInfo _collections_abc.dict_values>
             dict_items_node = self.type_graph['_collections_abc'].tree.names['dict_items'].node # <TypeInfo _collections_abc.dict_items>
+            # list[<scalar>] types for typing DataFrame columns from their runtime dtype (see the DataFrame branch below).
+            def list_of(elem_type):
+                return mypy.types.Instance(builtins_names['list'].node, [elem_type])
+            list_of_str_type     = list_of(string_type)
+            list_of_int_type     = list_of(mypy.types.Instance(builtins_names['int'].node, []))
+            list_of_float_type   = list_of(mypy.types.Instance(builtins_names['float'].node, []))
+            list_of_complex_type = list_of(mypy.types.Instance(builtins_names['complex'].node, []))
+            list_of_bool_type    = list_of(mypy.types.Instance(builtins_names['bool'].node, []))
+            list_of_bytes_type   = list_of(mypy.types.Instance(builtins_names['bytes'].node, []))
+            # For object/categorical DataFrame columns, map the element kind pandas infers (by scanning the
+            # actual values) to a list[<scalar>] type, so we only claim list[str] when it's really strings.
+            inferred_kind_to_type = {
+                "string": list_of_str_type, "bytes": list_of_bytes_type,
+                "integer": list_of_int_type, "boolean": list_of_bool_type, "complex": list_of_complex_type,
+                "floating": list_of_float_type, "decimal": list_of_float_type, "mixed-integer-float": list_of_float_type,
+            }
+            datetime_inferred_kinds = {"datetime", "datetime64", "date", "time", "timedelta", "timedelta64", "period"}
+            pd = sys.modules.get("pandas") # Only inspect DataFrames if pandas is already imported (it must be, if a value is a DataFrame). Avoids importing pandas ourselves.
             for name, value in locals.items():
                 if name in self.user_nameset and name not in snp_trivial_names and not callable(value):
                     name_type = None
@@ -1306,6 +1324,46 @@ class SNP(SNPFigureAndHoverRegions):
                                     is_subtype(item_type, iterable_type) and not is_subtype(item_type, string_type) and self.user_iterables.append(code)
 
                             self.user_typed_snippets[f"np.arange(len({name}))"] = np_arange_ret_type
+
+                        # One level into DataFrames: df['col'] for each column.
+                        #
+                        # pandas ships no py.typed and pandas-stubs isn't a dependency, so mypy infers
+                        # df['col'] as Any, which is_subtype() rejects for every non-Any arg. So synthesize
+                        # a type from the runtime dtype instead. We map to list[<scalar>] (a subtype of both
+                        # numpy's ArrayLike and Iterable[<scalar>]) so a column matches the args it really fits:
+                        # numeric cols reach float/ArrayLike args but not str-only ones, str cols reach both the
+                        # str-label args (tick_label/label) and, as categoricals, ArrayLike args. datetime/timedelta
+                        # aren't in ArrayLike's scalar union, so fall back to the ndarray type (still ArrayLike).
+                        if pd is not None and isinstance(value, pd.DataFrame):
+                            pdt = pd.api.types
+                            for i, (col, dtype) in enumerate(value.dtypes.items()):
+                                code = f"{name}[{repr(col)}]"
+                                if pdt.is_bool_dtype(dtype):
+                                    col_type = list_of_bool_type
+                                elif pdt.is_integer_dtype(dtype):
+                                    col_type = list_of_int_type
+                                elif pdt.is_float_dtype(dtype):
+                                    col_type = list_of_float_type
+                                elif pdt.is_complex_dtype(dtype):
+                                    col_type = list_of_complex_type
+                                elif pdt.is_datetime64_any_dtype(dtype) or pdt.is_timedelta64_dtype(dtype):
+                                    col_type = np_arange_ret_type # ndarray: dates/timedeltas are ArrayLike but aren't in its scalar union
+                                elif isinstance(dtype, pd.StringDtype):
+                                    col_type = list_of_str_type # definitively strings; skip the value scan below
+                                else:
+                                    # object / categorical: the dtype doesn't reveal the element type, so scan the
+                                    # actual values (the categories, for a categorical) to see what they really are
+                                    # rather than blindly assuming str. .iloc[:, i] is positional so it returns a
+                                    # Series even for duplicate column labels.
+                                    inferred = pdt.infer_dtype(dtype.categories if isinstance(dtype, pd.CategoricalDtype) else value.iloc[:, i], skipna=True)
+                                    if inferred in datetime_inferred_kinds:
+                                        col_type = np_arange_ret_type
+                                    else:
+                                        # Genuinely heterogeneous columns ('mixed', 'empty', ...) fall back to
+                                        # list[str], since matplotlib renders arbitrary objects as categorical labels.
+                                        col_type = inferred_kind_to_type.get(inferred, list_of_str_type)
+                                self.user_typed_snippets[code] = col_type
+                                self.user_iterables.append(code)
 
 
             # print(self.user_typed_snippets)
@@ -1436,7 +1494,6 @@ class SNP(SNPFigureAndHoverRegions):
                         'end_column':  len(chunk_lines[-1]) + (col_offset if chunk_endlineno == 1 else 0),
                         'uncommented': "\n".join(comment_as_code.split('\n')[chunk_lineno-1:chunk_endlineno])
                     })
-
 
         # Walk all the files in the frontend folder, and append all the contents of the .css files
         with Timer("frontend_css"):
