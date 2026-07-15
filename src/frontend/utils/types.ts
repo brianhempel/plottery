@@ -22,6 +22,10 @@ export type JupyterLabNotebook = {
   model: JupyterLabNotebookModel;
   cellsArray: JupyterLabCell[];
   parent: JupyterLabNotebookPanel;
+  // Present when windowingMode is contentVisibility / full / defer (Notebook v7 + JupyterLab).
+  viewModel?: {
+    setEstimatedWidgetSize: (cellId: string, size: number | null) => void;
+  };
 };
 
 // https://github.com/jupyterlab/jupyterlab/blob/main/packages/cells/src/widget.ts#L193
@@ -553,6 +557,12 @@ type JupyterNotebookActionsModule = {
 
 export type JupyterLabNotebookModel = {
   sharedModel: JupyterLabNotebookSharedModel;
+  cells: {
+    changed: {
+      connect: (slot: (sender: unknown, args: unknown) => void, context?: unknown) => void;
+      disconnect: (slot: (sender: unknown, args: unknown) => void, context?: unknown) => void;
+    };
+  };
 };
 
 export type JupyterLabNotebookSharedModel = {

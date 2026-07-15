@@ -20,6 +20,7 @@ import {
   get_persistent_item,
   set_persistent_item,
   notebook_cells,
+  attach_jupyter_cell_height_sync,
 } from "./utils/misc";
 import { Cell, JupyterLabNotebookPanel, JupyterType, jupyterlab_cell_to_notebook_v6_cell } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
@@ -411,6 +412,11 @@ div#notebook .CodeMirror { font-size: 17px }
   }
 
   attach_code_cell_logging();
+
+  // Notebook v7 / JupyterLab content-visibility windowing underestimates Plottery cell
+  // height (ignores HTML UI). Keep the estimate + contain-intrinsic-size in sync with the
+  // real layout, including after New Cell rewrites them from the bad estimate.
+  attach_jupyter_cell_height_sync(state);
 
   (window as any)["last_snp_state"] = state;
 

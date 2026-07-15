@@ -66,6 +66,117 @@ export function notebook_cells(snp_outer: HTMLElement): Cell[] {
 }
 
 
+// Notebook v7 / JupyterLab default windowingMode is "contentVisibility". On cell-list
+// changes it rewrites each cell's contain-intrinsic-size from estimateWidgetSize(), which
+// only counts source lines + text/plain outputs — so Plottery's HTML UI is ignored and the
+// cell box collapses to ~plot height (sidebar then overlaps later cells via overflow:visible).
+// Push the real measured height into Notebook's estimate cache + contain-intrinsic-size.
+export function sync_jupyter_cell_height(state: State): void {
+  if (Jupyter) return; // Notebooks v6 — no content-visibility windowing
+  if (!state.is_in_dom()) return;
+
+  const jl_cell = state.cell.jupyterlab_cell;
+  if (!jl_cell?.node?.isConnected) return;
+  const node = jl_cell.node;
+
+  // Size-containment from content-visibility:auto makes getBoundingClientRect return the
+  // (wrong) intrinsic estimate. Force a real layout pass for the measurement.
+  const prev_cv = node.style.contentVisibility;
+  const prev_contain = node.style.contain;
+  node.style.contentVisibility = "visible";
+  node.style.contain = "style";
+
+  const height = node.getBoundingClientRect().height;
+
+  node.style.contentVisibility = prev_cv;
+  node.style.contain = prev_contain;
+
+  if (!(height > 0)) return;
+
+  // Once the estimate cache is primed, estimateWidgetSize() keeps returning our value (so
+  // Notebook's own rewrites stay correct), so we only need to act when the real height changed.
+  // Stash the last-pushed height on the (persistent) cell node — this bundle is re-injected on
+  // every cell run, so we can't hold it in a module-level cache. Sub-pixel tolerance avoids
+  // churn from layout rounding.
+  const node_store = node as any;
+  const prev_height: number | undefined = node_store.__snp_last_synced_height;
+  if (prev_height !== undefined && Math.abs(prev_height - height) < 1) return;
+  node_store.__snp_last_synced_height = height;
+
+  node.style.containIntrinsicSize = `auto ${height}px`;
+
+  const cell_id = jl_cell.model.sharedModel.id || jl_cell.model.sharedModel.getId();
+  const notebook = jupyterlab_notebook_panel(state.snp_outer)?.content as
+    | (JupyterLabNotebookPanel["content"] & { _viewModel?: JupyterLabNotebookPanel["content"]["viewModel"] })
+    | undefined;
+  const view_model = notebook?.viewModel ?? notebook?._viewModel;
+  view_model?.setEstimatedWidgetSize?.(cell_id, height);
+}
+
+// Keep the estimate fresh after attach/layout, on UI resize, and after Notebook's New Cell
+// pathway rewrites contain-intrinsic-size from its bad estimate.
+export function attach_jupyter_cell_height_sync(state: State): void {
+  if (Jupyter) return;
+
+  // The Cell widget persists across manual re-runs (only its output — and thus snp_outer — is
+  // replaced), so tear down the previous render's observers before wiring up new ones. Otherwise
+  // each re-run leaks a ResizeObserver + a cells.changed slot that pin the old, detached
+  // snp_outer subtree until some later structural cell change happens to sweep them. The teardown
+  // fn is stashed on the (persistent) cell node — the bundle is re-injected each run, so it can't
+  // live in a module-level variable.
+  const cell_node = state.cell.jupyterlab_cell?.node;
+  if (!cell_node) return;
+  const store = cell_node as any;
+  store.__snp_cell_height_sync_teardown?.();
+
+  const cleanups: Array<() => void> = [];
+  const teardown = () => {
+    while (cleanups.length) cleanups.pop()!();
+    if (store.__snp_cell_height_sync_teardown === teardown) {
+      delete store.__snp_cell_height_sync_teardown;
+    }
+  };
+  store.__snp_cell_height_sync_teardown = teardown;
+
+  const sync = () => sync_jupyter_cell_height(state);
+
+  // After this attach's layout settles.
+  requestAnimationFrame(sync);
+
+  // snp_outer resizes rapidly during shape drags / sidebar-width changes, and each sync forces a
+  // synchronous reflow (it toggles content-visibility to measure). Coalesce a burst of resizes
+  // into a single trailing sync.
+  let resize_timer: number | undefined;
+  const resize_observer = new ResizeObserver(() => {
+    if (!state.is_in_dom()) { teardown(); return; }
+    if (resize_timer !== undefined) window.clearTimeout(resize_timer);
+    resize_timer = window.setTimeout(() => { resize_timer = undefined; sync(); }, 100);
+  });
+  resize_observer.observe(state.snp_outer);
+  cleanups.push(() => {
+    resize_observer.disconnect();
+    if (resize_timer !== undefined) window.clearTimeout(resize_timer);
+  });
+
+  let cells_changed: JupyterLabNotebookPanel["content"]["model"]["cells"]["changed"] | undefined;
+  try {
+    cells_changed = jupyterlab_notebook_panel(state.snp_outer)?.content?.model?.cells?.changed;
+  } catch {
+    return;
+  }
+  if (!cells_changed?.connect) return;
+
+  // Notebook schedules its own rAF on cells.changed that overwrites contain-intrinsic-size.
+  // Double-rAF so we run after that rewrite. Disconnect once this render leaves the DOM.
+  const on_cells_changed = () => {
+    if (!state.is_in_dom()) { teardown(); return; }
+    requestAnimationFrame(() => requestAnimationFrame(sync));
+  };
+  cells_changed.connect(on_cells_changed);
+  cleanups.push(() => cells_changed!.disconnect(on_cells_changed));
+}
+
+
 // Things than need to last between cell reruns
 //
 // E.g. selected layers, which fig to show
