@@ -31,6 +31,7 @@ import { id_as_new_call } from "./sidebar/call/call";
 import { method_info_to_method_with_args } from "./sidebar/methods/method";
 import { ParseableComment } from "./layer_panel/layer_panel";
 import { attach_ai_line_highlight_clearing_handlers, create_ai_panel } from "./ai_panel/ai_panel";
+import { llm_api_key, LLMApiKeys } from "./utils/llm";
 import { log_event, rate_limit } from "./utils/instrumentation";
 import { DocOrEditor } from "./utils/codemirror";
 
@@ -58,7 +59,7 @@ function attach_snp(
   notebook_parseable_comments: ParseableComment[],
   user_iterables: string[],
   avoid_names: string[],
-  llm_api_key: string,
+  llm_api_keys: LLMApiKeys,
   mpl_version: string,
   fig_idx: number,
   fig_names: string[],
@@ -87,7 +88,7 @@ function attach_snp(
     methods: methods,
     methods_with_code: methods.map(m => method_info_to_method_with_args(m, avoid_names)),
 
-    llm_api_key: llm_api_key,
+    llm_api_keys: llm_api_keys,
     mpl_version: mpl_version,
 
     layers_panel: { el: create_el("div"), layers: [] }, // Dummy, replaced immediately below.
@@ -193,7 +194,7 @@ div#notebook .CodeMirror { font-size: 17px }
 
   state.sidebar_el.append(sidebar_menu_bar);
 
-  if (llm_api_key.length > 10) {
+  if (llm_api_key(llm_api_keys).length > 10) {
     state.sidebar_el.append(create_ai_panel(state));
     attach_ai_line_highlight_clearing_handlers();
   } else {

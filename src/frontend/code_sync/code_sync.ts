@@ -510,6 +510,55 @@ last_snp`;
 }
 
 
+// Execute `code` — which need not match the cell's text — and swap in the resulting figure
+// image only, leaving the cell code, marks, and the rest of the SNP UI untouched. Used by the
+// AI panel's live preview; the caller saves/restores the previous img src etc. to revert.
+// `should_apply` is checked at each output message so a preview the user has since abandoned
+// (kernel executions can't be aborted) doesn't clobber the restored original.
+export function preview_figure_only(
+  state: State,
+  code: string,
+  should_apply: () => boolean,
+  on_reply: () => void = () => {}
+) {
+  const request_time = new Date().getTime();
+  state.outstanding_kernel_request_time = request_time;
+
+  state.stdout_stderr.innerHTML = "";
+
+  state.hover_regions_container.classList.add("hidden");
+
+  const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
+  const postfix =
+`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureOnly) # Store to a variable for debugging
+last_snp`;
+
+  const on_iopub_output = (msg: CellMessage) => {
+    if (!should_apply()) { return; }
+
+    const msg_type = msg.header.msg_type;
+    if ( msg_type == "execute_result" && msg.content.data["image/png"] ) {
+      // Replace background image
+      const img = state.plot_area.querySelector("img")!;
+      img.src = "data:image/png;base64," + msg.content.data["image/png"];
+    } else if (msg_type === "status" || msg_type === "execute_input") {
+      // Swallow these JupyterLab-specific messages
+    } else {
+      handle_error_or_stdout_stderr(state, msg);
+    }
+  };
+
+  const on_shell_reply = (_msg: CellMessage) => {
+    if (state.outstanding_kernel_request_time == request_time) {
+      state.outstanding_kernel_request_time = undefined;
+    }
+    on_reply();
+  };
+
+  kernel_execute(code, postfix, on_iopub_output, on_shell_reply, state);
+}
+
+
 export function refresh_hover_regions(state: State) {
   const cell = state.cell;
 

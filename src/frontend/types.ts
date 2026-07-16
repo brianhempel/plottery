@@ -25,7 +25,7 @@ export type State = {
   user_iterables: string[];
   avoid_names: string[];
 
-  llm_api_key: string;
+  llm_api_keys: { [provider: string]: string }; // keyed by provider name, see snp_ai_provider in utils/llm.ts
   mpl_version: string;
 
   // **** Actual state ****

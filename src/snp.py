@@ -1500,7 +1500,13 @@ class SNP(SNPFigureAndHoverRegions):
             frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path(f"{snp_src_directory}/frontend").rglob("*.css")])
 
         with Timer("out_html"):
-            llm_api_key = os.getenv('OPENAI_API_KEY', '')
+            # Keyed by provider name; the frontend picks via snp_ai_provider (utils/llm.ts).
+            llm_api_keys = {
+                'openai':    os.getenv('OPENAI_API_KEY', ''),
+                'inception': os.getenv('INCEPTION_API_KEY', ''),
+                'cerebras':  os.getenv('CEREBRAS_API_KEY', ''),
+                'anthropic': os.getenv('ANTHROPIC_API_KEY', ''),
+            }
 
             out_html = f"""
                 <div class="snp_outer">
@@ -1516,7 +1522,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- properties panel added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload='attach_snp(this.closest(".snp_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(llm_api_key)}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
+                <style onload='attach_snp(this.closest(".snp_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(llm_api_keys)}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
                     {frontend_css}
                 </style>
                 </div>
