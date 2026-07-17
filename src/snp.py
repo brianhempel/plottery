@@ -1500,12 +1500,17 @@ class SNP(SNPFigureAndHoverRegions):
             frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path(f"{snp_src_directory}/frontend").rglob("*.css")])
 
         with Timer("out_html"):
-            # Keyed by provider name; the frontend picks via snp_ai_provider (utils/llm.ts).
+            # Keyed by provider name. These are the server's keys; the frontend's AI config
+            # panel picks the provider and can override any of these with a user key (utils/llm.ts).
             llm_api_keys = {
-                'openai':    os.getenv('OPENAI_API_KEY', ''),
-                'inception': os.getenv('INCEPTION_API_KEY', ''),
-                'cerebras':  os.getenv('CEREBRAS_API_KEY', ''),
-                'anthropic': os.getenv('ANTHROPIC_API_KEY', ''),
+                'openai':     os.getenv('OPENAI_API_KEY', ''),
+                'anthropic':  os.getenv('ANTHROPIC_API_KEY', ''),
+                'gemini':     os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY', ''),
+                # A Bedrock API key (bearer token), not an AWS access key/secret — we don't sign SigV4.
+                'bedrock':    os.getenv('AWS_BEARER_TOKEN_BEDROCK', ''),
+                'openrouter': os.getenv('OPENROUTER_API_KEY', ''),
+                'inception':  os.getenv('INCEPTION_API_KEY', ''),
+                'cerebras':   os.getenv('CEREBRAS_API_KEY', ''),
             }
 
             out_html = f"""

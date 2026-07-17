@@ -31,7 +31,7 @@ import { id_as_new_call } from "./sidebar/call/call";
 import { method_info_to_method_with_args } from "./sidebar/methods/method";
 import { ParseableComment } from "./layer_panel/layer_panel";
 import { attach_ai_line_highlight_clearing_handlers, create_ai_panel } from "./ai_panel/ai_panel";
-import { llm_api_key, LLMApiKeys } from "./utils/llm";
+import { LLMApiKeys } from "./utils/llm";
 import { log_event, rate_limit } from "./utils/instrumentation";
 import { DocOrEditor } from "./utils/codemirror";
 
@@ -194,12 +194,10 @@ div#notebook .CodeMirror { font-size: 17px }
 
   state.sidebar_el.append(sidebar_menu_bar);
 
-  if (llm_api_key(llm_api_keys).length > 10) {
-    state.sidebar_el.append(create_ai_panel(state));
-    attach_ai_line_highlight_clearing_handlers();
-  } else {
-    console.log("No LLM API key provided, not showing AI panel.");
-  }
+  // The AI panel is always shown now: its gear-icon config panel lets the user pick a
+  // provider and enter their own API key, so it must be reachable even with no server key.
+  state.sidebar_el.append(create_ai_panel(state));
+  attach_ai_line_highlight_clearing_handlers();
 
   // const calls_with_args = user_call_type_info.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror))
   // state.layers = notebook_ast.body.map(stmt => layer_from_ast_node(calls_with_args, stmt, state));

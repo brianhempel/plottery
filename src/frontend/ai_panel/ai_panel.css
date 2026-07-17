@@ -16,6 +16,51 @@
   background-color: #656565;
   color: #f2f2f2;
 }
+.snp-ai-config-toggle {
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: 0 0 0 0.5em;
+  cursor: pointer;
+  color: #f2f2f2;
+  display: flex;
+  align-items: center;
+  opacity: 0.85;
+}
+.snp-ai-config-toggle:hover {
+  opacity: 1;
+}
+
+.snp-ai-config {
+  padding: 0.5em;
+  border-bottom: solid 1px #ccc;
+  background-color: #f7f7f7;
+}
+.snp-ai-config.hidden {
+  display: none;
+}
+.snp-ai-config-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.35em;
+}
+.snp-ai-config-row:last-child {
+  margin-bottom: 0;
+}
+.snp-ai-config-row > label {
+  flex: 0 0 5.5em;
+  font-size: 13px;
+  color: #333;
+}
+.snp-ai-config-row > select,
+.snp-ai-config-row > input {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box; /* JupyterLab */
+  font-size: 13px;
+  line-height: 18px;
+}
+
 .snp-ai-prompt-wrapper {
   position: relative;
 }

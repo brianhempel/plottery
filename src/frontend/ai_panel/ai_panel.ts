@@ -2,7 +2,7 @@ import { hard_rerun, preview_figure_only } from "../code_sync/code_sync";
 import { State } from "../types";
 import { LineHandle } from "../utils/codemirror";
 import { rate_limit, log_event } from "../utils/instrumentation";
-import { prompt_llm } from "../utils/llm";
+import { current_llm_settings, get_llm_config, llm_api_key, LLMProviderSettings, PROVIDER_ORDER, PROVIDERS, prompt_llm, set_llm_provider, update_llm_provider_settings } from "../utils/llm";
 import { create_el, notebook_cells } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
 
@@ -15,6 +15,18 @@ export function create_ai_panel(state: State): HTMLElement {
   const panel_el = create_el("div", "snp-ai-panel");
   const panel_heading = create_el("h2", [], panel_el);
   panel_heading.append("AI")
+
+  // Gear button (right of the "AI" header) toggles the LLM config panel.
+  const gear_btn = create_el("button", "snp-ai-config-toggle", panel_heading) as HTMLButtonElement;
+  gear_btn.type = "button";
+  gear_btn.title = "AI settings";
+  gear_btn.innerHTML = GEAR_ICON_SVG;
+
+  const config_panel = create_config_panel(state);
+  panel_el.append(config_panel);
+  // Open config by default when there's no usable key yet, so the user can add one.
+  config_panel.classList.toggle("hidden", llm_api_key(state.llm_api_keys).trim().length > 0);
+  gear_btn.addEventListener("click", () => config_panel.classList.toggle("hidden"));
 
   const prompt_wrapper = create_el("div", "snp-ai-prompt-wrapper", panel_el);
 
@@ -198,6 +210,105 @@ export function create_ai_panel(state: State): HTMLElement {
   });
 
   return panel_el;
+}
+
+const GEAR_ICON_SVG = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+
+// Datalist ids must be unique document-wide, and a notebook can have an AI panel per cell.
+let datalist_seq = 0;
+
+// The LLM config panel opened by the gear icon: provider / endpoint / model / effort / API key.
+// Every change is written straight to localStorage via save_llm_config, so the next prompt
+// request (which reads get_llm_config fresh) picks it up. Changing the provider resets model,
+// effort, and endpoint to that provider's defaults and re-renders the form.
+function create_config_panel(state: State): HTMLElement {
+  const el = create_el("div", "snp-ai-config");
+
+  // Build one labeled row: <label>text</label> + control.
+  function row(label_text: string, control: HTMLElement): HTMLElement {
+    const r = create_el("div", "snp-ai-config-row", el);
+    const label = create_el("label", [], r);
+    label.append(label_text);
+    r.append(control);
+    return r;
+  }
+
+  // A fixed dropdown. "" is rendered as "(default)" (i.e. don't send the param at all).
+  function fixed_dropdown(values: string[], value: string, labels: { [v: string]: string }, on_change: (v: string) => void): HTMLSelectElement {
+    const select = create_el("select") as HTMLSelectElement;
+    values.forEach(v => {
+      const opt = create_el("option", [], select) as HTMLOptionElement;
+      opt.value = v;
+      opt.append(labels[v] ?? (v === "" ? "(default)" : v));
+    });
+    select.value = value;
+    select.addEventListener("change", () => on_change(select.value));
+    return select;
+  }
+
+  // A text field, optionally with a dropdown of suggestions (input + datalist) for fields
+  // whose suggestions can't be exhaustive: model lists go stale, and a custom endpoint may
+  // take model names or effort values we don't know about.
+  function text_field(suggestions: string[], value: string, placeholder: string, on_input: (v: string) => void, type = "text"): HTMLInputElement {
+    const input = create_el("input") as HTMLInputElement;
+    input.type = type;
+    input.autocomplete = "off";
+    input.placeholder = placeholder;
+    input.value = value;
+    if (suggestions.length > 0) {
+      const datalist = create_el("datalist", [], el) as HTMLDataListElement;
+      datalist.id = `snp-ai-list-${++datalist_seq}`;
+      suggestions.filter(s => s !== "").forEach(s => {
+        const opt = create_el("option", [], datalist) as HTMLOptionElement;
+        opt.value = s;
+      });
+      input.setAttribute("list", datalist.id);
+    }
+    input.addEventListener("input", () => on_input(input.value));
+    return input;
+  }
+
+  function render() {
+    el.innerHTML = "";
+    const { provider } = get_llm_config();
+    const settings = current_llm_settings();
+    const meta = PROVIDERS[provider];
+    const update = (changes: Partial<LLMProviderSettings>) => update_llm_provider_settings(provider, changes);
+
+    // Provider dropdown. Switching only changes which provider is active — each provider's
+    // model/effort/endpoint/key are stored separately and come back as you left them.
+    const provider_labels: { [v: string]: string } = {};
+    PROVIDER_ORDER.forEach(key => { provider_labels[key] = PROVIDERS[key].label; });
+    row("Provider", fixed_dropdown(PROVIDER_ORDER, provider, provider_labels, new_provider => {
+      set_llm_provider(new_provider);
+      render(); // the endpoint/model/effort fields all depend on the provider
+    }));
+
+    // Endpoint (providers whose URL isn't fixed: OpenAI Compatible, and Bedrock's region host)
+    if (meta.custom_endpoint) {
+      row("Endpoint", text_field([], settings.endpoint, meta.default_url || "https://.../v1/chat/completions",
+        v => update({ endpoint: v })));
+    }
+
+    row("Model", text_field(meta.models, settings.model, "model", v => update({ model: v })));
+
+    // Effort (hidden for providers with no reasoning_effort knob)
+    if (meta.efforts.length > 0) {
+      const on_effort = (v: string) => update({ effort: v });
+      row("Effort", meta.custom_effort
+        ? text_field(meta.efforts, settings.effort, "(default)", on_effort)
+        : fixed_dropdown(meta.efforts, settings.effort, {}, on_effort));
+    }
+
+    // API key. Placeholder tells the user a server key is available (env var from snp.py).
+    const server_has_key = (state.llm_api_keys[provider] || "").trim().length > 0;
+    row("API Key", text_field([], settings.api_key,
+      server_has_key ? `Server has ${meta.label} API key. Leave blank to use.` : `${meta.label} API key`,
+      v => update({ api_key: v }), "password"));
+  }
+
+  render();
+  return el;
 }
 
 export function attach_ai_line_highlight_clearing_handlers() {
