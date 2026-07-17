@@ -4,6 +4,7 @@ import { State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
 import { debounce, log_event } from "../utils/instrumentation";
 import { get_persistent_item } from "../utils/misc";
+import { LLMApiKeys } from "../utils/llm";
 import { CellCallbacks, CellMessage, JupyterType } from "../utils/types";
 
 
@@ -680,6 +681,59 @@ function kernel_execute(
     future.onIOPub = on_iopub_output;
     future.onReply = on_shell_reply;
   }
+}
+
+
+// Run code in the kernel purely for its stdout, resolving with the captured text. The output
+// goes to our own iopub callback and is never written into the notebook's saved output, so
+// this is how we pull server-only data into JS without persisting it. Rejects on a kernel
+// error (e.g. the code raised).
+export function kernel_eval_stdout(code: string, state: State): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    let errored: Error | undefined = undefined;
+    const on_iopub_output = (msg: any) => {
+      const msg_type = msg.header.msg_type;
+      if (msg_type === "stream") stdout += msg.content.text;
+      else if (msg_type === "error") errored = new Error((msg.content.evalue as string) || "kernel error");
+    };
+    const on_shell_reply = () => { errored ? reject(errored) : resolve(stdout); };
+    kernel_execute(code, "", on_iopub_output, on_shell_reply, state);
+  });
+}
+
+
+// The server's LLM API keys live in the kernel's environment (snp.py reads them from env
+// vars). We deliberately do NOT bake them into a cell's saved _repr_html_ — that would leak
+// them into any shared .ipynb. Instead we fetch them from the kernel at runtime, once per
+// page (cached on window, since each cell output re-runs its own copy of this bundle in its
+// own module scope). A notebook user with kernel access can read these env vars anyway;
+// keeping them out of the saved file is the whole point. On failure we resolve to {} and drop
+// the cache so the next AI interaction retries.
+export function fetch_server_llm_keys(state: State): Promise<LLMApiKeys> {
+  const w = window as any;
+  if (w.__plottery_server_llm_keys) return w.__plottery_server_llm_keys as Promise<LLMApiKeys>;
+
+  // Local (not module-level): a top-level `const` would land in page-global scope and break
+  // re-injection on the next cell run — see AGENTS.md "No Outer-Level consts in Typescript".
+  const sentinel = "__PLOTTERY_LLM_KEYS__"; // prefixed to the JSON so we can find our stdout line
+
+  const code =
+`import snp as _snp
+print(${JSON.stringify(sentinel)} + _snp.llm_api_keys_json())`;
+
+  const promise = kernel_eval_stdout(code, state).then(stdout => {
+    const line = stdout.split("\n").find(l => l.startsWith(sentinel));
+    if (!line) throw new Error("plottery: no server-key line in kernel output");
+    return JSON.parse(line.slice(sentinel.length)) as LLMApiKeys;
+  }).catch(err => {
+    console.warn("plottery: couldn't fetch server LLM keys from kernel", err);
+    w.__plottery_server_llm_keys = undefined; // let the next call retry
+    return {} as LLMApiKeys;
+  });
+
+  w.__plottery_server_llm_keys = promise;
+  return promise;
 }
 
 

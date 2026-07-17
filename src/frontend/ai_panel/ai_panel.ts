@@ -1,8 +1,8 @@
-import { hard_rerun, preview_figure_only } from "../code_sync/code_sync";
+import { fetch_server_llm_keys, hard_rerun, preview_figure_only } from "../code_sync/code_sync";
 import { State } from "../types";
 import { LineHandle } from "../utils/codemirror";
 import { rate_limit, log_event } from "../utils/instrumentation";
-import { current_llm_settings, get_llm_config, llm_api_key, LLMProviderSettings, PROVIDER_ORDER, PROVIDERS, prompt_llm, set_llm_provider, update_llm_provider_settings } from "../utils/llm";
+import { current_llm_settings, get_llm_config, llm_api_key, llm_config_constants, LLMProviderSettings, prompt_llm, set_llm_provider, update_llm_provider_settings } from "../utils/llm";
 import { create_el, notebook_cells } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
 
@@ -17,16 +17,33 @@ export function create_ai_panel(state: State): HTMLElement {
   panel_heading.append("AI")
 
   // Gear button (right of the "AI" header) toggles the LLM config panel.
-  const gear_btn = create_el("button", "snp-ai-config-toggle", panel_heading) as HTMLButtonElement;
-  gear_btn.type = "button";
-  gear_btn.title = "AI settings";
-  gear_btn.innerHTML = GEAR_ICON_SVG;
+  const gear_btn = create_el("span", "snp-ai-config-toggle", panel_heading) as HTMLButtonElement;
+  gear_btn.title = 'AI Settings';
+  gear_btn.textContent = '⚙\uFE0E'; // ⚙︎ in text style. second char signals to be not emoji
+  gear_btn.style.fontSize = '20px';
+  gear_btn.style.lineHeight = '10px';
+  gear_btn.style.marginTop = '-2px';
 
   const config_panel = create_config_panel(state);
   panel_el.append(config_panel);
-  // Open config by default when there's no usable key yet, so the user can add one.
+  // Open config by default when there's no usable key yet, so the user can add one. The server
+  // keys aren't known until fetch_server_llm_keys resolves below, so this first pass sees only
+  // the user's own key (state.llm_api_keys starts empty); the .then() reconsiders once they land.
   config_panel.classList.toggle("hidden", llm_api_key(state.llm_api_keys).trim().length > 0);
-  gear_btn.addEventListener("click", () => config_panel.classList.toggle("hidden"));
+  let user_toggled_config = false;
+  gear_btn.addEventListener("click", () => { user_toggled_config = true; config_panel.classList.toggle("hidden"); });
+
+  // The server's keys are deliberately not baked into the saved notebook (that would leak them
+  // when shared), so we pull them from the kernel here and fill in state.llm_api_keys, which
+  // every prompt_llm call and the config panel read. Fired now (at render) to get a head start;
+  // the box is unlikely to be used before it resolves. Everything key-dependent re-settles here.
+  fetch_server_llm_keys(state).then(keys => {
+    state.llm_api_keys = keys;
+    config_panel.refresh(); // the API-key placeholder now reflects whether the server has one
+    if (!user_toggled_config) {
+      config_panel.classList.toggle("hidden", llm_api_key(state.llm_api_keys).trim().length > 0);
+    }
+  });
 
   const prompt_wrapper = create_el("div", "snp-ai-prompt-wrapper", panel_el);
 
@@ -212,17 +229,14 @@ export function create_ai_panel(state: State): HTMLElement {
   return panel_el;
 }
 
-const GEAR_ICON_SVG = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
-
-// Datalist ids must be unique document-wide, and a notebook can have an AI panel per cell.
-let datalist_seq = 0;
-
 // The LLM config panel opened by the gear icon: provider / endpoint / model / effort / API key.
 // Every change is written straight to localStorage via save_llm_config, so the next prompt
 // request (which reads get_llm_config fresh) picks it up. Changing the provider resets model,
 // effort, and endpoint to that provider's defaults and re-renders the form.
-function create_config_panel(state: State): HTMLElement {
-  const el = create_el("div", "snp-ai-config");
+// Returns the config panel element with a `.refresh()` that re-renders it — used when the
+// server keys arrive after first render, so the API-key placeholder reflects them.
+function create_config_panel(state: State): HTMLElement & { refresh: () => void } {
+  const el = create_el("div", "snp-ai-config") as HTMLElement & { refresh: () => void };
 
   // Build one labeled row: <label>text</label> + control.
   function row(label_text: string, control: HTMLElement): HTMLElement {
@@ -257,7 +271,11 @@ function create_config_panel(state: State): HTMLElement {
     input.value = value;
     if (suggestions.length > 0) {
       const datalist = create_el("datalist", [], el) as HTMLDataListElement;
-      datalist.id = `snp-ai-list-${++datalist_seq}`;
+      // Datalist ids must be unique document-wide, and a notebook can have an AI panel per
+      // cell. Counter on window (not a top-level `let`, which would break bundle re-injection
+      // — AGENTS.md), matching plottery_instrumentation_eventno in instrumentation.ts.
+      const seq = (window as any).snp_datalist_seq = ((window as any).snp_datalist_seq || 0) + 1;
+      datalist.id = `snp-ai-list-${seq}`;
       suggestions.filter(s => s !== "").forEach(s => {
         const opt = create_el("option", [], datalist) as HTMLOptionElement;
         opt.value = s;
@@ -272,14 +290,17 @@ function create_config_panel(state: State): HTMLElement {
     el.innerHTML = "";
     const { provider } = get_llm_config();
     const settings = current_llm_settings();
+    const { PROVIDERS } = llm_config_constants();
     const meta = PROVIDERS[provider];
     const update = (changes: Partial<LLMProviderSettings>) => update_llm_provider_settings(provider, changes);
 
     // Provider dropdown. Switching only changes which provider is active — each provider's
     // model/effort/endpoint/key are stored separately and come back as you left them.
+    // Order drives the dropdown; the generic escape hatch goes last.
+    const provider_order = ["openai", "anthropic", "gemini", "bedrock", "openrouter", "inception", "cerebras", "openai_compatible"];
     const provider_labels: { [v: string]: string } = {};
-    PROVIDER_ORDER.forEach(key => { provider_labels[key] = PROVIDERS[key].label; });
-    row("Provider", fixed_dropdown(PROVIDER_ORDER, provider, provider_labels, new_provider => {
+    provider_order.forEach(key => { provider_labels[key] = PROVIDERS[key].label; });
+    row("Provider", fixed_dropdown(provider_order, provider, provider_labels, new_provider => {
       set_llm_provider(new_provider);
       render(); // the endpoint/model/effort fields all depend on the provider
     }));
@@ -308,6 +329,7 @@ function create_config_panel(state: State): HTMLElement {
   }
 
   render();
+  el.refresh = render;
   return el;
 }
 

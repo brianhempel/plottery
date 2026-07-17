@@ -174,6 +174,26 @@ def json_for_single_quoted_attr(x):
     return escape_for_single_quoted_html_attr(json.dumps(x))
 
 
+# The server's LLM API keys, read from env vars, keyed by provider name (the frontend's AI
+# config panel picks the provider and can override any of these with a user key, see
+# utils/llm.ts). Returned as a JSON string so the frontend can fetch it from the kernel at
+# runtime (see fetch_server_llm_keys in code_sync.ts) rather than us baking the keys into a
+# cell's saved _repr_html_ — that would leak them into any shared/committed .ipynb. A
+# notebook user with kernel access can read these env vars anyway; keeping them out of the
+# saved file is the whole point.
+def llm_api_keys_json():
+    return json.dumps({
+        'openai':     os.getenv('OPENAI_API_KEY', ''),
+        'anthropic':  os.getenv('ANTHROPIC_API_KEY', ''),
+        'gemini':     os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY', ''),
+        # A Bedrock API key (bearer token), not an AWS access key/secret — we don't sign SigV4.
+        'bedrock':    os.getenv('AWS_BEARER_TOKEN_BEDROCK', ''),
+        'openrouter': os.getenv('OPENROUTER_API_KEY', ''),
+        'inception':  os.getenv('INCEPTION_API_KEY', ''),
+        'cerebras':   os.getenv('CEREBRAS_API_KEY', ''),
+    })
+
+
 def full_names_dict(type_node):
     names = dict()
     for superclass in type_node.direct_base_classes():
@@ -1500,22 +1520,22 @@ class SNP(SNPFigureAndHoverRegions):
             frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path(f"{snp_src_directory}/frontend").rglob("*.css")])
 
         with Timer("out_html"):
-            # Keyed by provider name. These are the server's keys; the frontend's AI config
-            # panel picks the provider and can override any of these with a user key (utils/llm.ts).
-            llm_api_keys = {
-                'openai':     os.getenv('OPENAI_API_KEY', ''),
-                'anthropic':  os.getenv('ANTHROPIC_API_KEY', ''),
-                'gemini':     os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY', ''),
-                # A Bedrock API key (bearer token), not an AWS access key/secret — we don't sign SigV4.
-                'bedrock':    os.getenv('AWS_BEARER_TOKEN_BEDROCK', ''),
-                'openrouter': os.getenv('OPENROUTER_API_KEY', ''),
-                'inception':  os.getenv('INCEPTION_API_KEY', ''),
-                'cerebras':   os.getenv('CEREBRAS_API_KEY', ''),
-            }
+            js = pathlib.Path(f"{snp_src_directory}/../dist/plugin.js").read_text()
+
+            # sometimes AI or humans write top-level consts/lets in the JS, which causes JS attachment
+            # to fail because it redefines the consts/lets. Fail less silently if so.
+            top_level_consts = '\n'.join(re.findall(r'^const .*|^let .*', js, flags=re.MULTILINE))
+            if len(top_level_consts) > 0:
+                return f"""
+                    <div>
+                    <span style="font-weight:bold;color:red">Plottery Javascript has global top-level consts/lets and cannot re-attach. Turn them into `var` assignments, assignments on `window` or in-function consts. Problems:</span>
+                    <pre>{top_level_consts}</pre>
+                    </div>
+                """
 
             out_html = f"""
                 <div class="snp_outer">
-                <script>{pathlib.Path(f"{snp_src_directory}/../dist/plugin.js").read_text()}</script>
+                <script>{js}</script>
                 <div class="plot_and_sidebar">
                     <div class="snp-sidebar"></div>
                     <div class="plot_area" style="position:relative;">
@@ -1527,7 +1547,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- properties panel added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload='attach_snp(this.closest(".snp_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(llm_api_keys)}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
+                <style onload='attach_snp(this.closest(".snp_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
                     {frontend_css}
                 </style>
                 </div>

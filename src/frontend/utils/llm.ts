@@ -36,10 +36,18 @@ export type ProviderMeta = {
   warmup_cap: number;
 };
 
-const DEFAULT_PROVIDER = "openai";
-
-// Order also drives the provider dropdown.
-export const PROVIDERS: { [key: string]: ProviderMeta } = {
+// The LLM config constants. They're module-level, but a top-level `const`/`let` would throw
+// "already declared" when a cell rerun re-injects the flat bundle and nothing would re-attach
+// (AGENTS.md "No Outer-Level consts in Typescript"). Functions are re-injection-safe, so the
+// config is built once and memoized on window here; destructure what you need into a
+// function-local `const` at each use site. Providers' key order also drives the dropdown.
+export function llm_config_constants(): {
+  PROVIDERS: { [key: string]: ProviderMeta };
+  DEFAULT_PROVIDER: string;
+  CONFIG_KEY: string; // localStorage key
+} {
+  return (window as any).__snp_llm_config_constants ||= {
+  PROVIDERS: {
   openai: {
     label: "OpenAI",
     style: "openai",
@@ -166,16 +174,14 @@ export const PROVIDERS: { [key: string]: ProviderMeta } = {
     warmup_cap_param: "max_completion_tokens",
     warmup_cap: 16,
   },
-};
-
-// Order also drives the provider dropdown; the generic escape hatch goes last.
-export const PROVIDER_ORDER = [
-  "openai", "anthropic", "gemini", "bedrock", "openrouter", "inception", "cerebras", "openai_compatible",
-];
-
-const CONFIG_KEY = "snp_llm_config";
+  },
+  DEFAULT_PROVIDER: "openai",
+  CONFIG_KEY: "snp_llm_config",
+  };
+}
 
 function default_settings(provider: string): LLMProviderSettings {
+  const { PROVIDERS } = llm_config_constants();
   const meta = PROVIDERS[provider];
   return {
     model: meta.default_model,
@@ -189,6 +195,7 @@ function default_settings(provider: string): LLMProviderSettings {
 // Always returns settings for every known provider, so callers can read straight through
 // without defaulting at each use site.
 export function get_llm_config(): LLMConfig {
+  const { PROVIDERS, DEFAULT_PROVIDER, CONFIG_KEY } = llm_config_constants();
   let stored: any = {};
   try { stored = JSON.parse(window.localStorage.getItem(CONFIG_KEY) || "{}") || {}; } catch { /* ignore */ }
 
@@ -227,6 +234,7 @@ function migrate_old_config_shapes(by_provider: { [provider: string]: LLMProvide
 }
 
 export function save_llm_config(config: LLMConfig): void {
+  const { CONFIG_KEY } = llm_config_constants();
   window.localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
 
@@ -316,6 +324,7 @@ function anthropic_style(url: string, model: string): ProviderConfig {
 
 // Provider config for the current selection (from get_llm_config / the AI config panel).
 function provider_config(): ProviderConfig & { provider: string } {
+  const { PROVIDERS, DEFAULT_PROVIDER } = llm_config_constants();
   const config = get_llm_config();
   const meta = PROVIDERS[config.provider] || PROVIDERS[DEFAULT_PROVIDER];
   const settings = config.by_provider[config.provider];
