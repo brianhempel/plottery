@@ -1,0 +1,403 @@
+# From clicking "Load More" thrice on https://views.scientific-python.org/matplotlib.org/pages. 400 items. Last 28 days.
+# made <table> element a global var and ran `console.log([...temp1.querySelectorAll('tr')].map(tr => [...tr.querySelectorAll('td,th')].map(el => el.innerText.replace('\n',' ').replace(/^\//,'https://matplotlib.org/')).join(',')).join('\n'))`
+Page url,Visitors ↓,Pageviews ↓,Bounce rate ↓,Time on page ↓,Scroll depth ↓
+https://matplotlib.org/stable/users/explain/colors/colormaps.html,63.5k,75.3k,81%,1m 10s,44%
+https://matplotlib.org/stable/gallery/color/named_colors.html,44k,52.2k,77%,47s,78%
+https://matplotlib.org/,39.8k,59.5k,42%,18s,53%
+https://matplotlib.org/stable/search.html,22.6k,44.5k,61%,18s,33%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html,20.9k,26.4k,59%,47s,42%
+https://matplotlib.org/stable/plot_types/index.html,20.9k,34.2k,36%,35s,66%
+https://matplotlib.org/stable/gallery/index.html,18.5k,36k,40%,55s,24%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.legend.html,17.1k,19.9k,72%,45s,49%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html,16.5k,21.4k,57%,45s,55%
+https://matplotlib.org/stable/users/explain/quick_start.html,15.8k,22.2k,73%,2m 13s,40%
+https://matplotlib.org/stable/api/markers_api.html,15.3k,18.1k,70%,38s,69%
+https://matplotlib.org/stable/tutorials/pyplot.html,14.4k,18k,63%,1m 25s,48%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplots.html,14k,18.8k,52%,49s,16%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist.html,13.9k,18k,64%,52s,57%
+https://matplotlib.org/stable/index.html,13.1k,18k,29%,19s,68%
+https://matplotlib.org/stable/users/explain/colors/colors.html,11.9k,14.3k,63%,38s,54%
+https://matplotlib.org/stable/install/index.html,10.8k,13k,81%,40s,33%
+https://matplotlib.org/stable/users/index.html,10.7k,15.6k,48%,18s,52%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/linestyles.html,9.9k,11.6k,70%,43s,78%
+https://matplotlib.org/stable/tutorials/index.html,9.6k,13.9k,41%,19s,63%
+https://matplotlib.org/stable/,9.5k,13.3k,55%,15s,59%
+https://matplotlib.org/stable/gallery/color/colormap_reference.html,9.5k,11k,76%,56s,72%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.bar.html,8.8k,12.2k,48%,42s,63%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html,8.8k,10.5k,73%,42s,66%
+https://matplotlib.org/stable/users/getting_started/,7.7k,9.6k,48%,38s,88%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html,7.7k,10.1k,59%,49s,53%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.colorbar.html,7.6k,10.1k,48%,40s,68%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.figure.html,7.4k,9.4k,55%,36s,22%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/simple_plot.html,6.8k,8.9k,59%,38s,81%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.errorbar.html,6.4k,9k,56%,46s,57%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/subplots_demo.html,6.3k,7.4k,63%,1m 11s,60%
+https://matplotlib.org/stable/gallery/mplot3d/index.html,6.2k,12.3k,20%,37s,69%
+https://matplotlib.org/stable/plot_types/basic/plot.html,6k,8.2k,61%,39s,90%
+https://matplotlib.org/stable/users/explain/customizing.html,5.7k,7k,76%,56s,45%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.boxplot.html,5.6k,7.9k,56%,57s,69%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html,5.5k,7.2k,55%,48s,27%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html,5.3k,6.9k,57%,41s,62%
+https://matplotlib.org/stable/api/index.html,4.9k,7.1k,40%,22s,44%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.lines.Line2D.html,4.9k,7k,59%,33s,53%
+https://matplotlib.org/stable/api/pyplot_summary.html,4.7k,6.5k,48%,46s,38%
+https://matplotlib.org/stable/users/explain/axes/legend_guide.html,4.7k,5.6k,69%,1m 09s,51%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.grid.html,4.5k,5.6k,56%,33s,69%
+https://matplotlib.org/stable/gallery/index,4.3k,7.4k,38%,51s,25%
+https://matplotlib.org/stable/users/index,4.2k,5.1k,23%,12s,46%
+https://matplotlib.org/stable/plot_types/index,4.2k,5.6k,35%,35s,63%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/barchart.html,4.1k,6.1k,54%,1m 03s,84%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplot.html,4.1k,5.4k,48%,50s,61%
+https://matplotlib.org/stable/api/text_api.html,4k,5.4k,56%,42s,32%
+https://matplotlib.org/&F,3.9k,4.6k,96%,5s,100%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.legend.html,3.9k,4.5k,73%,50s,42%
+https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html,3.8k,4.7k,59%,49s,62%
+https://matplotlib.org/stable/api/axes_api.html,3.8k,5.6k,42%,41s,34%
+https://matplotlib.org/stable/gallery/scales/log_demo.html,3.8k,4.3k,67%,39s,63%
+https://matplotlib.org/stable/users/explain/animations/animations.html,3.6k,4.9k,64%,1m 35s,69%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.xticks.html,3.6k,4.4k,59%,58s,83%
+https://matplotlib.org/stable/users/explain/axes/axes_ticks.html,3.5k,4.4k,58%,1m 11s,50%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.contour.html,3.5k,4.9k,50%,50s,65%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html,3.5k,4.4k,60%,1m 05s,61%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.scatter.html,3.4k,4.5k,56%,47s,44%
+https://matplotlib.org/stable/gallery/statistics/hist.html,3.4k,4.2k,58%,56s,67%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.fill_between.html,3.4k,4.1k,57%,38s,62%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html,3.4k,4.4k,63%,42s,43%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/two_scales.html,3.3k,4k,65%,1m 06s,81%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.vlines.html,3.3k,4k,56%,2m 10s,77%
+https://matplotlib.org/stable/tutorials/index,3.2k,3.9k,31%,15s,61%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/marker_reference.html,3.2k,3.8k,66%,58s,54%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.pcolormesh.html,3.1k,4.1k,53%,49s,60%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/index.html,3.1k,5.2k,33%,27s,65%
+https://matplotlib.org/stable/plot_types/basic/scatter_plot.html,3.1k,4.2k,50%,33s,86%
+https://matplotlib.org/stable/plot_types/basic/bar.html,3.1k,4.3k,55%,34s,89%
+https://matplotlib.org/stable/users/explain/configuration.html,3.1k,4k,73%,43s,54%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/bar_label_demo.html,3k,4k,59%,1m 04s,55%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.Colormap.html,3k,3.9k,48%,29s,74%
+https://matplotlib.org/stable/gallery/mplot3d/scatter3d.html,2.9k,3.7k,64%,55s,84%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.annotate.html,2.8k,3.7k,48%,49s,74%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_xticks.html,2.8k,3.7k,50%,35s,66%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html,2.8k,3.8k,44%,37s,62%
+https://matplotlib.org/stable/api/matplotlib_configuration_api.html,2.8k,3.7k,47%,30s,52%
+https://matplotlib.org/stable/users/explain/colors/colormapnorms.html,2.7k,3.4k,57%,59s,46%
+https://matplotlib.org/stable/tutorials/images.html,2.7k,3.3k,64%,54s,63%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html,2.7k,3.5k,55%,32s,57%
+https://matplotlib.org/stable/api/figure_api.html,2.7k,3.7k,52%,45s,18%
+https://matplotlib.org/stable/users/explain/figure/interactive.html,2.6k,3.1k,69%,55s,63%
+https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_features.html,2.6k,3.6k,58%,1m 02s,64%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axvline.html,2.6k,3.1k,60%,32s,56%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hlines.html,2.6k,2.9k,60%,25s,83%
+https://matplotlib.org/3.5.3/api/_as_gen/matplotlib.pyplot.html,2.6k,3.2k,43%,44s,37%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/bar_colors.html,2.5k,3.2k,57%,45s,86%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.tick_params.html,2.5k,3.3k,58%,44s,55%
+https://matplotlib.org/stable/api/legend_api.html,2.5k,2.8k,73%,41s,33%
+https://matplotlib.org/stable/api/colors_api.html,2.4k,3.1k,38%,23s,73%
+https://matplotlib.org/stable/users/explain/colors/colormap-manipulation.html,2.4k,3.1k,57%,1m 04s,55%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/bar_stacked.html,2.4k,3.3k,63%,1m 01s,89%
+https://matplotlib.org/stable/api/ticker_api.html,2.4k,3.5k,65%,1m 05s,47%
+https://matplotlib.org/stable/users/explain/text/text_intro.html,2.3k,2.7k,60%,46s,40%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.Rectangle.html,2.3k,3.4k,50%,46s,51%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.quiver.html,2.3k,3.1k,60%,1m 21s,63%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/scatter_with_legend.html,2.3k,2.8k,65%,44s,59%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_xlim.html,2.3k,2.6k,65%,30s,31%
+https://matplotlib.org/stable/users/explain/figure/backends.html,2.3k,2.8k,73%,1m 11s,57%
+https://matplotlib.org/stable/api/collections_api.html,2.3k,3.1k,57%,44s,38%
+https://matplotlib.org/stable/release/release_notes.html,2.2k,2.9k,61%,17s,23%
+https://matplotlib.org/stable/gallery/mplot3d/surface3d.html,2.2k,2.9k,54%,54s,80%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.add_subplot.html,2.2k,3k,52%,54s,39%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.contourf.html,2.2k,2.9k,53%,53s,58%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_title.html,2.1k,2.5k,57%,33s,23%
+https://matplotlib.org/stable/users/explain/axes/index.html,2.1k,2.8k,48%,20s,68%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/fill_between_demo.html,2.1k,2.5k,58%,53s,63%
+https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html,2k,2.4k,69%,1m 03s,31%
+https://matplotlib.org/stable/users/explain/text/mathtext.html,2k,2.3k,79%,1m 00s,37%
+https://matplotlib.org/stable/users/explain/colors/colorbar_only.html,2k,2.6k,51%,43s,76%
+https://matplotlib.org/stable/users/explain/text/annotations.html,2k,2.4k,75%,1m 24s,41%
+https://matplotlib.org/stable/gallery/mplot3d/2dcollections3d.html,2k,2.5k,57%,39s,84%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.imshow.html,2k,2.8k,60%,55s,46%
+https://matplotlib.org/L,2k,2.3k,94%,6s,100%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.annotate.html,2k,2.9k,52%,52s,64%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.Patch.html,2k,2.8k,52%,37s,45%
+https://matplotlib.org/stable/plot_types/stats/hist_plot.html,1.9k,2.6k,52%,34s,88%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/markevery_demo.html,1.9k,2.3k,67%,40s,62%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.show.html,1.9k,2.3k,63%,35s,11%
+https://matplotlib.org/stable/users/explain/axes/axes_scales.html,1.9k,2.3k,56%,44s,53%
+https://matplotlib.org/stable/plot_types/3D/surface3d_simple.html,1.9k,2.7k,45%,39s,90%
+https://matplotlib.org/stable/users/explain/axes/axes_intro.html,1.9k,2.6k,61%,1m 20s,64%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar.html,1.9k,2.7k,55%,46s,52%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.xlim.html,1.9k,2.1k,65%,30s,88%
+https://matplotlib.org/stable/users/explain/colors/index.html,1.9k,2.5k,32%,9s,94%
+https://matplotlib.org/stable/users/explain/figure/index.html,1.8k,2.4k,39%,22s,88%
+https://matplotlib.org/stable/gallery/statistics/boxplot_demo.html,1.8k,2.3k,60%,1m 10s,62%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.animation.FuncAnimation.html,1.8k,2.3k,67%,1m 09s,77%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.gridspec.GridSpec.html,1.8k,2.7k,43%,34s,66%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_ylim.html,1.8k,2k,75%,28s,30%
+https://matplotlib.org/stable/users/explain/text/fonts.html,1.8k,2.2k,63%,38s,78%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_xlabel.html,1.8k,2.2k,49%,23s,34%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.tight_layout.html,1.8k,2k,61%,28s,76%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.title.html,1.8k,2.1k,54%,28s,64%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.grid.html,1.7k,2.2k,62%,35s,48%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist2d.html,1.7k,2.4k,56%,45s,72%
+https://matplotlib.org/2.0.2/api/pyplot_api.html,1.7k,2.3k,67%,1m 44s,51%
+https://matplotlib.org/stable/users/explain/axes/tight_layout_guide.html,1.7k,1.9k,58%,44s,44%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.hist.html,1.7k,2.2k,69%,1m 02s,55%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/multicolored_line.html,1.6k,1.9k,59%,47s,66%
+https://matplotlib.org/stable/plot_types/stats/index.html,1.6k,2.4k,31%,13s,95%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.ylim.html,1.6k,1.8k,69%,29s,85%
+https://matplotlib.org/stable/api/colorbar_api.html,1.6k,2k,56%,42s,55%
+https://matplotlib.org/stable/gallery/color/color_cycle_default.html,1.6k,1.9k,66%,30s,84%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/line_demo_dash_control.html,1.6k,1.9k,56%,32s,85%
+https://matplotlib.org/stable/plot_types/basic/index.html,1.6k,2.3k,42%,14s,94%
+https://matplotlib.org/stable/users/explain/text/usetex.html,1.6k,2k,62%,39s,71%
+https://matplotlib.org/stable/users/explain/axes/colorbar_placement.html,1.6k,1.9k,61%,54s,53%
+https://matplotlib.org/stable/tutorials/coding_shortcuts.html,1.6k,1.9k,58%,55s,60%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/index.html,1.6k,2.3k,23%,20s,64%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.xlabel.html,1.6k,1.9k,49%,22s,80%
+https://matplotlib.org/stable/gallery/color/index.html,1.6k,2.2k,40%,9s,86%
+https://matplotlib.org/stable/gallery/pie_and_polar_charts/polar_demo.html,1.6k,2.1k,56%,59s,81%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/secondary_axis.html,1.5k,2k,49%,1m 12s,64%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.arrow.html,1.5k,2.1k,45%,42s,74%
+https://matplotlib.org/stable/users/explain/text/text_props.html,1.5k,1.8k,70%,40s,54%
+https://matplotlib.org/stable/gallery/color/colorbar_basics.html,1.5k,1.9k,47%,27s,86%
+https://matplotlib.org/stable/api/animation_api.html,1.5k,2.1k,46%,53s,55%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/figure_size_units.html,1.5k,1.7k,68%,38s,72%
+https://matplotlib.org/stable/gallery/ticks/ticklabels_rotation.html,1.5k,1.8k,62%,34s,84%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.markers.MarkerStyle.html,1.5k,1.8k,53%,29s,67%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.violinplot.html,1.5k,2.3k,46%,49s,80%
+https://matplotlib.org/stable/plot_types/stats/boxplot_plot.html,1.5k,1.9k,51%,33s,84%
+https://matplotlib.org/stable/users/explain/axes/arranging_axes.html,1.5k,1.8k,66%,1m 17s,55%
+https://matplotlib.org/stable/api/cm_api.html,1.4k,1.9k,43%,33s,64%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axhline.html,1.4k,1.7k,62%,32s,56%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/subplot.html,1.4k,1.7k,74%,44s,76%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_xticklabels.html,1.4k,1.8k,48%,29s,75%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/tex_demo.html,1.4k,1.7k,68%,44s,65%
+https://matplotlib.org/stable/users/faq.html,1.4k,1.7k,74%,41s,45%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.suptitle.html,1.4k,1.6k,61%,1m 06s,77%
+https://matplotlib.org/stable/users/explain/figure/figure_intro.html,1.4k,1.9k,51%,1m 39s,65%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/scatter_hist.html,1.4k,1.6k,66%,55s,73%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/invert_axes.html,1.3k,1.5k,71%,34s,82%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/multi_image.html,1.3k,1.6k,53%,47s,81%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.fill_between.html,1.3k,1.7k,62%,41s,59%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplots_adjust.html,1.3k,1.6k,65%,33s,72%
+https://matplotlib.org/stable/plot_types/basic/fill_between.html,1.3k,1.6k,52%,25s,81%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/scatter_star_poly.html,1.3k,1.5k,61%,28s,88%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axis.html,1.3k,1.5k,46%,45s,77%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/font_family_rc.html,1.3k,1.7k,57%,36s,77%
+https://matplotlib.org/stable/gallery/statistics/histogram_multihist.html,1.3k,1.6k,65%,1m 04s,56%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/axis_equal_demo.html,1.3k,1.4k,73%,38s,80%
+https://matplotlib.org/stable/gallery/statistics/boxplot_color.html,1.3k,1.7k,60%,51s,85%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.axhline.html,1.3k,1.5k,65%,28s,50%
+https://matplotlib.org/stable/gallery/shapes_and_collections/hatch_style_reference.html,1.3k,1.6k,68%,43s,79%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axes.html,1.3k,1.6k,46%,38s,61%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/barh.html,1.2k,1.6k,63%,33s,85%
+https://matplotlib.org/stable/api/index,1.2k,1.5k,42%,22s,38%
+https://matplotlib.org/stable/api/dates_api.html,1.2k,1.7k,65%,1m 06s,42%
+https://matplotlib.org/!N,1.2k,1.3k,98%,6s,100%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.Circle.html,1.2k,1.8k,52%,39s,58%
+https://matplotlib.org/stable/api/transformations.html,1.2k,1.6k,56%,38s,51%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_axis_off.html,1.2k,1.5k,56%,19s,83%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.colorbar.html,1.2k,1.7k,54%,54s,51%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.pie.html,1.2k,1.8k,48%,51s,74%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/text_alignment.html,1.2k,1.5k,69%,41s,72%
+https://matplotlib.org/stable/tutorials/artists.html,1.2k,1.3k,69%,1m 04s,53%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/axline.html,1.2k,1.4k,70%,35s,65%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/subplots_adjust.html,1.2k,1.4k,44%,28s,92%
+https://matplotlib.org/stable/plot_types/basic/stem.html,1.2k,1.5k,43%,20s,80%
+https://matplotlib.org/stable/plot_types/stats/pie.html,1.2k,1.5k,58%,35s,87%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/image_demo.html,1.2k,1.4k,62%,55s,63%
+https://matplotlib.org/stable/gallery/color/color_demo.html,1.2k,1.4k,48%,25s,82%
+https://matplotlib.org/stable/gallery/shapes_and_collections/scatter.html,1.2k,1.4k,61%,31s,86%
+https://matplotlib.org/stable/plot_types/3D/index.html,1.1k,1.6k,36%,17s,96%
+https://matplotlib.org/stable/gallery/statistics/boxplot_vs_violin.html,1.1k,1.4k,75%,49s,88%
+https://matplotlib.org/stable/api/axis_api.html,1.1k,1.6k,50%,42s,46%
+https://matplotlib.org/3.1.3/gallery/subplots_axes_and_figures/figure_title.html,1.1k,1.2k,71%,26s,96%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/step_demo.html,1.1k,1.2k,70%,40s,69%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/index.html,1.1k,1.6k,24%,20s,67%
+https://matplotlib.org/stable/plot_types/basic/stackplot.html,1.1k,1.4k,55%,35s,81%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/figure_title.html,1.1k,1.2k,63%,30s,72%
+https://matplotlib.org/3.1.1/gallery/color/named_colors.html,1.1k,1.2k,85%,49s,85%
+https://matplotlib.org/stable/tutorials/lifecycle.html,1.1k,1.3k,69%,1m 05s,64%
+https://matplotlib.org/stable/users/explain/figure/api_interfaces.html,1.1k,1.3k,66%,1m 41s,54%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.inset_axes.html,1.1k,1.5k,51%,34s,83%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/pcolormesh_levels.html,1.1k,1.3k,59%,1m 01s,72%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/scatter_demo2.html,1.1k,1.3k,60%,39s,85%
+https://matplotlib.org/stable/plot_types/arrays/index.html,1.1k,1.4k,40%,8s,94%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.errorbar.html,1.1k,1.5k,59%,42s,53%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.twinx.html,1k,1.4k,38%,27s,86%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.add_axes.html,1k,1.4k,55%,45s,41%
+https://matplotlib.org/stable/gallery/color/individual_colors_from_cmap.html,1k,1.3k,56%,31s,74%
+https://matplotlib.org/stable/gallery/statistics/customized_violin.html,1k,1.3k,65%,43s,87%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.step.html,1k,1.3k,56%,28s,81%
+https://matplotlib.org/stable/gallery/statistics/errorbar_features.html,1k,1.2k,67%,38s,86%
+https://matplotlib.org/stable/gallery/statistics/histogram_normalization.html,1k,1.2k,72%,1m 17s,59%
+https://matplotlib.org/stable/gallery/color/custom_cmap.html,1k,1.2k,46%,43s,64%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.Normalize.html,1k,1.3k,54%,35s,44%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/annotation_demo.html,1k,1.2k,62%,1m 05s,56%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/plot_streamplot.html,1k,1.2k,63%,51s,63%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html,1k,1.2k,54%,40s,62%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/horizontal_barchart_distribution.html,1k,1.1k,72%,48s,83%
+https://matplotlib.org/stable/gallery/,1k,1.7k,51%,43s,27%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/shared_axis_demo.html,1k,1.1k,52%,26s,88%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.boxplot.html,1k,1.4k,64%,1m 12s,66%
+https://matplotlib.org/2.1.2/api/_as_gen/matplotlib.pyplot.plot.html,998,1.1k,63%,28s,34%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_aspect.html,991,1.2k,58%,42s,51%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/subfigures.html,986,1.2k,50%,1m 12s,58%
+https://matplotlib.org/stable/plot_types/basic/stairs.html,985,1.2k,58%,18s,81%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/custom_legends.html,983,1.1k,58%,48s,86%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_ylabel.html,977,1.2k,49%,22s,35%
+https://matplotlib.org/stable/gallery/color/color_sequences.html,977,1.2k,57%,38s,86%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.get_cmap.html,976,1.3k,42%,21s,89%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html,974,1.1k,68%,38s,80%
+https://matplotlib.org/stable/plot_types/stats/errorbar_plot.html,973,1.2k,54%,27s,84%
+https://matplotlib.org/stable/users/explain/axes/axes_units.html,971,1.1k,64%,1m 11s,49%
+https://matplotlib.org/stable/gallery/misc/table_demo.html,968,1.1k,48%,48s,85%
+https://matplotlib.org/stable/users/explain/axes/autoscale.html,964,1.2k,61%,1m 06s,55%
+https://matplotlib.org/stable/plot_types/stats/hist2d.html,963,1.2k,41%,21s,84%
+https://matplotlib.org/stable/gallery/statistics/index.html,958,1.4k,50%,28s,79%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.pcolormesh.html,949,1.3k,56%,55s,61%
+https://matplotlib.org/stable/gallery/ticks/tick-formatters.html,936,1.2k,39%,51s,77%
+https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_and_donut_labels.html,928,1.3k,68%,1m 11s,76%
+https://matplotlib.org/stable/plot_types/arrays/imshow.html,927,1.2k,53%,24s,87%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.subplots.html,923,1.1k,52%,48s,70%
+https://matplotlib.org/stable/api/artist_api.html,922,1.1k,61%,36s,52%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/index.html,921,1.3k,27%,25s,69%
+https://matplotlib.org/stable/users/explain/artists/imshow_extent.html,919,1k,68%,1m 04s,64%
+https://matplotlib.org/stable/api/scale_api.html,917,1.1k,69%,41s,48%
+https://matplotlib.org/stable/users/getting_started/index.html,915,1.1k,69%,25s,85%
+https://matplotlib.org/stable/api/_as_gen/mpl_toolkits.mplot3d.axes3d.Axes3D.plot_surface.html,913,1.4k,63%,51s,79%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/timeline.html,900,1k,73%,53s,85%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/contour_demo.html,897,1.1k,59%,1m 06s,64%
+https://matplotlib.org/stable/gallery/statistics/histogram_cumulative.html,895,1k,64%,55s,86%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.yscale.html,891,1.1k,46%,18s,93%
+https://matplotlib.org/stable/gallery/statistics/histogram_histtypes.html,885,1k,69%,39s,88%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/scatter_masked.html,883,1k,47%,33s,84%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.axvline.html,882,1k,66%,32s,48%
+https://matplotlib.org/stable/plot_types/stats/violin.html,880,1.1k,51%,24s,82%
+https://matplotlib.org/stable/users/explain/artists/transforms_tutorial.html,879,1k,59%,1m 15s,45%
+https://matplotlib.org/stable/users/explain/axes/mosaic.html,877,1k,78%,1m 29s,49%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/irregulardatagrid.html,875,1k,68%,50s,83%
+https://matplotlib.org/stable/gallery/statistics/errorbar.html,874,985,46%,27s,86%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/text_commands.html,872,1k,57%,39s,80%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/multiple_figs_demo.html,868,959,57%,35s,86%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hexbin.html,866,1k,64%,44s,53%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.ListedColormap.html,865,1.1k,50%,26s,71%
+https://matplotlib.org/stable/gallery/widgets/slider_demo.html,859,1.2k,54%,1m 19s,83%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.yticks.html,855,988,71%,31s,83%
+https://matplotlib.org/stable/gallery/pie_and_polar_charts/index.html,852,1.1k,15%,13s,88%
+https://matplotlib.org/stable/gallery/scales/symlog_demo.html,849,979,76%,51s,60%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/broken_axis.html,847,1k,71%,1m 11s,90%
+https://matplotlib.org/stable/api/colorizer_api.html,840,1.1k,34%,29s,56%
+https://matplotlib.org/stable/gallery/style_sheets/dark_background.html,839,1k,57%,19s,88%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/zoom_inset_axes.html,837,1.1k,56%,1m 02s,83%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.savefig.html,836,1k,72%,42s,67%
+https://matplotlib.org/stable/gallery/ticks/major_minor_demo.html,836,1k,65%,52s,79%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplot_mosaic.html,833,1.1k,46%,44s,72%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axvspan.html,830,1k,53%,33s,68%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/fill_between_alpha.html,828,936,71%,38s,57%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_yticks.html,827,1k,56%,36s,58%
+https://matplotlib.org/stable/gallery/mplot3d/custom_shaded_3d_surface.html,825,1k,69%,47s,86%
+https://matplotlib.org/stable/api/font_manager_api.html,821,1k,73%,37s,49%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/masked_demo.html,821,898,74%,34s,88%
+https://matplotlib.org/stable/plot_types/unstructured/index.html,813,1k,41%,9s,99%
+https://matplotlib.org/stable/plot_types/arrays/pcolormesh.html,811,1.1k,49%,24s,85%
+https://matplotlib.org/stable/users/explain/figure/event_handling.html,805,1k,56%,1m 26s,43%
+https://matplotlib.org/stable/gallery/pie_and_polar_charts/bar_of_pie.html,804,997,59%,44s,84%
+https://matplotlib.org/stable/gallery/mplot3d/box3d.html,801,984,62%,32s,84%
+https://matplotlib.org/stable/api/style_api.html,800,988,60%,27s,87%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/hat_graph.html,796,915,54%,26s,83%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/annotation_basic.html,794,945,61%,36s,84%
+https://matplotlib.org/stable/users/explain/animations/index.html,792,952,33%,13s,95%
+https://matplotlib.org/2.1.1/api/_as_gen/matplotlib.pyplot.plot.html,790,893,63%,52s,40%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.tick_params.html,788,954,61%,41s,74%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.bar_label.html,784,1.1k,45%,35s,83%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.LinearSegmentedColormap.html,783,1k,52%,48s,67%
+https://matplotlib.org/stable/users/explain/artists/color_cycle.html,781,959,66%,47s,78%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.table.html,776,1.2k,37%,36s,86%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.FancyArrowPatch.html,773,1.1k,56%,57s,50%
+https://matplotlib.org/devdocs/devel/index.html,769,1.1k,62%,15s,47%
+https://matplotlib.org/stable/gallery/statistics/boxplot.html,769,970,43%,51s,75%
+https://matplotlib.org/stable/users/explain/artists/index.html,769,925,21%,13s,90%
+https://matplotlib.org/stable/release/prev_whats_new/whats_new_3.11.0.html,765,962,71%,1m 41s,41%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/stairs_demo.html,764,871,67%,40s,61%
+https://matplotlib.org/stable/users/explain/text/index.html,763,953,25%,11s,89%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/multivariate_marker_plot.html,758,870,65%,33s,88%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.colors.LogNorm.html,754,904,61%,21s,68%
+https://matplotlib.org/stable/gallery/mplot3d/3d_bars.html,752,960,59%,28s,88%
+https://matplotlib.org/stable/gallery/ticks/index.html,752,1k,29%,18s,76%
+https://matplotlib.org/stable/project/citing.html,751,947,77%,19s,31%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/image_masked.html,749,850,75%,37s,76%
+https://matplotlib.org/stable/api/patches_api.html,748,990,35%,26s,73%
+https://matplotlib.org/stable/gallery/animation/index.html,744,1.1k,26%,28s,91%
+https://matplotlib.org/stable/gallery/mplot3d/quiver3d.html,742,965,54%,34s,85%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.gca.html,741,867,57%,24s,84%
+https://matplotlib.org/stable/gallery/statistics/errorbar_limits.html,737,836,53%,40s,88%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.artist.Artist.set_label.html,734,837,52%,11s,97%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.matshow.html,734,880,41%,19s,91%
+https://matplotlib.org/stable/gallery/specialty_plots/radar_chart.html,733,904,81%,57s,85%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.stairs.html,727,951,51%,30s,83%
+https://matplotlib.org/stable/gallery/statistics/psd_demo.html,727,847,71%,58s,63%
+https://matplotlib.org/3.1.1/gallery/misc/zorder_demo.html,725,761,70%,34s,76%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/label_subplots.html,725,837,54%,45s,83%
+https://matplotlib.org/stable/plot_types/arrays/contourf.html,722,972,52%,29s,85%
+https://matplotlib.org/3.4.2/gallery/color/named_colors.html,715,812,84%,57s,87%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/gradient_bar.html,715,828,60%,22s,86%
+https://matplotlib.org/stable/plot_types/stats/ecdf.html,713,856,72%,25s,85%
+https://matplotlib.org/stable/gallery/mplot3d/subplot3d.html,709,840,55%,39s,84%
+https://matplotlib.org/stable/gallery/subplots_axes_and_figures/gridspec_customization.html,709,879,43%,54s,79%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axline.html,708,838,59%,29s,64%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/spectrum_demo.html,708,807,61%,46s,86%
+https://matplotlib.org/stable/plot_types/arrays/contour.html,708,913,51%,22s,83%
+https://matplotlib.org/stable/api/image_api.html,707,910,55%,39s,35%
+https://matplotlib.org/stable/api/spines_api.html,705,908,51%,43s,65%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.grouped_bar.html,703,1k,49%,58s,52%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set.html,701,1k,50%,39s,39%
+https://matplotlib.org/stable/gallery/color/set_alpha.html,701,778,61%,28s,84%
+https://matplotlib.org/stable/plot_types/stats/hexbin.html,701,860,47%,19s,81%
+https://matplotlib.org/stable/users/explain/figure/interactive_guide.html,699,826,75%,1m 21s,58%
+https://matplotlib.org/stable/gallery/mplot3d/wire3d_animation.html,695,828,62%,39s,85%
+https://matplotlib.org/stable/gallery/scales/custom_scale.html,692,768,55%,24s,81%
+https://matplotlib.org/stable/gallery/mplot3d/surface3d_2.html,687,931,64%,47s,85%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.loglog.html,686,766,59%,24s,85%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.ticklabel_format.html,683,964,47%,42s,87%
+https://matplotlib.org/stable/gallery/mplot3d/projections.html,682,815,56%,27s,87%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/titles_demo.html,680,734,65%,39s,79%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/lines_with_ticks_demo.html,678,779,46%,23s,82%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/stem_plot.html,675,805,61%,34s,79%
+https://matplotlib.org/stable/gallery/statistics/time_series_histogram.html,671,752,71%,50s,85%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.ylabel.html,667,774,56%,23s,74%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.Polygon.html,666,968,54%,41s,55%
+https://matplotlib.org/stable/api/backend_bases_api.html,663,1k,58%,1m 11s,41%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.contour.html,659,851,62%,52s,60%
+https://matplotlib.org/stable/gallery/pie_and_polar_charts/nested_pie.html,659,848,56%,45s,76%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.stem.html,656,838,60%,45s,84%
+https://matplotlib.org/stable/plot_types/3D/scatter3d_simple.html,654,873,67%,34s,84%
+https://matplotlib.org/stable/plot_types/stats/eventplot.html,652,814,45%,22s,79%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.fill_betweenx.html,651,775,57%,31s,63%
+https://matplotlib.org/stable/gallery/style_sheets/index.html,651,878,38%,13s,88%
+https://matplotlib.org/stable/api/contour_api.html,650,836,51%,52s,51%
+https://matplotlib.org/stable/project/license.html,648,852,82%,47s,60%
+https://matplotlib.org/2.0.2/users/pyplot_tutorial.html,647,723,74%,39s,37%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.vlines.html,646,812,57%,28s,78%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/pcolor_demo.html,645,784,51%,50s,68%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar_label.html,644,1k,48%,41s,79%
+https://matplotlib.org/stable/gallery/color/colorbar_histogram.html,644,752,51%,28s,84%
+https://matplotlib.org/stable/gallery/user_interfaces/index.html,644,916,40%,22s,84%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_xscale.html,643,835,38%,19s,88%
+https://matplotlib.org/stable/api/toolkits/mplot3d/view_angles.html,639,746,72%,46s,64%
+https://matplotlib.org/stable/gallery/pie_and_polar_charts/polar_bar.html,634,798,69%,42s,83%
+https://matplotlib.org/stable/gallery/ticks/tick-locators.html,633,807,56%,47s,77%
+https://matplotlib.org/stable/gallery/user_interfaces/canvasagg.html,632,705,76%,30s,85%
+https://matplotlib.org/stable/plot_types/arrays/streamplot.html,632,748,65%,20s,82%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.pie.html,631,1k,50%,52s,75%
+https://matplotlib.org/stable/users/explain/animations/blitting.html,631,722,73%,58s,70%
+https://matplotlib.org/stable/gallery/mplot3d/contour3d.html,628,763,47%,21s,84%
+https://matplotlib.org/stable/gallery/mplot3d/rotate_axes3d_sgskip.html,628,755,57%,30s,94%
+https://matplotlib.org/stable/gallery/mplot3d/axlim_clip.html,622,731,76%,36s,83%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.set_yscale.html,619,825,45%,21s,82%
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.fill.html,618,771,41%,32s,90%
+https://matplotlib.org/stable/gallery/images_contours_and_fields/contourf_demo.html,617,752,62%,1m 01s,67%
+https://matplotlib.org/stable/gallery/misc/zorder_demo.html,617,666,77%,39s,71%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/categorical_variables.html,614,690,62%,38s,84%
+https://matplotlib.org/stable/gallery/text_labels_and_annotations/text_fontdict.html,614,736,51%,2m 12s,90%
+https://matplotlib.org/stable/gallery/lines_bars_and_markers/joinstyle.html,612,723,63%,12s,87%
+https://matplotlib.org/stable/api/widgets_api.html,602,831,54%,25s,79%

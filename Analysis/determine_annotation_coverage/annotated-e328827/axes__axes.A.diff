@@ -1,0 +1,545 @@
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_axes.pyi b/src/python-type-stubs-main/stubs/matplotlib/axes/_axes.pyi
+index 51382a0..3fab077 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_axes.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/axes/_axes.pyi
+@@ -1,10 +1,19 @@
+ import datetime
+ from re import L
++
++from matplotlib.backend_bases import MouseEvent
++from matplotlib.patheffects import AbstractPathEffect
++from font_manager import FontProperties
++import mlab
++import numpy as np
++from typing import Annotated, Any, Callable, Dict, Generic, List, Literal, Optional, Iterable, Tuple, TypeVar, Union, overload
++from typing_extensions import Unpack
++
++# from matplotlib._typing import * seems not to work, need the explicit imports:
++from matplotlib._typing import Scalar, PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, LineStyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, AnnotateProps, XYCoordSystem, CmapType
++
+ from matplotlib.backend_tools import Cursors
+ from matplotlib.contour import QuadContourSet
+-import numpy as np
+-from typing import Callable, Literal, Sequence, overload
+-from matplotlib._typing import *
+ from matplotlib.transforms import Bbox, BboxTransformTo, Transform
+ from matplotlib.text import Annotation, Text
+ from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
+@@ -30,16 +39,18 @@ from matplotlib.image import AxesImage, PcolorImage
+ from matplotlib.axis import XAxis, YAxis
+ from matplotlib.artist import Artist
+ from matplotlib.spines import Spines
++
++from transforms import BboxBase
+ from ._base import _AxesBase
+ 
+ from matplotlib.table import table as table_table
+-from matplotlib.tri import \
+-    tricontour as tri_tricontour, \
+-    tricontour as tri_tricontourf, \
+-    tripcolor as tri_tripcolor, \
+-    triplot as tri_triplot
++from matplotlib.tri import (
++    tricontour as tri_tricontour,
++    tricontour as tri_tricontourf,
++    tripcolor as tri_tripcolor,
++    triplot as tri_triplot,
++)
+ 
+-    
+ class Axes(_AxesBase):
+ 
+     dataLim: Bbox
+@@ -54,73 +65,164 @@ class Axes(_AxesBase):
+     fmt_ydata: None | Formatter = ...
+     cursor_to_use: Cursors = ...
+ 
+-    def get_title(self, loc: Literal["center", "left", "right"] = ...) -> str: ...
++    def get_title(
++        self, loc: Literal["center", "left", "right"] = "center"
++    ) -> str: ...
+### ANN | matplotlib.axes.Axes.get_title | MEANINGFUL | concrete-default | loc gained the real default "center" (upstream had = ...)
+     def set_title(
+         self,
+-        label: str,
+-        fontdict: dict = ...,
+-        loc: Literal["center", "left", "right"] = ...,
+-        pad: float = ...,
++        label: str | Literal["My Plot"], # Required args can't have a default, but we can "provide" a default via a Literal
++        fontdict: (
++            dict[str, object] | None
++        ) = ...,  # TODO not sure what the set of permitted keys are...
++        loc: Literal["center", "left", "right"] = "center",
++        pad: float = 6.0,
+         *,
+-        y: float = ...,
+-        **kwargs
++        y: float = 1.0,  # @TODO william's says its None by default?
++        **kwargs: AxesProps,
+     ) -> Text: ...
+### ANN | matplotlib.axes.Axes.set_title | MEANINGFUL | kwargs-typeddict,concrete-default,literal-enum,type-refine | **kwargs: AxesProps (alias of TextProps, 41 props); label seeded via Literal["My Plot"]; loc/pad/y got real defaults "center"/6.0/1.0; fontdict dict -> dict[str, object] or None
+-    def get_legend_handles_labels(self, legend_handler_map=...) -> tuple[list, list]: ...
+-    def legend(self, *args, **kwargs) -> Legend: ...
++    def get_legend_handles_labels(
++        self, legend_handler_map=...
++    ) -> tuple[list, list]: ...
+### ANN | matplotlib.axes.Axes.get_legend_handles_labels | COSMETIC | reformat | signature wrapped onto three lines; types and defaults unchanged
++    def legend(
++        self,
++        labels: Iterable[str] | None = None,
++        loc: (
++            Literal[
++                "best",
++                "upper right",
++                "upper left",
++                "lower left",
++                "lower right",
++                "right",
++                "center left",
++                "center right",
++                "lower center",
++                "upper center",
++                "center",
++            ]
++            | tuple[float, float]
++        ) = "best",  # @TODO: each "string" location can also be given as a numeric value
++        bbox_to_anchor: (
++            BboxBase | tuple[float, float] | tuple[float, float, float, float]
++        ) | None = None,
++        ncols: int = 1,
++        ncol: int = 1,
++        prop: None | dict = None,
++        fontsize: int | NamedFontSize | None = None,
++        labelcolor: ColorType | Iterable[ColorType] | None = None,
++        numpoints: int = 1,
++        scatterpoints: int = 1,
++        scatteryoffsets: Iterable[float] = [0.375, 0.5, 0.3125],
++        markerscale: float = 1.0,
++        markerfirst: bool = True,
++        reverse: bool = False,
++        frameon: bool = True,
++        fancybox: bool = True,
++        shadow: bool = False,
++        framealpha: float = 0.8,
++        facecolor: Literal["inherit"] | ColorType = "inherit",
++        edgecolor: Literal["inherit"] | ColorType = "black",
++        mode: Literal["expand"] | None = None,
++        bbox_transform: Transform | None = None,
++        title: str | None = None,
++        title_fontproperties: None | dict | FontProperties = None,
++        title_fontsize: int | NamedFontSize | None = None,
++        alignment: Literal["center", "left", "right"] = "center",
++        borderpad: float = 0.4,
++        labelspacing: float = 0.5,
++        handlelength: float = 2.0,
++        handleheight: float = 0.7,
++        handletextpad: float = 0.8,
++        borderaxespad: float = 0.5,
++        columnspacing: float = 2.0,
++        handler_map: dict | None = ...,
++        draggable: bool = False,
++    ) -> Legend: ...
+### ANN | matplotlib.axes.Axes.legend | MEANINGFUL | new-params,literal-enum,concrete-default,type-refine | upstream was bare *args/**kwargs; 35 parameters spelled out with real defaults, incl. an 11-way loc Literal and Literals for facecolor/edgecolor/mode/alignment
+     def inset_axes(
+         self,
+-        bounds: Sequence[float],
++        bounds: Iterable[float],
+         *,
+         transform: Transform = ...,
+-        zorder: float = ...,
+-        **kwargs
++        projection: (
++            Literal[
++                "aitoff",
++                "hammer",
++                "lambert",
++                "mollweide",
++                "polar",
++                "rectilinear",
++            ]
++            | str
++            | None
++        ) = None,
++        polar: bool = False,
++        axes_class: None | Axes = None,
++        zorder: float = 5,
++        **kwargs,  # @TODO: I don't know what the kwargs are? (No docs: https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.inset_axes.html)
+     ) -> Axes: ...
+### ANN | matplotlib.axes.Axes.inset_axes | MEANINGFUL | new-params,literal-enum,concrete-default | 3 params added (projection with a 6-name Literal, polar, axes_class); zorder ... -> 5; bounds Sequence -> Iterable is the cosmetic part
+     def indicate_inset(
+         self,
+-        bounds: Sequence[float],
++        bounds: Iterable[float],
+         inset_ax: Axes = ...,
+         *,
+         transform: Transform = ...,
+-        facecolor: Color = ...,
+-        edgecolor: Color = ...,
+-        alpha: float = ...,
+-        zorder: float = ...,
+-        **kwargs
++        facecolor: ColorType = "none",
++        edgecolor: ColorType = "0.5",
++        alpha: float = 0.5,
++        zorder: float = 4.99,
++        **kwargs: RectangleProps,
+     ) -> Rectangle: ...
+### ANN | matplotlib.axes.Axes.indicate_inset | MEANINGFUL | kwargs-typeddict,concrete-default,find-replace | **kwargs: RectangleProps (34 props); facecolor/edgecolor/alpha/zorder got "none"/"0.5"/0.5/4.99; Color -> ColorType is the sweep
+-    def indicate_inset_zoom(self, inset_ax: Axes, **kwargs) -> Rectangle: ...
++    def indicate_inset_zoom(
++        self, inset_ax: Axes, **kwargs
++    ) -> (
++        Rectangle
++    ): ...  # @TODO: Other keyword arguments are passed on to Axes.indicate_inset
+### ANN | matplotlib.axes.Axes.indicate_inset_zoom | COSMETIC | reformat,comment | wrapped and return type parenthesised, plus a @TODO comment; no type change
+     def secondary_xaxis(
+         self,
+         location: Literal["top", "bottom", "left", "right"] | float,
+         *,
+-        functions=...,
+-        **kwargs
++        functions=tuple[Callable, Callable] | Transform,
++        **kwargs: AxesProps,
+     ) -> SecondaryAxis: ...
+### ANN | matplotlib.axes.Axes.secondary_xaxis | MEANINGFUL | kwargs-typeddict,suspect | **kwargs: AxesProps (41 props); functions=tuple[Callable, Callable] or Transform assigns a type as the default value instead of annotating the param
+     def secondary_yaxis(
+         self,
+         location: Literal["top", "bottom", "left", "right"] | float,
+         *,
+-        functions=...,
+-        **kwargs
++        functions=tuple[Callable, Callable] | Transform,
++        **kwargs: AxesProps,
+     ) -> SecondaryAxis: ...
+### ANN | matplotlib.axes.Axes.secondary_yaxis | MEANINGFUL | kwargs-typeddict,suspect | **kwargs: AxesProps (41 props); same functions=<type> default-value bug as secondary_xaxis
+     def text(
+-        self, x: float, y: float, s: str, fontdict: dict = ..., **kwargs
++        self,
++        x: float,
++        y: float,
++        s: str,
++        fontdict: dict[str, object] | None = None,
++        **kwargs: TextProps,
+     ) -> Text: ...
+### ANN | matplotlib.axes.Axes.text | MEANINGFUL | kwargs-typeddict,concrete-default,type-refine | **kwargs: TextProps (41 props); fontdict dict -> dict[str, object] or None with default None
+     def annotate(
+         self,
+         text: str,
+-        xy: Sequence[float],
+-        xytext: Sequence[float] = ...,
+-        xycoords: str | Artist | Transform | Callable = ...,
+-        textcoords: str | Artist | Transform | Callable = ...,
+-        arrowprops: dict = ...,
+-        annotation_clip: bool | None = ...,
+-        **kwargs
++        xy: tuple[float, float],
++        xytext: tuple[float, float] = ...,
++        xycoords: XYCoordSystem | tuple[XYCoordSystem, XYCoordSystem] = "data",
++        textcoords: TextCoordSystem = "data",  # @TODO: default is value of xycoords, not always 'data'
++        arrowprops: ArrowProps = ...,
++        annotation_clip: bool | None = None,
++        **kwargs: TextProps,
+     ) -> Annotation: ...
+### ANN | matplotlib.axes.Axes.annotate | MEANINGFUL | kwargs-typeddict,type-refine,concrete-default | **kwargs: TextProps (41 props); arrowprops dict -> ArrowProps (43 props); xycoords/textcoords -> XYCoordSystem/TextCoordSystem enums defaulting to "data"; xy Sequence[float] -> tuple[float, float]
+     def axhline(
+-        self, y: float = 0, xmin: float = 0, xmax: float = 1, **kwargs
++        self,
++        y: float = 0,
++        xmin: float = 0,
++        xmax: float = 1,
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+### ANN | matplotlib.axes.Axes.axhline | MEANINGFUL | kwargs-typeddict | **kwargs: Line2DProps (32 props); the rest is line wrapping
+     def axvline(
+-        self, x: float = ..., ymin: float = ..., ymax: float = ..., **kwargs
++        self,
++        x: float = 0,
++        ymin: float = 0,
++        ymax: float = 1,
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+### ANN | matplotlib.axes.Axes.axvline | MEANINGFUL | kwargs-typeddict,concrete-default | **kwargs: Line2DProps (32 props); x/ymin/ymax ... -> 0/0/1
+     def axline(
+         self,
+@@ -128,71 +230,161 @@ class Axes(_AxesBase):
+         xy2: tuple[float, float] = ...,
+         *,
+         slope: float = ...,
+-        **kwargs
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+### ANN | matplotlib.axes.Axes.axline | MEANINGFUL | kwargs-typeddict | **kwargs: Line2DProps (32 props)
+     def axhspan(
+-        self, ymin: float, ymax: float, xmin: float = ..., xmax: float = ..., **kwargs
++        self,
++        ymin: float,
++        ymax: float,
++        xmin: float = 0,
++        xmax: float = 1,
++        **kwargs: PolygonProps,
+     ) -> Polygon: ...
+### ANN | matplotlib.axes.Axes.axhspan | MEANINGFUL | kwargs-typeddict,concrete-default | **kwargs: PolygonProps (29 props); xmin/xmax ... -> 0/1
+     def axvspan(
+-        self, xmin: float, xmax: float, ymin: float = 0, ymax: float = 1, **kwargs
++        self,
++        xmin: float,
++        xmax: float,
++        ymin: float = 0,
++        ymax: float = 1,
++        **kwargs: PolygonProps,
+     ) -> Polygon: ...
+### ANN | matplotlib.axes.Axes.axvspan | MEANINGFUL | kwargs-typeddict | **kwargs: PolygonProps (29 props); defaults were already concrete upstream
+     def hlines(
+         self,
+         y: float | ArrayLike,
+         xmin: float | ArrayLike,
+         xmax: float | ArrayLike,
+-        colors: list[Color] = ...,
+-        linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+-        label: str = ...,
+-        **kwargs
++        colors: Iterable[ColorType] = "C0",
++        linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = "solid",
++        label: str = "",
++        **kwargs: LineCollectionProps,
+     ) -> LineCollection: ...
+### ANN | matplotlib.axes.Axes.hlines | MEANINGFUL | kwargs-typeddict,concrete-default,find-replace | **kwargs: LineCollectionProps (20 props); colors/linestyles/label got "C0"/"solid"/""; list[Color] -> Iterable[ColorType] is the sweep
+     def vlines(
+         self,
+         x: float | ArrayLike,
+         ymin: float | ArrayLike,
+         ymax: float | ArrayLike,
+-        colors: list[Color] = ...,
++        colors: Iterable[ColorType] = ...,
+         linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+         label: str = ...,
+-        **kwargs
++        **kwargs: LineCollectionProps,
+     ) -> LineCollection: ...
+### ANN | matplotlib.axes.Axes.vlines | MEANINGFUL | kwargs-typeddict,find-replace | **kwargs: LineCollectionProps (20 props); colors sweep only, defaults left as ... unlike its hlines twin
+     def eventplot(
+         self,
+-        positions: ArrayLike | list[ArrayLike],
++        positions: ArrayLike | Iterable[ArrayLike],
+         orientation: Literal["horizontal", "vertical"] = "horizontal",
+         lineoffsets: float | ArrayLike = 1,
+         linelengths: float | ArrayLike = 1,
+-        linewidths: float | ArrayLike = ...,
+-        colors: Color | list[Color] = ...,
+-        linestyles: str | tuple | list = ...,
+-        **kwargs
++        linewidths: float | ArrayLike = 1.5,
++        colors: ColorType | Iterable[ColorType] = "C0",
++        alpha: float | ArrayLike = 1,
++        linestyles: LineStyle | Iterable[LineStyle] = "solid",
++        **kwargs: EventCollectionProps,
+     ) -> list[EventCollection]: ...
+### ANN | matplotlib.axes.Axes.eventplot | MEANINGFUL | kwargs-typeddict,new-params,concrete-default,type-refine | **kwargs: EventCollectionProps (28 props); alpha added; linestyles str/tuple/list -> LineStyle or Iterable[LineStyle]; linewidths/colors -> 1.5/"C0"
++    # def plot(
++    #     self,
++    #     x: ArrayLike | float,
++    #     y: ArrayLike | float,
++    #     fmt: str = ...,  # TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++    #     scalex: bool = True,
++    #     scaley: bool = True,
++    #     data: dict = {},
++    #     **kwargs: Line2DProps,
++    # ) -> list[Line2D]: ...
++    # def bar(
++    #     self,
++    #     x: float | ArrayLike,
++    #     height: float | ArrayLike,
++    #     width: float | ArrayLike = 0.8,
++    #     bottom: float | ArrayLike = 0,
++    #     *,  # What does the star mean?
++    #     align: Literal["center", "edge"] = "center",
++    #     color: ColorType | Iterable[ColorType] = ...,
++    #     # color: ColorType | Iterable[ColorType] = ...,
++    #     edgecolor: ColorType | Iterable[ColorType] = ...,
++    #     linewidth: float | ArrayLike = ...,
++    #     tick_label: str | Iterable[str] = ...,
++    #     label: str | Iterable[str] = ...,
++    #     xerr: float | ArrayLike = ...,
++    #     yerr: float | ArrayLike = ...,
++    #     ecolor: ColorType | Iterable[ColorType] = "black",
++    #     capsize: float = 0.0,
++    #     error_kw: float | ArrayLike = ...,
++    #     log: bool = False,
++    #     data: dict = ...,  # !TODO: This is weird
++    #     **kwargs: RectangleProps,
++    # ) -> BarContainer: ...
+     def plot(
+-        self, *args, scalex=..., scaley=..., data=..., **kwargs
++        self,
++        x: ArrayLike | float,
++        y: ArrayLike | float,
++        fmt: str | Literal['o:g'] | MarkerStrs | Literal['-','--','-.',':'] | SingleLetterColorStrs = 'o:g',
++        /,
++        label: str | None = '',
++        **kwargs: Line2DProps,
+     ) -> list[Line2D]: ...
+### ANN | matplotlib.axes.Axes.plot | MEANINGFUL | new-params,kwargs-typeddict,literal-enum | upstream was *args plus scalex/scaley/data; x/y/fmt/label spelled out, fmt unions MarkerStrs, the four linestyle strings and SingleLetterColorStrs; **kwargs: Line2DProps (32 props); scalex/scaley/data dropped
+     def plot_date(
+         self,
+         x: ArrayLike,
+         y: ArrayLike,
+         fmt: str = ...,
+-        tz: datetime.tzinfo = ...,
+-        xdate: bool = ...,
+-        ydate: bool = ...,
+-        **kwargs
++        tz: datetime.tzinfo = "UTC",
++        xdate: bool = True,
++        ydate: bool = True,
++        data: dict | None = None,
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
+### ANN | matplotlib.axes.Axes.plot_date | MEANINGFUL | kwargs-typeddict,concrete-default,new-params,suspect | **kwargs: Line2DProps (32 props); data param added; xdate/ydate -> True; suspect: tz: datetime.tzinfo = "UTC" gives a str default to a tzinfo param
++    def loglog(
++        self,
++        base: float = 1.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
+### ANN | matplotlib.axes.Axes.loglog | MEANINGFUL | new-params,kwargs-typeddict,literal-enum,concrete-default,suspect | upstream was bare *args/**kwargs; 9 params spelled out plus **kwargs: Line2DProps and a nonpositive Literal["mask","clip"]; suspect: base = 1.0 (matplotlib default is 10, and semilogx/semilogy here use 10.0)
++    def semilogx(
++        self,
++        base: float = 10.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
+### ANN | matplotlib.axes.Axes.semilogx | MEANINGFUL | new-params,kwargs-typeddict,literal-enum,concrete-default | upstream was bare *args/**kwargs; 9 params spelled out (base=10.0, subs, nonpositive Literal["mask","clip"], x, y, fmt, scalex, scaley, data) plus **kwargs: Line2DProps
++    def semilogy(
++        self,
++        base: float = 10.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
+     ) -> list[Line2D]: ...
+### ANN | matplotlib.axes.Axes.semilogy | MEANINGFUL | new-params,kwargs-typeddict,literal-enum,concrete-default | upstream was bare *args/**kwargs; same 9 spelled-out params as semilogx plus **kwargs: Line2DProps
+-    def loglog(self, *args, **kwargs) -> list[Line2D]: ...
+-    def semilogx(self, *args, **kwargs) -> list[Line2D]: ...
+-    def semilogy(self, *args, **kwargs) -> list[Line2D]: ...
+     def acorr(self, x: ArrayLike, **kwargs): ...
+     def xcorr(
+         self,
+-        x,
+-        y,
++        x: ArrayLike,
++        y: ArrayLike,
++        detrend: Callable = mlab.detrand_none,
+         normed: bool = True,
+-        detrend: Callable = ...,
+         usevlines: bool = True,
+         maxlags: int = 10,
+-        **kwargs
++        **kwargs,  # @TODO: Additional parameters are passed to Axes.vlines and Axes.axhline if usevlines is True; otherwise they are passed to Axes.plot.
+     ) -> tuple[np.ndarray, np.ndarray, bool, int]: ...
+### ANN | matplotlib.axes.Axes.xcorr | MEANINGFUL | type-refine,concrete-default,suspect | untyped x, y -> ArrayLike and detrend given a concrete default; suspect: mlab.detrand_none is a typo for detrend_none and comes from a bare top-level import mlab
+     def step(
+         self,
+@@ -201,27 +393,51 @@ class Axes(_AxesBase):
+         *args,
+         where: Literal["pre", "post", "mid"] = ...,
+         data=...,
+-        **kwargs
++        **kwargs,
+     ) -> list[Line2D]: ...
+### ANN | matplotlib.axes.Axes.step | COSMETIC | reformat | trailing comma added after **kwargs
+     def bar(
+         self,
+         x: float | ArrayLike,
+         height: float | ArrayLike,
+-        width: float | ArrayLike = ...,
+-        bottom: float | ArrayLike = ...,
+-        *,
++        width: float | ArrayLike = 0.8,
++        bottom: float | ArrayLike = 0,
++        *, # Subsequent args are keyword-only
+         align: Literal["center", "edge"] = "center",
+-        **kwargs
++        color: ColorType | Iterable[ColorType] = ...,
++        edgecolor: ColorType | Iterable[ColorType] = ...,
++        linewidth: float | ArrayLike = ...,
++        tick_label: str | Iterable[str] = ...,
++        label: str | Iterable[str] = ...,
++        xerr: float | ArrayLike = ...,
++        yerr: float | ArrayLike = ...,
++        ecolor: ColorType | Iterable[ColorType] = "black",
++        capsize: float = 0.0,
++        error_kw: float | ArrayLike = ...,
++        log: bool = False,
++        data: dict = ...,  # !TODO: This is weird
++        **kwargs: RectangleProps,
+     ) -> BarContainer: ...
+### ANN | matplotlib.axes.Axes.bar | MEANINGFUL | new-params,kwargs-typeddict,concrete-default | 12 keyword params spelled out (color, edgecolor, linewidth, tick_label, label, xerr, yerr, ecolor, capsize, error_kw, log, data); width/bottom ... -> 0.8/0; **kwargs: RectangleProps (34 props)
+     def barh(
+         self,
+         y: float | ArrayLike,
+         width: float | ArrayLike,
+-        height: float | ArrayLike = ...,
+-        left: float | ArrayLike = ...,
++        height: float | ArrayLike = 0.8,
++        left: float | ArrayLike = 0,
+         *,
+         align: Literal["center", "edge"] = "center",
+-        **kwargs
++        color: ColorType | Iterable[ColorType] = ...,
++        edgecolor: ColorType | Iterable[ColorType] = ...,
++        linewidth: float | ArrayLike = ...,
++        tick_label: str | Iterable[str] = ...,
++        label: str | Iterable[str] = ...,
++        xerr: float | ArrayLike = ...,
++        yerr: float | ArrayLike = ...,
++        ecolor: ColorType | Iterable[ColorType] = "black",
++        capsize: float = 0.0,
++        error_kw: dict = ...,
++        log: bool = False,
++        data: dict = ...,
++        **kwargs: RectangleProps,
+     ) -> BarContainer: ...
+### ANN | matplotlib.axes.Axes.barh | MEANINGFUL | new-params,kwargs-typeddict,concrete-default | same 12 keyword params spelled out as bar; height/left ... -> 0.8/0; **kwargs: RectangleProps (34 props)
+     def bar_label(
+         self,
+@@ -231,13 +447,13 @@ class Axes(_AxesBase):
+         fmt: str = "%g",
+         label_type: Literal["edge", "center"] = "edge",
+         padding: float = 0,
+-        **kwargs
++        **kwargs: AnnotateProps,
+     ) -> list[Text]: ...
+### ANN | matplotlib.axes.Axes.bar_label | MEANINGFUL | kwargs-typeddict | **kwargs: AnnotateProps (TextProps plus 6 annotation props, 47 total)
+     def broken_barh(
+         self,
+-        xranges: Sequence[tuple[float, float]],
++        xranges: Iterable[tuple[float, float]],
+         yrange: tuple[float, float],
+-        **kwargs
++        **kwargs,
+     ) -> BrokenBarHCollection: ...
+### ANN | matplotlib.axes.Axes.broken_barh | COSMETIC | variance,reformat | xranges Sequence -> Iterable and a trailing comma; **kwargs left untyped
+     def stem(
+         self,

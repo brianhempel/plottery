@@ -1,0 +1,3446 @@
+diff --git a/src/python-type-stubs-main/stubs/matplotlib/.DS_Store b/src/python-type-stubs-main/stubs/matplotlib/.DS_Store
+new file mode 100644
+index 0000000..9f9a1a8
+Binary files /dev/null and b/src/python-type-stubs-main/stubs/matplotlib/.DS_Store differ
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/_typing.pyi b/src/python-type-stubs-main/stubs/matplotlib/_typing.pyi
+index ca014e0..30c9cb3 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/_typing.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/_typing.pyi
+@@ -1,25 +1,651 @@
++# In argument position, always use Iterable[] instead of List[],
++# because List[] is mutable and therefore List[str] is not a subtype of e.g. List[Union[str, int]],
++# but you want it to be a subtype for matching args
++
+ import decimal
+ import io
++
++from matplotlib.colors import Colormap
++from matplotlib.markers import MarkerStyle
++
++# from figure import Figure
++# from font_manager import FontProperties
++# from markers import MarkerStyle
++from figure import Figure
++from collections.abc import Collection
+ import numpy.typing
+ import pandas as pd
++from typing import (
++    Iterable,
++    Tuple,
++    TypedDict,
++    TypeAlias,
++    Optional,
++    Callable,
++    Annotated,
++    Literal,
++    TypeVar
++)
++
++from patches import Patch, ArrowStyle, ConnectionStyle
++from path import Path
++
++# from patheffects import AbstractPathEffect
++from patheffects import AbstractPathEffect
++from transforms import BboxBase, IdentityTransform, Transform
++
++from _enums import CapStyle, JoinStyle
++from artist import Artist
++
++CapStyleLike = Literal["butt", "projecting", "round"]
++JoinStyleLike = Literal["miter", "round", "bevel"]
+ 
+ Decimal = decimal.Decimal
+ PythonScalar = str | int | float | bool
+ 
+ ArrayLike = numpy.typing.ArrayLike
++# ArrayLike = Collection
++
+ FileLike = io.IOBase
+ PathLike = str
+ 
+ PandasScalar = pd.Period | pd.Timestamp | pd.Timedelta | pd.Interval
+ Scalar = PythonScalar | PandasScalar
+ 
+-Color = tuple[float, float, float] | str
++SingleLetterColorStrs = Literal['b','g','r','c','m','y','k','w']
++
++# TODO: Add in the supported 'str'
++RGBColorType = tuple[float, float, float] | str
++
++# "none" or "#RRGGBBAA"/"#RGBA" hex strings
++# 2 tuple (color, alpha) representations, not infinitely recursive
++# RGBColorType includes the (str, float) tuple, even for RGBA strings
++# (4-tuple, float) is odd, but accepted as the outer float overriding A of 4-tuple
++RGBAColorType = (
++    str
++    | tuple[float, float, float, float]
++    | tuple[RGBColorType, float]
++    | tuple[tuple[float, float, float, float], float]
++)
++
++ColorType = RGBColorType | RGBAColorType
++
++Hatches = Literal["/", "\\", "|", "-", "+", "x", "o", "O", ".", "*"]
++
++LineStyle = \
++    Literal[
++        "-",
++        "--",
++        "-.",
++        ":",
++        "solid",
++        "dashed",
++        "dashdot",
++        "dotted",
++        "none",
++        "None",
++        " ",
++        "",
++    ] | tuple[float, Iterable[float]]
++
++class PatchProps(TypedDict, total=False):
++    # agg_filter: function
++    alpha: float | None
++    animated: bool
++    antialiased: bool | None
++    aa: bool | None
++    capstyle: CapStyleLike
++    clip_box: None  # | BboxBase
++    clip_on: bool
++    # clip_path: Patch | tuple[Path, Transform] | None
++    color: ColorType
++    edgecolor: ColorType
++    # ec: ColorType
++    facecolor: ColorType
++    # fc: ColorType
++    # figure: Figure
++    fill: bool
++    gid: str
++    hatch: Hatches
++    in_layout: bool
++    joinstyle: JoinStyleLike
++    label: object
++    linestyle: LineStyle
++    linewidth: float
++    lw: float
++    mouseover: bool
++    # path_effects: AbstractPathEffect
++    picker: None | bool | float | function
++    rasterized: bool
++    sketch_params: tuple[float, float, float]
++    snap: bool | None
++    # transform: Transform
++    url: str
++    visible: bool
++    zorder: float
++
++class RectangleProps(PatchProps, total=False):
++    angle: float = 0.0
++    bounds: tuple[float, float, float, float]
++    height: float
++    width: float
++    x: float
++    y: float
++    xy: tuple[float, float]
++
++# def request(**kwargs: Unpack[RequestParams]) -> None:
++#     ...
++
++SketchParamsType: TypeAlias = tuple[
++    Optional[float], Optional[float], Optional[float]
++]  # TODO docs list `(scale: float, length: float, randomness: float)`, but all params are optional (i.e. can be None)
++AggFilterType: TypeAlias = Callable[
++    [ArrayLike, float], tuple[ArrayLike, float, float]
++]  # TODO taken from Artist.set_agg_filter, but might want to refine more
++AlphaType: TypeAlias = float | None
++ClipPathType: TypeAlias = None  # | Patch | tuple[Path, Transform]
++
++NormType: TypeAlias = (
++    str | None
++)  # TODO "Normalize (or subclass thereof) or str or None"
++
++# Hmmm, this long list is making our live sync responses too large and MPL is crashing.
++NamedColorMap = Literal[
++    'magma',
++    'inferno',
++    'plasma',
++    'viridis',
++    'cividis',
++    'twilight',
++    # 'twilight_shifted',
++    # 'turbo',
++    # 'Blues',
++    # 'BrBG',
++    # 'BuGn',
++    # 'BuPu',
++    # 'CMRmap',
++    # 'GnBu',
++    # 'Greens',
++    # 'Greys',
++    # 'OrRd',
++    # 'Oranges',
++    # 'PRGn',
++    # 'PiYG',
++    # 'PuBu',
++    # 'PuBuGn',
++    # 'PuOr',
++    # 'PuRd',
++    # 'Purples',
++    # 'RdBu',
++    # 'RdGy',
++    # 'RdPu',
++    # 'RdYlBu',
++    # 'RdYlGn',
++    # 'Reds',
++    # 'Spectral',
++    # 'Wistia',
++    # 'YlGn',
++    # 'YlGnBu',
++    # 'YlOrBr',
++    # 'YlOrRd',
++    # 'afmhot',
++    # 'autumn',
++    # 'binary',
++    # 'bone',
++    # 'brg',
++    # 'bwr',
++    # 'cool',
++    # 'coolwarm',
++    # 'copper',
++    # 'cubehelix',
++    # 'flag',
++    # 'gist_earth',
++    # 'gist_gray',
++    # 'gist_heat',
++    # 'gist_ncar',
++    # 'gist_rainbow',
++    # 'gist_stern',
++    # 'gist_yarg',
++    # 'gnuplot',
++    # 'gnuplot2',
++    # 'gray',
++    # 'hot',
++    # 'hsv',
++    # 'jet',
++    # 'nipy_spectral',
++    # 'ocean',
++    # 'pink',
++    # 'prism',
++    # 'rainbow',
++    # 'seismic',
++    # 'spring',
++    # 'summer',
++    # 'terrain',
++    # 'winter',
++    # 'Accent',
++    # 'Dark2',
++    # 'Paired',
++    # 'Pastel1',
++    # 'Pastel2',
++    # 'Set1',
++    # 'Set2',
++    # 'Set3',
++    # 'tab10',
++    # 'tab20',
++    # 'tab20b',
++    # 'tab20c',
++    # 'grey',
++    # 'gist_grey',
++    # 'gist_yerg',
++    # 'Grays',
++    # 'magma_r',
++    # 'inferno_r',
++    # 'plasma_r',
++    # 'viridis_r',
++    # 'cividis_r',
++    # 'twilight_r',
++    # 'twilight_shifted_r',
++    # 'turbo_r',
++    # 'Blues_r',
++    # 'BrBG_r',
++    # 'BuGn_r',
++    # 'BuPu_r',
++    # 'CMRmap_r',
++    # 'GnBu_r',
++    # 'Greens_r',
++    # 'Greys_r',
++    # 'OrRd_r',
++    # 'Oranges_r',
++    # 'PRGn_r',
++    # 'PiYG_r',
++    # 'PuBu_r',
++    # 'PuBuGn_r',
++    # 'PuOr_r',
++    # 'PuRd_r',
++    # 'Purples_r',
++    # 'RdBu_r',
++    # 'RdGy_r',
++    # 'RdPu_r',
++    # 'RdYlBu_r',
++    # 'RdYlGn_r',
++    # 'Reds_r',
++    # 'Spectral_r',
++    # 'Wistia_r',
++    # 'YlGn_r',
++    # 'YlGnBu_r',
++    # 'YlOrBr_r',
++    # 'YlOrRd_r',
++    # 'afmhot_r',
++    # 'autumn_r',
++    # 'binary_r',
++    # 'bone_r',
++    # 'brg_r',
++    # 'bwr_r',
++    # 'cool_r',
++    # 'coolwarm_r',
++    # 'copper_r',
++    # 'cubehelix_r',
++    # 'flag_r',
++    # 'gist_earth_r',
++    # 'gist_gray_r',
++    # 'gist_heat_r',
++    # 'gist_ncar_r',
++    # 'gist_rainbow_r',
++    # 'gist_stern_r',
++    # 'gist_yarg_r',
++    # 'gnuplot_r',
++    # 'gnuplot2_r',
++    # 'gray_r',
++    # 'hot_r',
++    # 'hsv_r',
++    # 'jet_r',
++    # 'nipy_spectral_r',
++    # 'ocean_r',
++    # 'pink_r',
++    # 'prism_r',
++    # 'rainbow_r',
++    # 'seismic_r',
++    # 'spring_r',
++    # 'summer_r',
++    # 'terrain_r',
++    # 'winter_r',
++    # 'Accent_r',
++    # 'Dark2_r',
++    # 'Paired_r',
++    # 'Pastel1_r',
++    # 'Pastel2_r',
++    # 'Set1_r',
++    # 'Set2_r',
++    # 'Set3_r',
++    # 'tab10_r',
++    # 'tab20_r',
++    # 'tab20b_r',
++    # 'tab20c_r'
++]
++CmapType: TypeAlias = str | NamedColorMap | Colormap
++
++# font
++NamedFontName: TypeAlias = Literal[
++    "serif", "sans-serif", "cursive", "fantasy", "monospace"
++]
++NamedFontSize: TypeAlias = Literal[
++    "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large"
++]
++NamedFontStretch: TypeAlias = Literal[
++    "ultra-condensed",
++    "extra-condensed",
++    "condensed",
++    "semi-condensed",
++    "normal",
++    "semi-expanded",
++    "expanded",
++    "extra-expanded",
++    "ultra-expanded",
++]
++FontStyle: TypeAlias = Literal["normal", "italic", "oblique"]
++FontVariant: TypeAlias = Literal["normal", "small-caps"]
++NamedFontWeight: TypeAlias = Literal[
++    "ultralight",
++    "light",
++    "normal",
++    "regular",
++    "book",
++    "medium",
++    "roman",
++    "semibold",
++    "demibold",
++    "demi",
++    "bold",
++    "heavy",
++    "extra bold",
++    "black",
++]
++
++# text
++#   for list of aliases, look for `@_api.define_aliases` in text.py
++#   TODO do "text properties" encompass not just text kwargs (which this currently is) but also non-kwrags named parmaeters?
++class TextProps(TypedDict, total=False):
++    # agg_filter: AggFilterType
++    alpha: AlphaType
++    animated: bool
++    backgroundcolor: ColorType
++    # bbox: Any  # TODO - "properties for `patches.FancyBboxPatch"
++    clip_box: None  # | BboxBase
++    clip_on: bool
++    clip_path: None  # | Patch | tuple[Path, Transform]
++    color: ColorType
++    # c: ColorType  # aliases `color`
++    # figure: Figure
++    fontfamily: str | NamedFontName
++    # family: str | NamedFontName  # aliases `fontfamily`
++    fontproperties: str  # | Path | FontProperties
++    font: str # | Path | FontProperties  # aliases `fontproperties`
++    # font_properties: str  # | Path | FontProperties  # aliases `fontproperties`
++    fontsize: float | NamedFontSize
++    # size: float | NamedFontSize  # aliases `fontsize`
++    fontstretch: float | NamedFontStretch
++    # stretch: float | NamedFontStretch  # aliases `fontstretch`
++    fontstyle: FontStyle
++    # style: FontStyle  # aliases `fontstyle`
++    fontvariant: FontVariant
++    # variant: FontVariant  # aliases `fontvariant`
++    fontweight: float | NamedFontWeight
++    # weight: float | NamedFontWeight  # aliases `fontweight`
++    gid: str
++    horizontalalignment: Literal["center", "left", "right"]
++    # ha: Literal["center", "left", "right"]
++    in_layout: bool
++    label: object
++    linespacing: float  # "multiple of font size"
++    math_fontfamily: str
++    mouseover: bool
++    multialignment: Literal["center", "left", "right"]
++    # ma: Literal["center", "left", "right"]
++    parse_math: bool
++    # path_effects: Any
++    picker: None | bool | float | Callable
++    position: tuple[float, float]
++    rasterized: bool
++    rotation: float | Literal["horizontal", "vertical"]
++    rotation_mode: None | Literal["default", "anchor"]
++    sketch_params: SketchParamsType
++    snap: bool | None
++    text: object  # TODO surely this can be better typed no?
++    # transform: Transform
++    transform_rotates_text: bool
++    url: str
++    usetex: bool | None
++    verticalalignment: Literal[
++        "bottom", "baseline", "center", "center_baseline", "top"
++    ]
++    # va: Literal[
++    #     "bottom", "baseline", "center", "center_baseline", "top"
++    # ]  # aliases `verticalalignment`
++    visible: bool
++    wrap: bool
++    x: float
++    y: float
++    zorder: float
++
++class AnnotateProps(TextProps, total=False):
++    xy: tuple[float, float]
++    xytext: tuple[float, float]
++    xycoords: XYCoordSystem | tuple[XYCoordSystem, XYCoordSystem] = "data"
++    textcoords: TextCoordSystem = "data"  # @TODO: default is value of xycoords, not always 'data'
++    arrowprops: ArrowProps
++    annotation_clip: bool | None = None
++
++
++AxesProps: TypeAlias = TextProps
++
++MarkerStrs: TypeAlias = Literal['.',',','o','v','^','<','>','1','2','3','4','8','s','p','P','*','h','H','+','x','X','D','d','|','_']
++
++MarkerType: TypeAlias = MarkerStrs | Literal[0,1,2,3,4,5,6,7,8,9,10,11,'none','None',' ',''] | str | MarkerStyle | Path
++
++
++
++class Line2DProps(TypedDict, total=False):
++    color: ColorType | Iterable[ColorType] = 'C0'  # mpl.rcParams['lines.color']
++    # c: ColorType | Iterable[ColorType] = 'C0'  # mpl.rcParams['lines.color']
++    alpha: float | None = None
++    linewidth: float | None = 1.5  # mpl.rcParams['lines.linewidth']
++    # lw: float | None = 1.5  # mpl.rcParams['lines.linewidth']
++    linestyle: LineStyle | None = '-'  # mpl.rcParams['lines.linestyle']
++    # ls: LineStyle | None = '-'  # mpl.rcParams['lines.linestyle']
++    dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Iterable[float] | Tuple = ()
++    gapcolor: ColorType | None = None
++    drawstyle: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default'
++    # ds: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default'
++    # Marker styles
++    marker: MarkerType | None = 'None'  # mpl.rcParams['lines.marker']
++    markevery: int | Iterable[int] | None = None  # mpl.rcParams['lines.markevery']
++    markersize: float | None = 6.0  # mpl.rcParams['lines.markersize']
++    # ms: float | None = 6.0  # mpl.rcParams['lines.markersize']
++    markeredgecolor: Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markeredgecolor']
++    # mec: Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markeredgecolor']
++    markeredgewidth: float | None = 1.0  # mpl.rcParams['lines.markeredgewidth']
++    # mew: float | None = 1.0  # mpl.rcParams['lines.markeredgewidth']
++    markerfacecolor:  Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markerfacecolor']
++    # mfc:  Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markerfacecolor']
++    markerfacecoloralt: Literal['none'] | ColorType = 'none'
++    # mfcalt: Literal['none'] | ColorType = 'none'
++    fillstyle: Literal['full', 'left', 'right', 'bottom', 'top', 'none'] | None = 'full'  #  mpl.rcParams['markers.fillstyle']
++    # Line cap styles
++    solid_capstyle: CapStyleLike | None = 'projecting'  # mpl.rcParams['lines.solid_capstyle']
++    solid_joinstyle: JoinStyleLike | None = 'round'  # mpl.rcParams['lines.solid_joinstyle']
++    dash_capstyle: CapStyleLike | None = 'butt'  # mpl.rcParams['lines.dash_capstyle']
++    dash_joinstyle: JoinStyleLike | None = 'round'  # mpl.rcParams['lines.dash_joinstyle']
++    # Layering
++    visible: bool = True
++    zorder: float = 2
++    path_effects: Iterable[AbstractPathEffect] = []  # mpl.rcParams['path.effects']
++    in_layout: bool = True # Use when computing figure size for e.g. tight_layout?
++    scalex: bool = True # Use for determing x axes limit?
++    scaley: bool = True # Use for determing y axes limit?
++    # Clip
++    clip_box: Transform | None = None
++    clip_on: bool = True
++    clip_path: Artist | Transform | None = None
++    # Rendering Options
++    antialiased: bool | None = True  # mpl.rcParams['lines.antialiased']
++    # aa: bool | None = True  # mpl.rcParams['lines.antialiased']
++    snap: bool | None = True  # mpl.rcParams['path.snap']
++    rasterized: bool | None = None # For vector backends, perhaps rasterize for speed/size.
++    # Interactivity
++    # animated: bool = False
++    # pickradius: float = 5
++    # picker: bool | float | Callable[[Artist, MouseEvent], Tuple[bool, dict]] | None = None
++    # url: Optional[str] = None
++
++
++    # agg_filter: AggFilterType
++    # data: tuple[ArrayLike, ArrayLike] | ArrayLike
++    # figure: Figure
++    # gid: str
++    label: str | None = ''
++
++    # mouseover: bool
++    # picker: float | callable
++    # pickradius: float
++    # sketch_params: SketchParamsType
++    # snap: bool | None
++    # transform: Transform
++    # url: str
++    # xdata: ArrayLike
++    # ydata: ArrayLike
++
++
++XYCoordSystem = (
++    Literal[
++        "figure points",
++        "figure pixels",
++        "figure fraction",
++        "subfigure points",
++        "subfigure pixels",
++        "subfigure fraction",
++        "axes points",
++        "axes pixels",
++        "axes fraction",
++        "data",
++        "polar",
++    ]
++    | Artist
++    | Transform
++    | Callable
++)
++
++TextCoordSystem = (
++    Literal["offset points", "offset pixels", "offset fontsize"]
++    | Artist
++    | Transform
++    | Callable
++)
++
++ArrowStyleStr = Literal[
++    "-",
++    "<-",
++    "->",
++    "<->",
++    "<|-",
++    "-|>",
++    "]-",
++    "-[",
++    "]-[",
++    "|-|",
++    "]->",
++    "<-|",
++    "simple",
++    "fancy",
++    "wedge",
++]
++
++ConnectionStyleStr = Literal["arc3", "angle", "angle3", "arc", "bar"]
++
++class FancyArrowProps(PatchProps, total=False):
++    posA: tuple[float, float]
++    posB: tuple[float, float]
++    path: Path
++    arrowstyle: ArrowStyleStr | ArrowStyle
++    connectionstyle: ConnectionStyleStr | ConnectionStyle
++    patchA: Patch
++    patchB: Patch
++    shrinkA: float
++    shrinkB: float
++    mutation_scale: float
++    mutation_aspect: float
++
++class ArrowProps(FancyArrowProps, total=False):
++    # Simple arrow
++    width: float
++    headwidth: float
++    headlength: float
++    shrink: float
++
++    # Fancy arrow
++    relpos: tuple[float, float]
++
++class PolygonProps(PatchProps, total=False):
++    xy: ArrayLike
++    closed: bool
++
++class CollectionProps(TypedDict, total=False):
++    edgecolors: ColorType | Iterable[ColorType] = "black"
++    facecolors: ColorType | Iterable[ColorType] = "C0"
++    linewidths: float | Iterable[float] = 1.0
++    linestyles: LineStyle | Iterable[LineStyle] = "solid"
++    capstyle: CapStyleLike = "butt"
++    joinstyle: JoinStyleLike = "round"
++    antialiaseds: bool | Iterable[bool] = True
++    offsets: tuple[float, float] | Iterable[tuple[float, float]] = (0, 0)
++    offset_transform: Transform = IdentityTransform()
++    cmap: CmapType | None
++    norm: NormType | None
++    hatch: Hatches | None
++    pickradius: float = 5
++    # urls: Iterable[str] | None
++    zorder: float = 1
++
++class LineCollectionProps(CollectionProps, total=False):
++    segments: Iterable[Iterable[tuple[float, float]]]
++    linewidths: float | Iterable[float] = 1.5
++    colors: ColorType | Iterable[ColorType] = "C0"
++    antialiaseds: bool | Iterable[bool] = True
++    zorder: float = 2
++    facecolors: ColorType | Iterable[ColorType] = "none"
++
++class EventCollectionProps(LineCollectionProps, total=False):
++    positions: Iterable
++    orientation: Literal["vertical", "horizontal"] = "horizontal"
++    lineoffset: float = 0
++    linelength: float = 1
++    linewidths: float | Iterable[float] = 1.5
++    colors: ColorType | Iterable[ColorType] = "C0"
++    linestyle: LineStyle | Iterable[LineStyle] = "solid"
++    antialiaseds: bool | Iterable[bool] = True
+ 
+ __all__ = [
+     "ArrayLike",
+-    "Color",
+     "Decimal",
+     "FileLike",
+     "PathLike",
+     "Scalar",
++    "SingleLetterColorStrs",
++    "ColorType",
++    "AxesProps",
++    "PatchProps",
++    "RectangleProps",
++    "NamedFontSize",
++    "Line2DProps",
++    "TextProps",
++    "AnnotateProps",
++    "XYCoordSystem",
++    "TextCoordSystem",
++    "ArrowProps",
++    "PolygonProps",
++    "LineCollectionProps",
++    "CollectionProps",
++    "EventCollectionProps",
++    "LineStyle",
++    "MarkerStrs",
++    "MarkerType",
+ ]
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_axes.pyi b/src/python-type-stubs-main/stubs/matplotlib/axes/_axes.pyi
+index 51382a0..3fab077 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_axes.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/axes/_axes.pyi
+@@ -1,10 +1,19 @@
+ import datetime
+ from re import L
++
++from matplotlib.backend_bases import MouseEvent
++from matplotlib.patheffects import AbstractPathEffect
++from font_manager import FontProperties
++import mlab
++import numpy as np
++from typing import Annotated, Any, Callable, Dict, Generic, List, Literal, Optional, Iterable, Tuple, TypeVar, Union, overload
++from typing_extensions import Unpack
++
++# from matplotlib._typing import * seems not to work, need the explicit imports:
++from matplotlib._typing import Scalar, PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, LineStyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, AnnotateProps, XYCoordSystem, CmapType
++
+ from matplotlib.backend_tools import Cursors
+ from matplotlib.contour import QuadContourSet
+-import numpy as np
+-from typing import Callable, Literal, Sequence, overload
+-from matplotlib._typing import *
+ from matplotlib.transforms import Bbox, BboxTransformTo, Transform
+ from matplotlib.text import Annotation, Text
+ from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
+@@ -30,16 +39,18 @@ from matplotlib.image import AxesImage, PcolorImage
+ from matplotlib.axis import XAxis, YAxis
+ from matplotlib.artist import Artist
+ from matplotlib.spines import Spines
++
++from transforms import BboxBase
+ from ._base import _AxesBase
+ 
+ from matplotlib.table import table as table_table
+-from matplotlib.tri import \
+-    tricontour as tri_tricontour, \
+-    tricontour as tri_tricontourf, \
+-    tripcolor as tri_tripcolor, \
+-    triplot as tri_triplot
++from matplotlib.tri import (
++    tricontour as tri_tricontour,
++    tricontour as tri_tricontourf,
++    tripcolor as tri_tripcolor,
++    triplot as tri_triplot,
++)
+ 
+-    
+ class Axes(_AxesBase):
+ 
+     dataLim: Bbox
+@@ -54,73 +65,164 @@ class Axes(_AxesBase):
+     fmt_ydata: None | Formatter = ...
+     cursor_to_use: Cursors = ...
+ 
+-    def get_title(self, loc: Literal["center", "left", "right"] = ...) -> str: ...
++    def get_title(
++        self, loc: Literal["center", "left", "right"] = "center"
++    ) -> str: ...
+     def set_title(
+         self,
+-        label: str,
+-        fontdict: dict = ...,
+-        loc: Literal["center", "left", "right"] = ...,
+-        pad: float = ...,
++        label: str | Literal["My Plot"], # Required args can't have a default, but we can "provide" a default via a Literal
++        fontdict: (
++            dict[str, object] | None
++        ) = ...,  # TODO not sure what the set of permitted keys are...
++        loc: Literal["center", "left", "right"] = "center",
++        pad: float = 6.0,
+         *,
+-        y: float = ...,
+-        **kwargs
++        y: float = 1.0,  # @TODO william's says its None by default?
++        **kwargs: AxesProps,
+     ) -> Text: ...
+-    def get_legend_handles_labels(self, legend_handler_map=...) -> tuple[list, list]: ...
+-    def legend(self, *args, **kwargs) -> Legend: ...
++    def get_legend_handles_labels(
++        self, legend_handler_map=...
++    ) -> tuple[list, list]: ...
++    def legend(
++        self,
++        labels: Iterable[str] | None = None,
++        loc: (
++            Literal[
++                "best",
++                "upper right",
++                "upper left",
++                "lower left",
++                "lower right",
++                "right",
++                "center left",
++                "center right",
++                "lower center",
++                "upper center",
++                "center",
++            ]
++            | tuple[float, float]
++        ) = "best",  # @TODO: each "string" location can also be given as a numeric value
++        bbox_to_anchor: (
++            BboxBase | tuple[float, float] | tuple[float, float, float, float]
++        ) | None = None,
++        ncols: int = 1,
++        ncol: int = 1,
++        prop: None | dict = None,
++        fontsize: int | NamedFontSize | None = None,
++        labelcolor: ColorType | Iterable[ColorType] | None = None,
++        numpoints: int = 1,
++        scatterpoints: int = 1,
++        scatteryoffsets: Iterable[float] = [0.375, 0.5, 0.3125],
++        markerscale: float = 1.0,
++        markerfirst: bool = True,
++        reverse: bool = False,
++        frameon: bool = True,
++        fancybox: bool = True,
++        shadow: bool = False,
++        framealpha: float = 0.8,
++        facecolor: Literal["inherit"] | ColorType = "inherit",
++        edgecolor: Literal["inherit"] | ColorType = "black",
++        mode: Literal["expand"] | None = None,
++        bbox_transform: Transform | None = None,
++        title: str | None = None,
++        title_fontproperties: None | dict | FontProperties = None,
++        title_fontsize: int | NamedFontSize | None = None,
++        alignment: Literal["center", "left", "right"] = "center",
++        borderpad: float = 0.4,
++        labelspacing: float = 0.5,
++        handlelength: float = 2.0,
++        handleheight: float = 0.7,
++        handletextpad: float = 0.8,
++        borderaxespad: float = 0.5,
++        columnspacing: float = 2.0,
++        handler_map: dict | None = ...,
++        draggable: bool = False,
++    ) -> Legend: ...
+     def inset_axes(
+         self,
+-        bounds: Sequence[float],
++        bounds: Iterable[float],
+         *,
+         transform: Transform = ...,
+-        zorder: float = ...,
+-        **kwargs
++        projection: (
++            Literal[
++                "aitoff",
++                "hammer",
++                "lambert",
++                "mollweide",
++                "polar",
++                "rectilinear",
++            ]
++            | str
++            | None
++        ) = None,
++        polar: bool = False,
++        axes_class: None | Axes = None,
++        zorder: float = 5,
++        **kwargs,  # @TODO: I don't know what the kwargs are? (No docs: https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.inset_axes.html)
+     ) -> Axes: ...
+     def indicate_inset(
+         self,
+-        bounds: Sequence[float],
++        bounds: Iterable[float],
+         inset_ax: Axes = ...,
+         *,
+         transform: Transform = ...,
+-        facecolor: Color = ...,
+-        edgecolor: Color = ...,
+-        alpha: float = ...,
+-        zorder: float = ...,
+-        **kwargs
++        facecolor: ColorType = "none",
++        edgecolor: ColorType = "0.5",
++        alpha: float = 0.5,
++        zorder: float = 4.99,
++        **kwargs: RectangleProps,
+     ) -> Rectangle: ...
+-    def indicate_inset_zoom(self, inset_ax: Axes, **kwargs) -> Rectangle: ...
++    def indicate_inset_zoom(
++        self, inset_ax: Axes, **kwargs
++    ) -> (
++        Rectangle
++    ): ...  # @TODO: Other keyword arguments are passed on to Axes.indicate_inset
+     def secondary_xaxis(
+         self,
+         location: Literal["top", "bottom", "left", "right"] | float,
+         *,
+-        functions=...,
+-        **kwargs
++        functions=tuple[Callable, Callable] | Transform,
++        **kwargs: AxesProps,
+     ) -> SecondaryAxis: ...
+     def secondary_yaxis(
+         self,
+         location: Literal["top", "bottom", "left", "right"] | float,
+         *,
+-        functions=...,
+-        **kwargs
++        functions=tuple[Callable, Callable] | Transform,
++        **kwargs: AxesProps,
+     ) -> SecondaryAxis: ...
+     def text(
+-        self, x: float, y: float, s: str, fontdict: dict = ..., **kwargs
++        self,
++        x: float,
++        y: float,
++        s: str,
++        fontdict: dict[str, object] | None = None,
++        **kwargs: TextProps,
+     ) -> Text: ...
+     def annotate(
+         self,
+         text: str,
+-        xy: Sequence[float],
+-        xytext: Sequence[float] = ...,
+-        xycoords: str | Artist | Transform | Callable = ...,
+-        textcoords: str | Artist | Transform | Callable = ...,
+-        arrowprops: dict = ...,
+-        annotation_clip: bool | None = ...,
+-        **kwargs
++        xy: tuple[float, float],
++        xytext: tuple[float, float] = ...,
++        xycoords: XYCoordSystem | tuple[XYCoordSystem, XYCoordSystem] = "data",
++        textcoords: TextCoordSystem = "data",  # @TODO: default is value of xycoords, not always 'data'
++        arrowprops: ArrowProps = ...,
++        annotation_clip: bool | None = None,
++        **kwargs: TextProps,
+     ) -> Annotation: ...
+     def axhline(
+-        self, y: float = 0, xmin: float = 0, xmax: float = 1, **kwargs
++        self,
++        y: float = 0,
++        xmin: float = 0,
++        xmax: float = 1,
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+     def axvline(
+-        self, x: float = ..., ymin: float = ..., ymax: float = ..., **kwargs
++        self,
++        x: float = 0,
++        ymin: float = 0,
++        ymax: float = 1,
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+     def axline(
+         self,
+@@ -128,71 +230,161 @@ class Axes(_AxesBase):
+         xy2: tuple[float, float] = ...,
+         *,
+         slope: float = ...,
+-        **kwargs
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+     def axhspan(
+-        self, ymin: float, ymax: float, xmin: float = ..., xmax: float = ..., **kwargs
++        self,
++        ymin: float,
++        ymax: float,
++        xmin: float = 0,
++        xmax: float = 1,
++        **kwargs: PolygonProps,
+     ) -> Polygon: ...
+     def axvspan(
+-        self, xmin: float, xmax: float, ymin: float = 0, ymax: float = 1, **kwargs
++        self,
++        xmin: float,
++        xmax: float,
++        ymin: float = 0,
++        ymax: float = 1,
++        **kwargs: PolygonProps,
+     ) -> Polygon: ...
+     def hlines(
+         self,
+         y: float | ArrayLike,
+         xmin: float | ArrayLike,
+         xmax: float | ArrayLike,
+-        colors: list[Color] = ...,
+-        linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+-        label: str = ...,
+-        **kwargs
++        colors: Iterable[ColorType] = "C0",
++        linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = "solid",
++        label: str = "",
++        **kwargs: LineCollectionProps,
+     ) -> LineCollection: ...
+     def vlines(
+         self,
+         x: float | ArrayLike,
+         ymin: float | ArrayLike,
+         ymax: float | ArrayLike,
+-        colors: list[Color] = ...,
++        colors: Iterable[ColorType] = ...,
+         linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+         label: str = ...,
+-        **kwargs
++        **kwargs: LineCollectionProps,
+     ) -> LineCollection: ...
+     def eventplot(
+         self,
+-        positions: ArrayLike | list[ArrayLike],
++        positions: ArrayLike | Iterable[ArrayLike],
+         orientation: Literal["horizontal", "vertical"] = "horizontal",
+         lineoffsets: float | ArrayLike = 1,
+         linelengths: float | ArrayLike = 1,
+-        linewidths: float | ArrayLike = ...,
+-        colors: Color | list[Color] = ...,
+-        linestyles: str | tuple | list = ...,
+-        **kwargs
++        linewidths: float | ArrayLike = 1.5,
++        colors: ColorType | Iterable[ColorType] = "C0",
++        alpha: float | ArrayLike = 1,
++        linestyles: LineStyle | Iterable[LineStyle] = "solid",
++        **kwargs: EventCollectionProps,
+     ) -> list[EventCollection]: ...
++    # def plot(
++    #     self,
++    #     x: ArrayLike | float,
++    #     y: ArrayLike | float,
++    #     fmt: str = ...,  # TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++    #     scalex: bool = True,
++    #     scaley: bool = True,
++    #     data: dict = {},
++    #     **kwargs: Line2DProps,
++    # ) -> list[Line2D]: ...
++    # def bar(
++    #     self,
++    #     x: float | ArrayLike,
++    #     height: float | ArrayLike,
++    #     width: float | ArrayLike = 0.8,
++    #     bottom: float | ArrayLike = 0,
++    #     *,  # What does the star mean?
++    #     align: Literal["center", "edge"] = "center",
++    #     color: ColorType | Iterable[ColorType] = ...,
++    #     # color: ColorType | Iterable[ColorType] = ...,
++    #     edgecolor: ColorType | Iterable[ColorType] = ...,
++    #     linewidth: float | ArrayLike = ...,
++    #     tick_label: str | Iterable[str] = ...,
++    #     label: str | Iterable[str] = ...,
++    #     xerr: float | ArrayLike = ...,
++    #     yerr: float | ArrayLike = ...,
++    #     ecolor: ColorType | Iterable[ColorType] = "black",
++    #     capsize: float = 0.0,
++    #     error_kw: float | ArrayLike = ...,
++    #     log: bool = False,
++    #     data: dict = ...,  # !TODO: This is weird
++    #     **kwargs: RectangleProps,
++    # ) -> BarContainer: ...
+     def plot(
+-        self, *args, scalex=..., scaley=..., data=..., **kwargs
++        self,
++        x: ArrayLike | float,
++        y: ArrayLike | float,
++        fmt: str | Literal['o:g'] | MarkerStrs | Literal['-','--','-.',':'] | SingleLetterColorStrs = 'o:g',
++        /,
++        label: str | None = '',
++        **kwargs: Line2DProps,
+     ) -> list[Line2D]: ...
+     def plot_date(
+         self,
+         x: ArrayLike,
+         y: ArrayLike,
+         fmt: str = ...,
+-        tz: datetime.tzinfo = ...,
+-        xdate: bool = ...,
+-        ydate: bool = ...,
+-        **kwargs
++        tz: datetime.tzinfo = "UTC",
++        xdate: bool = True,
++        ydate: bool = True,
++        data: dict | None = None,
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
++    def loglog(
++        self,
++        base: float = 1.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
++    def semilogx(
++        self,
++        base: float = 10.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
++    def semilogy(
++        self,
++        base: float = 10.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
+     ) -> list[Line2D]: ...
+-    def loglog(self, *args, **kwargs) -> list[Line2D]: ...
+-    def semilogx(self, *args, **kwargs) -> list[Line2D]: ...
+-    def semilogy(self, *args, **kwargs) -> list[Line2D]: ...
+     def acorr(self, x: ArrayLike, **kwargs): ...
+     def xcorr(
+         self,
+-        x,
+-        y,
++        x: ArrayLike,
++        y: ArrayLike,
++        detrend: Callable = mlab.detrand_none,
+         normed: bool = True,
+-        detrend: Callable = ...,
+         usevlines: bool = True,
+         maxlags: int = 10,
+-        **kwargs
++        **kwargs,  # @TODO: Additional parameters are passed to Axes.vlines and Axes.axhline if usevlines is True; otherwise they are passed to Axes.plot.
+     ) -> tuple[np.ndarray, np.ndarray, bool, int]: ...
+     def step(
+         self,
+@@ -201,27 +393,51 @@ class Axes(_AxesBase):
+         *args,
+         where: Literal["pre", "post", "mid"] = ...,
+         data=...,
+-        **kwargs
++        **kwargs,
+     ) -> list[Line2D]: ...
+     def bar(
+         self,
+         x: float | ArrayLike,
+         height: float | ArrayLike,
+-        width: float | ArrayLike = ...,
+-        bottom: float | ArrayLike = ...,
+-        *,
++        width: float | ArrayLike = 0.8,
++        bottom: float | ArrayLike = 0,
++        *, # Subsequent args are keyword-only
+         align: Literal["center", "edge"] = "center",
+-        **kwargs
++        color: ColorType | Iterable[ColorType] = ...,
++        edgecolor: ColorType | Iterable[ColorType] = ...,
++        linewidth: float | ArrayLike = ...,
++        tick_label: str | Iterable[str] = ...,
++        label: str | Iterable[str] = ...,
++        xerr: float | ArrayLike = ...,
++        yerr: float | ArrayLike = ...,
++        ecolor: ColorType | Iterable[ColorType] = "black",
++        capsize: float = 0.0,
++        error_kw: float | ArrayLike = ...,
++        log: bool = False,
++        data: dict = ...,  # !TODO: This is weird
++        **kwargs: RectangleProps,
+     ) -> BarContainer: ...
+     def barh(
+         self,
+         y: float | ArrayLike,
+         width: float | ArrayLike,
+-        height: float | ArrayLike = ...,
+-        left: float | ArrayLike = ...,
++        height: float | ArrayLike = 0.8,
++        left: float | ArrayLike = 0,
+         *,
+         align: Literal["center", "edge"] = "center",
+-        **kwargs
++        color: ColorType | Iterable[ColorType] = ...,
++        edgecolor: ColorType | Iterable[ColorType] = ...,
++        linewidth: float | ArrayLike = ...,
++        tick_label: str | Iterable[str] = ...,
++        label: str | Iterable[str] = ...,
++        xerr: float | ArrayLike = ...,
++        yerr: float | ArrayLike = ...,
++        ecolor: ColorType | Iterable[ColorType] = "black",
++        capsize: float = 0.0,
++        error_kw: dict = ...,
++        log: bool = False,
++        data: dict = ...,
++        **kwargs: RectangleProps,
+     ) -> BarContainer: ...
+     def bar_label(
+         self,
+@@ -231,13 +447,13 @@ class Axes(_AxesBase):
+         fmt: str = "%g",
+         label_type: Literal["edge", "center"] = "edge",
+         padding: float = 0,
+-        **kwargs
++        **kwargs: AnnotateProps,
+     ) -> list[Text]: ...
+     def broken_barh(
+         self,
+-        xranges: Sequence[tuple[float, float]],
++        xranges: Iterable[tuple[float, float]],
+         yrange: tuple[float, float],
+-        **kwargs
++        **kwargs,
+     ) -> BrokenBarHCollection: ...
+     def stem(
+         self,
+@@ -248,7 +464,7 @@ class Axes(_AxesBase):
+         bottom: float = 0,
+         label: str | None = None,
+         use_line_collection: bool = True,
+-        orientation: str = "verical"
++        orientation: str = "verical",
+     ) -> StemContainer: ...
+     def pie(
+         self,
+@@ -269,7 +485,7 @@ class Axes(_AxesBase):
+         frame: bool = False,
+         rotatelabels: bool = False,
+         *,
+-        normalize: bool = True
++        normalize: bool = True,
+     ) -> tuple[list[Wedge], list[Text], list[Text]]: ...
+     def errorbar(
+         self,
+@@ -278,7 +494,7 @@ class Axes(_AxesBase):
+         yerr: float | ArrayLike = ...,
+         xerr: float | ArrayLike = ...,
+         fmt: str = "",
+-        ecolor: Color | None = None,
++        ecolor: ColorType | None = None,
+         elinewidth: float | None = None,
+         capsize: float = ...,
+         barsabove: bool = False,
+@@ -288,41 +504,42 @@ class Axes(_AxesBase):
+         xuplims: bool = False,
+         errorevery: int = 1,
+         capthick: float | None = None,
+-        **kwargs
++        **kwargs,
+     ) -> ErrorbarContainer: ...
+     def boxplot(
+         self,
+         x: ArrayLike,
+         notch: bool = False,
+-        sym: str = ...,
++        sym: Literal['b+'] | MarkerStrs | SingleLetterColorStrs | str = ...,
+         vert: bool = True,
+-        whis: float = 1.5,
++        whis: float | Tuple[Literal[5], Literal[95]] | Tuple[float, float] = 1.5,
++        bootstrap: int = ...,
++        usermedians: ArrayLike = ...,
++        conf_intervals: ArrayLike = ...,
+         positions: ArrayLike = ...,
+         widths: float | ArrayLike = ...,
+         patch_artist: bool = False,
+-        bootstrap: int = ...,
+-        usermedians=...,
+-        conf_intervals: ArrayLike = ...,
++        tick_labels: Iterable[str] = ...,
++        labels: Iterable[str] = ..., # deprecated
++        manage_ticks: bool = True,
++        autorange: bool = False,
+         meanline: bool = False,
+-        showmeans=...,
+-        showcaps=...,
+-        showbox=...,
+-        showfliers=...,
+-        boxprops=...,
+-        labels: Sequence = ...,
++        showmeans: bool = True,
++        showcaps: bool = True,
++        showbox: bool = True,
++        showfliers: bool = False,
++        capprops: Line2DProps = ...,
++        capwidths=...,
++        boxprops: Line2DProps | PatchProps =...,
+         flierprops=...,
+         medianprops=...,
+         meanprops=...,
+-        capprops=...,
+-        whiskerprops=...,
+-        manage_ticks: bool = True,
+-        autorange: bool = False,
++        whiskerprops: Line2DProps = ...,
+         zorder: float = 2,
+-        capwidths=...,
+     ) -> dict[str, list[Line2D]]: ...
+     def bxp(
+         self,
+-        bxpstats: list[dict],
++        bxpstats: Iterable[dict],
+         positions: ArrayLike = ...,
+         widths: float | ArrayLike | None = None,
+         vert: bool = True,
+@@ -347,19 +564,18 @@ class Axes(_AxesBase):
+         self,
+         x: float | ArrayLike,
+         y: float | ArrayLike,
+-        s: float | ArrayLike = ...,
+-        c: ArrayLike | list[Color] | Color = ...,
+-        marker: MarkerStyle = ...,
+-        cmap: str | Colormap = ...,
+-        norm: Normalize | None = None,
++        s: float | ArrayLike = 36.0,
++        c: ColorType | Iterable[ColorType] | None = ...,
++        marker: MarkerType = 'o',
++        cmap: CmapType = ...,
++        norm: Literal['asinh', 'function', 'functionlog', 'linear', 'log', 'logit', 'symlog'] | str | Normalize | None = None,
+         vmin: float | None = None,
+         vmax: float | None = None,
+         alpha: float | None = None,
+-        linewidths: float | ArrayLike = ...,
+-        *,
+-        edgecolors: Color = ...,
++        linewidths: float | Iterable[float] = ...,
++        edgecolors: ColorType | Iterable[ColorType] | Literal['face', 'none'] | None = ...,
+         plotnonfinite: bool = False,
+-        **kwargs
++        **kwargs: CollectionProps,
+     ) -> PathCollection: ...
+     def hexbin(
+         self,
+@@ -367,11 +583,11 @@ class Axes(_AxesBase):
+         y: ArrayLike,
+         C: ArrayLike = ...,
+         gridsize: int = 100,
+-        bins: Literal["log"] | int | Sequence | None = None,
++        bins: Literal["log"] | int | Iterable | None = None,
+         xscale: Literal["linear", "log"] = "linear",
+         yscale: Literal["linear", "log"] = "linear",
+-        extent: Sequence[float] | None = None,
+-        cmap=...,
++        extent: Iterable[float] | None = None,
++        cmap: CmapType=...,
+         norm=...,
+         vmin=...,
+         vmax=...,
+@@ -381,7 +597,7 @@ class Axes(_AxesBase):
+         reduce_C_function=...,
+         mincnt: int | None = None,
+         marginals: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> PolyCollection: ...
+     def arrow(
+         self, x: float, y: float, dx: float, dy: float, **kwargs
+@@ -400,7 +616,7 @@ class Axes(_AxesBase):
+         where: ArrayLike = ...,
+         interpolate: bool = ...,
+         step: Literal["pre", "post", "mid"] = ...,
+-        **kwargs
++        **kwargs,
+     ) -> PolyCollection: ...
+     def fill_betweenx(
+         self,
+@@ -410,12 +626,12 @@ class Axes(_AxesBase):
+         where: ArrayLike = ...,
+         step: Literal["pre", "post", "mid"] = ...,
+         interpolate: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> PolyCollection: ...
+     def imshow(
+         self,
+         X: ArrayLike,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         norm: Normalize = ...,
+         aspect: Literal["equal", "auto"] | float = ...,
+         interpolation: str = ...,
+@@ -423,14 +639,14 @@ class Axes(_AxesBase):
+         vmin: float = ...,
+         vmax: float = ...,
+         origin: Literal["upper", "lower"] = ...,
+-        extent: Sequence[float] = ...,
++        extent: Iterable[float] = ...,
+         *,
+         interpolation_stage: Literal["data", "rgba"] = ...,
+         filternorm: bool = True,
+         filterrad: float = 4,
+         resample: bool = ...,
+         url: str = ...,
+-        **kwargs
++        **kwargs,
+     ) -> AxesImage: ...
+     def pcolor(
+         self,
+@@ -438,32 +654,32 @@ class Axes(_AxesBase):
+         shading: Literal["flat", "nearest", "auto"] = ...,
+         alpha: float | None = None,
+         norm: Normalize = ...,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         vmin: float | None = None,
+         vmax: float | None = None,
+-        **kwargs
++        **kwargs,
+     ) -> Collection: ...
+     def pcolormesh(
+         self,
+         *args,
+         alpha: float | None = None,
+         norm: Normalize = ...,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         vmin: float | None = None,
+         vmax: float | None = None,
+         shading: Literal["flat", "nearest", "gouraud", "auto"] = ...,
+         antialiased=...,
+-        **kwargs
++        **kwargs,
+     ) -> QuadMesh: ...
+     def pcolorfast(
+         self,
+         *args,
+         alpha: float | None = None,
+         norm: Normalize = ...,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         vmin: float | None = None,
+         vmax: float | None = None,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[AxesImage, PcolorImage, QuadMesh]: ...
+     def contour(self, *args, **kwargs) -> QuadContourSet: ...
+     def contourf(self, *args, **kwargs) -> QuadContourSet: ...
+@@ -471,22 +687,22 @@ class Axes(_AxesBase):
+     @overload
+     def hist(
+         self,
+-        x: Sequence[ArrayLike],
++        x: Iterable[ArrayLike],
+         bins: int | ArrayLike | str = ...,
+-        range: tuple | None = ...,
++        range: Tuple[float, float] | None = (0, 1),
+         density: bool = ...,
+         weights: None = ...,
+         cumulative: bool | Literal[-1] = ...,
+-        bottom=...,
+-        histtype: Literal["bar", "barstacked", "step", "stepfilled"] = ...,
+-        align: Literal["left", "mid", "right"] = ...,
+-        orientation: Literal["vertical", "horizontal"] = ...,
+-        rwidth: float | None = ...,
+-        log: bool = ...,
+-        color: Color | None = ...,
+-        label: str | None = ...,
++        bottom: ArrayLike | float | None = ...,
++        histtype: Literal["bar", "barstacked", "step", "stepfilled"] = "bar",
++        align: Literal["left", "mid", "right"] = "mid",
++        orientation: Literal["vertical", "horizontal"] = "vertical",
++        rwidth: float | None = None,
++        log: bool = False,
++        color: ColorType | Iterable[float] | None = ...,
++        label: str | Iterable[str] | None = ...,
+         stacked: bool = ...,
+-        **kwargs
++        **kwargs: PatchProps,
+     ) -> tuple[list[list[float]], list[float], BarContainer | list]: ...
+     @overload
+     def hist(
+@@ -503,10 +719,10 @@ class Axes(_AxesBase):
+         orientation: Literal["vertical", "horizontal"] = "vertical",
+         rwidth: float | None = None,
+         log: bool = False,
+-        color: Color | None = None,
++        color: ColorType | None = None,
+         label: str | None = None,
+         stacked: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[list[float], list[float], BarContainer | list]: ...
+     def stairs(
+         self,
+@@ -516,7 +732,7 @@ class Axes(_AxesBase):
+         orientation: Literal["vertical", "horizontal"] = "vertical",
+         baseline: float | ArrayLike | None = 0,
+         fill: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> StepPatch: ...
+     def hist2d(
+         self,
+@@ -528,11 +744,13 @@ class Axes(_AxesBase):
+         weights=...,
+         cmin: float | None = None,
+         cmax: float | None = None,
+-        **kwargs
+-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[float, float]|None]: ...
++        **kwargs,
++    ) -> tuple[
++        np.ndarray, np.ndarray, np.ndarray, tuple[float, float] | None
++    ]: ...
+     def psd(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         NFFT: int = ...,
+         Fs: float = ...,
+         Fc: int = 0,
+@@ -543,7 +761,7 @@ class Axes(_AxesBase):
+         sides: Literal["default", "onesided", "twosided"] = ...,
+         scale_by_freq: bool = ...,
+         return_line: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+     def csd(
+         self,
+@@ -559,38 +777,38 @@ class Axes(_AxesBase):
+         sides: Literal["default", "onesided", "twosided"] = ...,
+         scale_by_freq: bool = ...,
+         return_line: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+     def magnitude_spectrum(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         Fs: float = ...,
+         Fc: int = ...,
+         window: Callable | np.ndarray = ...,
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+         scale: Literal["default", "linear", "dB"] = "linear",
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+     def angle_spectrum(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         Fs: float = ...,
+         Fc: int = 0,
+         window: Callable | np.ndarray = ...,
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+     def phase_spectrum(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         Fs: float = ...,
+         Fc: int = 0,
+         window: Callable | np.ndarray = ...,
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+     def cohere(
+         self,
+@@ -605,18 +823,18 @@ class Axes(_AxesBase):
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+         scale_by_freq: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray]: ...
+     def specgram(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         NFFT: int = ...,
+         Fs: float = ...,
+         Fc: int = 0,
+         detrend: Literal["none", "mean", "linear"] | Callable = ...,
+         window: Callable | np.ndarray = ...,
+         noverlap: int = 128,
+-        cmap: Colormap = ...,
++        cmap: CmapType = ...,
+         xextent=...,
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+@@ -625,7 +843,7 @@ class Axes(_AxesBase):
+         scale: Literal["default", "linear", "dB"] = "dB",
+         vmin=...,
+         vmax=...,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, AxesImage]: ...
+     def spy(
+         self,
+@@ -635,7 +853,7 @@ class Axes(_AxesBase):
+         markersize=...,
+         aspect: Literal["equal", "auto", None] | float = "equal",
+         origin: Literal["upper", "lower"] = ...,
+-        **kwargs
++        **kwargs,
+     ) -> AxesImage | Line2D: ...
+     def matshow(self, Z: ArrayLike, **kwargs) -> AxesImage: ...
+     def violinplot(
+@@ -653,7 +871,7 @@ class Axes(_AxesBase):
+     ) -> dict[str, Collection]: ...
+     def violin(
+         self,
+-        vpstats: list[dict],
++        vpstats: Iterable[dict],
+         positions: ArrayLike = ...,
+         vert: bool = True,
+         widths: ArrayLike | float = 0.5,
+@@ -667,4 +885,6 @@ class Axes(_AxesBase):
+     tricontour = tri_tricontour.tricontour
+     tricontourf = tri_tricontourf.tricontourf
+     tripcolor = tri_tripcolor.tripcolor
+-    triplot = tri_triplot.triplot
++    triplot = tri_triplot.triplot  #
++
++# --------------------- Extra Typings -------------------- #
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_base.pyi b/src/python-type-stubs-main/stubs/matplotlib/axes/_base.pyi
+index babfb87..66ecf03 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_base.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/axes/_base.pyi
+@@ -1,11 +1,12 @@
+-from matplotlib.axis import XAxis, YAxis
++from matplotlib.axis import XAxis, YAxis, Tick
+ from matplotlib.cbook import Grouper
+ from matplotlib.image import AxesImage
+ from matplotlib.legend import Legend
+ from matplotlib.table import Table
++from matplotlib.text import Text
+ import numpy as np
+-from typing import Any, Callable, Collection, Literal, MutableSequence, Sequence, overload
+-from matplotlib._typing import *
++from typing import Any, Callable, Collection, Iterable, Literal, MutableSequence, overload
++from matplotlib._typing import ColorType, ArrayLike, TextProps, LineStyle, Line2DProps, NamedFontName, NamedFontSize
+ from matplotlib.transforms import Bbox, BboxBase, Transform, TransformedBbox
+ from matplotlib.backend_bases import RendererBase
+ from matplotlib.patches import Patch
+@@ -28,9 +29,9 @@ class _AxesBase(Artist):
+     def __init__(
+         self,
+         fig: Figure,
+-        rect: Sequence[float],
++        rect: Iterable[float],
+         *,
+-        facecolor: Color|None=None,
++        facecolor: ColorType | None=None,
+         frameon: bool = True,
+         sharex: Axes|None = None,
+         sharey: Axes|None = None,
+@@ -56,7 +57,7 @@ class _AxesBase(Artist):
+     def get_position(self, original: bool = ...) -> Bbox: ...
+     def set_position(
+         self,
+-        pos: Sequence[float] | Bbox,
++        pos: Iterable[float] | Bbox,
+         which: Literal["both", "active", "original"] = ...,
+     ) -> None: ...
+     def reset_position(self) -> None: ...
+@@ -82,15 +83,15 @@ class _AxesBase(Artist):
+     @property
+     def texts(self)-> MutableSequence: ...
+     def cla(self) -> None: ...
+-    def get_facecolor(self) -> Color: ...
+-    def set_facecolor(self, color: Color)-> None: ...
++    def get_facecolor(self) -> ColorType: ...
++    def set_facecolor(self, color: ColorType)-> None: ...
+     def set_prop_cycle(self, *args, **kwargs)-> None: ...
+     def get_aspect(self) -> Literal["auto"] | float: ...
+     def set_aspect(
+         self,
+         aspect: Literal["auto", "equal"] | float,
+         adjustable: None | Literal["box", "datalim"] = ...,
+-        anchor: None | str | Sequence[float] = ...,
++        anchor: None | str | Iterable[float] = ...,
+         share: bool = False,
+     )-> None: ...
+     def get_adjustable(self) -> str: ...
+@@ -107,7 +108,22 @@ class _AxesBase(Artist):
+     )-> None: ...
+     def get_data_ratio(self)-> float: ...
+     def apply_aspect(self, position=...)-> None: ...
+-    def axis(self, *args, emit: bool = ..., **kwargs)-> tuple[float, float, float, float]: ...
++    @overload
++    def axis(
++        self,
++        option: bool | Literal['off', 'on', 'equal', 'scaled', 'tight', 'image', 'auto', 'square'],
++        emit: bool = True,
++        **kwargs
++    ) -> tuple[float, float, float, float]: ...
++    @overload
++    def axis(
++        self,
++        option: tuple[float, float, float, float] | Iterable[float],
++    ) -> tuple[float, float, float, float]: ...
++    @overload
++    def axis(
++        self,
++    ) -> tuple[float, float, float, float]: ...
+     def get_legend(self) -> Legend | None: ...
+     def get_images(self) -> list[AxesImage]: ...
+     def get_lines(self) -> list[Line2D]: ...
+@@ -169,7 +185,7 @@ class _AxesBase(Artist):
+         visible: bool | None = ...,
+         which: Literal["major", "minor", "both"] = ...,
+         axis: Literal["both", "x", "y"] = ...,
+-        **kwargs
++        **kwargs: Line2DProps
+     ) -> None: ...
+     def ticklabel_format(
+         self,
+@@ -184,18 +200,48 @@ class _AxesBase(Artist):
+     def locator_params(
+         self, axis: Literal["both", "x", "y"] = ..., tight: bool | None = ..., **kwargs
+     ) -> None: ...
+-    def tick_params(self, axis: Literal["x", "y", "both"] = ..., **kwargs) -> None: ...
++    def tick_params(
++        self,
++        axis: Literal['x', 'y', 'both'] = 'both',
++        which: Literal['major', 'minor', 'both'] = 'major',
++        reset: bool = False,
++        *,
++        direction: Literal['in', 'out', 'inout'] = ...,
++        length: float = ...,
++        width: float = ...,
++        color: ColorType = ...,
++        pad: float = ...,
++        labelsize: float | NamedFontSize = ...,
++        labelcolor: ColorType = ...,
++        labelfontfamily: NamedFontName | str = ...,
++        colors: ColorType = ...,
++        zorder: float = ...,
++        bottom: bool = ...,
++        top: bool = ...,
++        left: bool = ...,
++        right: bool = ...,
++        labelbottom: bool = ...,
++        labeltop: bool = ...,
++        labelleft: bool = ...,
++        labelright: bool = ...,
++        labelrotation: float = ...,
++        grid_color: ColorType = ...,
++        grid_alpha: float = 1.0,
++        grid_linewidth: float = ...,
++        grid_linestyle: LineStyle = ...,
++        **kwargs
++    ) -> None: ...
+     def set_axis_off(self) -> None: ...
+     def set_axis_on(self) -> None: ...
+     def get_xlabel(self) -> str: ...
+     def set_xlabel(
+         self,
+         xlabel: str,
+-        fontdict=...,
++        fontdict: dict=...,
+         labelpad: float = ...,
+         *,
+         loc: Literal["left", "center", "right"] = ...,
+-        **kwargs
++        **kwargs: TextProps
+     )-> None: ...
+     def invert_xaxis(self) -> None: ...
+     xaxis_inverted = ...
+@@ -207,22 +253,22 @@ class _AxesBase(Artist):
+     @overload
+     def set_xlim(
+         self,
+-        left: tuple[float | np.datetime64, float | np.datetime64],
+-        *,
++        left: Literal[0] | float | np.datetime64 = ...,
++        right: float | np.datetime64 = ...,
+         emit: bool = ...,
+         auto: bool | None = ...,
+-        xmin: float = ...,
++        *,
++        xmin: Literal[0] | float = ...,
+         xmax: float = ...
+     ) -> tuple[float, float]: ...
+     @overload
+     def set_xlim(
+         self,
+-        left: float | np.datetime64 = ...,
+-        right: float | np.datetime64 = ...,
++        left: tuple[float | np.datetime64, float | np.datetime64],
++        *,
+         emit: bool = ...,
+         auto: bool | None = ...,
+-        *,
+-        xmin: float = ...,
++        xmin: Literal[0] | float = ...,
+         xmax: float = ...
+     ) -> tuple[float, float]: ...
+     def get_xscale(self) -> str: ...
+@@ -230,20 +276,34 @@ class _AxesBase(Artist):
+         self, value: Literal["linear", "log", "symlog", "logit"] | ScaleBase, **kwargs
+     )-> None: ...
+     get_xticks = ...
+-    set_xticks = ...
++    def set_xticks(
++        self,
++        ticks: ArrayLike,
++        labels: Iterable[str] | None = ...,
++        *,
++        minor: bool = False,
++        **kwargs: TextProps
++    ) -> list[Tick]: ...
+     get_xmajorticklabels = ...
+     get_xminorticklabels = ...
+     get_xticklabels = ...
+-    set_xticklabels = ...
++    def set_xticklabels(
++        self,
++        labels: Iterable[str] | Iterable[Text],
++        *,
++        minor: bool = False,
++        fontdict: dict = None,
++        **kwargs: TextProps,
++    ) -> list[Text]: ...
+     def get_ylabel(self) -> str: ...
+     def set_ylabel(
+         self,
+         ylabel: str,
+-        fontdict=...,
++        fontdict: dict =...,
+         labelpad: float = ...,
+         *,
+         loc: Literal["bottom", "center", "top"] = ...,
+-        **kwargs
++        **kwargs: TextProps
+     ) -> None: ...
+     def invert_yaxis(self) -> None: ...
+     yaxis_inverted = ...
+@@ -254,12 +314,12 @@ class _AxesBase(Artist):
+     def get_ylim(self) -> tuple[float, float]: ...
+     def set_ylim(
+         self,
+-        bottom: float = ...,
++        bottom: Literal[0] | float = ...,
+         top: float = ...,
+         emit: bool = ...,
+         auto: bool | None = ...,
+         *,
+-        ymin: float = ...,
++        ymin: Literal[0] | float  = ...,
+         ymax: float = ...
+     )-> None: ...
+     get_yscale = ...
+@@ -267,11 +327,25 @@ class _AxesBase(Artist):
+         self, value: Literal["linear", "log", "symlog", "logit"] | ScaleBase, **kwargs
+     ) -> None: ...
+     get_yticks = ...
+-    set_yticks = ...
++    def set_yticks(
++        self,
++        ticks: ArrayLike,
++        labels: Iterable[str] | None = ...,
++        *,
++        minor: bool = False,
++        **kwargs: TextProps
++    ) -> list[Tick]: ...
+     get_ymajorticklabels = ...
+     get_yminorticklabels = ...
+     get_yticklabels = ...
+-    set_yticklabels = ...
++    def set_yticklabels(
++        self,
++        labels: Iterable[str] | Iterable[Text],
++        *,
++        minor: bool = False,
++        fontdict: dict = None,
++        **kwargs: TextProps,
++    ) -> list[Text]: ...
+     xaxis_date = ...
+     yaxis_date = ...
+     def format_xdata(self, x) -> str: ...
+diff --git a/src/python-type-stubs-main/stubs/matplotlib/axes/old_axes.pyi b/src/python-type-stubs-main/stubs/matplotlib/axes/old_axes.pyi
+new file mode 100644
+index 0000000..baf91d9
+--- /dev/null
++++ b/src/python-type-stubs-main/stubs/matplotlib/axes/old_axes.pyi
+@@ -0,0 +1,616 @@
++import datetime
++from re import L
++from matplotlib.backend_tools import Cursors
++from matplotlib.contour import QuadContourSet
++import numpy as np
++from typing import Callable, Literal, Sequence, overload
++from matplotlib._typing import *
++from matplotlib.transforms import Bbox, BboxTransformTo, Transform
++from matplotlib.text import Annotation, Text
++from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
++from matplotlib.patches import FancyArrow, Polygon, Rectangle, StepPatch, Wedge
++from matplotlib.quiver import Barbs, Quiver
++from matplotlib.colors import Colormap, Normalize
++from matplotlib.axes._secondary_axes import SecondaryAxis
++from matplotlib.collections import (
++    EventCollection,
++    LineCollection,
++    BrokenBarHCollection,
++    PathCollection,
++    PolyCollection,
++    Collection,
++    QuadMesh,
++)
++from matplotlib.lines import Line2D
++from matplotlib.legend import Legend
++from matplotlib.markers import MarkerStyle
++from matplotlib.ticker import Formatter
++from matplotlib.figure import Figure
++from matplotlib.image import AxesImage, PcolorImage
++from matplotlib.axis import XAxis, YAxis
++from matplotlib.artist import Artist
++from matplotlib.spines import Spines
++from ._base import _AxesBase
++
++from matplotlib.table import table as table_table
++from matplotlib.tri import (
++    tricontour as tri_tricontour,
++    tricontour as tri_tricontourf,
++    tripcolor as tri_tripcolor,
++    triplot as tri_triplot,
++)
++
++class Axes(_AxesBase):
++
++    dataLim: Bbox
++    viewLim: Bbox
++    figure: Figure
++    transAxes: BboxTransformTo
++    transData: Transform
++    xaxis: XAxis
++    yaxis: YAxis
++    spines: Spines
++    fmt_xdata: None | Formatter = ...
++    fmt_ydata: None | Formatter = ...
++    cursor_to_use: Cursors = ...
++
++    def get_title(self, loc: Literal["center", "left", "right"] = ...) -> str: ...
++    def set_title(
++        self,
++        label: str,
++        fontdict: dict = ...,
++        loc: Literal["center", "left", "right"] = ...,
++        pad: float = ...,
++        *,
++        y: float = ...,
++        **kwargs,
++    ) -> Text: ...
++    def get_legend_handles_labels(self, legend_handler_map=...) -> tuple[list, list]: ...
++    def legend(self, *args, **kwargs) -> Legend: ...
++    def inset_axes(self, bounds: Sequence[float], *, transform: Transform = ..., zorder: float = ..., **kwargs) -> Axes: ...
++    def indicate_inset(
++        self,
++        bounds: Sequence[float],
++        inset_ax: Axes = ...,
++        *,
++        transform: Transform = ...,
++        facecolor: Color = ...,
++        edgecolor: Color = ...,
++        alpha: float = ...,
++        zorder: float = ...,
++        **kwargs,
++    ) -> Rectangle: ...
++    def indicate_inset_zoom(self, inset_ax: Axes, **kwargs) -> Rectangle: ...
++    def secondary_xaxis(
++        self, location: Literal["top", "bottom", "left", "right"] | float, *, functions=..., **kwargs
++    ) -> SecondaryAxis: ...
++    def secondary_yaxis(
++        self, location: Literal["top", "bottom", "left", "right"] | float, *, functions=..., **kwargs
++    ) -> SecondaryAxis: ...
++    def text(self, x: float, y: float, s: str, fontdict: dict = ..., **kwargs) -> Text: ...
++    def annotate(
++        self,
++        text: str,
++        xy: Sequence[float],
++        xytext: Sequence[float] = ...,
++        xycoords: str | Artist | Transform | Callable = ...,
++        textcoords: str | Artist | Transform | Callable = ...,
++        arrowprops: dict = ...,
++        annotation_clip: bool | None = ...,
++        **kwargs,
++    ) -> Annotation: ...
++    def axhline(self, y: float = 0, xmin: float = 0, xmax: float = 1, **kwargs) -> Line2D: ...
++    def axvline(self, x: float = ..., ymin: float = ..., ymax: float = ..., **kwargs) -> Line2D: ...
++    def axline(self, xy1: tuple[float, float], xy2: tuple[float, float] = ..., *, slope: float = ..., **kwargs) -> Line2D: ...
++    def axhspan(self, ymin: float, ymax: float, xmin: float = ..., xmax: float = ..., **kwargs) -> Polygon: ...
++    def axvspan(self, xmin: float, xmax: float, ymin: float = 0, ymax: float = 1, **kwargs) -> Polygon: ...
++    def hlines(
++        self,
++        y: float | ArrayLike,
++        xmin: float | ArrayLike,
++        xmax: float | ArrayLike,
++        colors: list[Color] = ...,
++        linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
++        label: str = ...,
++        **kwargs,
++    ) -> LineCollection: ...
++    def vlines(
++        self,
++        x: float | ArrayLike,
++        ymin: float | ArrayLike,
++        ymax: float | ArrayLike,
++        colors: list[Color] = ...,
++        linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
++        label: str = ...,
++        **kwargs,
++    ) -> LineCollection: ...
++    def eventplot(
++        self,
++        positions: ArrayLike | list[ArrayLike],
++        orientation: Literal["horizontal", "vertical"] = "horizontal",
++        lineoffsets: float | ArrayLike = 1,
++        linelengths: float | ArrayLike = 1,
++        linewidths: float | ArrayLike = ...,
++        colors: Color | list[Color] = ...,
++        linestyles: str | tuple | list = ...,
++        **kwargs,
++    ) -> list[EventCollection]: ...
++    def plot(self, *args, scalex=..., scaley=..., data=..., **kwargs) -> list[Line2D]: ...
++    def plot_date(
++        self,
++        x: ArrayLike,
++        y: ArrayLike,
++        fmt: str = ...,
++        tz: datetime.tzinfo = ...,
++        xdate: bool = ...,
++        ydate: bool = ...,
++        **kwargs,
++    ) -> list[Line2D]: ...
++    def loglog(self, *args, **kwargs) -> list[Line2D]: ...
++    def semilogx(self, *args, **kwargs) -> list[Line2D]: ...
++    def semilogy(self, *args, **kwargs) -> list[Line2D]: ...
++    def acorr(self, x: ArrayLike, **kwargs): ...
++    def xcorr(
++        self, x, y, normed: bool = True, detrend: Callable = ..., usevlines: bool = True, maxlags: int = 10, **kwargs
++    ) -> tuple[np.ndarray, np.ndarray, bool, int]: ...
++    def step(
++        self, x: ArrayLike, y: ArrayLike, *args, where: Literal["pre", "post", "mid"] = ..., data=..., **kwargs
++    ) -> list[Line2D]: ...
++    def bar(
++        self,
++        x: float | ArrayLike,
++        height: float | ArrayLike,
++        width: float | ArrayLike = ...,
++        bottom: float | ArrayLike = ...,
++        *,
++        align: Literal["center", "edge"] = "center",
++        **kwargs,
++    ) -> BarContainer: ...
++    def barh(
++        self,
++        y: float | ArrayLike,
++        width: float | ArrayLike,
++        height: float | ArrayLike = ...,
++        left: float | ArrayLike = ...,
++        *,
++        align: Literal["center", "edge"] = "center",
++        **kwargs,
++    ) -> BarContainer: ...
++    def bar_label(
++        self,
++        container: BarContainer,
++        labels: ArrayLike = ...,
++        *,
++        fmt: str = "%g",
++        label_type: Literal["edge", "center"] = "edge",
++        padding: float = 0,
++        **kwargs,
++    ) -> list[Text]: ...
++    def broken_barh(
++        self, xranges: Sequence[tuple[float, float]], yrange: tuple[float, float], **kwargs
++    ) -> BrokenBarHCollection: ...
++    def stem(
++        self,
++        *args,
++        linefmt: str = ...,
++        markerfmt: str = ...,
++        basefmt: str = "C3-",
++        bottom: float = 0,
++        label: str | None = None,
++        use_line_collection: bool = True,
++        orientation: str = "verical",
++    ) -> StemContainer: ...
++    def pie(
++        self,
++        x,
++        explode: ArrayLike | None = None,
++        labels: list | None = None,
++        colors: ArrayLike | None = None,
++        autopct: None | str | Callable = None,
++        pctdistance: float = 0.6,
++        shadow: bool = False,
++        labeldistance: float | None = 1.1,
++        startangle: float = 0,
++        radius: float = 1,
++        counterclock: bool = True,
++        wedgeprops: dict | None = None,
++        textprops: dict | None = None,
++        center: tuple[float, float] = (0, 0),
++        frame: bool = False,
++        rotatelabels: bool = False,
++        *,
++        normalize: bool = True,
++    ) -> tuple[list[Wedge], list[Text], list[Text]]: ...
++    def errorbar(
++        self,
++        x: float | ArrayLike,
++        y: float | ArrayLike,
++        yerr: float | ArrayLike = ...,
++        xerr: float | ArrayLike = ...,
++        fmt: str = "",
++        ecolor: Color | None = None,
++        elinewidth: float | None = None,
++        capsize: float = ...,
++        barsabove: bool = False,
++        lolims: bool = False,
++        uplims: bool = False,
++        xlolims: bool = False,
++        xuplims: bool = False,
++        errorevery: int = 1,
++        capthick: float | None = None,
++        **kwargs,
++    ) -> ErrorbarContainer: ...
++    def boxplot(
++        self,
++        x: ArrayLike,
++        notch: bool = False,
++        sym: str = ...,
++        vert: bool = True,
++        whis: float = 1.5,
++        positions: ArrayLike = ...,
++        widths: float | ArrayLike = ...,
++        patch_artist: bool = False,
++        bootstrap: int = ...,
++        usermedians=...,
++        conf_intervals: ArrayLike = ...,
++        meanline: bool = False,
++        showmeans=...,
++        showcaps=...,
++        showbox=...,
++        showfliers=...,
++        boxprops=...,
++        labels: Sequence = ...,
++        flierprops=...,
++        medianprops=...,
++        meanprops=...,
++        capprops=...,
++        whiskerprops=...,
++        manage_ticks: bool = True,
++        autorange: bool = False,
++        zorder: float = 2,
++        capwidths=...,
++    ) -> dict[str, list[Line2D]]: ...
++    def bxp(
++        self,
++        bxpstats: list[dict],
++        positions: ArrayLike = ...,
++        widths: float | ArrayLike | None = None,
++        vert: bool = True,
++        patch_artist: bool = False,
++        shownotches: bool = False,
++        showmeans: bool = False,
++        showcaps: bool = True,
++        showbox: bool = True,
++        showfliers: bool = True,
++        boxprops: dict = ...,
++        whiskerprops: dict = ...,
++        flierprops: dict = ...,
++        medianprops: dict = ...,
++        capprops: dict = ...,
++        meanprops: dict = ...,
++        meanline: bool = False,
++        manage_ticks: bool = True,
++        zorder: float = 2,
++        capwidths: float | ArrayLike | None = None,
++    ) -> dict[str, list[Line2D]]: ...
++    def scatter(
++        self,
++        x: float | ArrayLike,
++        y: float | ArrayLike,
++        s: float | ArrayLike = ...,
++        c: ArrayLike | list[Color] | Color = ...,
++        marker: MarkerStyle = ...,
++        cmap: str | Colormap = ...,
++        norm: Normalize | None = None,
++        vmin: float | None = None,
++        vmax: float | None = None,
++        alpha: float | None = None,
++        linewidths: float | ArrayLike = ...,
++        *,
++        edgecolors: Color = ...,
++        plotnonfinite: bool = False,
++        **kwargs,
++    ) -> PathCollection: ...
++    def hexbin(
++        self,
++        x: ArrayLike,
++        y: ArrayLike,
++        C: ArrayLike = ...,
++        gridsize: int = 100,
++        bins: Literal["log"] | int | Sequence | None = None,
++        xscale: Literal["linear", "log"] = "linear",
++        yscale: Literal["linear", "log"] = "linear",
++        extent: Sequence[float] | None = None,
++        cmap=...,
++        norm=...,
++        vmin=...,
++        vmax=...,
++        alpha=...,
++        linewidths=...,
++        edgecolors=...,
++        reduce_C_function=...,
++        mincnt: int | None = None,
++        marginals: bool = False,
++        **kwargs,
++    ) -> PolyCollection: ...
++    def arrow(self, x: float, y: float, dx: float, dy: float, **kwargs) -> FancyArrow: ...
++    def quiverkey(self, Q: Quiver, X: float, Y: float, U: float, label: str, **kwargs): ...
++    def quiver(self, *args, **kwargs) -> Quiver: ...
++    def barbs(self, *args, **kwargs) -> Barbs: ...
++    def fill(self, *args, data=..., **kwargs) -> list[Polygon]: ...
++    def fill_between(
++        self,
++        x,
++        y1: Scalar,
++        y2: Scalar = ...,
++        where: ArrayLike = ...,
++        interpolate: bool = ...,
++        step: Literal["pre", "post", "mid"] = ...,
++        **kwargs,
++    ) -> PolyCollection: ...
++    def fill_betweenx(
++        self,
++        y,
++        x1: Scalar,
++        x2: Scalar = ...,
++        where: ArrayLike = ...,
++        step: Literal["pre", "post", "mid"] = ...,
++        interpolate: bool = ...,
++        **kwargs,
++    ) -> PolyCollection: ...
++    def imshow(
++        self,
++        X: ArrayLike,
++        cmap: str | Colormap = ...,
++        norm: Normalize = ...,
++        aspect: Literal["equal", "auto"] | float = ...,
++        interpolation: str = ...,
++        alpha: float | ArrayLike = ...,
++        vmin: float = ...,
++        vmax: float = ...,
++        origin: Literal["upper", "lower"] = ...,
++        extent: Sequence[float] = ...,
++        *,
++        interpolation_stage: Literal["data", "rgba"] = ...,
++        filternorm: bool = True,
++        filterrad: float = 4,
++        resample: bool = ...,
++        url: str = ...,
++        **kwargs,
++    ) -> AxesImage: ...
++    def pcolor(
++        self,
++        *args,
++        shading: Literal["flat", "nearest", "auto"] = ...,
++        alpha: float | None = None,
++        norm: Normalize = ...,
++        cmap: str | Colormap = ...,
++        vmin: float | None = None,
++        vmax: float | None = None,
++        **kwargs,
++    ) -> Collection: ...
++    def pcolormesh(
++        self,
++        *args,
++        alpha: float | None = None,
++        norm: Normalize = ...,
++        cmap: str | Colormap = ...,
++        vmin: float | None = None,
++        vmax: float | None = None,
++        shading: Literal["flat", "nearest", "gouraud", "auto"] = ...,
++        antialiased=...,
++        **kwargs,
++    ) -> QuadMesh: ...
++    def pcolorfast(
++        self,
++        *args,
++        alpha: float | None = None,
++        norm: Normalize = ...,
++        cmap: str | Colormap = ...,
++        vmin: float | None = None,
++        vmax: float | None = None,
++        **kwargs,
++    ) -> tuple[AxesImage, PcolorImage, QuadMesh]: ...
++    def contour(self, *args, **kwargs) -> QuadContourSet: ...
++    def contourf(self, *args, **kwargs) -> QuadContourSet: ...
++    def clabel(self, CS, levels: ArrayLike = ..., **kwargs): ...
++    @overload
++    def hist(
++        self,
++        x: Sequence[ArrayLike],
++        bins: int | ArrayLike | str = ...,
++        range: tuple | None = ...,
++        density: bool = ...,
++        weights: None = ...,
++        cumulative: bool | Literal[-1] = ...,
++        bottom=...,
++        histtype: Literal["bar", "barstacked", "step", "stepfilled"] = ...,
++        align: Literal["left", "mid", "right"] = ...,
++        orientation: Literal["vertical", "horizontal"] = ...,
++        rwidth: float | None = ...,
++        log: bool = ...,
++        color: Color | None = ...,
++        label: str | None = ...,
++        stacked: bool = ...,
++        **kwargs,
++    ) -> tuple[list[list[float]], list[float], BarContainer | list]: ...
++    @overload
++    def hist(
++        self,
++        x: ArrayLike,
++        bins: int | ArrayLike | str = ...,
++        range: tuple[float, float] | None = None,
++        density: bool = False,
++        weights: ArrayLike | None = None,
++        cumulative: bool | Literal[-1] = False,
++        bottom: ArrayLike | Scalar | None = None,
++        histtype: Literal["bar", "barstacked", "step", "stepfilled"] = "bar",
++        align: Literal["left", "mid", "right"] = "mid",
++        orientation: Literal["vertical", "horizontal"] = "vertical",
++        rwidth: float | None = None,
++        log: bool = False,
++        color: Color | None = None,
++        label: str | None = None,
++        stacked: bool = False,
++        **kwargs,
++    ) -> tuple[list[float], list[float], BarContainer | list]: ...
++    def stairs(
++        self,
++        values: ArrayLike,
++        edges: ArrayLike = ...,
++        *,
++        orientation: Literal["vertical", "horizontal"] = "vertical",
++        baseline: float | ArrayLike | None = 0,
++        fill: bool = False,
++        **kwargs,
++    ) -> StepPatch: ...
++    def hist2d(
++        self,
++        x,
++        y,
++        bins: None | int | ArrayLike = ...,
++        range=...,
++        density: bool = False,
++        weights=...,
++        cmin: float | None = None,
++        cmax: float | None = None,
++        **kwargs,
++    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[float, float] | None]: ...
++    def psd(
++        self,
++        x: Sequence,
++        NFFT: int = ...,
++        Fs: float = ...,
++        Fc: int = 0,
++        detrend: Literal["none", "mean", "linear"] | Callable = ...,
++        window: Callable | np.ndarray = ...,
++        noverlap: int = 0,
++        pad_to: int = ...,
++        sides: Literal["default", "onesided", "twosided"] = ...,
++        scale_by_freq: bool = ...,
++        return_line: bool = False,
++        **kwargs,
++    ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
++    def csd(
++        self,
++        x: ArrayLike,
++        y: ArrayLike,
++        NFFT: int = ...,
++        Fs: float = ...,
++        Fc: int = 0,
++        detrend: Literal["none", "mean", "linear"] | Callable = ...,
++        window: Callable | np.ndarray = ...,
++        noverlap: int = 0,
++        pad_to: int = ...,
++        sides: Literal["default", "onesided", "twosided"] = ...,
++        scale_by_freq: bool = ...,
++        return_line: bool = False,
++        **kwargs,
++    ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
++    def magnitude_spectrum(
++        self,
++        x: Sequence,
++        Fs: float = ...,
++        Fc: int = ...,
++        window: Callable | np.ndarray = ...,
++        pad_to: int = ...,
++        sides: Literal["default", "onesided", "twosided"] = ...,
++        scale: Literal["default", "linear", "dB"] = "linear",
++        **kwargs,
++    ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
++    def angle_spectrum(
++        self,
++        x: Sequence,
++        Fs: float = ...,
++        Fc: int = 0,
++        window: Callable | np.ndarray = ...,
++        pad_to: int = ...,
++        sides: Literal["default", "onesided", "twosided"] = ...,
++        **kwargs,
++    ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
++    def phase_spectrum(
++        self,
++        x: Sequence,
++        Fs: float = ...,
++        Fc: int = 0,
++        window: Callable | np.ndarray = ...,
++        pad_to: int = ...,
++        sides: Literal["default", "onesided", "twosided"] = ...,
++        **kwargs,
++    ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
++    def cohere(
++        self,
++        x,
++        y,
++        NFFT: int = ...,
++        Fs: float = ...,
++        Fc: int = 0,
++        detrend: Literal["none", "mean", "linear"] | Callable = ...,
++        window: Callable | np.ndarray = ...,
++        noverlap: int = 0,
++        pad_to: int = ...,
++        sides: Literal["default", "onesided", "twosided"] = ...,
++        scale_by_freq: bool = ...,
++        **kwargs,
++    ) -> tuple[np.ndarray, np.ndarray]: ...
++    def specgram(
++        self,
++        x: Sequence,
++        NFFT: int = ...,
++        Fs: float = ...,
++        Fc: int = 0,
++        detrend: Literal["none", "mean", "linear"] | Callable = ...,
++        window: Callable | np.ndarray = ...,
++        noverlap: int = 128,
++        cmap: Colormap = ...,
++        xextent=...,
++        pad_to: int = ...,
++        sides: Literal["default", "onesided", "twosided"] = ...,
++        scale_by_freq: bool = ...,
++        mode: Literal["default", "psd", "magnitude", "angle", "phase"] = "psd",
++        scale: Literal["default", "linear", "dB"] = "dB",
++        vmin=...,
++        vmax=...,
++        **kwargs,
++    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, AxesImage]: ...
++    def spy(
++        self,
++        Z,
++        precision: float | Literal["present"] = 0,
++        marker=...,
++        markersize=...,
++        aspect: Literal["equal", "auto", None] | float = "equal",
++        origin: Literal["upper", "lower"] = ...,
++        **kwargs,
++    ) -> AxesImage | Line2D: ...
++    def matshow(self, Z: ArrayLike, **kwargs) -> AxesImage: ...
++    def violinplot(
++        self,
++        dataset: ArrayLike,
++        positions: ArrayLike = ...,
++        vert: bool = True,
++        widths: ArrayLike | float = 0.5,
++        showmeans: bool = False,
++        showextrema: bool = True,
++        showmedians: bool = False,
++        quantiles: ArrayLike | None = None,
++        points: int = 100,
++        bw_method: str | Scalar | Callable | None = None,
++    ) -> dict[str, Collection]: ...
++    def violin(
++        self,
++        vpstats: list[dict],
++        positions: ArrayLike = ...,
++        vert: bool = True,
++        widths: ArrayLike | float = 0.5,
++        showmeans: bool = False,
++        showextrema: bool = True,
++        showmedians: bool = False,
++    ) -> dict[str, Collection]: ...
++    table = table_table
++    stackplot = ...
++    streamplot = ...
++    tricontour = tri_tricontour.tricontour
++    tricontourf = tri_tricontourf.tricontourf
++    tripcolor = tri_tripcolor.tripcolor
++    triplot = tri_triplot.triplot
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/colors.pyi b/src/python-type-stubs-main/stubs/matplotlib/colors.pyi
+index dbc3160..20979ac 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/colors.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/colors.pyi
+@@ -1,35 +1,34 @@
+-import functools
+-from collections.abc import Mapping
+ from email.errors import NonPrintableDefect
+ from re import Pattern
+-from typing import Callable, Iterator, Literal
+-
++from .scale import AsinhScale, FuncScale, LogScale, SymmetricalLogScale
+ import numpy as np
++from typing import Callable, Iterator, Literal
+ from matplotlib._typing import *
+ 
+-from .scale import AsinhScale, FuncScale, LogScale, SymmetricalLogScale
++import functools
++from collections.abc import Mapping
+ 
+ class _ColorMapping(dict):
+     def __init__(self, mapping) -> None: ...
+-    def __setitem__(self, key, value) -> None: ...
+-    def __delitem__(self, key) -> None: ...
++    def __setitem__(self, key, value)-> None: ...
++    def __delitem__(self, key)-> None: ...
+ 
+-def get_named_colors_mapping() -> _ColorMapping: ...
++def get_named_colors_mapping()-> _ColorMapping: ...
+ 
+ class ColorSequenceRegistry(Mapping):
+     def __init__(self) -> None: ...
+-    def __getitem__(self, item) -> list[Color]: ...
+-    def __iter__(self) -> Iterator[Color]: ...
+-    def __len__(self) -> int: ...
++    def __getitem__(self, item)-> list[Color]: ...
++    def __iter__(self)-> Iterator[Color]: ...
++    def __len__(self)-> int: ...
+     def __str__(self) -> str: ...
+-    def register(self, name: str, color_list: list[Color]) -> None: ...
+-    def unregister(self, name) -> None: ...
++    def register(self, name: str, color_list: list[Color])-> None: ...
++    def unregister(self, name)-> None: ...
+ 
+-def is_color_like(c) -> bool: ...
+-def same_color(c1: Color, c2: Color) -> bool: ...
++def is_color_like(c)-> bool: ...
++def same_color(c1: Color, c2: Color)-> bool: ...
+ def to_rgba(c: np.ma.masked_array, alpha: float = ...) -> tuple: ...
+ def to_rgba_array(c: ArrayLike, alpha: float = ...) -> list: ...
+-def to_rgb(c: Color) -> tuple: ...
++def to_rgb(c: Color)-> tuple: ...
+ def to_hex(c: Color, keep_alpha: bool = ...) -> str: ...
+ 
+ cnames: dict[str, str] = ...
+@@ -38,10 +37,11 @@ rgb2hex = to_hex
+ hex2color = to_rgb
+ 
+ class ColorConverter:
++
+     colors: _ColorMapping = ...
+     cache: dict = ...
+     @staticmethod
+-    def to_rgb(c: Color) -> tuple: ...
++    def to_rgb(c: Color)-> tuple: ...
+     @staticmethod
+     def to_rgba(c: np.ma.masked_array, alpha: float = ...) -> tuple: ...
+     @staticmethod
+@@ -50,86 +50,88 @@ class ColorConverter:
+ colorConverter: ColorConverter = ...
+ 
+ class Colormap:
+-    def __init__(self, name: str, N: int = 256) -> None: ...
++    def __init__(self, name: str, N:int=256) -> None: ...
+     def __call__(
+         self,
+         X: float | int | np.ndarray | Scalar,
+         alpha: float | ArrayLike | None = None,
+         bytes: bool = False,
+     ) -> tuple: ...
+-    def __copy__(self) -> Colormap: ...
++    def __copy__(self)-> Colormap: ...
+     def __eq__(self, other: Colormap) -> bool: ...
+-    def get_bad(self) -> np.ndarray: ...
+-    def set_bad(self, color: Color = "k", alpha: float | None = None): ...
+-    def get_under(self) -> np.ndarray: ...
+-    def set_under(self, color: Color = "k", alpha: float | None = None): ...
+-    def get_over(self) -> np.ndarray: ...
+-    def set_over(self, color: Color = "k", alpha: float | None = None): ...
+-    def set_extremes(self, *, bad=None, under=None, over=None) -> None: ...
+-    def with_extremes(self, *, bad=None, under: None = ..., over: None = ...) -> None: ...
+-    def is_gray(self) -> bool: ...
+-    def reversed(self, name: str | None = None) -> Colormap: ...
++    def get_bad(self)-> np.ndarray: ...
++    def set_bad(self, color: Color='k', alpha: float|None=None): ...
++    def get_under(self)-> np.ndarray: ...
++    def set_under(self, color: Color='k', alpha: float|None=None): ...
++    def get_over(self)-> np.ndarray: ...
++    def set_over(self, color: Color='k', alpha: float|None=None): ...
++    def set_extremes(self, *, bad=None, under=None, over=None)-> None: ...
++    def with_extremes(self, *, bad=None, under: None=..., over: None=...)-> None: ...
++    def is_gray(self)-> bool: ...
++    def reversed(self, name: str|None = None)-> Colormap: ...
+     def copy(self): ...
+ 
+ class LinearSegmentedColormap(Colormap):
+     def __init__(self, name, segmentdata, N=..., gamma=...) -> None: ...
+-    def set_gamma(self, gamma) -> NonPrintableDefect: ...
++    def set_gamma(self, gamma)-> NonPrintableDefect: ...
+     @staticmethod
+-    def from_list(name: str, colors, N: int = ..., gamma: float = ...) -> LinearSegmentedColormap: ...
++    def from_list(name: str, colors, N: int = ..., gamma: float = ...)-> LinearSegmentedColormap: ...
+     def reversed(self, name: str = ...) -> LinearSegmentedColormap: ...
+ 
+ class ListedColormap(Colormap):
+-    def __init__(self, colors: list, name: str = ..., N: int = ...) -> None: ...
++    def __init__(self, colors: list, array, name: str = ..., N: int = ...) -> None: ...
+     def reversed(self, name: str = ...) -> ListedColormap: ...
+ 
+ class Normalize:
+     def __init__(self, vmin=..., vmax=..., clip=...) -> None: ...
+     @property
+-    def vmin(self) -> float: ...
++    def vmin(self)-> float: ...
+     @vmin.setter
+-    def vmin(self, value: float) -> None: ...
++    def vmin(self, value: float)-> None: ...
+     @property
+-    def vmax(self) -> float: ...
++    def vmax(self)-> float: ...
+     @vmax.setter
+-    def vmax(self, value: float) -> None: ...
++    def vmax(self, value: float)-> None: ...
+     @property
+-    def clip(self) -> bool: ...
++    def clip(self)-> bool: ...
+     @clip.setter
+-    def clip(self, value: bool) -> None: ...
++    def clip(self, value: bool)-> None: ...
+     @staticmethod
+-    def process_value(value) -> tuple[np.ndarray, bool]: ...
+-    def __call__(self, value, clip: bool | None = None): ...
++    def process_value(value)-> tuple[np.ndarray, bool]: ...
++    def __call__(self, value, clip: bool|None = None): ...
+     def inverse(self, value): ...
+-    def autoscale(self, A) -> None: ...
+-    def autoscale_None(self, A) -> None: ...
+-    def scaled(self) -> bool: ...
++    def autoscale(self, A)-> None: ...
++    def autoscale_None(self, A)-> None: ...
++    def scaled(self)-> bool: ...
+ 
+ class TwoSlopeNorm(Normalize):
+     def __init__(self, vcenter, vmin=..., vmax=...) -> None: ...
+     @property
+     def vcenter(self): ...
+     @vcenter.setter
+-    def vcenter(self, value) -> None: ...
+-    def autoscale_None(self, A) -> None: ...
++    def vcenter(self, value)-> None: ...
++    def autoscale_None(self, A)-> None: ...
+     def __call__(self, value, clip=...): ...
+     def inverse(self, value): ...
+ 
+ class CenteredNorm(Normalize):
+     def __init__(self, vcenter=..., halfrange=..., clip=...) -> None: ...
+-    def autoscale(self, A) -> None: ...
+-    def autoscale_None(self, A) -> None: ...
++    def autoscale(self, A)-> None: ...
++    def autoscale_None(self, A)-> None: ...
+     @property
+     def vcenter(self): ...
+     @vcenter.setter
+-    def vcenter(self, vcenter) -> None: ...
++    def vcenter(self, vcenter)-> None: ...
+     @property
+     def halfrange(self): ...
+     @halfrange.setter
+-    def halfrange(self, halfrange) -> None: ...
++    def halfrange(self, halfrange)-> None: ...
+     def __call__(self, value, clip: bool = ...): ...
+ 
+ def make_norm_from_scale(scale_cls, base_norm_cls=..., *, init=...): ...
+-@make_norm_from_scale(FuncScale, init=lambda functions, vmin=None, vmax=None, clip=False: None)
++@make_norm_from_scale(
++    FuncScale, init=lambda functions, vmin=None, vmax=None, clip=False: None
++)
+ class FuncNorm(Normalize): ...
+ 
+ @make_norm_from_scale(functools.partial(LogScale, nonpositive="mask"))
+@@ -145,12 +147,14 @@ class SymLogNorm(Normalize):
+     @linthresh.setter
+     def linthresh(self, value): ...
+ 
+-@make_norm_from_scale(AsinhScale, init=lambda linear_width=1, vmin=None, vmax=None, clip=False: None)
++@make_norm_from_scale(
++    AsinhScale, init=lambda linear_width=1, vmin=None, vmax=None, clip=False: None
++)
+ class AsinhNorm(Normalize):
+     @property
+     def linear_width(self): ...
+     @linear_width.setter
+-    def linear_width(self, value) -> None: ...
++    def linear_width(self, value)-> None: ...
+ 
+ class PowerNorm(Normalize):
+     def __init__(self, gamma, vmin=..., vmax=..., clip=...) -> None: ...
+@@ -202,7 +206,7 @@ class LightSource:
+         dx: float = ...,
+         dy: float = ...,
+         fraction: float = ...,
+-        **kwargs,
++        **kwargs
+     ) -> np.ndarray: ...
+     def shade_rgb(
+         self,
+@@ -213,7 +217,7 @@ class LightSource:
+         vert_exag: float = ...,
+         dx: float = ...,
+         dy: float = ...,
+-        **kwargs,
++        **kwargs
+     ) -> np.ndarray: ...
+     def blend_hsv(
+         self,
+@@ -224,7 +228,11 @@ class LightSource:
+         hsv_min_val: float = ...,
+         hsv_min_sat: float = ...,
+     ) -> np.ndarray: ...
+-    def blend_soft_light(self, rgb: np.ndarray, intensity: np.ndarray) -> np.ndarray: ...
++    def blend_soft_light(
++        self, rgb: np.ndarray, intensity: np.ndarray
++    ) -> np.ndarray: ...
+     def blend_overlay(self, rgb: np.ndarray, intensity: np.ndarray) -> np.ndarray: ...
+ 
+-def from_levels_and_colors(levels, colors, extend: Literal["neither", "min", "max", "both"] = ...): ...
++def from_levels_and_colors(
++    levels, colors, extend: Literal["neither", "min", "max", "both"] = ...
++): ...
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/figure.pyi b/src/python-type-stubs-main/stubs/matplotlib/figure.pyi
+index bd6a05c..3dbc7ef 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/figure.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/figure.pyi
+@@ -1,11 +1,20 @@
+ from io import BufferedWriter, BytesIO
++
++from matplotlib.axis import Tick
++from matplotlib.cm import ScalarMappable
++from matplotlib.ticker import Formatter, Locator
+ from .colorbar import Colorbar
+ import numpy as np
+-from typing import Callable, Literal, overload
+-from ._typing import *
++from typing import Callable, Iterable, List, Literal, Sequence, overload
++from ._typing import CmapType, TextProps, ColorType, ArrayLike, PathLike, FileLike
+ from .text import Text
+ from .gridspec import GridSpec, SubplotSpec
+-from .backend_bases import FigureCanvasBase, MouseButton, MouseEvent, RendererBase
++from .backend_bases import (
++    FigureCanvasBase,
++    MouseButton,
++    MouseEvent,
++    RendererBase,
++)
+ from .colors import Colormap, Normalize
+ from .legend import Legend
+ from .layout_engine import LayoutEngine
+@@ -14,8 +23,6 @@ from .transforms import BboxBase
+ from .axes import Axes
+ from .artist import Artist, _finalize_rasterization, allow_rasterization
+ from mpl_toolkits.mplot3d import Axes3D
+-from .projections.geo import AitoffAxes, HammerAxes, LambertAxes, MollweideAxes
+-from .projections.polar import PolarAxes
+ 
+ class _AxesStack:
+     def __init__(self) -> None: ...
+@@ -57,8 +64,16 @@ class FigureBase(Artist):
+     ) -> None: ...
+     def get_children(self) -> list[Artist]: ...
+     def contains(self, mouseevent: MouseEvent) -> bool: ...
+-    def get_window_extent(self, renderer: RendererBase = ..., *args, **kwargs): ...
+-    def suptitle(self, t: str, **kwargs) -> Text: ...
++    def get_window_extent(
++        self, renderer: RendererBase = ..., *args, **kwargs
++    ): ...
++    def suptitle(
++        self,
++        t: str,
++        x: float = 0.5,
++        y: float = 0.98,
++        **kwargs: TextProps
++    ) -> Text: ...
+     def supxlabel(self, t: str, **kwargs) -> Text: ...
+     def supylabel(self, t: str, **kwargs) -> Text: ...
+     def get_edgecolor(self): ...
+@@ -66,74 +81,101 @@ class FigureBase(Artist):
+     def get_frameon(self) -> bool: ...
+     def set_linewidth(self, linewidth: float) -> None: ...
+     def get_linewidth(self) -> float: ...
+-    def set_edgecolor(self, color: Color): ...
++    def set_edgecolor(self, color: ColorType): ...
+     def set_facecolor(self, color: str) -> None: ...
+     def set_frameon(self, b: bool): ...
+     frameon = ...
+     def add_artist(self, artist: Artist, clip: bool = False) -> Artist: ...
+     def add_axes(self, *args, **kwargs) -> Axes: ...
+     @overload
+-    def add_subplot(self, *args, projection: Literal['3d'], **kwargs) -> Axes3D: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['aitoff'], **kwargs) -> AitoffAxes: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['hammer'], **kwargs) -> HammerAxes: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['lambert'], **kwargs) -> LambertAxes: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['mollweide'], **kwargs) -> MollweideAxes: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['polar'], **kwargs) -> PolarAxes: ...
++    def add_subplot(
++        self,
++        nrows: int, # The Sketch-n-Plot default int is 1
++        ncols: int, # The Sketch-n-Plot default int is 1
++        index: int, # The Sketch-n-Plot default int is 1
++        /,
++        projection: Literal['aitoff', 'hammer', 'lambert', 'mollweide', 'polar', 'rectilinear'] | str | None = None,
++        polar: bool = False,
++        sharex: Axes | None = None,
++        sharey: Axes | None = None,
++        frameon: bool = True,
++        label: str = '',
++        xscale: float | None = None,
++        yscale: float | None = None,
++        box_aspect: float | None = None,
++        facecolor: ColorType | None = None,
++        **kwargs
++    ) -> Axes: ...
++    def add_subplot(
++        self,
++        grid: Literal[111] | int,
++        /,
++        projection: Literal['aitoff', 'hammer', 'lambert', 'mollweide', 'polar', 'rectilinear'] | str | None = None,
++        polar: bool = False,
++        sharex: Axes | None = None,
++        sharey: Axes | None = None,
++        frameon: bool = True,
++        label: str = '',
++        xscale: float | None = None,
++        yscale: float | None = None,
++        box_aspect: float | None = None,
++        facecolor: ColorType | None = None,
++        **kwargs
++    ) -> Axes: ...
+     @overload
+-    def add_subplot(self, *args, **kwargs) -> Axes: ...
++    def add_subplot(
++        self, *args, projection: Literal["3d"], **kwargs
++    ) -> Axes3D: ...
+     @overload
+     def subplots(
+         self,
+-        nrows: Literal[1] = ...,
+-        ncols: Literal[1] = ...,
++        nrows: Literal[1] = 1,
++        ncols: Literal[1] = 1,
+         *,
+-        squeeze: Literal[False],
+-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
+-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
++        squeeze: Literal[False] = True,
++        sharex: bool | Literal["none", "all", "row", "col"] = False,
++        sharey: bool | Literal["none", "all", "row", "col"] = False,
++        width_ratios: ArrayLike = ...,
++        height_ratios: ArrayLike = ...,
+         subplot_kw: dict = ...,
+-        gridspec_kw: dict = ...
+-    ) -> list[Axes]: ...
++        gridspec_kw: dict = ...,
++    ) -> Axes: ...
+     @overload
+     def subplots(
+         self,
+-        nrows: int = ...,
+-        ncols: int = ...,
++        nrows: int = 1,
++        ncols: Literal[1] = 1,
+         *,
+-        squeeze: Literal[False],
+-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
+-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
++        squeeze: Literal[True] = True,
++        sharex: bool | Literal["none", "all", "row", "col"] = False,
++        sharey: bool | Literal["none", "all", "row", "col"] = False,
+         subplot_kw: dict = ...,
+-        gridspec_kw: dict = ...
+-    ) -> list[list[Axes]]: ...
++        gridspec_kw: dict = ...,
++    ) -> List[Axes]: ...
+     @overload
+     def subplots(
+         self,
+-        nrows: Literal[1] = ...,
+-        ncols: Literal[1] = ...,
++        nrows: Literal[1] = 1,
++        ncols: int = 1,
+         *,
+-        squeeze: Literal[True] = ...,
+-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
+-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
++        squeeze: bool = True,
++        sharex: bool | Literal["none", "all", "row", "col"] = False,
++        sharey: bool | Literal["none", "all", "row", "col"] = False,
+         subplot_kw: dict = ...,
+-        gridspec_kw: dict = ...
+-    ) -> Axes: ...
++        gridspec_kw: dict = ...,
++    ) -> List[Axes]: ...
+     @overload
+     def subplots(
+         self,
+-        nrows: int,
+-        ncols: int,
++        nrows: int = 1,
++        ncols: int = 1,
+         *,
+-        squeeze: bool = ...,
+-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
+-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
++        squeeze: Literal[False] = True,
++        sharex: bool | Literal["none", "all", "row", "col"] = False,
++        sharey: bool | Literal["none", "all", "row", "col"] = False,
+         subplot_kw: dict = ...,
+-        gridspec_kw: dict = ...
+-    ) -> list[Axes]: ...
++        gridspec_kw: dict = ...,
++    ) -> List[List[Axes]]: ...
+     def delaxes(self, ax: Axes) -> None: ...
+     def clear(self, keep_observers: bool = False) -> None: ...
+     def clf(self, keep_observers: bool = False) -> None: ...
+@@ -142,7 +184,29 @@ class FigureBase(Artist):
+         self, x: float, y: float, s: str, fontdict: dict = ..., **kwargs
+     ) -> Text: ...
+     def colorbar(
+-        self, mappable, cax: Axes = ..., ax=..., use_gridspec: bool = ..., **kwargs
++        self,
++        mappable: ScalarMappable,
++        cax: Axes = ...,
++        ax: Axes | Iterable[Axes] = ...,
++        use_gridspec: bool = ...,
++        location: Literal['left', 'right', 'top', 'bottom'] = ...,
++        orientation: Literal['vertical', 'horizontal'] = ...,
++        fraction: float = 0.15,
++        shrink: float = 1.0,
++        aspect: float = 20,
++        pad: float = 0.05,
++        anchor: tuple[float, float] = ...,
++        panchor: tuple[float, float] | Literal[False] = ...,
++        extend: Literal['neither', 'both', 'min', 'max'] = ...,
++        extendfrac: Literal['auto'] | float | Iterable[float] = ...,
++        extendrect: bool = False,
++        spacing: Literal['uniform', 'proportional'] = ...,
++        ticks: Iterable[Tick] | Locator | None = ...,
++        format: Literal["%04.1f"] | str | Formatter | None = ...,
++        drawedges: bool = ...,
++        label: str = ...,
++        boundaries: Iterable[float] = ...,
++        values: Iterable[float] =...
+     ) -> Colorbar: ...
+     def subplots_adjust(
+         self,
+@@ -153,10 +217,12 @@ class FigureBase(Artist):
+         wspace: float = ...,
+         hspace: float = ...,
+     ) -> None: ...
+-    def align_xlabels(self, axs: list[Axes] = ...) -> None: ...
+-    def align_ylabels(self, axs: list[Axes] = ...) -> None: ...
+-    def align_labels(self, axs: list[Axes] = ...) -> None: ...
+-    def add_gridspec(self, nrows: int = 1, ncols: int = 1, **kwargs) -> GridSpec: ...
++    def align_xlabels(self, axs: Sequence[Axes] = ...) -> None: ...
++    def align_ylabels(self, axs: Sequence[Axes] = ...) -> None: ...
++    def align_labels(self, axs: Sequence[Axes] = ...) -> None: ...
++    def add_gridspec(
++        self, nrows: int = 1, ncols: int = 1, **kwargs
++    ) -> GridSpec: ...
+     def subfigures(
+         self,
+         nrows: int = 1,
+@@ -166,16 +232,18 @@ class FigureBase(Artist):
+         hspace: float | None = None,
+         width_ratios: ArrayLike = ...,
+         height_ratios: ArrayLike = ...,
+-        **kwargs
++        **kwargs,
+     ): ...
+-    def add_subfigure(self, subplotspec: SubplotSpec, **kwargs) -> SubFigure: ...
++    def add_subfigure(
++        self, subplotspec: SubplotSpec, **kwargs
++    ) -> SubFigure: ...
+     def sca(self, a: Axes) -> Axes: ...
+     def gca(self) -> Axes: ...
+     def get_default_bbox_extra_artists(self): ...
+     def get_tightbbox(
+         self,
+         renderer: RendererBase = ...,
+-        bbox_extra_artists: list[Artist] | None = ...,
++        bbox_extra_artists: Sequence[Artist] | None = ...,
+     ) -> BboxBase: ...
+     def subplot_mosaic(
+         self,
+@@ -185,7 +253,7 @@ class FigureBase(Artist):
+         sharey: bool = ...,
+         subplot_kw: dict = ...,
+         gridspec_kw: dict = ...,
+-        empty_sentinel: object = ...
++        empty_sentinel: object = ...,
+     ) -> dict[Text, Axes]: ...
+ 
+ class Figure(FigureBase):
+@@ -197,23 +265,25 @@ class Figure(FigureBase):
+         self,
+         figsize: tuple[float, float] = ...,
+         dpi: float = ...,
+-        facecolor: Color = ...,
+-        edgecolor: Color = ...,
++        facecolor: ColorType = ...,
++        edgecolor: ColorType = ...,
+         linewidth: float = ...,
+         frameon: bool = ...,
+         subplotpars: SubplotParams = ...,
+         tight_layout: bool | dict = ...,
+         constrained_layout: bool = ...,
+         *,
+-        layout: LayoutEngine
+-        | Literal["constrained", "compressed", "tight"]
+-        | None = ...,
+-        **kwargs
++        layout: (
++            LayoutEngine | Literal["constrained", "compressed", "tight"] | None
++        ) = ...,
++        **kwargs,
+     ) -> None: ...
+     def set_layout_engine(
+         self,
+-        layout: LayoutEngine | Literal["constrained", "compressed", "tight"] = ...,
+-        **kwargs: dict
++        layout: (
++            LayoutEngine | Literal["constrained", "compressed", "tight"]
++        ) = ...,
++        **kwargs: dict,
+     ) -> None: ...
+     def get_layout_engine(self) -> None: ...
+     def show(self, warn: bool = True) -> None: ...
+@@ -239,12 +309,12 @@ class Figure(FigureBase):
+         yo: int = ...,
+         alpha: None | float = ...,
+         norm: Normalize = ...,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         vmin: float = ...,
+         vmax: float = ...,
+         origin: Literal["upper", "lower"] = ...,
+         resize: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> FigureImage: ...
+     def set_size_inches(
+         self, w: float, h: float = ..., forward: bool = True
+@@ -254,8 +324,8 @@ class Figure(FigureBase):
+     def get_figheight(self): ...
+     def get_dpi(self) -> float: ...
+     def set_dpi(self, val: float) -> None: ...
+-    def set_figwidth(self, val: float, forward: bool = ...)-> None: ...
+-    def set_figheight(self, val: float, forward: bool = ...)-> None: ...
++    def set_figwidth(self, val: float, forward: bool = ...) -> None: ...
++    def set_figheight(self, val: float, forward: bool = ...) -> None: ...
+     def clear(self, keep_observers: bool = ...) -> None: ...
+     @allow_rasterization
+     def draw(self, renderer) -> None: ...
+@@ -269,7 +339,7 @@ class Figure(FigureBase):
+         fname: str | PathLike | FileLike | BytesIO | BufferedWriter,
+         *,
+         transparent: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> None: ...
+     def ginput(
+         self,
+@@ -288,7 +358,7 @@ class Figure(FigureBase):
+         pad: float = 1.08,
+         h_pad: float = ...,
+         w_pad: float = ...,
+-        rect: tuple[float, float, float, float] = ...
++        rect: tuple[float, float, float, float] = ...,
+     ) -> None: ...
+ 
+ def figaspect(arg: float): ...
+@@ -301,18 +371,18 @@ class SubFigure(FigureBase):
+         parent: FigureBase,
+         subplotspec: SubplotSpec,
+         *,
+-        facecolor: Color = ...,
+-        edgecolor: Color = ...,
++        facecolor: ColorType = ...,
++        edgecolor: ColorType = ...,
+         linewidth: float = ...,
+         frameon: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> None: ...
+     @property
+     def dpi(self) -> float: ...
+     @dpi.setter
+     def dpi(self, value: float): ...
+     def get_dpi(self) -> float: ...
+-    def set_dpi(self, val: float)-> None: ...
++    def set_dpi(self, val: float) -> None: ...
+     def get_constrained_layout(self) -> bool: ...
+     def get_constrained_layout_pads(self, relative: bool = ...): ...
+     def get_layout_engine(self) -> LayoutEngine: ...
+diff --git a/src/python-type-stubs-main/stubs/matplotlib/old_typing.pyi b/src/python-type-stubs-main/stubs/matplotlib/old_typing.pyi
+new file mode 100644
+index 0000000..dfc1405
+--- /dev/null
++++ b/src/python-type-stubs-main/stubs/matplotlib/old_typing.pyi
+@@ -0,0 +1,31 @@
++import decimal
++import io
++import numpy.typing
++import pandas as pd
++
++from typing import TypedDict
++
++Decimal = decimal.Decimal
++PythonScalar = str | int | float | bool
++
++ArrayLike = numpy.typing.ArrayLike
++FileLike = io.IOBase
++PathLike = str
++
++PandasScalar = pd.Period | pd.Timestamp | pd.Timedelta | pd.Interval
++Scalar = PythonScalar | PandasScalar
++
++Color = tuple[float, float, float] | str
++
++__all__ = [
++    "ArrayLike",
++    "Color",
++    "Decimal",
++    "FileLike",
++    "PathLike",
++    "Scalar",
++]
++
++# Note: font-size can also be a string, like "x-large"
++# https://matplotlib.org/stable/api/font_manager_api.html
++FontDict = TypedDict("FontDict", {"fontsize": float, "fontweight": int})
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/pyplot.pyi b/src/python-type-stubs-main/stubs/matplotlib/pyplot.pyi
+index 6b608cc..2ffde00 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/pyplot.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/pyplot.pyi
+@@ -1,10 +1,16 @@
+ import datetime
++from matplotlib.axis import Tick
++from matplotlib.cm import ScalarMappable
++from matplotlib.colorbar import Colorbar
+ from matplotlib.contour import QuadContourSet
++from matplotlib.layout_engine import LayoutEngine
++from matplotlib.pylab import ArrayLike
++from matplotlib.ticker import Formatter, Locator
+ import numpy as np
+-from typing import Callable, ContextManager, Literal, Sequence, overload
++from typing import Any, Callable, ContextManager, Iterable, List, Literal, Sequence, overload
+ from matplotlib import rcParams as rcParams
+ from matplotlib import style as style
+-from ._typing import *
++from ._typing import CmapType, ColorType, FileLike, PathLike, Scalar
+ from .tri.tricontour import TriContourSet
+ from .transforms import Bbox, Transform
+ from .text import Text, Annotation
+@@ -24,7 +30,7 @@ from .collections import (
+ from .lines import Line2D
+ from .legend import Legend
+ from .image import AxesImage, FigureImage
+-from .figure import Figure, SubFigure
++from .figure import Figure as Figure, SubFigure as SubFigure
+ from .scale import ScaleBase
+ from .backend_bases import _Backend
+ from .axes import Axes as Axes
+@@ -82,14 +88,15 @@ class _xkcd:
+     def __exit__(self, *args)-> None: ...
+ 
+ def figure(
+-    num: int | str | Figure | SubFigure| None = None,
+-    figsize: Sequence[float]|None = None,
+-    dpi: float|None = None,
+-    facecolor: Color|None = None,
+-    edgecolor: Color|None = None,
++    num: int | str | Figure | SubFigure | None = None,
++    figsize: tuple[float, float] = (6.4, 4.8),
++    dpi: float = 100,
++    facecolor: ColorType = 'white',
++    edgecolor: ColorType = 'white',
+     frameon: bool = True,
+-    FigureClass = ...,
++    FigureClass: type[Figure] | None = None,
+     clear: bool = False,
++    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
+     **kwargs
+ ) -> Figure: ...
+ def gcf() -> Figure: ...
+@@ -111,6 +118,10 @@ def cla() -> None: ...
+ def subplot(*args, **kwargs) -> Axes: ...
+ 
+ 
++# subplots actually often returns np.ndarrays instead of List BUT the numpy type stubs
++# and/or mypy can't then understand that pulling items out of that list gives you an Axes
++#
++# So we pretend it returns lists
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -122,7 +133,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+ @overload
+ def subplots(
+     nrows: Literal[1] = ...,
+@@ -149,7 +160,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -161,7 +172,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     *,
+@@ -173,7 +184,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+ @overload
+ def subplots(
+     *,
+@@ -184,7 +195,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -195,7 +206,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ 
+ @overload
+ def subplots(
+@@ -219,7 +230,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+ 
+ def subplot_mosaic(
+     mosaic: list | str,
+@@ -265,8 +276,32 @@ def thetagrids(
+     **kwargs
+ ) -> tuple[list[Line2D], list[Text]]: ...
+ def get_plot_commands() -> list: ...
+-def colorbar(mappable=..., cax: Axes = ..., ax: Axes = ..., **kwargs): ...
++def colorbar(
++    mappable: ScalarMappable | None = None,
++    cax: Axes = ...,
++    ax: Axes | Iterable[Axes] = ...,
++    use_gridspec: bool = ...,
++    location: Literal['left', 'right', 'top', 'bottom'] = ...,
++    orientation: Literal['vertical', 'horizontal'] = ...,
++    fraction: float = 0.15,
++    shrink: float = 1.0,
++    aspect: float = 20,
++    pad: float = 0.05,
++    anchor: tuple[float, float] = ...,
++    panchor: tuple[float, float] | Literal[False] = ...,
++    extend: Literal['neither', 'both', 'min', 'max'] = ...,
++    extendfrac: Literal['auto'] | float | Iterable[float] = ...,
++    extendrect: bool = False,
++    spacing: Literal['uniform', 'proportional'] = ...,
++    ticks: Iterable[Tick] | Locator | None = ...,
++    format: Literal["%04.1f"] | str | Formatter | None = ...,
++    drawedges: bool = ...,
++    label: str = ...,
++    boundaries: Iterable[float] = ...,
++    values: Iterable[float] =...
++) -> Colorbar: ...
+ def clim(vmin: float | None = ..., vmax: float | None = ...): ...
++def get_cmap(name: CmapType | None = ..., lut: int | None = ...) -> Colormap: ...
+ def set_cmap(cmap: Colormap | str): ...
+ def imread(fname: str | FileLike, format: str = ...) -> np.ndarray: ...
+ def imsave(fname: str | PathLike | FileLike, arr: ArrayLike, **kwargs): ...
+@@ -280,7 +315,7 @@ def figimage(
+     yo: float = ...,
+     alpha: None | float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     origin: Literal["upper", "lower"] = ...,
+@@ -464,7 +499,7 @@ def errorbar(
+     yerr: float | ArrayLike = ...,
+     xerr: float | ArrayLike = ...,
+     fmt: str = ...,
+-    ecolor: Color = ...,
++    ecolor: ColorType = ...,
+     elinewidth: float = ...,
+     capsize: float = ...,
+     barsabove: bool = ...,
+@@ -484,7 +519,7 @@ def eventplot(
+     lineoffsets: float | ArrayLike = ...,
+     linelengths: float | ArrayLike = ...,
+     linewidths: float | ArrayLike = ...,
+-    colors: Color | list[Color] = ...,
++    colors: ColorType | Sequence[ColorType] = ...,
+     linestyles: str | tuple | list = ...,
+     *,
+     data=...,
+@@ -555,7 +590,7 @@ def hist(
+     orientation: Literal["vertical", "horizontal"] = ...,
+     rwidth: float | None = ...,
+     log: bool = ...,
+-    color: Color | None = ...,
++    color: ColorType | None = ...,
+     label: str | None = ...,
+     stacked: bool = ...,
+     *,
+@@ -589,7 +624,7 @@ def hlines(
+     y: float | ArrayLike,
+     xmin: float | ArrayLike,
+     xmax: float | ArrayLike,
+-    colors: list[Color] = ...,
++    colors: Sequence[ColorType] = ...,
+     linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+     label: str = ...,
+     *,
+@@ -598,7 +633,7 @@ def hlines(
+ ) -> LineCollection: ...
+ def imshow(
+     X: ArrayLike,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     aspect: Literal["equal", "auto"] | float = ...,
+     interpolation: str = ...,
+@@ -641,7 +676,7 @@ def pcolor(
+     shading: Literal["flat", "nearest", "auto"] = ...,
+     alpha: float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     data=...,
+@@ -651,7 +686,7 @@ def pcolormesh(
+     *args,
+     alpha: float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     shading: Literal["flat", "nearest", "gouraud", "auto"] = ...,
+@@ -725,16 +760,16 @@ def scatter(
+     x: float | ArrayLike,
+     y: float | ArrayLike,
+     s: float | ArrayLike = ...,
+-    c: ArrayLike | list[Color] | Color = ...,
++    c: ArrayLike | Sequence[ColorType] | ColorType = ...,
+     marker: MarkerStyle = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     alpha: float = ...,
+     linewidths: float | ArrayLike = ...,
+     *,
+-    edgecolors: Color = ...,
++    edgecolors: ColorType | Sequence[ColorType] = ...,
+     plotnonfinite: bool = ...,
+     data=...,
+     **kwargs
+@@ -749,7 +784,7 @@ def specgram(
+     detrend: Literal["none", "mean", "linear"] | Callable = ...,
+     window: Callable | np.ndarray = ...,
+     noverlap: int = ...,
+-    cmap: Colormap = ...,
++    cmap: CmapType = ...,
+     xextent=...,
+     pad_to: float = ...,
+     sides: Literal["default", "onesided", "twosided"] = ...,
+@@ -774,8 +809,8 @@ def spy(
+ def stackplot(
+     x,
+     *args,
+-    labels: list[str] = ...,
+-    colors: list[Color] = ...,
++    labels: Sequence[str] = ...,
++    colors: Sequence[ColorType] = ...,
+     baseline: Literal["zero", "sym", "wiggle", "weighted_wiggle"] = ...,
+     data=...,
+     **kwargs
+@@ -806,8 +841,8 @@ def streamplot(
+     v,
+     density: float = ...,
+     linewidth: float = ...,
+-    color: Color = ...,
+-    cmap: Colormap = ...,
++    color: ColorType = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     arrowsize: float = ...,
+     arrowstyle: str = ...,
+@@ -825,12 +860,12 @@ def table(
+     cellText=...,
+     cellColours=...,
+     cellLoc: Literal["left", "center", "right"] = ...,
+-    colWidths: list[float] = ...,
+-    rowLabels: list[str] = ...,
+-    rowColours: list[Color] = ...,
++    colWidths: Sequence[float] = ...,
++    rowLabels: Sequence[str] = ...,
++    rowColours: Sequence[ColorType] = ...,
+     rowLoc: Literal["left", "center", "right"] = ...,
+-    colLabels: list[str] = ...,
+-    colColours: list[Color] = ...,
++    colLabels: Sequence[str] = ...,
++    colColours: Sequence[ColorType] = ...,
+     colLoc: Literal["left", "center", "right"] = ...,
+     loc: str = ...,
+     bbox: Bbox = ...,
+@@ -880,7 +915,7 @@ def vlines(
+     x: float | ArrayLike,
+     ymin: float | ArrayLike,
+     ymax: float | ArrayLike,
+-    colors: list[Color] = ...,
++    colors: Sequence[ColorType] = ...,
+     linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+     label: str = ...,
+     *,
+@@ -910,7 +945,7 @@ def title(
+ ) -> Text: ...
+ def xlabel(
+     xlabel: str,
+-    fontdict=...,
++    fontdict:dict=...,
+     labelpad: float = ...,
+     *,
+     loc: Literal["left", "center", "right"] = ...,
+@@ -918,7 +953,7 @@ def xlabel(
+ ): ...
+ def ylabel(
+     ylabel: str,
+-    fontdict=...,
++    fontdict:dict=...,
+     labelpad: float = ...,
+     *,
+     loc: Literal["bottom", "center", "top"] = ...,

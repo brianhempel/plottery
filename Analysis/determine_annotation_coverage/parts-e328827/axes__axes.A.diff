@@ -1,0 +1,515 @@
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_axes.pyi b/src/python-type-stubs-main/stubs/matplotlib/axes/_axes.pyi
+index 51382a0..3fab077 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_axes.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/axes/_axes.pyi
+@@ -1,10 +1,19 @@
+ import datetime
+ from re import L
++
++from matplotlib.backend_bases import MouseEvent
++from matplotlib.patheffects import AbstractPathEffect
++from font_manager import FontProperties
++import mlab
++import numpy as np
++from typing import Annotated, Any, Callable, Dict, Generic, List, Literal, Optional, Iterable, Tuple, TypeVar, Union, overload
++from typing_extensions import Unpack
++
++# from matplotlib._typing import * seems not to work, need the explicit imports:
++from matplotlib._typing import Scalar, PatchProps, MarkerType, MarkerStrs, SingleLetterColorStrs, ArrayLike, ArrowProps, AxesProps, ColorType, CollectionProps, EventCollectionProps, Line2DProps, LineCollectionProps, LineStyle, NamedFontSize, PolygonProps, RectangleProps, TextCoordSystem, TextProps, AnnotateProps, XYCoordSystem, CmapType
++
+ from matplotlib.backend_tools import Cursors
+ from matplotlib.contour import QuadContourSet
+-import numpy as np
+-from typing import Callable, Literal, Sequence, overload
+-from matplotlib._typing import *
+ from matplotlib.transforms import Bbox, BboxTransformTo, Transform
+ from matplotlib.text import Annotation, Text
+ from matplotlib.container import BarContainer, ErrorbarContainer, StemContainer
+@@ -30,16 +39,18 @@ from matplotlib.image import AxesImage, PcolorImage
+ from matplotlib.axis import XAxis, YAxis
+ from matplotlib.artist import Artist
+ from matplotlib.spines import Spines
++
++from transforms import BboxBase
+ from ._base import _AxesBase
+ 
+ from matplotlib.table import table as table_table
+-from matplotlib.tri import \
+-    tricontour as tri_tricontour, \
+-    tricontour as tri_tricontourf, \
+-    tripcolor as tri_tripcolor, \
+-    triplot as tri_triplot
++from matplotlib.tri import (
++    tricontour as tri_tricontour,
++    tricontour as tri_tricontourf,
++    tripcolor as tri_tripcolor,
++    triplot as tri_triplot,
++)
+ 
+-    
+ class Axes(_AxesBase):
+ 
+     dataLim: Bbox
+@@ -54,73 +65,164 @@ class Axes(_AxesBase):
+     fmt_ydata: None | Formatter = ...
+     cursor_to_use: Cursors = ...
+ 
+-    def get_title(self, loc: Literal["center", "left", "right"] = ...) -> str: ...
++    def get_title(
++        self, loc: Literal["center", "left", "right"] = "center"
++    ) -> str: ...
+     def set_title(
+         self,
+-        label: str,
+-        fontdict: dict = ...,
+-        loc: Literal["center", "left", "right"] = ...,
+-        pad: float = ...,
++        label: str | Literal["My Plot"], # Required args can't have a default, but we can "provide" a default via a Literal
++        fontdict: (
++            dict[str, object] | None
++        ) = ...,  # TODO not sure what the set of permitted keys are...
++        loc: Literal["center", "left", "right"] = "center",
++        pad: float = 6.0,
+         *,
+-        y: float = ...,
+-        **kwargs
++        y: float = 1.0,  # @TODO william's says its None by default?
++        **kwargs: AxesProps,
+     ) -> Text: ...
+-    def get_legend_handles_labels(self, legend_handler_map=...) -> tuple[list, list]: ...
+-    def legend(self, *args, **kwargs) -> Legend: ...
++    def get_legend_handles_labels(
++        self, legend_handler_map=...
++    ) -> tuple[list, list]: ...
++    def legend(
++        self,
++        labels: Iterable[str] | None = None,
++        loc: (
++            Literal[
++                "best",
++                "upper right",
++                "upper left",
++                "lower left",
++                "lower right",
++                "right",
++                "center left",
++                "center right",
++                "lower center",
++                "upper center",
++                "center",
++            ]
++            | tuple[float, float]
++        ) = "best",  # @TODO: each "string" location can also be given as a numeric value
++        bbox_to_anchor: (
++            BboxBase | tuple[float, float] | tuple[float, float, float, float]
++        ) | None = None,
++        ncols: int = 1,
++        ncol: int = 1,
++        prop: None | dict = None,
++        fontsize: int | NamedFontSize | None = None,
++        labelcolor: ColorType | Iterable[ColorType] | None = None,
++        numpoints: int = 1,
++        scatterpoints: int = 1,
++        scatteryoffsets: Iterable[float] = [0.375, 0.5, 0.3125],
++        markerscale: float = 1.0,
++        markerfirst: bool = True,
++        reverse: bool = False,
++        frameon: bool = True,
++        fancybox: bool = True,
++        shadow: bool = False,
++        framealpha: float = 0.8,
++        facecolor: Literal["inherit"] | ColorType = "inherit",
++        edgecolor: Literal["inherit"] | ColorType = "black",
++        mode: Literal["expand"] | None = None,
++        bbox_transform: Transform | None = None,
++        title: str | None = None,
++        title_fontproperties: None | dict | FontProperties = None,
++        title_fontsize: int | NamedFontSize | None = None,
++        alignment: Literal["center", "left", "right"] = "center",
++        borderpad: float = 0.4,
++        labelspacing: float = 0.5,
++        handlelength: float = 2.0,
++        handleheight: float = 0.7,
++        handletextpad: float = 0.8,
++        borderaxespad: float = 0.5,
++        columnspacing: float = 2.0,
++        handler_map: dict | None = ...,
++        draggable: bool = False,
++    ) -> Legend: ...
+     def inset_axes(
+         self,
+-        bounds: Sequence[float],
++        bounds: Iterable[float],
+         *,
+         transform: Transform = ...,
+-        zorder: float = ...,
+-        **kwargs
++        projection: (
++            Literal[
++                "aitoff",
++                "hammer",
++                "lambert",
++                "mollweide",
++                "polar",
++                "rectilinear",
++            ]
++            | str
++            | None
++        ) = None,
++        polar: bool = False,
++        axes_class: None | Axes = None,
++        zorder: float = 5,
++        **kwargs,  # @TODO: I don't know what the kwargs are? (No docs: https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.inset_axes.html)
+     ) -> Axes: ...
+     def indicate_inset(
+         self,
+-        bounds: Sequence[float],
++        bounds: Iterable[float],
+         inset_ax: Axes = ...,
+         *,
+         transform: Transform = ...,
+-        facecolor: Color = ...,
+-        edgecolor: Color = ...,
+-        alpha: float = ...,
+-        zorder: float = ...,
+-        **kwargs
++        facecolor: ColorType = "none",
++        edgecolor: ColorType = "0.5",
++        alpha: float = 0.5,
++        zorder: float = 4.99,
++        **kwargs: RectangleProps,
+     ) -> Rectangle: ...
+-    def indicate_inset_zoom(self, inset_ax: Axes, **kwargs) -> Rectangle: ...
++    def indicate_inset_zoom(
++        self, inset_ax: Axes, **kwargs
++    ) -> (
++        Rectangle
++    ): ...  # @TODO: Other keyword arguments are passed on to Axes.indicate_inset
+     def secondary_xaxis(
+         self,
+         location: Literal["top", "bottom", "left", "right"] | float,
+         *,
+-        functions=...,
+-        **kwargs
++        functions=tuple[Callable, Callable] | Transform,
++        **kwargs: AxesProps,
+     ) -> SecondaryAxis: ...
+     def secondary_yaxis(
+         self,
+         location: Literal["top", "bottom", "left", "right"] | float,
+         *,
+-        functions=...,
+-        **kwargs
++        functions=tuple[Callable, Callable] | Transform,
++        **kwargs: AxesProps,
+     ) -> SecondaryAxis: ...
+     def text(
+-        self, x: float, y: float, s: str, fontdict: dict = ..., **kwargs
++        self,
++        x: float,
++        y: float,
++        s: str,
++        fontdict: dict[str, object] | None = None,
++        **kwargs: TextProps,
+     ) -> Text: ...
+     def annotate(
+         self,
+         text: str,
+-        xy: Sequence[float],
+-        xytext: Sequence[float] = ...,
+-        xycoords: str | Artist | Transform | Callable = ...,
+-        textcoords: str | Artist | Transform | Callable = ...,
+-        arrowprops: dict = ...,
+-        annotation_clip: bool | None = ...,
+-        **kwargs
++        xy: tuple[float, float],
++        xytext: tuple[float, float] = ...,
++        xycoords: XYCoordSystem | tuple[XYCoordSystem, XYCoordSystem] = "data",
++        textcoords: TextCoordSystem = "data",  # @TODO: default is value of xycoords, not always 'data'
++        arrowprops: ArrowProps = ...,
++        annotation_clip: bool | None = None,
++        **kwargs: TextProps,
+     ) -> Annotation: ...
+     def axhline(
+-        self, y: float = 0, xmin: float = 0, xmax: float = 1, **kwargs
++        self,
++        y: float = 0,
++        xmin: float = 0,
++        xmax: float = 1,
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+     def axvline(
+-        self, x: float = ..., ymin: float = ..., ymax: float = ..., **kwargs
++        self,
++        x: float = 0,
++        ymin: float = 0,
++        ymax: float = 1,
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+     def axline(
+         self,
+@@ -128,71 +230,161 @@ class Axes(_AxesBase):
+         xy2: tuple[float, float] = ...,
+         *,
+         slope: float = ...,
+-        **kwargs
++        **kwargs: Line2DProps,
+     ) -> Line2D: ...
+     def axhspan(
+-        self, ymin: float, ymax: float, xmin: float = ..., xmax: float = ..., **kwargs
++        self,
++        ymin: float,
++        ymax: float,
++        xmin: float = 0,
++        xmax: float = 1,
++        **kwargs: PolygonProps,
+     ) -> Polygon: ...
+     def axvspan(
+-        self, xmin: float, xmax: float, ymin: float = 0, ymax: float = 1, **kwargs
++        self,
++        xmin: float,
++        xmax: float,
++        ymin: float = 0,
++        ymax: float = 1,
++        **kwargs: PolygonProps,
+     ) -> Polygon: ...
+     def hlines(
+         self,
+         y: float | ArrayLike,
+         xmin: float | ArrayLike,
+         xmax: float | ArrayLike,
+-        colors: list[Color] = ...,
+-        linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+-        label: str = ...,
+-        **kwargs
++        colors: Iterable[ColorType] = "C0",
++        linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = "solid",
++        label: str = "",
++        **kwargs: LineCollectionProps,
+     ) -> LineCollection: ...
+     def vlines(
+         self,
+         x: float | ArrayLike,
+         ymin: float | ArrayLike,
+         ymax: float | ArrayLike,
+-        colors: list[Color] = ...,
++        colors: Iterable[ColorType] = ...,
+         linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+         label: str = ...,
+-        **kwargs
++        **kwargs: LineCollectionProps,
+     ) -> LineCollection: ...
+     def eventplot(
+         self,
+-        positions: ArrayLike | list[ArrayLike],
++        positions: ArrayLike | Iterable[ArrayLike],
+         orientation: Literal["horizontal", "vertical"] = "horizontal",
+         lineoffsets: float | ArrayLike = 1,
+         linelengths: float | ArrayLike = 1,
+-        linewidths: float | ArrayLike = ...,
+-        colors: Color | list[Color] = ...,
+-        linestyles: str | tuple | list = ...,
+-        **kwargs
++        linewidths: float | ArrayLike = 1.5,
++        colors: ColorType | Iterable[ColorType] = "C0",
++        alpha: float | ArrayLike = 1,
++        linestyles: LineStyle | Iterable[LineStyle] = "solid",
++        **kwargs: EventCollectionProps,
+     ) -> list[EventCollection]: ...
++    # def plot(
++    #     self,
++    #     x: ArrayLike | float,
++    #     y: ArrayLike | float,
++    #     fmt: str = ...,  # TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++    #     scalex: bool = True,
++    #     scaley: bool = True,
++    #     data: dict = {},
++    #     **kwargs: Line2DProps,
++    # ) -> list[Line2D]: ...
++    # def bar(
++    #     self,
++    #     x: float | ArrayLike,
++    #     height: float | ArrayLike,
++    #     width: float | ArrayLike = 0.8,
++    #     bottom: float | ArrayLike = 0,
++    #     *,  # What does the star mean?
++    #     align: Literal["center", "edge"] = "center",
++    #     color: ColorType | Iterable[ColorType] = ...,
++    #     # color: ColorType | Iterable[ColorType] = ...,
++    #     edgecolor: ColorType | Iterable[ColorType] = ...,
++    #     linewidth: float | ArrayLike = ...,
++    #     tick_label: str | Iterable[str] = ...,
++    #     label: str | Iterable[str] = ...,
++    #     xerr: float | ArrayLike = ...,
++    #     yerr: float | ArrayLike = ...,
++    #     ecolor: ColorType | Iterable[ColorType] = "black",
++    #     capsize: float = 0.0,
++    #     error_kw: float | ArrayLike = ...,
++    #     log: bool = False,
++    #     data: dict = ...,  # !TODO: This is weird
++    #     **kwargs: RectangleProps,
++    # ) -> BarContainer: ...
+     def plot(
+-        self, *args, scalex=..., scaley=..., data=..., **kwargs
++        self,
++        x: ArrayLike | float,
++        y: ArrayLike | float,
++        fmt: str | Literal['o:g'] | MarkerStrs | Literal['-','--','-.',':'] | SingleLetterColorStrs = 'o:g',
++        /,
++        label: str | None = '',
++        **kwargs: Line2DProps,
+     ) -> list[Line2D]: ...
+     def plot_date(
+         self,
+         x: ArrayLike,
+         y: ArrayLike,
+         fmt: str = ...,
+-        tz: datetime.tzinfo = ...,
+-        xdate: bool = ...,
+-        ydate: bool = ...,
+-        **kwargs
++        tz: datetime.tzinfo = "UTC",
++        xdate: bool = True,
++        ydate: bool = True,
++        data: dict | None = None,
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
++    def loglog(
++        self,
++        base: float = 1.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
++    def semilogx(
++        self,
++        base: float = 10.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
++    ) -> list[Line2D]: ...
++    def semilogy(
++        self,
++        base: float = 10.0,
++        subs: Iterable | None = None,
++        nonpositive: Literal["mask", "clip"] = "clip",
++        # All parameters supported by plot.
++        y: ArrayLike | float = ...,
++        x: ArrayLike | float = ...,
++        fmt: str = ...,  # @TODO: This will really suck to type.. https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.plot.html
++        scalex: bool = True,
++        scaley: bool = True,
++        data: dict = {},
++        **kwargs: Line2DProps,
+     ) -> list[Line2D]: ...
+-    def loglog(self, *args, **kwargs) -> list[Line2D]: ...
+-    def semilogx(self, *args, **kwargs) -> list[Line2D]: ...
+-    def semilogy(self, *args, **kwargs) -> list[Line2D]: ...
+     def acorr(self, x: ArrayLike, **kwargs): ...
+     def xcorr(
+         self,
+-        x,
+-        y,
++        x: ArrayLike,
++        y: ArrayLike,
++        detrend: Callable = mlab.detrand_none,
+         normed: bool = True,
+-        detrend: Callable = ...,
+         usevlines: bool = True,
+         maxlags: int = 10,
+-        **kwargs
++        **kwargs,  # @TODO: Additional parameters are passed to Axes.vlines and Axes.axhline if usevlines is True; otherwise they are passed to Axes.plot.
+     ) -> tuple[np.ndarray, np.ndarray, bool, int]: ...
+     def step(
+         self,
+@@ -201,27 +393,51 @@ class Axes(_AxesBase):
+         *args,
+         where: Literal["pre", "post", "mid"] = ...,
+         data=...,
+-        **kwargs
++        **kwargs,
+     ) -> list[Line2D]: ...
+     def bar(
+         self,
+         x: float | ArrayLike,
+         height: float | ArrayLike,
+-        width: float | ArrayLike = ...,
+-        bottom: float | ArrayLike = ...,
+-        *,
++        width: float | ArrayLike = 0.8,
++        bottom: float | ArrayLike = 0,
++        *, # Subsequent args are keyword-only
+         align: Literal["center", "edge"] = "center",
+-        **kwargs
++        color: ColorType | Iterable[ColorType] = ...,
++        edgecolor: ColorType | Iterable[ColorType] = ...,
++        linewidth: float | ArrayLike = ...,
++        tick_label: str | Iterable[str] = ...,
++        label: str | Iterable[str] = ...,
++        xerr: float | ArrayLike = ...,
++        yerr: float | ArrayLike = ...,
++        ecolor: ColorType | Iterable[ColorType] = "black",
++        capsize: float = 0.0,
++        error_kw: float | ArrayLike = ...,
++        log: bool = False,
++        data: dict = ...,  # !TODO: This is weird
++        **kwargs: RectangleProps,
+     ) -> BarContainer: ...
+     def barh(
+         self,
+         y: float | ArrayLike,
+         width: float | ArrayLike,
+-        height: float | ArrayLike = ...,
+-        left: float | ArrayLike = ...,
++        height: float | ArrayLike = 0.8,
++        left: float | ArrayLike = 0,
+         *,
+         align: Literal["center", "edge"] = "center",
+-        **kwargs
++        color: ColorType | Iterable[ColorType] = ...,
++        edgecolor: ColorType | Iterable[ColorType] = ...,
++        linewidth: float | ArrayLike = ...,
++        tick_label: str | Iterable[str] = ...,
++        label: str | Iterable[str] = ...,
++        xerr: float | ArrayLike = ...,
++        yerr: float | ArrayLike = ...,
++        ecolor: ColorType | Iterable[ColorType] = "black",
++        capsize: float = 0.0,
++        error_kw: dict = ...,
++        log: bool = False,
++        data: dict = ...,
++        **kwargs: RectangleProps,
+     ) -> BarContainer: ...
+     def bar_label(
+         self,
+@@ -231,13 +447,13 @@ class Axes(_AxesBase):
+         fmt: str = "%g",
+         label_type: Literal["edge", "center"] = "edge",
+         padding: float = 0,
+-        **kwargs
++        **kwargs: AnnotateProps,
+     ) -> list[Text]: ...
+     def broken_barh(
+         self,
+-        xranges: Sequence[tuple[float, float]],
++        xranges: Iterable[tuple[float, float]],
+         yrange: tuple[float, float],
+-        **kwargs
++        **kwargs,
+     ) -> BrokenBarHCollection: ...
+     def stem(
+         self,

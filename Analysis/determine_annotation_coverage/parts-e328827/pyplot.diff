@@ -1,0 +1,330 @@
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/pyplot.pyi b/src/python-type-stubs-main/stubs/matplotlib/pyplot.pyi
+index 6b608cc..2ffde00 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/pyplot.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/pyplot.pyi
+@@ -1,10 +1,16 @@
+ import datetime
++from matplotlib.axis import Tick
++from matplotlib.cm import ScalarMappable
++from matplotlib.colorbar import Colorbar
+ from matplotlib.contour import QuadContourSet
++from matplotlib.layout_engine import LayoutEngine
++from matplotlib.pylab import ArrayLike
++from matplotlib.ticker import Formatter, Locator
+ import numpy as np
+-from typing import Callable, ContextManager, Literal, Sequence, overload
++from typing import Any, Callable, ContextManager, Iterable, List, Literal, Sequence, overload
+ from matplotlib import rcParams as rcParams
+ from matplotlib import style as style
+-from ._typing import *
++from ._typing import CmapType, ColorType, FileLike, PathLike, Scalar
+ from .tri.tricontour import TriContourSet
+ from .transforms import Bbox, Transform
+ from .text import Text, Annotation
+@@ -24,7 +30,7 @@ from .collections import (
+ from .lines import Line2D
+ from .legend import Legend
+ from .image import AxesImage, FigureImage
+-from .figure import Figure, SubFigure
++from .figure import Figure as Figure, SubFigure as SubFigure
+ from .scale import ScaleBase
+ from .backend_bases import _Backend
+ from .axes import Axes as Axes
+@@ -82,14 +88,15 @@ class _xkcd:
+     def __exit__(self, *args)-> None: ...
+ 
+ def figure(
+-    num: int | str | Figure | SubFigure| None = None,
+-    figsize: Sequence[float]|None = None,
+-    dpi: float|None = None,
+-    facecolor: Color|None = None,
+-    edgecolor: Color|None = None,
++    num: int | str | Figure | SubFigure | None = None,
++    figsize: tuple[float, float] = (6.4, 4.8),
++    dpi: float = 100,
++    facecolor: ColorType = 'white',
++    edgecolor: ColorType = 'white',
+     frameon: bool = True,
+-    FigureClass = ...,
++    FigureClass: type[Figure] | None = None,
+     clear: bool = False,
++    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
+     **kwargs
+ ) -> Figure: ...
+ def gcf() -> Figure: ...
+@@ -111,6 +118,10 @@ def cla() -> None: ...
+ def subplot(*args, **kwargs) -> Axes: ...
+ 
+ 
++# subplots actually often returns np.ndarrays instead of List BUT the numpy type stubs
++# and/or mypy can't then understand that pulling items out of that list gives you an Axes
++#
++# So we pretend it returns lists
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -122,7 +133,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+ @overload
+ def subplots(
+     nrows: Literal[1] = ...,
+@@ -149,7 +160,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -161,7 +172,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     *,
+@@ -173,7 +184,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+ @overload
+ def subplots(
+     *,
+@@ -184,7 +195,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -195,7 +206,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ 
+ @overload
+ def subplots(
+@@ -219,7 +230,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+ 
+ def subplot_mosaic(
+     mosaic: list | str,
+@@ -265,8 +276,32 @@ def thetagrids(
+     **kwargs
+ ) -> tuple[list[Line2D], list[Text]]: ...
+ def get_plot_commands() -> list: ...
+-def colorbar(mappable=..., cax: Axes = ..., ax: Axes = ..., **kwargs): ...
++def colorbar(
++    mappable: ScalarMappable | None = None,
++    cax: Axes = ...,
++    ax: Axes | Iterable[Axes] = ...,
++    use_gridspec: bool = ...,
++    location: Literal['left', 'right', 'top', 'bottom'] = ...,
++    orientation: Literal['vertical', 'horizontal'] = ...,
++    fraction: float = 0.15,
++    shrink: float = 1.0,
++    aspect: float = 20,
++    pad: float = 0.05,
++    anchor: tuple[float, float] = ...,
++    panchor: tuple[float, float] | Literal[False] = ...,
++    extend: Literal['neither', 'both', 'min', 'max'] = ...,
++    extendfrac: Literal['auto'] | float | Iterable[float] = ...,
++    extendrect: bool = False,
++    spacing: Literal['uniform', 'proportional'] = ...,
++    ticks: Iterable[Tick] | Locator | None = ...,
++    format: Literal["%04.1f"] | str | Formatter | None = ...,
++    drawedges: bool = ...,
++    label: str = ...,
++    boundaries: Iterable[float] = ...,
++    values: Iterable[float] =...
++) -> Colorbar: ...
+ def clim(vmin: float | None = ..., vmax: float | None = ...): ...
++def get_cmap(name: CmapType | None = ..., lut: int | None = ...) -> Colormap: ...
+ def set_cmap(cmap: Colormap | str): ...
+ def imread(fname: str | FileLike, format: str = ...) -> np.ndarray: ...
+ def imsave(fname: str | PathLike | FileLike, arr: ArrayLike, **kwargs): ...
+@@ -280,7 +315,7 @@ def figimage(
+     yo: float = ...,
+     alpha: None | float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     origin: Literal["upper", "lower"] = ...,
+@@ -464,7 +499,7 @@ def errorbar(
+     yerr: float | ArrayLike = ...,
+     xerr: float | ArrayLike = ...,
+     fmt: str = ...,
+-    ecolor: Color = ...,
++    ecolor: ColorType = ...,
+     elinewidth: float = ...,
+     capsize: float = ...,
+     barsabove: bool = ...,
+@@ -484,7 +519,7 @@ def eventplot(
+     lineoffsets: float | ArrayLike = ...,
+     linelengths: float | ArrayLike = ...,
+     linewidths: float | ArrayLike = ...,
+-    colors: Color | list[Color] = ...,
++    colors: ColorType | Sequence[ColorType] = ...,
+     linestyles: str | tuple | list = ...,
+     *,
+     data=...,
+@@ -555,7 +590,7 @@ def hist(
+     orientation: Literal["vertical", "horizontal"] = ...,
+     rwidth: float | None = ...,
+     log: bool = ...,
+-    color: Color | None = ...,
++    color: ColorType | None = ...,
+     label: str | None = ...,
+     stacked: bool = ...,
+     *,
+@@ -589,7 +624,7 @@ def hlines(
+     y: float | ArrayLike,
+     xmin: float | ArrayLike,
+     xmax: float | ArrayLike,
+-    colors: list[Color] = ...,
++    colors: Sequence[ColorType] = ...,
+     linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+     label: str = ...,
+     *,
+@@ -598,7 +633,7 @@ def hlines(
+ ) -> LineCollection: ...
+ def imshow(
+     X: ArrayLike,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     aspect: Literal["equal", "auto"] | float = ...,
+     interpolation: str = ...,
+@@ -641,7 +676,7 @@ def pcolor(
+     shading: Literal["flat", "nearest", "auto"] = ...,
+     alpha: float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     data=...,
+@@ -651,7 +686,7 @@ def pcolormesh(
+     *args,
+     alpha: float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     shading: Literal["flat", "nearest", "gouraud", "auto"] = ...,
+@@ -725,16 +760,16 @@ def scatter(
+     x: float | ArrayLike,
+     y: float | ArrayLike,
+     s: float | ArrayLike = ...,
+-    c: ArrayLike | list[Color] | Color = ...,
++    c: ArrayLike | Sequence[ColorType] | ColorType = ...,
+     marker: MarkerStyle = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     alpha: float = ...,
+     linewidths: float | ArrayLike = ...,
+     *,
+-    edgecolors: Color = ...,
++    edgecolors: ColorType | Sequence[ColorType] = ...,
+     plotnonfinite: bool = ...,
+     data=...,
+     **kwargs
+@@ -749,7 +784,7 @@ def specgram(
+     detrend: Literal["none", "mean", "linear"] | Callable = ...,
+     window: Callable | np.ndarray = ...,
+     noverlap: int = ...,
+-    cmap: Colormap = ...,
++    cmap: CmapType = ...,
+     xextent=...,
+     pad_to: float = ...,
+     sides: Literal["default", "onesided", "twosided"] = ...,
+@@ -774,8 +809,8 @@ def spy(
+ def stackplot(
+     x,
+     *args,
+-    labels: list[str] = ...,
+-    colors: list[Color] = ...,
++    labels: Sequence[str] = ...,
++    colors: Sequence[ColorType] = ...,
+     baseline: Literal["zero", "sym", "wiggle", "weighted_wiggle"] = ...,
+     data=...,
+     **kwargs
+@@ -806,8 +841,8 @@ def streamplot(
+     v,
+     density: float = ...,
+     linewidth: float = ...,
+-    color: Color = ...,
+-    cmap: Colormap = ...,
++    color: ColorType = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     arrowsize: float = ...,
+     arrowstyle: str = ...,
+@@ -825,12 +860,12 @@ def table(
+     cellText=...,
+     cellColours=...,
+     cellLoc: Literal["left", "center", "right"] = ...,
+-    colWidths: list[float] = ...,
+-    rowLabels: list[str] = ...,
+-    rowColours: list[Color] = ...,
++    colWidths: Sequence[float] = ...,
++    rowLabels: Sequence[str] = ...,
++    rowColours: Sequence[ColorType] = ...,
+     rowLoc: Literal["left", "center", "right"] = ...,
+-    colLabels: list[str] = ...,
+-    colColours: list[Color] = ...,
++    colLabels: Sequence[str] = ...,
++    colColours: Sequence[ColorType] = ...,
+     colLoc: Literal["left", "center", "right"] = ...,
+     loc: str = ...,
+     bbox: Bbox = ...,
+@@ -880,7 +915,7 @@ def vlines(
+     x: float | ArrayLike,
+     ymin: float | ArrayLike,
+     ymax: float | ArrayLike,
+-    colors: list[Color] = ...,
++    colors: Sequence[ColorType] = ...,
+     linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+     label: str = ...,
+     *,
+@@ -910,7 +945,7 @@ def title(
+ ) -> Text: ...
+ def xlabel(
+     xlabel: str,
+-    fontdict=...,
++    fontdict:dict=...,
+     labelpad: float = ...,
+     *,
+     loc: Literal["left", "center", "right"] = ...,
+@@ -918,7 +953,7 @@ def xlabel(
+ ): ...
+ def ylabel(
+     ylabel: str,
+-    fontdict=...,
++    fontdict:dict=...,
+     labelpad: float = ...,
+     *,
+     loc: Literal["bottom", "center", "top"] = ...,

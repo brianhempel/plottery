@@ -1,0 +1,431 @@
+@@ -248,7 +464,7 @@ class Axes(_AxesBase):
+         bottom: float = 0,
+         label: str | None = None,
+         use_line_collection: bool = True,
+-        orientation: str = "verical"
++        orientation: str = "verical",
+     ) -> StemContainer: ...
+### ANN | matplotlib.axes.Axes.stem | COSMETIC | reformat | only a trailing comma added after orientation="verical" (the upstream typo is preserved)
+     def pie(
+         self,
+@@ -269,7 +485,7 @@ class Axes(_AxesBase):
+         frame: bool = False,
+         rotatelabels: bool = False,
+         *,
+-        normalize: bool = True
++        normalize: bool = True,
+     ) -> tuple[list[Wedge], list[Text], list[Text]]: ...
+### ANN | matplotlib.axes.Axes.pie | COSMETIC | reformat | only a trailing comma added after normalize: bool = True
+     def errorbar(
+         self,
+@@ -278,7 +494,7 @@ class Axes(_AxesBase):
+         yerr: float | ArrayLike = ...,
+         xerr: float | ArrayLike = ...,
+         fmt: str = "",
+-        ecolor: Color | None = None,
++        ecolor: ColorType | None = None,
+         elinewidth: float | None = None,
+         capsize: float = ...,
+         barsabove: bool = False,
+@@ -288,41 +504,42 @@ class Axes(_AxesBase):
+         xuplims: bool = False,
+         errorevery: int = 1,
+         capthick: float | None = None,
+-        **kwargs
++        **kwargs,
+     ) -> ErrorbarContainer: ...
+### ANN | matplotlib.axes.Axes.errorbar | COSMETIC | find-replace,reformat | ecolor: Color -> ColorType sweep plus a trailing comma on **kwargs
+     def boxplot(
+         self,
+         x: ArrayLike,
+         notch: bool = False,
+-        sym: str = ...,
++        sym: Literal['b+'] | MarkerStrs | SingleLetterColorStrs | str = ...,
+         vert: bool = True,
+-        whis: float = 1.5,
++        whis: float | Tuple[Literal[5], Literal[95]] | Tuple[float, float] = 1.5,
++        bootstrap: int = ...,
++        usermedians: ArrayLike = ...,
++        conf_intervals: ArrayLike = ...,
+         positions: ArrayLike = ...,
+         widths: float | ArrayLike = ...,
+         patch_artist: bool = False,
+-        bootstrap: int = ...,
+-        usermedians=...,
+-        conf_intervals: ArrayLike = ...,
++        tick_labels: Iterable[str] = ...,
++        labels: Iterable[str] = ..., # deprecated
++        manage_ticks: bool = True,
++        autorange: bool = False,
+         meanline: bool = False,
+-        showmeans=...,
+-        showcaps=...,
+-        showbox=...,
+-        showfliers=...,
+-        boxprops=...,
+-        labels: Sequence = ...,
++        showmeans: bool = True,
++        showcaps: bool = True,
++        showbox: bool = True,
++        showfliers: bool = False,
++        capprops: Line2DProps = ...,
++        capwidths=...,
++        boxprops: Line2DProps | PatchProps =...,
+         flierprops=...,
+         medianprops=...,
+         meanprops=...,
+-        capprops=...,
+-        whiskerprops=...,
+-        manage_ticks: bool = True,
+-        autorange: bool = False,
++        whiskerprops: Line2DProps = ...,
+         zorder: float = 2,
+-        capwidths=...,
+     ) -> dict[str, list[Line2D]]: ...
+### ANN | matplotlib.axes.Axes.boxplot | MEANINGFUL | new-params,literal-enum,concrete-default,type-refine,suspect | sym gains Literal['b+']|MarkerStrs|SingleLetterColorStrs, whis gains Tuple[Literal[5],Literal[95]]|Tuple[float,float], new tick_labels param, 4 untyped flags (showmeans/showcaps/showbox/showfliers) typed bool with real defaults, boxprops: Line2DProps|PatchProps, capprops/whiskerprops: Line2DProps, labels: Sequence -> Iterable[str]; suspect because showmeans=True and showfliers=False invert matplotlib's rcParam defaults (False/True)
+     def bxp(
+         self,
+-        bxpstats: list[dict],
++        bxpstats: Iterable[dict],
+         positions: ArrayLike = ...,
+         widths: float | ArrayLike | None = None,
+         vert: bool = True,
+### ANN | matplotlib.axes.Axes.bxp | COSMETIC | variance | bxpstats: list[dict] -> Iterable[dict] only
+@@ -347,19 +564,18 @@ class Axes(_AxesBase):
+         self,
+         x: float | ArrayLike,
+         y: float | ArrayLike,
+-        s: float | ArrayLike = ...,
+-        c: ArrayLike | list[Color] | Color = ...,
+-        marker: MarkerStyle = ...,
+-        cmap: str | Colormap = ...,
+-        norm: Normalize | None = None,
++        s: float | ArrayLike = 36.0,
++        c: ColorType | Iterable[ColorType] | None = ...,
++        marker: MarkerType = 'o',
++        cmap: CmapType = ...,
++        norm: Literal['asinh', 'function', 'functionlog', 'linear', 'log', 'logit', 'symlog'] | str | Normalize | None = None,
+         vmin: float | None = None,
+         vmax: float | None = None,
+         alpha: float | None = None,
+-        linewidths: float | ArrayLike = ...,
+-        *,
+-        edgecolors: Color = ...,
++        linewidths: float | Iterable[float] = ...,
++        edgecolors: ColorType | Iterable[ColorType] | Literal['face', 'none'] | None = ...,
+         plotnonfinite: bool = False,
+-        **kwargs
++        **kwargs: CollectionProps,
+     ) -> PathCollection: ...
+### ANN | matplotlib.axes.Axes.scatter | MEANINGFUL | kwargs-typeddict,literal-enum,concrete-default,type-refine | **kwargs: CollectionProps (14 props expanded), marker: MarkerStyle -> MarkerType = 'o', s gains default 36.0, norm gains a 7-way Literal of scale names, c and edgecolors -> ColorType|Iterable[ColorType] (edgecolors also gains Literal['face','none']); note the keyword-only '*' before edgecolors was dropped
+     def hexbin(
+         self,
+@@ -367,11 +583,11 @@ class Axes(_AxesBase):
+         y: ArrayLike,
+         C: ArrayLike = ...,
+         gridsize: int = 100,
+-        bins: Literal["log"] | int | Sequence | None = None,
++        bins: Literal["log"] | int | Iterable | None = None,
+         xscale: Literal["linear", "log"] = "linear",
+         yscale: Literal["linear", "log"] = "linear",
+-        extent: Sequence[float] | None = None,
+-        cmap=...,
++        extent: Iterable[float] | None = None,
++        cmap: CmapType=...,
+         norm=...,
+         vmin=...,
+         vmax=...,
+@@ -381,7 +597,7 @@ class Axes(_AxesBase):
+         reduce_C_function=...,
+         mincnt: int | None = None,
+         marginals: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> PolyCollection: ...
+### ANN | matplotlib.axes.Axes.hexbin | COSMETIC | find-replace,variance,reformat | untyped cmap annotated with the CmapType alias (same sweep), bins/extent Sequence -> Iterable, trailing comma
+     def arrow(
+         self, x: float, y: float, dx: float, dy: float, **kwargs
+@@ -400,7 +616,7 @@ class Axes(_AxesBase):
+         where: ArrayLike = ...,
+         interpolate: bool = ...,
+         step: Literal["pre", "post", "mid"] = ...,
+-        **kwargs
++        **kwargs,
+     ) -> PolyCollection: ...
+### ANN | matplotlib.axes.Axes.fill_between | COSMETIC | reformat | only a trailing comma added on **kwargs
+     def fill_betweenx(
+         self,
+@@ -410,12 +626,12 @@ class Axes(_AxesBase):
+         where: ArrayLike = ...,
+         step: Literal["pre", "post", "mid"] = ...,
+         interpolate: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> PolyCollection: ...
+### ANN | matplotlib.axes.Axes.fill_betweenx | COSMETIC | reformat | only a trailing comma added on **kwargs
+     def imshow(
+         self,
+         X: ArrayLike,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         norm: Normalize = ...,
+         aspect: Literal["equal", "auto"] | float = ...,
+         interpolation: str = ...,
+@@ -423,14 +639,14 @@ class Axes(_AxesBase):
+         vmin: float = ...,
+         vmax: float = ...,
+         origin: Literal["upper", "lower"] = ...,
+-        extent: Sequence[float] = ...,
++        extent: Iterable[float] = ...,
+         *,
+         interpolation_stage: Literal["data", "rgba"] = ...,
+         filternorm: bool = True,
+         filterrad: float = 4,
+         resample: bool = ...,
+         url: str = ...,
+-        **kwargs
++        **kwargs,
+     ) -> AxesImage: ...
+### ANN | matplotlib.axes.Axes.imshow | COSMETIC | find-replace,variance,reformat | cmap: str|Colormap -> CmapType sweep, extent Sequence[float] -> Iterable[float], trailing comma
+     def pcolor(
+         self,
+@@ -438,32 +654,32 @@ class Axes(_AxesBase):
+         shading: Literal["flat", "nearest", "auto"] = ...,
+         alpha: float | None = None,
+         norm: Normalize = ...,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         vmin: float | None = None,
+         vmax: float | None = None,
+-        **kwargs
++        **kwargs,
+     ) -> Collection: ...
+### ANN | matplotlib.axes.Axes.pcolor | COSMETIC | find-replace,reformat | cmap: str|Colormap -> CmapType sweep plus a trailing comma
+     def pcolormesh(
+         self,
+         *args,
+         alpha: float | None = None,
+         norm: Normalize = ...,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         vmin: float | None = None,
+         vmax: float | None = None,
+         shading: Literal["flat", "nearest", "gouraud", "auto"] = ...,
+         antialiased=...,
+-        **kwargs
++        **kwargs,
+     ) -> QuadMesh: ...
+### ANN | matplotlib.axes.Axes.pcolormesh | COSMETIC | find-replace,reformat | cmap: str|Colormap -> CmapType sweep plus a trailing comma
+     def pcolorfast(
+         self,
+         *args,
+         alpha: float | None = None,
+         norm: Normalize = ...,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         vmin: float | None = None,
+         vmax: float | None = None,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[AxesImage, PcolorImage, QuadMesh]: ...
+### ANN | matplotlib.axes.Axes.pcolorfast | COSMETIC | find-replace,reformat | cmap: str|Colormap -> CmapType sweep plus a trailing comma
+     def contour(self, *args, **kwargs) -> QuadContourSet: ...
+     def contourf(self, *args, **kwargs) -> QuadContourSet: ...
+@@ -471,22 +687,22 @@ class Axes(_AxesBase):
+     @overload
+     def hist(
+         self,
+-        x: Sequence[ArrayLike],
++        x: Iterable[ArrayLike],
+         bins: int | ArrayLike | str = ...,
+-        range: tuple | None = ...,
++        range: Tuple[float, float] | None = (0, 1),
+         density: bool = ...,
+         weights: None = ...,
+         cumulative: bool | Literal[-1] = ...,
+-        bottom=...,
+-        histtype: Literal["bar", "barstacked", "step", "stepfilled"] = ...,
+-        align: Literal["left", "mid", "right"] = ...,
+-        orientation: Literal["vertical", "horizontal"] = ...,
+-        rwidth: float | None = ...,
+-        log: bool = ...,
+-        color: Color | None = ...,
+-        label: str | None = ...,
++        bottom: ArrayLike | float | None = ...,
++        histtype: Literal["bar", "barstacked", "step", "stepfilled"] = "bar",
++        align: Literal["left", "mid", "right"] = "mid",
++        orientation: Literal["vertical", "horizontal"] = "vertical",
++        rwidth: float | None = None,
++        log: bool = False,
++        color: ColorType | Iterable[float] | None = ...,
++        label: str | Iterable[str] | None = ...,
+         stacked: bool = ...,
+-        **kwargs
++        **kwargs: PatchProps,
+     ) -> tuple[list[list[float]], list[float], BarContainer | list]: ...
+### ANN | matplotlib.axes.Axes.hist | MEANINGFUL | kwargs-typeddict,concrete-default,type-refine | first overload: **kwargs: PatchProps (27 props expanded), histtype/align/orientation/rwidth/log gain real defaults, range: tuple -> Tuple[float,float] seeded with (0, 1), untyped bottom -> ArrayLike|float|None, color/label widened to the Iterable forms
+     @overload
+     def hist(
+@@ -503,10 +719,10 @@ class Axes(_AxesBase):
+         orientation: Literal["vertical", "horizontal"] = "vertical",
+         rwidth: float | None = None,
+         log: bool = False,
+-        color: Color | None = None,
++        color: ColorType | None = None,
+         label: str | None = None,
+         stacked: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[list[float], list[float], BarContainer | list]: ...
+### ANN | matplotlib.axes.Axes.hist | COSMETIC | find-replace,reformat | second overload: color: Color -> ColorType sweep plus a trailing comma; the concrete defaults here were already upstream's
+     def stairs(
+         self,
+@@ -516,7 +732,7 @@ class Axes(_AxesBase):
+         orientation: Literal["vertical", "horizontal"] = "vertical",
+         baseline: float | ArrayLike | None = 0,
+         fill: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> StepPatch: ...
+### ANN | matplotlib.axes.Axes.stairs | COSMETIC | reformat | only a trailing comma added on **kwargs
+     def hist2d(
+         self,
+@@ -528,11 +744,13 @@ class Axes(_AxesBase):
+         weights=...,
+         cmin: float | None = None,
+         cmax: float | None = None,
+-        **kwargs
+-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[float, float]|None]: ...
++        **kwargs,
++    ) -> tuple[
++        np.ndarray, np.ndarray, np.ndarray, tuple[float, float] | None
++    ]: ...
+### ANN | matplotlib.axes.Axes.hist2d | COSMETIC | reformat | trailing comma plus the return tuple wrapped across lines
+     def psd(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         NFFT: int = ...,
+         Fs: float = ...,
+         Fc: int = 0,
+@@ -543,7 +761,7 @@ class Axes(_AxesBase):
+         sides: Literal["default", "onesided", "twosided"] = ...,
+         scale_by_freq: bool = ...,
+         return_line: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+### ANN | matplotlib.axes.Axes.psd | COSMETIC | variance,reformat | x: Sequence -> Iterable plus a trailing comma
+     def csd(
+         self,
+@@ -559,38 +777,38 @@ class Axes(_AxesBase):
+         sides: Literal["default", "onesided", "twosided"] = ...,
+         scale_by_freq: bool = ...,
+         return_line: bool = False,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+### ANN | matplotlib.axes.Axes.csd | COSMETIC | reformat | only a trailing comma added on **kwargs
+     def magnitude_spectrum(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         Fs: float = ...,
+         Fc: int = ...,
+         window: Callable | np.ndarray = ...,
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+         scale: Literal["default", "linear", "dB"] = "linear",
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+### ANN | matplotlib.axes.Axes.magnitude_spectrum | COSMETIC | variance,reformat | x: Sequence -> Iterable plus a trailing comma
+     def angle_spectrum(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         Fs: float = ...,
+         Fc: int = 0,
+         window: Callable | np.ndarray = ...,
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+### ANN | matplotlib.axes.Axes.angle_spectrum | COSMETIC | variance,reformat | x: Sequence -> Iterable plus a trailing comma
+     def phase_spectrum(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         Fs: float = ...,
+         Fc: int = 0,
+         window: Callable | np.ndarray = ...,
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, Line2D]: ...
+### ANN | matplotlib.axes.Axes.phase_spectrum | COSMETIC | variance,reformat | x: Sequence -> Iterable plus a trailing comma
+     def cohere(
+         self,
+@@ -605,18 +823,18 @@ class Axes(_AxesBase):
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+         scale_by_freq: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray]: ...
+### ANN | matplotlib.axes.Axes.cohere | COSMETIC | reformat | only a trailing comma added on **kwargs
+     def specgram(
+         self,
+-        x: Sequence,
++        x: Iterable,
+         NFFT: int = ...,
+         Fs: float = ...,
+         Fc: int = 0,
+         detrend: Literal["none", "mean", "linear"] | Callable = ...,
+         window: Callable | np.ndarray = ...,
+         noverlap: int = 128,
+-        cmap: Colormap = ...,
++        cmap: CmapType = ...,
+         xextent=...,
+         pad_to: int = ...,
+         sides: Literal["default", "onesided", "twosided"] = ...,
+@@ -625,7 +843,7 @@ class Axes(_AxesBase):
+         scale: Literal["default", "linear", "dB"] = "dB",
+         vmin=...,
+         vmax=...,
+-        **kwargs
++        **kwargs,
+     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, AxesImage]: ...
+### ANN | matplotlib.axes.Axes.specgram | COSMETIC | variance,find-replace,reformat | x: Sequence -> Iterable, cmap: Colormap -> CmapType sweep, trailing comma
+     def spy(
+         self,
+@@ -635,7 +853,7 @@ class Axes(_AxesBase):
+         markersize=...,
+         aspect: Literal["equal", "auto", None] | float = "equal",
+         origin: Literal["upper", "lower"] = ...,
+-        **kwargs
++        **kwargs,
+     ) -> AxesImage | Line2D: ...
+### ANN | matplotlib.axes.Axes.spy | COSMETIC | reformat | only a trailing comma added on **kwargs
+     def matshow(self, Z: ArrayLike, **kwargs) -> AxesImage: ...
+     def violinplot(
+@@ -653,7 +871,7 @@ class Axes(_AxesBase):
+     ) -> dict[str, Collection]: ...
+     def violin(
+         self,
+-        vpstats: list[dict],
++        vpstats: Iterable[dict],
+         positions: ArrayLike = ...,
+         vert: bool = True,
+         widths: ArrayLike | float = 0.5,
+### ANN | matplotlib.axes.Axes.violin | COSMETIC | variance | vpstats: list[dict] -> Iterable[dict] only
+@@ -667,4 +885,6 @@ class Axes(_AxesBase):
+     tricontour = tri_tricontour.tricontour
+     tricontourf = tri_tricontourf.tricontourf
+     tripcolor = tri_tripcolor.tripcolor
+-    triplot = tri_triplot.triplot
++    triplot = tri_triplot.triplot  #
++
++# --------------------- Extra Typings -------------------- #

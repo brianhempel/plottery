@@ -1,0 +1,658 @@
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/_typing.pyi b/src/python-type-stubs-main/stubs/matplotlib/_typing.pyi
+index ca014e0..30c9cb3 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/_typing.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/_typing.pyi
+@@ -1,25 +1,651 @@
++# In argument position, always use Iterable[] instead of List[],
++# because List[] is mutable and therefore List[str] is not a subtype of e.g. List[Union[str, int]],
++# but you want it to be a subtype for matching args
++
+ import decimal
+ import io
++
++from matplotlib.colors import Colormap
++from matplotlib.markers import MarkerStyle
++
++# from figure import Figure
++# from font_manager import FontProperties
++# from markers import MarkerStyle
++from figure import Figure
++from collections.abc import Collection
+ import numpy.typing
+ import pandas as pd
++from typing import (
++    Iterable,
++    Tuple,
++    TypedDict,
++    TypeAlias,
++    Optional,
++    Callable,
++    Annotated,
++    Literal,
++    TypeVar
++)
++
++from patches import Patch, ArrowStyle, ConnectionStyle
++from path import Path
++
++# from patheffects import AbstractPathEffect
++from patheffects import AbstractPathEffect
++from transforms import BboxBase, IdentityTransform, Transform
++
++from _enums import CapStyle, JoinStyle
++from artist import Artist
++
++CapStyleLike = Literal["butt", "projecting", "round"]
++JoinStyleLike = Literal["miter", "round", "bevel"]
+ 
+ Decimal = decimal.Decimal
+ PythonScalar = str | int | float | bool
+ 
+ ArrayLike = numpy.typing.ArrayLike
++# ArrayLike = Collection
++
+ FileLike = io.IOBase
+ PathLike = str
+ 
+ PandasScalar = pd.Period | pd.Timestamp | pd.Timedelta | pd.Interval
+ Scalar = PythonScalar | PandasScalar
+ 
+-Color = tuple[float, float, float] | str
++SingleLetterColorStrs = Literal['b','g','r','c','m','y','k','w']
++
++# TODO: Add in the supported 'str'
++RGBColorType = tuple[float, float, float] | str
++
++# "none" or "#RRGGBBAA"/"#RGBA" hex strings
++# 2 tuple (color, alpha) representations, not infinitely recursive
++# RGBColorType includes the (str, float) tuple, even for RGBA strings
++# (4-tuple, float) is odd, but accepted as the outer float overriding A of 4-tuple
++RGBAColorType = (
++    str
++    | tuple[float, float, float, float]
++    | tuple[RGBColorType, float]
++    | tuple[tuple[float, float, float, float], float]
++)
++
++ColorType = RGBColorType | RGBAColorType
++
++Hatches = Literal["/", "\\", "|", "-", "+", "x", "o", "O", ".", "*"]
++
++LineStyle = \
++    Literal[
++        "-",
++        "--",
++        "-.",
++        ":",
++        "solid",
++        "dashed",
++        "dashdot",
++        "dotted",
++        "none",
++        "None",
++        " ",
++        "",
++    ] | tuple[float, Iterable[float]]
++
++class PatchProps(TypedDict, total=False):
++    # agg_filter: function
++    alpha: float | None
++    animated: bool
++    antialiased: bool | None
++    aa: bool | None
++    capstyle: CapStyleLike
++    clip_box: None  # | BboxBase
++    clip_on: bool
++    # clip_path: Patch | tuple[Path, Transform] | None
++    color: ColorType
++    edgecolor: ColorType
++    # ec: ColorType
++    facecolor: ColorType
++    # fc: ColorType
++    # figure: Figure
++    fill: bool
++    gid: str
++    hatch: Hatches
++    in_layout: bool
++    joinstyle: JoinStyleLike
++    label: object
++    linestyle: LineStyle
++    linewidth: float
++    lw: float
++    mouseover: bool
++    # path_effects: AbstractPathEffect
++    picker: None | bool | float | function
++    rasterized: bool
++    sketch_params: tuple[float, float, float]
++    snap: bool | None
++    # transform: Transform
++    url: str
++    visible: bool
++    zorder: float
++
++class RectangleProps(PatchProps, total=False):
++    angle: float = 0.0
++    bounds: tuple[float, float, float, float]
++    height: float
++    width: float
++    x: float
++    y: float
++    xy: tuple[float, float]
++
++# def request(**kwargs: Unpack[RequestParams]) -> None:
++#     ...
++
++SketchParamsType: TypeAlias = tuple[
++    Optional[float], Optional[float], Optional[float]
++]  # TODO docs list `(scale: float, length: float, randomness: float)`, but all params are optional (i.e. can be None)
++AggFilterType: TypeAlias = Callable[
++    [ArrayLike, float], tuple[ArrayLike, float, float]
++]  # TODO taken from Artist.set_agg_filter, but might want to refine more
++AlphaType: TypeAlias = float | None
++ClipPathType: TypeAlias = None  # | Patch | tuple[Path, Transform]
++
++NormType: TypeAlias = (
++    str | None
++)  # TODO "Normalize (or subclass thereof) or str or None"
++
++# Hmmm, this long list is making our live sync responses too large and MPL is crashing.
++NamedColorMap = Literal[
++    'magma',
++    'inferno',
++    'plasma',
++    'viridis',
++    'cividis',
++    'twilight',
++    # 'twilight_shifted',
++    # 'turbo',
++    # 'Blues',
++    # 'BrBG',
++    # 'BuGn',
++    # 'BuPu',
++    # 'CMRmap',
++    # 'GnBu',
++    # 'Greens',
++    # 'Greys',
++    # 'OrRd',
++    # 'Oranges',
++    # 'PRGn',
++    # 'PiYG',
++    # 'PuBu',
++    # 'PuBuGn',
++    # 'PuOr',
++    # 'PuRd',
++    # 'Purples',
++    # 'RdBu',
++    # 'RdGy',
++    # 'RdPu',
++    # 'RdYlBu',
++    # 'RdYlGn',
++    # 'Reds',
++    # 'Spectral',
++    # 'Wistia',
++    # 'YlGn',
++    # 'YlGnBu',
++    # 'YlOrBr',
++    # 'YlOrRd',
++    # 'afmhot',
++    # 'autumn',
++    # 'binary',
++    # 'bone',
++    # 'brg',
++    # 'bwr',
++    # 'cool',
++    # 'coolwarm',
++    # 'copper',
++    # 'cubehelix',
++    # 'flag',
++    # 'gist_earth',
++    # 'gist_gray',
++    # 'gist_heat',
++    # 'gist_ncar',
++    # 'gist_rainbow',
++    # 'gist_stern',
++    # 'gist_yarg',
++    # 'gnuplot',
++    # 'gnuplot2',
++    # 'gray',
++    # 'hot',
++    # 'hsv',
++    # 'jet',
++    # 'nipy_spectral',
++    # 'ocean',
++    # 'pink',
++    # 'prism',
++    # 'rainbow',
++    # 'seismic',
++    # 'spring',
++    # 'summer',
++    # 'terrain',
++    # 'winter',
++    # 'Accent',
++    # 'Dark2',
++    # 'Paired',
++    # 'Pastel1',
++    # 'Pastel2',
++    # 'Set1',
++    # 'Set2',
++    # 'Set3',
++    # 'tab10',
++    # 'tab20',
++    # 'tab20b',
++    # 'tab20c',
++    # 'grey',
++    # 'gist_grey',
++    # 'gist_yerg',
++    # 'Grays',
++    # 'magma_r',
++    # 'inferno_r',
++    # 'plasma_r',
++    # 'viridis_r',
++    # 'cividis_r',
++    # 'twilight_r',
++    # 'twilight_shifted_r',
++    # 'turbo_r',
++    # 'Blues_r',
++    # 'BrBG_r',
++    # 'BuGn_r',
++    # 'BuPu_r',
++    # 'CMRmap_r',
++    # 'GnBu_r',
++    # 'Greens_r',
++    # 'Greys_r',
++    # 'OrRd_r',
++    # 'Oranges_r',
++    # 'PRGn_r',
++    # 'PiYG_r',
++    # 'PuBu_r',
++    # 'PuBuGn_r',
++    # 'PuOr_r',
++    # 'PuRd_r',
++    # 'Purples_r',
++    # 'RdBu_r',
++    # 'RdGy_r',
++    # 'RdPu_r',
++    # 'RdYlBu_r',
++    # 'RdYlGn_r',
++    # 'Reds_r',
++    # 'Spectral_r',
++    # 'Wistia_r',
++    # 'YlGn_r',
++    # 'YlGnBu_r',
++    # 'YlOrBr_r',
++    # 'YlOrRd_r',
++    # 'afmhot_r',
++    # 'autumn_r',
++    # 'binary_r',
++    # 'bone_r',
++    # 'brg_r',
++    # 'bwr_r',
++    # 'cool_r',
++    # 'coolwarm_r',
++    # 'copper_r',
++    # 'cubehelix_r',
++    # 'flag_r',
++    # 'gist_earth_r',
++    # 'gist_gray_r',
++    # 'gist_heat_r',
++    # 'gist_ncar_r',
++    # 'gist_rainbow_r',
++    # 'gist_stern_r',
++    # 'gist_yarg_r',
++    # 'gnuplot_r',
++    # 'gnuplot2_r',
++    # 'gray_r',
++    # 'hot_r',
++    # 'hsv_r',
++    # 'jet_r',
++    # 'nipy_spectral_r',
++    # 'ocean_r',
++    # 'pink_r',
++    # 'prism_r',
++    # 'rainbow_r',
++    # 'seismic_r',
++    # 'spring_r',
++    # 'summer_r',
++    # 'terrain_r',
++    # 'winter_r',
++    # 'Accent_r',
++    # 'Dark2_r',
++    # 'Paired_r',
++    # 'Pastel1_r',
++    # 'Pastel2_r',
++    # 'Set1_r',
++    # 'Set2_r',
++    # 'Set3_r',
++    # 'tab10_r',
++    # 'tab20_r',
++    # 'tab20b_r',
++    # 'tab20c_r'
++]
++CmapType: TypeAlias = str | NamedColorMap | Colormap
++
++# font
++NamedFontName: TypeAlias = Literal[
++    "serif", "sans-serif", "cursive", "fantasy", "monospace"
++]
++NamedFontSize: TypeAlias = Literal[
++    "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large"
++]
++NamedFontStretch: TypeAlias = Literal[
++    "ultra-condensed",
++    "extra-condensed",
++    "condensed",
++    "semi-condensed",
++    "normal",
++    "semi-expanded",
++    "expanded",
++    "extra-expanded",
++    "ultra-expanded",
++]
++FontStyle: TypeAlias = Literal["normal", "italic", "oblique"]
++FontVariant: TypeAlias = Literal["normal", "small-caps"]
++NamedFontWeight: TypeAlias = Literal[
++    "ultralight",
++    "light",
++    "normal",
++    "regular",
++    "book",
++    "medium",
++    "roman",
++    "semibold",
++    "demibold",
++    "demi",
++    "bold",
++    "heavy",
++    "extra bold",
++    "black",
++]
++
++# text
++#   for list of aliases, look for `@_api.define_aliases` in text.py
++#   TODO do "text properties" encompass not just text kwargs (which this currently is) but also non-kwrags named parmaeters?
++class TextProps(TypedDict, total=False):
++    # agg_filter: AggFilterType
++    alpha: AlphaType
++    animated: bool
++    backgroundcolor: ColorType
++    # bbox: Any  # TODO - "properties for `patches.FancyBboxPatch"
++    clip_box: None  # | BboxBase
++    clip_on: bool
++    clip_path: None  # | Patch | tuple[Path, Transform]
++    color: ColorType
++    # c: ColorType  # aliases `color`
++    # figure: Figure
++    fontfamily: str | NamedFontName
++    # family: str | NamedFontName  # aliases `fontfamily`
++    fontproperties: str  # | Path | FontProperties
++    font: str # | Path | FontProperties  # aliases `fontproperties`
++    # font_properties: str  # | Path | FontProperties  # aliases `fontproperties`
++    fontsize: float | NamedFontSize
++    # size: float | NamedFontSize  # aliases `fontsize`
++    fontstretch: float | NamedFontStretch
++    # stretch: float | NamedFontStretch  # aliases `fontstretch`
++    fontstyle: FontStyle
++    # style: FontStyle  # aliases `fontstyle`
++    fontvariant: FontVariant
++    # variant: FontVariant  # aliases `fontvariant`
++    fontweight: float | NamedFontWeight
++    # weight: float | NamedFontWeight  # aliases `fontweight`
++    gid: str
++    horizontalalignment: Literal["center", "left", "right"]
++    # ha: Literal["center", "left", "right"]
++    in_layout: bool
++    label: object
++    linespacing: float  # "multiple of font size"
++    math_fontfamily: str
++    mouseover: bool
++    multialignment: Literal["center", "left", "right"]
++    # ma: Literal["center", "left", "right"]
++    parse_math: bool
++    # path_effects: Any
++    picker: None | bool | float | Callable
++    position: tuple[float, float]
++    rasterized: bool
++    rotation: float | Literal["horizontal", "vertical"]
++    rotation_mode: None | Literal["default", "anchor"]
++    sketch_params: SketchParamsType
++    snap: bool | None
++    text: object  # TODO surely this can be better typed no?
++    # transform: Transform
++    transform_rotates_text: bool
++    url: str
++    usetex: bool | None
++    verticalalignment: Literal[
++        "bottom", "baseline", "center", "center_baseline", "top"
++    ]
++    # va: Literal[
++    #     "bottom", "baseline", "center", "center_baseline", "top"
++    # ]  # aliases `verticalalignment`
++    visible: bool
++    wrap: bool
++    x: float
++    y: float
++    zorder: float
++
++class AnnotateProps(TextProps, total=False):
++    xy: tuple[float, float]
++    xytext: tuple[float, float]
++    xycoords: XYCoordSystem | tuple[XYCoordSystem, XYCoordSystem] = "data"
++    textcoords: TextCoordSystem = "data"  # @TODO: default is value of xycoords, not always 'data'
++    arrowprops: ArrowProps
++    annotation_clip: bool | None = None
++
++
++AxesProps: TypeAlias = TextProps
++
++MarkerStrs: TypeAlias = Literal['.',',','o','v','^','<','>','1','2','3','4','8','s','p','P','*','h','H','+','x','X','D','d','|','_']
++
++MarkerType: TypeAlias = MarkerStrs | Literal[0,1,2,3,4,5,6,7,8,9,10,11,'none','None',' ',''] | str | MarkerStyle | Path
++
++
++
++class Line2DProps(TypedDict, total=False):
++    color: ColorType | Iterable[ColorType] = 'C0'  # mpl.rcParams['lines.color']
++    # c: ColorType | Iterable[ColorType] = 'C0'  # mpl.rcParams['lines.color']
++    alpha: float | None = None
++    linewidth: float | None = 1.5  # mpl.rcParams['lines.linewidth']
++    # lw: float | None = 1.5  # mpl.rcParams['lines.linewidth']
++    linestyle: LineStyle | None = '-'  # mpl.rcParams['lines.linestyle']
++    # ls: LineStyle | None = '-'  # mpl.rcParams['lines.linestyle']
++    dashes: Tuple[Literal[3],Literal[1],Literal[1],Literal[3]] | Iterable[float] | Tuple = ()
++    gapcolor: ColorType | None = None
++    drawstyle: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default'
++    # ds: Literal['default', 'steps-pre', 'steps-mid', 'steps-post'] = 'default'
++    # Marker styles
++    marker: MarkerType | None = 'None'  # mpl.rcParams['lines.marker']
++    markevery: int | Iterable[int] | None = None  # mpl.rcParams['lines.markevery']
++    markersize: float | None = 6.0  # mpl.rcParams['lines.markersize']
++    # ms: float | None = 6.0  # mpl.rcParams['lines.markersize']
++    markeredgecolor: Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markeredgecolor']
++    # mec: Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markeredgecolor']
++    markeredgewidth: float | None = 1.0  # mpl.rcParams['lines.markeredgewidth']
++    # mew: float | None = 1.0  # mpl.rcParams['lines.markeredgewidth']
++    markerfacecolor:  Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markerfacecolor']
++    # mfc:  Literal['auto'] | ColorType | None = 'auto'  # mpl.rcParams['lines.markerfacecolor']
++    markerfacecoloralt: Literal['none'] | ColorType = 'none'
++    # mfcalt: Literal['none'] | ColorType = 'none'
++    fillstyle: Literal['full', 'left', 'right', 'bottom', 'top', 'none'] | None = 'full'  #  mpl.rcParams['markers.fillstyle']
++    # Line cap styles
++    solid_capstyle: CapStyleLike | None = 'projecting'  # mpl.rcParams['lines.solid_capstyle']
++    solid_joinstyle: JoinStyleLike | None = 'round'  # mpl.rcParams['lines.solid_joinstyle']
++    dash_capstyle: CapStyleLike | None = 'butt'  # mpl.rcParams['lines.dash_capstyle']
++    dash_joinstyle: JoinStyleLike | None = 'round'  # mpl.rcParams['lines.dash_joinstyle']
++    # Layering
++    visible: bool = True
++    zorder: float = 2
++    path_effects: Iterable[AbstractPathEffect] = []  # mpl.rcParams['path.effects']
++    in_layout: bool = True # Use when computing figure size for e.g. tight_layout?
++    scalex: bool = True # Use for determing x axes limit?
++    scaley: bool = True # Use for determing y axes limit?
++    # Clip
++    clip_box: Transform | None = None
++    clip_on: bool = True
++    clip_path: Artist | Transform | None = None
++    # Rendering Options
++    antialiased: bool | None = True  # mpl.rcParams['lines.antialiased']
++    # aa: bool | None = True  # mpl.rcParams['lines.antialiased']
++    snap: bool | None = True  # mpl.rcParams['path.snap']
++    rasterized: bool | None = None # For vector backends, perhaps rasterize for speed/size.
++    # Interactivity
++    # animated: bool = False
++    # pickradius: float = 5
++    # picker: bool | float | Callable[[Artist, MouseEvent], Tuple[bool, dict]] | None = None
++    # url: Optional[str] = None
++
++
++    # agg_filter: AggFilterType
++    # data: tuple[ArrayLike, ArrayLike] | ArrayLike
++    # figure: Figure
++    # gid: str
++    label: str | None = ''
++
++    # mouseover: bool
++    # picker: float | callable
++    # pickradius: float
++    # sketch_params: SketchParamsType
++    # snap: bool | None
++    # transform: Transform
++    # url: str
++    # xdata: ArrayLike
++    # ydata: ArrayLike
++
++
++XYCoordSystem = (
++    Literal[
++        "figure points",
++        "figure pixels",
++        "figure fraction",
++        "subfigure points",
++        "subfigure pixels",
++        "subfigure fraction",
++        "axes points",
++        "axes pixels",
++        "axes fraction",
++        "data",
++        "polar",
++    ]
++    | Artist
++    | Transform
++    | Callable
++)
++
++TextCoordSystem = (
++    Literal["offset points", "offset pixels", "offset fontsize"]
++    | Artist
++    | Transform
++    | Callable
++)
++
++ArrowStyleStr = Literal[
++    "-",
++    "<-",
++    "->",
++    "<->",
++    "<|-",
++    "-|>",
++    "]-",
++    "-[",
++    "]-[",
++    "|-|",
++    "]->",
++    "<-|",
++    "simple",
++    "fancy",
++    "wedge",
++]
++
++ConnectionStyleStr = Literal["arc3", "angle", "angle3", "arc", "bar"]
++
++class FancyArrowProps(PatchProps, total=False):
++    posA: tuple[float, float]
++    posB: tuple[float, float]
++    path: Path
++    arrowstyle: ArrowStyleStr | ArrowStyle
++    connectionstyle: ConnectionStyleStr | ConnectionStyle
++    patchA: Patch
++    patchB: Patch
++    shrinkA: float
++    shrinkB: float
++    mutation_scale: float
++    mutation_aspect: float
++
++class ArrowProps(FancyArrowProps, total=False):
++    # Simple arrow
++    width: float
++    headwidth: float
++    headlength: float
++    shrink: float
++
++    # Fancy arrow
++    relpos: tuple[float, float]
++
++class PolygonProps(PatchProps, total=False):
++    xy: ArrayLike
++    closed: bool
++
++class CollectionProps(TypedDict, total=False):
++    edgecolors: ColorType | Iterable[ColorType] = "black"
++    facecolors: ColorType | Iterable[ColorType] = "C0"
++    linewidths: float | Iterable[float] = 1.0
++    linestyles: LineStyle | Iterable[LineStyle] = "solid"
++    capstyle: CapStyleLike = "butt"
++    joinstyle: JoinStyleLike = "round"
++    antialiaseds: bool | Iterable[bool] = True
++    offsets: tuple[float, float] | Iterable[tuple[float, float]] = (0, 0)
++    offset_transform: Transform = IdentityTransform()
++    cmap: CmapType | None
++    norm: NormType | None
++    hatch: Hatches | None
++    pickradius: float = 5
++    # urls: Iterable[str] | None
++    zorder: float = 1
++
++class LineCollectionProps(CollectionProps, total=False):
++    segments: Iterable[Iterable[tuple[float, float]]]
++    linewidths: float | Iterable[float] = 1.5
++    colors: ColorType | Iterable[ColorType] = "C0"
++    antialiaseds: bool | Iterable[bool] = True
++    zorder: float = 2
++    facecolors: ColorType | Iterable[ColorType] = "none"
++
++class EventCollectionProps(LineCollectionProps, total=False):
++    positions: Iterable
++    orientation: Literal["vertical", "horizontal"] = "horizontal"
++    lineoffset: float = 0
++    linelength: float = 1
++    linewidths: float | Iterable[float] = 1.5
++    colors: ColorType | Iterable[ColorType] = "C0"
++    linestyle: LineStyle | Iterable[LineStyle] = "solid"
++    antialiaseds: bool | Iterable[bool] = True
+ 
+ __all__ = [
+     "ArrayLike",
+-    "Color",
+     "Decimal",
+     "FileLike",
+     "PathLike",
+     "Scalar",
++    "SingleLetterColorStrs",
++    "ColorType",
++    "AxesProps",
++    "PatchProps",
++    "RectangleProps",
++    "NamedFontSize",
++    "Line2DProps",
++    "TextProps",
++    "AnnotateProps",
++    "XYCoordSystem",
++    "TextCoordSystem",
++    "ArrowProps",
++    "PolygonProps",
++    "LineCollectionProps",
++    "CollectionProps",
++    "EventCollectionProps",
++    "LineStyle",
++    "MarkerStrs",
++    "MarkerType",
+ ]

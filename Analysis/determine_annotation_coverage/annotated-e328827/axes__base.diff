@@ -1,0 +1,273 @@
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_base.pyi b/src/python-type-stubs-main/stubs/matplotlib/axes/_base.pyi
+index babfb87..66ecf03 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/axes/_base.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/axes/_base.pyi
+@@ -1,11 +1,12 @@
+-from matplotlib.axis import XAxis, YAxis
++from matplotlib.axis import XAxis, YAxis, Tick
+ from matplotlib.cbook import Grouper
+ from matplotlib.image import AxesImage
+ from matplotlib.legend import Legend
+ from matplotlib.table import Table
++from matplotlib.text import Text
+ import numpy as np
+-from typing import Any, Callable, Collection, Literal, MutableSequence, Sequence, overload
+-from matplotlib._typing import *
++from typing import Any, Callable, Collection, Iterable, Literal, MutableSequence, overload
++from matplotlib._typing import ColorType, ArrayLike, TextProps, LineStyle, Line2DProps, NamedFontName, NamedFontSize
+ from matplotlib.transforms import Bbox, BboxBase, Transform, TransformedBbox
+ from matplotlib.backend_bases import RendererBase
+ from matplotlib.patches import Patch
+@@ -28,9 +29,9 @@ class _AxesBase(Artist):
+     def __init__(
+         self,
+         fig: Figure,
+-        rect: Sequence[float],
++        rect: Iterable[float],
+         *,
+-        facecolor: Color|None=None,
++        facecolor: ColorType | None=None,
+         frameon: bool = True,
+         sharex: Axes|None = None,
+         sharey: Axes|None = None,
+### ANN | matplotlib.axes.Axes.__init__ | COSMETIC | variance,find-replace | rect: Sequence[float] -> Iterable[float]; facecolor: Color -> ColorType
+@@ -56,7 +57,7 @@ class _AxesBase(Artist):
+     def get_position(self, original: bool = ...) -> Bbox: ...
+     def set_position(
+         self,
+-        pos: Sequence[float] | Bbox,
++        pos: Iterable[float] | Bbox,
+         which: Literal["both", "active", "original"] = ...,
+     ) -> None: ...
+### ANN | matplotlib.axes.Axes.set_position | COSMETIC | variance | pos: Sequence[float] -> Iterable[float]
+     def reset_position(self) -> None: ...
+@@ -82,15 +83,15 @@ class _AxesBase(Artist):
+     @property
+     def texts(self)-> MutableSequence: ...
+     def cla(self) -> None: ...
+-    def get_facecolor(self) -> Color: ...
+-    def set_facecolor(self, color: Color)-> None: ...
++    def get_facecolor(self) -> ColorType: ...
+### ANN | matplotlib.axes.Axes.get_facecolor | COSMETIC | find-replace | return Color -> ColorType
++    def set_facecolor(self, color: ColorType)-> None: ...
+### ANN | matplotlib.axes.Axes.set_facecolor | COSMETIC | find-replace | color: Color -> ColorType
+     def set_prop_cycle(self, *args, **kwargs)-> None: ...
+     def get_aspect(self) -> Literal["auto"] | float: ...
+     def set_aspect(
+         self,
+         aspect: Literal["auto", "equal"] | float,
+         adjustable: None | Literal["box", "datalim"] = ...,
+-        anchor: None | str | Sequence[float] = ...,
++        anchor: None | str | Iterable[float] = ...,
+         share: bool = False,
+     )-> None: ...
+### ANN | matplotlib.axes.Axes.set_aspect | COSMETIC | variance | anchor: Sequence[float] -> Iterable[float]
+     def get_adjustable(self) -> str: ...
+@@ -107,7 +108,22 @@ class _AxesBase(Artist):
+     )-> None: ...
+     def get_data_ratio(self)-> float: ...
+     def apply_aspect(self, position=...)-> None: ...
+-    def axis(self, *args, emit: bool = ..., **kwargs)-> tuple[float, float, float, float]: ...
++    @overload
++    def axis(
++        self,
++        option: bool | Literal['off', 'on', 'equal', 'scaled', 'tight', 'image', 'auto', 'square'],
++        emit: bool = True,
++        **kwargs
++    ) -> tuple[float, float, float, float]: ...
++    @overload
++    def axis(
++        self,
++        option: tuple[float, float, float, float] | Iterable[float],
++    ) -> tuple[float, float, float, float]: ...
++    @overload
++    def axis(
++        self,
++    ) -> tuple[float, float, float, float]: ...
+### ANN | matplotlib.axes.Axes.axis | MEANINGFUL | new-params,literal-enum,concrete-default | bare *args/**kwargs replaced by 3 overloads; option spelled out as bool or Literal of 8 strings (off, on, equal, scaled, tight, image, auto, square) or a 4-tuple of floats; emit gains default True
+     def get_legend(self) -> Legend | None: ...
+     def get_images(self) -> list[AxesImage]: ...
+     def get_lines(self) -> list[Line2D]: ...
+@@ -169,7 +185,7 @@ class _AxesBase(Artist):
+         visible: bool | None = ...,
+         which: Literal["major", "minor", "both"] = ...,
+         axis: Literal["both", "x", "y"] = ...,
+-        **kwargs
++        **kwargs: Line2DProps
+     ) -> None: ...
+### ANN | matplotlib.axes.Axes.grid | MEANINGFUL | kwargs-typeddict | **kwargs: Line2DProps, expanding the splat into ~32 editable line properties
+     def ticklabel_format(
+         self,
+@@ -184,18 +200,48 @@ class _AxesBase(Artist):
+     def locator_params(
+         self, axis: Literal["both", "x", "y"] = ..., tight: bool | None = ..., **kwargs
+     ) -> None: ...
+-    def tick_params(self, axis: Literal["x", "y", "both"] = ..., **kwargs) -> None: ...
++    def tick_params(
++        self,
++        axis: Literal['x', 'y', 'both'] = 'both',
++        which: Literal['major', 'minor', 'both'] = 'major',
++        reset: bool = False,
++        *,
++        direction: Literal['in', 'out', 'inout'] = ...,
++        length: float = ...,
++        width: float = ...,
++        color: ColorType = ...,
++        pad: float = ...,
++        labelsize: float | NamedFontSize = ...,
++        labelcolor: ColorType = ...,
++        labelfontfamily: NamedFontName | str = ...,
++        colors: ColorType = ...,
++        zorder: float = ...,
++        bottom: bool = ...,
++        top: bool = ...,
++        left: bool = ...,
++        right: bool = ...,
++        labelbottom: bool = ...,
++        labeltop: bool = ...,
++        labelleft: bool = ...,
++        labelright: bool = ...,
++        labelrotation: float = ...,
++        grid_color: ColorType = ...,
++        grid_alpha: float = 1.0,
++        grid_linewidth: float = ...,
++        grid_linestyle: LineStyle = ...,
++        **kwargs
++    ) -> None: ...
+### ANN | matplotlib.axes.Axes.tick_params | MEANINGFUL | new-params,literal-enum,concrete-default | bare **kwargs spelled out as ~25 named params (which, reset, direction, length, width, color, pad, labelsize, labelcolor, labelfontfamily, colors, zorder, bottom/top/left/right, labelbottom/labeltop/labelleft/labelright, labelrotation, grid_color/grid_alpha/grid_linewidth/grid_linestyle); Literal enums for axis, which, direction; real defaults both, major, False, 1.0
+     def set_axis_off(self) -> None: ...
+     def set_axis_on(self) -> None: ...
+     def get_xlabel(self) -> str: ...
+     def set_xlabel(
+         self,
+         xlabel: str,
+-        fontdict=...,
++        fontdict: dict=...,
+         labelpad: float = ...,
+         *,
+         loc: Literal["left", "center", "right"] = ...,
+-        **kwargs
++        **kwargs: TextProps
+     )-> None: ...
+### ANN | matplotlib.axes.Axes.set_xlabel | MEANINGFUL | kwargs-typeddict,type-refine | **kwargs: TextProps (~47 text properties); fontdict untyped -> dict
+     def invert_xaxis(self) -> None: ...
+     xaxis_inverted = ...
+@@ -207,22 +253,22 @@ class _AxesBase(Artist):
+     @overload
+     def set_xlim(
+         self,
+-        left: tuple[float | np.datetime64, float | np.datetime64],
+-        *,
++        left: Literal[0] | float | np.datetime64 = ...,
++        right: float | np.datetime64 = ...,
+         emit: bool = ...,
+         auto: bool | None = ...,
+-        xmin: float = ...,
++        *,
++        xmin: Literal[0] | float = ...,
+         xmax: float = ...
+     ) -> tuple[float, float]: ...
+     @overload
+     def set_xlim(
+         self,
+-        left: float | np.datetime64 = ...,
+-        right: float | np.datetime64 = ...,
++        left: tuple[float | np.datetime64, float | np.datetime64],
++        *,
+         emit: bool = ...,
+         auto: bool | None = ...,
+-        *,
+-        xmin: float = ...,
++        xmin: Literal[0] | float = ...,
+         xmax: float = ...
+     ) -> tuple[float, float]: ...
+### ANN | matplotlib.axes.Axes.set_xlim | MEANINGFUL | literal-enum | left and xmin gain Literal[0] as a seeded 0 default; the two overloads are reordered so the (left, right) positional form is matched first
+     def get_xscale(self) -> str: ...
+@@ -230,20 +276,34 @@ class _AxesBase(Artist):
+         self, value: Literal["linear", "log", "symlog", "logit"] | ScaleBase, **kwargs
+     )-> None: ...
+     get_xticks = ...
+-    set_xticks = ...
++    def set_xticks(
++        self,
++        ticks: ArrayLike,
++        labels: Iterable[str] | None = ...,
++        *,
++        minor: bool = False,
++        **kwargs: TextProps
++    ) -> list[Tick]: ...
+### ANN | matplotlib.axes.Axes.set_xticks | MEANINGFUL | new-params,kwargs-typeddict,concrete-default,type-refine | upstream had only the bare alias set_xticks = ...; full signature written (ticks: ArrayLike, labels, minor=False), **kwargs: TextProps, return list[Tick]
+     get_xmajorticklabels = ...
+     get_xminorticklabels = ...
+     get_xticklabels = ...
+-    set_xticklabels = ...
++    def set_xticklabels(
++        self,
++        labels: Iterable[str] | Iterable[Text],
++        *,
++        minor: bool = False,
++        fontdict: dict = None,
++        **kwargs: TextProps,
++    ) -> list[Text]: ...
+### ANN | matplotlib.axes.Axes.set_xticklabels | MEANINGFUL | new-params,kwargs-typeddict,concrete-default,suspect | upstream had only the bare alias set_xticklabels = ...; full signature written with **kwargs: TextProps and return list[Text]; suspect: fontdict: dict = None declares a non-optional dict with a None default
+     def get_ylabel(self) -> str: ...
+     def set_ylabel(
+         self,
+         ylabel: str,
+-        fontdict=...,
++        fontdict: dict =...,
+         labelpad: float = ...,
+         *,
+         loc: Literal["bottom", "center", "top"] = ...,
+-        **kwargs
++        **kwargs: TextProps
+     ) -> None: ...
+### ANN | matplotlib.axes.Axes.set_ylabel | MEANINGFUL | kwargs-typeddict,type-refine | **kwargs: TextProps (~47 text properties); fontdict untyped -> dict
+     def invert_yaxis(self) -> None: ...
+     yaxis_inverted = ...
+@@ -254,12 +314,12 @@ class _AxesBase(Artist):
+     def get_ylim(self) -> tuple[float, float]: ...
+     def set_ylim(
+         self,
+-        bottom: float = ...,
++        bottom: Literal[0] | float = ...,
+         top: float = ...,
+         emit: bool = ...,
+         auto: bool | None = ...,
+         *,
+-        ymin: float = ...,
++        ymin: Literal[0] | float  = ...,
+         ymax: float = ...
+     )-> None: ...
+### ANN | matplotlib.axes.Axes.set_ylim | MEANINGFUL | literal-enum | bottom and ymin gain Literal[0] as a seeded 0 default
+     get_yscale = ...
+@@ -267,11 +327,25 @@ class _AxesBase(Artist):
+         self, value: Literal["linear", "log", "symlog", "logit"] | ScaleBase, **kwargs
+     ) -> None: ...
+     get_yticks = ...
+-    set_yticks = ...
++    def set_yticks(
++        self,
++        ticks: ArrayLike,
++        labels: Iterable[str] | None = ...,
++        *,
++        minor: bool = False,
++        **kwargs: TextProps
++    ) -> list[Tick]: ...
+### ANN | matplotlib.axes.Axes.set_yticks | MEANINGFUL | new-params,kwargs-typeddict,concrete-default,type-refine | upstream had only the bare alias set_yticks = ...; full signature written (ticks: ArrayLike, labels, minor=False), **kwargs: TextProps, return list[Tick]
+     get_ymajorticklabels = ...
+     get_yminorticklabels = ...
+     get_yticklabels = ...
+-    set_yticklabels = ...
++    def set_yticklabels(
++        self,
++        labels: Iterable[str] | Iterable[Text],
++        *,
++        minor: bool = False,
++        fontdict: dict = None,
++        **kwargs: TextProps,
++    ) -> list[Text]: ...
+### ANN | matplotlib.axes.Axes.set_yticklabels | MEANINGFUL | new-params,kwargs-typeddict,concrete-default,suspect | upstream had only the bare alias set_yticklabels = ...; full signature written with **kwargs: TextProps and return list[Text]; suspect: fontdict: dict = None declares a non-optional dict with a None default
+     xaxis_date = ...
+     yaxis_date = ...
+     def format_xdata(self, x) -> str: ...

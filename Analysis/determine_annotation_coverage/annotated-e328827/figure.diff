@@ -1,0 +1,402 @@
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/figure.pyi b/src/python-type-stubs-main/stubs/matplotlib/figure.pyi
+index bd6a05c..3dbc7ef 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/figure.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/figure.pyi
+@@ -1,11 +1,20 @@
+ from io import BufferedWriter, BytesIO
++
++from matplotlib.axis import Tick
++from matplotlib.cm import ScalarMappable
++from matplotlib.ticker import Formatter, Locator
+ from .colorbar import Colorbar
+ import numpy as np
+-from typing import Callable, Literal, overload
+-from ._typing import *
++from typing import Callable, Iterable, List, Literal, Sequence, overload
++from ._typing import CmapType, TextProps, ColorType, ArrayLike, PathLike, FileLike
+ from .text import Text
+ from .gridspec import GridSpec, SubplotSpec
+-from .backend_bases import FigureCanvasBase, MouseButton, MouseEvent, RendererBase
++from .backend_bases import (
++    FigureCanvasBase,
++    MouseButton,
++    MouseEvent,
++    RendererBase,
++)
+ from .colors import Colormap, Normalize
+ from .legend import Legend
+ from .layout_engine import LayoutEngine
+@@ -14,8 +23,6 @@ from .transforms import BboxBase
+ from .axes import Axes
+ from .artist import Artist, _finalize_rasterization, allow_rasterization
+ from mpl_toolkits.mplot3d import Axes3D
+-from .projections.geo import AitoffAxes, HammerAxes, LambertAxes, MollweideAxes
+-from .projections.polar import PolarAxes
+ 
+ class _AxesStack:
+     def __init__(self) -> None: ...
+@@ -57,8 +64,16 @@ class FigureBase(Artist):
+     ) -> None: ...
+     def get_children(self) -> list[Artist]: ...
+     def contains(self, mouseevent: MouseEvent) -> bool: ...
+-    def get_window_extent(self, renderer: RendererBase = ..., *args, **kwargs): ...
+-    def suptitle(self, t: str, **kwargs) -> Text: ...
++    def get_window_extent(
++        self, renderer: RendererBase = ..., *args, **kwargs
++    ): ...
+### ANN | matplotlib.figure.Figure.get_window_extent | COSMETIC | reformat | FigureBase method; signature wrapped onto three lines, still bare *args/**kwargs
++    def suptitle(
++        self,
++        t: str,
++        x: float = 0.5,
++        y: float = 0.98,
++        **kwargs: TextProps
++    ) -> Text: ...
+### ANN | matplotlib.figure.Figure.suptitle | MEANINGFUL | kwargs-typeddict,new-params,concrete-default | FigureBase method; **kwargs: TextProps (~40 text properties) plus x and y spelled out with real defaults 0.5 and 0.98
+     def supxlabel(self, t: str, **kwargs) -> Text: ...
+     def supylabel(self, t: str, **kwargs) -> Text: ...
+     def get_edgecolor(self): ...
+@@ -66,74 +81,101 @@ class FigureBase(Artist):
+     def get_frameon(self) -> bool: ...
+     def set_linewidth(self, linewidth: float) -> None: ...
+     def get_linewidth(self) -> float: ...
+-    def set_edgecolor(self, color: Color): ...
++    def set_edgecolor(self, color: ColorType): ...
+### ANN | matplotlib.figure.Figure.set_edgecolor | COSMETIC | find-replace | FigureBase method; Color swapped for the ColorType alias
+     def set_facecolor(self, color: str) -> None: ...
+     def set_frameon(self, b: bool): ...
+     frameon = ...
+     def add_artist(self, artist: Artist, clip: bool = False) -> Artist: ...
+     def add_axes(self, *args, **kwargs) -> Axes: ...
+     @overload
+-    def add_subplot(self, *args, projection: Literal['3d'], **kwargs) -> Axes3D: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['aitoff'], **kwargs) -> AitoffAxes: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['hammer'], **kwargs) -> HammerAxes: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['lambert'], **kwargs) -> LambertAxes: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['mollweide'], **kwargs) -> MollweideAxes: ...
+-    @overload
+-    def add_subplot(self, *args, projection: Literal['polar'], **kwargs) -> PolarAxes: ...
++    def add_subplot(
++        self,
++        nrows: int, # The Sketch-n-Plot default int is 1
++        ncols: int, # The Sketch-n-Plot default int is 1
++        index: int, # The Sketch-n-Plot default int is 1
++        /,
++        projection: Literal['aitoff', 'hammer', 'lambert', 'mollweide', 'polar', 'rectilinear'] | str | None = None,
++        polar: bool = False,
++        sharex: Axes | None = None,
++        sharey: Axes | None = None,
++        frameon: bool = True,
++        label: str = '',
++        xscale: float | None = None,
++        yscale: float | None = None,
++        box_aspect: float | None = None,
++        facecolor: ColorType | None = None,
++        **kwargs
++    ) -> Axes: ...
++    def add_subplot(
++        self,
++        grid: Literal[111] | int,
++        /,
++        projection: Literal['aitoff', 'hammer', 'lambert', 'mollweide', 'polar', 'rectilinear'] | str | None = None,
++        polar: bool = False,
++        sharex: Axes | None = None,
++        sharey: Axes | None = None,
++        frameon: bool = True,
++        label: str = '',
++        xscale: float | None = None,
++        yscale: float | None = None,
++        box_aspect: float | None = None,
++        facecolor: ColorType | None = None,
++        **kwargs
++    ) -> Axes: ...
+     @overload
+-    def add_subplot(self, *args, **kwargs) -> Axes: ...
++    def add_subplot(
++        self, *args, projection: Literal["3d"], **kwargs
++    ) -> Axes3D: ...
+### ANN | matplotlib.figure.Figure.add_subplot | MEANINGFUL | new-params,literal-enum,concrete-default,suspect | FigureBase method; upstream's six projection overloads replaced by two hand-written overloads of ~13 spelled-out params each (nrows/ncols/index or grid, projection Literal of 6 names, polar, sharex, sharey, frameon, label, xscale, yscale, box_aspect, facecolor) with real defaults; suspect: the second (grid) overload is missing its @overload decorator, and the geo/polar return types (AitoffAxes, PolarAxes, ...) were collapsed to plain Axes
+     @overload
+     def subplots(
+         self,
+-        nrows: Literal[1] = ...,
+-        ncols: Literal[1] = ...,
++        nrows: Literal[1] = 1,
++        ncols: Literal[1] = 1,
+         *,
+-        squeeze: Literal[False],
+-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
+-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
++        squeeze: Literal[False] = True,
++        sharex: bool | Literal["none", "all", "row", "col"] = False,
++        sharey: bool | Literal["none", "all", "row", "col"] = False,
++        width_ratios: ArrayLike = ...,
++        height_ratios: ArrayLike = ...,
+         subplot_kw: dict = ...,
+-        gridspec_kw: dict = ...
+-    ) -> list[Axes]: ...
++        gridspec_kw: dict = ...,
++    ) -> Axes: ...
+     @overload
+     def subplots(
+         self,
+-        nrows: int = ...,
+-        ncols: int = ...,
++        nrows: int = 1,
++        ncols: Literal[1] = 1,
+         *,
+-        squeeze: Literal[False],
+-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
+-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
++        squeeze: Literal[True] = True,
++        sharex: bool | Literal["none", "all", "row", "col"] = False,
++        sharey: bool | Literal["none", "all", "row", "col"] = False,
+         subplot_kw: dict = ...,
+-        gridspec_kw: dict = ...
+-    ) -> list[list[Axes]]: ...
++        gridspec_kw: dict = ...,
++    ) -> List[Axes]: ...
+     @overload
+     def subplots(
+         self,
+-        nrows: Literal[1] = ...,
+-        ncols: Literal[1] = ...,
++        nrows: Literal[1] = 1,
++        ncols: int = 1,
+         *,
+-        squeeze: Literal[True] = ...,
+-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
+-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
++        squeeze: bool = True,
++        sharex: bool | Literal["none", "all", "row", "col"] = False,
++        sharey: bool | Literal["none", "all", "row", "col"] = False,
+         subplot_kw: dict = ...,
+-        gridspec_kw: dict = ...
+-    ) -> Axes: ...
++        gridspec_kw: dict = ...,
++    ) -> List[Axes]: ...
+     @overload
+     def subplots(
+         self,
+-        nrows: int,
+-        ncols: int,
++        nrows: int = 1,
++        ncols: int = 1,
+         *,
+-        squeeze: bool = ...,
+-        sharex: bool | Literal["none", "all", "row", "col"] = ...,
+-        sharey: bool | Literal["none", "all", "row", "col"] = ...,
++        squeeze: Literal[False] = True,
++        sharex: bool | Literal["none", "all", "row", "col"] = False,
++        sharey: bool | Literal["none", "all", "row", "col"] = False,
+         subplot_kw: dict = ...,
+-        gridspec_kw: dict = ...
+-    ) -> list[Axes]: ...
++        gridspec_kw: dict = ...,
++    ) -> List[List[Axes]]: ...
+### ANN | matplotlib.figure.Figure.subplots | MEANINGFUL | concrete-default,new-params,suspect | FigureBase method; all four overloads traded '= ...' for real defaults (nrows=1, ncols=1, squeeze=True, sharex=False, sharey=False) and the first gained width_ratios and height_ratios; suspect: two overloads declare squeeze: Literal[False] = True (default contradicts the Literal) and the overload return types were shuffled so the all-Literal[1] case now returns Axes while the int cases return List[Axes]
+     def delaxes(self, ax: Axes) -> None: ...
+     def clear(self, keep_observers: bool = False) -> None: ...
+     def clf(self, keep_observers: bool = False) -> None: ...
+@@ -142,7 +184,29 @@ class FigureBase(Artist):
+         self, x: float, y: float, s: str, fontdict: dict = ..., **kwargs
+     ) -> Text: ...
+     def colorbar(
+-        self, mappable, cax: Axes = ..., ax=..., use_gridspec: bool = ..., **kwargs
++        self,
++        mappable: ScalarMappable,
++        cax: Axes = ...,
++        ax: Axes | Iterable[Axes] = ...,
++        use_gridspec: bool = ...,
++        location: Literal['left', 'right', 'top', 'bottom'] = ...,
++        orientation: Literal['vertical', 'horizontal'] = ...,
++        fraction: float = 0.15,
++        shrink: float = 1.0,
++        aspect: float = 20,
++        pad: float = 0.05,
++        anchor: tuple[float, float] = ...,
++        panchor: tuple[float, float] | Literal[False] = ...,
++        extend: Literal['neither', 'both', 'min', 'max'] = ...,
++        extendfrac: Literal['auto'] | float | Iterable[float] = ...,
++        extendrect: bool = False,
++        spacing: Literal['uniform', 'proportional'] = ...,
++        ticks: Iterable[Tick] | Locator | None = ...,
++        format: Literal["%04.1f"] | str | Formatter | None = ...,
++        drawedges: bool = ...,
++        label: str = ...,
++        boundaries: Iterable[float] = ...,
++        values: Iterable[float] =...
+     ) -> Colorbar: ...
+### ANN | matplotlib.figure.Figure.colorbar | MEANINGFUL | new-params,literal-enum,concrete-default,type-refine | FigureBase method; ~17 params lifted out of **kwargs (location, orientation, fraction, shrink, aspect, pad, anchor, panchor, extend, extendfrac, extendrect, spacing, ticks, format, drawedges, label, boundaries, values) with Literal enums and real defaults; mappable typed ScalarMappable, ax typed Axes or Iterable[Axes], format seeded with Literal["%04.1f"]
+     def subplots_adjust(
+         self,
+@@ -153,10 +217,12 @@ class FigureBase(Artist):
+         wspace: float = ...,
+         hspace: float = ...,
+     ) -> None: ...
+-    def align_xlabels(self, axs: list[Axes] = ...) -> None: ...
+-    def align_ylabels(self, axs: list[Axes] = ...) -> None: ...
+-    def align_labels(self, axs: list[Axes] = ...) -> None: ...
+-    def add_gridspec(self, nrows: int = 1, ncols: int = 1, **kwargs) -> GridSpec: ...
++    def align_xlabels(self, axs: Sequence[Axes] = ...) -> None: ...
+### ANN | matplotlib.figure.Figure.align_xlabels | COSMETIC | variance | FigureBase method; axs list[Axes] to Sequence[Axes]
++    def align_ylabels(self, axs: Sequence[Axes] = ...) -> None: ...
+### ANN | matplotlib.figure.Figure.align_ylabels | COSMETIC | variance | FigureBase method; axs list[Axes] to Sequence[Axes]
++    def align_labels(self, axs: Sequence[Axes] = ...) -> None: ...
+### ANN | matplotlib.figure.Figure.align_labels | COSMETIC | variance | FigureBase method; axs list[Axes] to Sequence[Axes]
++    def add_gridspec(
++        self, nrows: int = 1, ncols: int = 1, **kwargs
++    ) -> GridSpec: ...
+### ANN | matplotlib.figure.Figure.add_gridspec | COSMETIC | reformat | FigureBase method; signature wrapped across lines, types unchanged
+     def subfigures(
+         self,
+         nrows: int = 1,
+@@ -166,16 +232,18 @@ class FigureBase(Artist):
+         hspace: float | None = None,
+         width_ratios: ArrayLike = ...,
+         height_ratios: ArrayLike = ...,
+-        **kwargs
++        **kwargs,
+     ): ...
+### ANN | matplotlib.figure.Figure.subfigures | COSMETIC | reformat | FigureBase method; trailing comma added after **kwargs
+-    def add_subfigure(self, subplotspec: SubplotSpec, **kwargs) -> SubFigure: ...
++    def add_subfigure(
++        self, subplotspec: SubplotSpec, **kwargs
++    ) -> SubFigure: ...
+### ANN | matplotlib.figure.Figure.add_subfigure | COSMETIC | reformat | FigureBase method; signature wrapped across lines, types unchanged
+     def sca(self, a: Axes) -> Axes: ...
+     def gca(self) -> Axes: ...
+     def get_default_bbox_extra_artists(self): ...
+     def get_tightbbox(
+         self,
+         renderer: RendererBase = ...,
+-        bbox_extra_artists: list[Artist] | None = ...,
++        bbox_extra_artists: Sequence[Artist] | None = ...,
+     ) -> BboxBase: ...
+### ANN | matplotlib.figure.Figure.get_tightbbox | COSMETIC | variance | FigureBase method; bbox_extra_artists list[Artist] to Sequence[Artist]
+     def subplot_mosaic(
+         self,
+@@ -185,7 +253,7 @@ class FigureBase(Artist):
+         sharey: bool = ...,
+         subplot_kw: dict = ...,
+         gridspec_kw: dict = ...,
+-        empty_sentinel: object = ...
++        empty_sentinel: object = ...,
+     ) -> dict[Text, Axes]: ...
+### ANN | matplotlib.figure.Figure.subplot_mosaic | COSMETIC | reformat | FigureBase method; trailing comma added after empty_sentinel
+ 
+ class Figure(FigureBase):
+@@ -197,23 +265,25 @@ class Figure(FigureBase):
+         self,
+         figsize: tuple[float, float] = ...,
+         dpi: float = ...,
+-        facecolor: Color = ...,
+-        edgecolor: Color = ...,
++        facecolor: ColorType = ...,
++        edgecolor: ColorType = ...,
+         linewidth: float = ...,
+         frameon: bool = ...,
+         subplotpars: SubplotParams = ...,
+         tight_layout: bool | dict = ...,
+         constrained_layout: bool = ...,
+         *,
+-        layout: LayoutEngine
+-        | Literal["constrained", "compressed", "tight"]
+-        | None = ...,
+-        **kwargs
++        layout: (
++            LayoutEngine | Literal["constrained", "compressed", "tight"] | None
++        ) = ...,
++        **kwargs,
+     ) -> None: ...
+### ANN | matplotlib.figure.Figure.__init__ | COSMETIC | find-replace,reformat | facecolor and edgecolor Color swapped for ColorType; layout union parenthesized and trailing comma added
+     def set_layout_engine(
+         self,
+-        layout: LayoutEngine | Literal["constrained", "compressed", "tight"] = ...,
+-        **kwargs: dict
++        layout: (
++            LayoutEngine | Literal["constrained", "compressed", "tight"]
++        ) = ...,
++        **kwargs: dict,
+     ) -> None: ...
+### ANN | matplotlib.figure.Figure.set_layout_engine | COSMETIC | reformat | layout union parenthesized and trailing comma added; accepted values unchanged
+     def get_layout_engine(self) -> None: ...
+     def show(self, warn: bool = True) -> None: ...
+@@ -239,12 +309,12 @@ class Figure(FigureBase):
+         yo: int = ...,
+         alpha: None | float = ...,
+         norm: Normalize = ...,
+-        cmap: str | Colormap = ...,
++        cmap: CmapType = ...,
+         vmin: float = ...,
+         vmax: float = ...,
+         origin: Literal["upper", "lower"] = ...,
+         resize: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> FigureImage: ...
+### ANN | matplotlib.figure.Figure.figimage | COSMETIC | find-replace | cmap str-or-Colormap swapped for the CmapType alias; trailing comma after **kwargs
+     def set_size_inches(
+         self, w: float, h: float = ..., forward: bool = True
+@@ -254,8 +324,8 @@ class Figure(FigureBase):
+     def get_figheight(self): ...
+     def get_dpi(self) -> float: ...
+     def set_dpi(self, val: float) -> None: ...
+-    def set_figwidth(self, val: float, forward: bool = ...)-> None: ...
+-    def set_figheight(self, val: float, forward: bool = ...)-> None: ...
++    def set_figwidth(self, val: float, forward: bool = ...) -> None: ...
+### ANN | matplotlib.figure.Figure.set_figwidth | COSMETIC | reformat | space inserted before the return arrow
++    def set_figheight(self, val: float, forward: bool = ...) -> None: ...
+### ANN | matplotlib.figure.Figure.set_figheight | COSMETIC | reformat | space inserted before the return arrow
+     def clear(self, keep_observers: bool = ...) -> None: ...
+     @allow_rasterization
+     def draw(self, renderer) -> None: ...
+@@ -269,7 +339,7 @@ class Figure(FigureBase):
+         fname: str | PathLike | FileLike | BytesIO | BufferedWriter,
+         *,
+         transparent: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> None: ...
+### ANN | matplotlib.figure.Figure.savefig | COSMETIC | reformat | trailing comma added after **kwargs
+     def ginput(
+         self,
+@@ -288,7 +358,7 @@ class Figure(FigureBase):
+         pad: float = 1.08,
+         h_pad: float = ...,
+         w_pad: float = ...,
+-        rect: tuple[float, float, float, float] = ...
++        rect: tuple[float, float, float, float] = ...,
+     ) -> None: ...
+### ANN | matplotlib.figure.Figure.tight_layout | COSMETIC | reformat | trailing comma added after rect
+ 
+ def figaspect(arg: float): ...
+@@ -301,18 +371,18 @@ class SubFigure(FigureBase):
+         parent: FigureBase,
+         subplotspec: SubplotSpec,
+         *,
+-        facecolor: Color = ...,
+-        edgecolor: Color = ...,
++        facecolor: ColorType = ...,
++        edgecolor: ColorType = ...,
+         linewidth: float = ...,
+         frameon: bool = ...,
+-        **kwargs
++        **kwargs,
+     ) -> None: ...
+### ANN | matplotlib.figure.SubFigure.__init__ | COSMETIC | find-replace,reformat | facecolor and edgecolor Color swapped for ColorType; trailing comma added after **kwargs
+     @property
+     def dpi(self) -> float: ...
+     @dpi.setter
+     def dpi(self, value: float): ...
+     def get_dpi(self) -> float: ...
+-    def set_dpi(self, val: float)-> None: ...
++    def set_dpi(self, val: float) -> None: ...
+### ANN | matplotlib.figure.SubFigure.set_dpi | COSMETIC | reformat | space inserted before the return arrow
+     def get_constrained_layout(self) -> bool: ...
+     def get_constrained_layout_pads(self, relative: bool = ...): ...
+     def get_layout_engine(self) -> LayoutEngine: ...

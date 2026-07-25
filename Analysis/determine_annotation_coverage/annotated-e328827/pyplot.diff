@@ -1,0 +1,350 @@
+diff --git a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/pyplot.pyi b/src/python-type-stubs-main/stubs/matplotlib/pyplot.pyi
+index 6b608cc..2ffde00 100644
+--- a/Analysis/determine_annotation_coverage/upstream-stubs-e328827/pyplot.pyi
++++ b/src/python-type-stubs-main/stubs/matplotlib/pyplot.pyi
+@@ -1,10 +1,16 @@
+ import datetime
++from matplotlib.axis import Tick
++from matplotlib.cm import ScalarMappable
++from matplotlib.colorbar import Colorbar
+ from matplotlib.contour import QuadContourSet
++from matplotlib.layout_engine import LayoutEngine
++from matplotlib.pylab import ArrayLike
++from matplotlib.ticker import Formatter, Locator
+ import numpy as np
+-from typing import Callable, ContextManager, Literal, Sequence, overload
++from typing import Any, Callable, ContextManager, Iterable, List, Literal, Sequence, overload
+ from matplotlib import rcParams as rcParams
+ from matplotlib import style as style
+-from ._typing import *
++from ._typing import CmapType, ColorType, FileLike, PathLike, Scalar
+ from .tri.tricontour import TriContourSet
+ from .transforms import Bbox, Transform
+ from .text import Text, Annotation
+@@ -24,7 +30,7 @@ from .collections import (
+ from .lines import Line2D
+ from .legend import Legend
+ from .image import AxesImage, FigureImage
+-from .figure import Figure, SubFigure
++from .figure import Figure as Figure, SubFigure as SubFigure
+ from .scale import ScaleBase
+ from .backend_bases import _Backend
+ from .axes import Axes as Axes
+@@ -82,14 +88,15 @@ class _xkcd:
+     def __exit__(self, *args)-> None: ...
+ 
+ def figure(
+-    num: int | str | Figure | SubFigure| None = None,
+-    figsize: Sequence[float]|None = None,
+-    dpi: float|None = None,
+-    facecolor: Color|None = None,
+-    edgecolor: Color|None = None,
++    num: int | str | Figure | SubFigure | None = None,
++    figsize: tuple[float, float] = (6.4, 4.8),
++    dpi: float = 100,
++    facecolor: ColorType = 'white',
++    edgecolor: ColorType = 'white',
+     frameon: bool = True,
+-    FigureClass = ...,
++    FigureClass: type[Figure] | None = None,
+     clear: bool = False,
++    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
+     **kwargs
+ ) -> Figure: ...
+### ANN | matplotlib.pyplot.figure | MEANINGFUL | new-params,literal-enum,concrete-default,type-refine | layout param added with a 4-value Literal (constrained, compressed, tight, none) or LayoutEngine; figsize refined from Sequence[float] or None to tuple[float, float] with the real default (6.4, 4.8); dpi=100, facecolor/edgecolor default 'white', FigureClass typed type[Figure] or None = None; no Axes counterpart
+ def gcf() -> Figure: ...
+@@ -111,6 +118,10 @@ def cla() -> None: ...
+ def subplot(*args, **kwargs) -> Axes: ...
+ 
+ 
++# subplots actually often returns np.ndarrays instead of List BUT the numpy type stubs
++# and/or mypy can't then understand that pulling items out of that list gives you an Axes
++#
++# So we pretend it returns lists
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -122,7 +133,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+ @overload
+ def subplots(
+     nrows: Literal[1] = ...,
+@@ -149,7 +160,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -161,7 +172,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     *,
+@@ -173,7 +184,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+ @overload
+ def subplots(
+     *,
+@@ -184,7 +195,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ @overload
+ def subplots(
+     nrows: int = ...,
+@@ -195,7 +206,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[Axes]]: ...
+ 
+ @overload
+ def subplots(
+@@ -219,7 +230,7 @@ def subplots(
+     subplot_kw: dict = ...,
+     gridspec_kw: dict = ...,
+     **fig_kw
+-) -> tuple[Figure, np.ndarray]: ...
++) -> tuple[Figure, List[List[Axes]]]: ...
+### ANN | matplotlib.pyplot.subplots | MEANINGFUL | type-refine | all seven changed overloads return tuple[Figure, List[Axes]] or tuple[Figure, List[List[Axes]]] instead of tuple[Figure, np.ndarray] (with an added comment explaining the deliberate lie), so mypy can see an indexed element as an Axes and the GUI can drive calls on it; parameter lists untouched; parallels our Figure.subplots work rather than an Axes method
+ 
+ def subplot_mosaic(
+     mosaic: list | str,
+@@ -265,8 +276,32 @@ def thetagrids(
+     **kwargs
+ ) -> tuple[list[Line2D], list[Text]]: ...
+ def get_plot_commands() -> list: ...
+-def colorbar(mappable=..., cax: Axes = ..., ax: Axes = ..., **kwargs): ...
++def colorbar(
++    mappable: ScalarMappable | None = None,
++    cax: Axes = ...,
++    ax: Axes | Iterable[Axes] = ...,
++    use_gridspec: bool = ...,
++    location: Literal['left', 'right', 'top', 'bottom'] = ...,
++    orientation: Literal['vertical', 'horizontal'] = ...,
++    fraction: float = 0.15,
++    shrink: float = 1.0,
++    aspect: float = 20,
++    pad: float = 0.05,
++    anchor: tuple[float, float] = ...,
++    panchor: tuple[float, float] | Literal[False] = ...,
++    extend: Literal['neither', 'both', 'min', 'max'] = ...,
++    extendfrac: Literal['auto'] | float | Iterable[float] = ...,
++    extendrect: bool = False,
++    spacing: Literal['uniform', 'proportional'] = ...,
++    ticks: Iterable[Tick] | Locator | None = ...,
++    format: Literal["%04.1f"] | str | Formatter | None = ...,
++    drawedges: bool = ...,
++    label: str = ...,
++    boundaries: Iterable[float] = ...,
++    values: Iterable[float] =...
++) -> Colorbar: ...
+### ANN | matplotlib.pyplot.colorbar | MEANINGFUL | new-params,literal-enum,concrete-default,type-refine,suspect,mirrors-figure | upstream's (mappable=..., cax, ax, **kwargs) replaced by 21 spelled-out params, ~18 of them new (use_gridspec, location, orientation, fraction, shrink, aspect, pad, anchor, panchor, extend, extendfrac, extendrect, spacing, ticks, format, drawedges, label, boundaries, values) with Literal enums and real defaults 0.15/1.0/20/0.05/False; mappable typed ScalarMappable or None, ax typed Axes or Iterable[Axes], format seeded with Literal["%04.1f"]; near-verbatim duplicate of our Figure.colorbar, so it is mirrored work (a Figure mirror, not an Axes one); suspect: ticks typed Iterable[Tick] where matplotlib takes tick locations (floats) or a Locator NOTE: 31 of its 33 parameters are copied verbatim from our hand-written Figure.colorbar (only `mappable` differs, correctly made optional), so this duplicates already-counted work.
+ def clim(vmin: float | None = ..., vmax: float | None = ...): ...
++def get_cmap(name: CmapType | None = ..., lut: int | None = ...) -> Colormap: ...
+### ANN | matplotlib.pyplot.get_cmap | MEANINGFUL | new-params | function is absent from upstream's pyplot stub entirely; added here with name: CmapType or None and lut: int or None, returning Colormap, so the GUI gains a colormap-name dropdown for a call it previously could not see
+ def set_cmap(cmap: Colormap | str): ...
+ def imread(fname: str | FileLike, format: str = ...) -> np.ndarray: ...
+ def imsave(fname: str | PathLike | FileLike, arr: ArrayLike, **kwargs): ...
+@@ -280,7 +315,7 @@ def figimage(
+     yo: float = ...,
+     alpha: None | float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     origin: Literal["upper", "lower"] = ...,
+### ANN | matplotlib.pyplot.figimage | COSMETIC | find-replace | cmap str-or-Colormap swapped for the CmapType alias; mirrors Figure.figimage
+@@ -464,7 +499,7 @@ def errorbar(
+     yerr: float | ArrayLike = ...,
+     xerr: float | ArrayLike = ...,
+     fmt: str = ...,
+-    ecolor: Color = ...,
++    ecolor: ColorType = ...,
+     elinewidth: float = ...,
+     capsize: float = ...,
+     barsabove: bool = ...,
+### ANN | matplotlib.pyplot.errorbar | COSMETIC | find-replace | ecolor Color swapped for the ColorType alias; mirrors Axes.errorbar
+@@ -484,7 +519,7 @@ def eventplot(
+     lineoffsets: float | ArrayLike = ...,
+     linelengths: float | ArrayLike = ...,
+     linewidths: float | ArrayLike = ...,
+-    colors: Color | list[Color] = ...,
++    colors: ColorType | Sequence[ColorType] = ...,
+     linestyles: str | tuple | list = ...,
+     *,
+     data=...,
+### ANN | matplotlib.pyplot.eventplot | COSMETIC | find-replace,variance | colors Color-or-list[Color] to ColorType-or-Sequence[ColorType]; mirrors Axes.eventplot
+@@ -555,7 +590,7 @@ def hist(
+     orientation: Literal["vertical", "horizontal"] = ...,
+     rwidth: float | None = ...,
+     log: bool = ...,
+-    color: Color | None = ...,
++    color: ColorType | None = ...,
+     label: str | None = ...,
+     stacked: bool = ...,
+     *,
+### ANN | matplotlib.pyplot.hist | COSMETIC | find-replace | color Color swapped for the ColorType alias; mirrors Axes.hist
+@@ -589,7 +624,7 @@ def hlines(
+     y: float | ArrayLike,
+     xmin: float | ArrayLike,
+     xmax: float | ArrayLike,
+-    colors: list[Color] = ...,
++    colors: Sequence[ColorType] = ...,
+     linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+     label: str = ...,
+     *,
+@@ -598,7 +633,7 @@ def hlines(
+ ) -> LineCollection: ...
+### ANN | matplotlib.pyplot.hlines | COSMETIC | find-replace,variance | colors list[Color] to Sequence[ColorType]; mirrors Axes.hlines
+ def imshow(
+     X: ArrayLike,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     aspect: Literal["equal", "auto"] | float = ...,
+     interpolation: str = ...,
+### ANN | matplotlib.pyplot.imshow | COSMETIC | find-replace | cmap str-or-Colormap swapped for the CmapType alias; mirrors Axes.imshow
+@@ -641,7 +676,7 @@ def pcolor(
+     shading: Literal["flat", "nearest", "auto"] = ...,
+     alpha: float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     data=...,
+### ANN | matplotlib.pyplot.pcolor | COSMETIC | find-replace | cmap str-or-Colormap swapped for the CmapType alias; mirrors Axes.pcolor
+@@ -651,7 +686,7 @@ def pcolormesh(
+     *args,
+     alpha: float = ...,
+     norm: Normalize = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     shading: Literal["flat", "nearest", "gouraud", "auto"] = ...,
+### ANN | matplotlib.pyplot.pcolormesh | COSMETIC | find-replace | cmap str-or-Colormap swapped for the CmapType alias; mirrors Axes.pcolormesh
+@@ -725,16 +760,16 @@ def scatter(
+     x: float | ArrayLike,
+     y: float | ArrayLike,
+     s: float | ArrayLike = ...,
+-    c: ArrayLike | list[Color] | Color = ...,
++    c: ArrayLike | Sequence[ColorType] | ColorType = ...,
+     marker: MarkerStyle = ...,
+-    cmap: str | Colormap = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     vmin: float = ...,
+     vmax: float = ...,
+     alpha: float = ...,
+     linewidths: float | ArrayLike = ...,
+     *,
+-    edgecolors: Color = ...,
++    edgecolors: ColorType | Sequence[ColorType] = ...,
+     plotnonfinite: bool = ...,
+     data=...,
+     **kwargs
+### ANN | matplotlib.pyplot.scatter | COSMETIC | find-replace,variance | c and cmap swapped to the ColorType/CmapType aliases and list[Color] to Sequence[ColorType]; edgecolors widened to ColorType or Sequence[ColorType] as part of the same sweep; mirrors Axes.scatter
+@@ -749,7 +784,7 @@ def specgram(
+     detrend: Literal["none", "mean", "linear"] | Callable = ...,
+     window: Callable | np.ndarray = ...,
+     noverlap: int = ...,
+-    cmap: Colormap = ...,
++    cmap: CmapType = ...,
+     xextent=...,
+     pad_to: float = ...,
+     sides: Literal["default", "onesided", "twosided"] = ...,
+### ANN | matplotlib.pyplot.specgram | COSMETIC | find-replace | cmap Colormap swapped for the CmapType alias; mirrors Axes.specgram
+@@ -774,8 +809,8 @@ def spy(
+ def stackplot(
+     x,
+     *args,
+-    labels: list[str] = ...,
+-    colors: list[Color] = ...,
++    labels: Sequence[str] = ...,
++    colors: Sequence[ColorType] = ...,
+     baseline: Literal["zero", "sym", "wiggle", "weighted_wiggle"] = ...,
+     data=...,
+     **kwargs
+### ANN | matplotlib.pyplot.stackplot | COSMETIC | find-replace,variance | labels list[str] to Sequence[str] and colors list[Color] to Sequence[ColorType]; mirrors Axes.stackplot
+@@ -806,8 +841,8 @@ def streamplot(
+     v,
+     density: float = ...,
+     linewidth: float = ...,
+-    color: Color = ...,
+-    cmap: Colormap = ...,
++    color: ColorType = ...,
++    cmap: CmapType = ...,
+     norm: Normalize = ...,
+     arrowsize: float = ...,
+     arrowstyle: str = ...,
+### ANN | matplotlib.pyplot.streamplot | COSMETIC | find-replace | color Color to ColorType and cmap Colormap to CmapType; mirrors Axes.streamplot
+@@ -825,12 +860,12 @@ def table(
+     cellText=...,
+     cellColours=...,
+     cellLoc: Literal["left", "center", "right"] = ...,
+-    colWidths: list[float] = ...,
+-    rowLabels: list[str] = ...,
+-    rowColours: list[Color] = ...,
++    colWidths: Sequence[float] = ...,
++    rowLabels: Sequence[str] = ...,
++    rowColours: Sequence[ColorType] = ...,
+     rowLoc: Literal["left", "center", "right"] = ...,
+-    colLabels: list[str] = ...,
+-    colColours: list[Color] = ...,
++    colLabels: Sequence[str] = ...,
++    colColours: Sequence[ColorType] = ...,
+     colLoc: Literal["left", "center", "right"] = ...,
+     loc: str = ...,
+     bbox: Bbox = ...,
+### ANN | matplotlib.pyplot.table | COSMETIC | find-replace,variance | five list params to Sequence and rowColours/colColours Color to ColorType; mirrors Axes.table
+@@ -880,7 +915,7 @@ def vlines(
+     x: float | ArrayLike,
+     ymin: float | ArrayLike,
+     ymax: float | ArrayLike,
+-    colors: list[Color] = ...,
++    colors: Sequence[ColorType] = ...,
+     linestyles: Literal["solid", "dashed", "dashdot", "dotted"] = ...,
+     label: str = ...,
+     *,
+### ANN | matplotlib.pyplot.vlines | COSMETIC | find-replace,variance | colors list[Color] to Sequence[ColorType]; mirrors Axes.vlines
+@@ -910,7 +945,7 @@ def title(
+ ) -> Text: ...
+ def xlabel(
+     xlabel: str,
+-    fontdict=...,
++    fontdict:dict=...,
+     labelpad: float = ...,
+     *,
+     loc: Literal["left", "center", "right"] = ...,
+### ANN | matplotlib.pyplot.xlabel | COSMETIC | vague-annot | bare fontdict given the vaguest possible annotation (dict); called COSMETIC because an opaque dict renders no better than the untyped Any it replaced, and no TypedDict was attached; mirrors Axes.set_xlabel
+@@ -918,7 +953,7 @@ def xlabel(
+ ): ...
+ def ylabel(
+     ylabel: str,
+-    fontdict=...,
++    fontdict:dict=...,
+     labelpad: float = ...,
+     *,
+     loc: Literal["bottom", "center", "top"] = ...,
+### ANN | matplotlib.pyplot.ylabel | COSMETIC | vague-annot | bare fontdict given the vaguest possible annotation (dict); called COSMETIC because an opaque dict renders no better than the untyped Any it replaced, and no TypedDict was attached; mirrors Axes.set_ylabel
