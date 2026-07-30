@@ -3,7 +3,7 @@ import { State } from "../types";
 import { LineHandle } from "../utils/codemirror";
 import { rate_limit, log_event } from "../utils/instrumentation";
 import { current_llm_settings, get_llm_config, llm_api_key, llm_config_constants, LLMProviderSettings, prompt_llm, set_llm_provider, update_llm_provider_settings } from "../utils/llm";
-import { create_el, notebook_cells } from "../utils/misc";
+import { create_el, get_persistent_item, notebook_cells, set_persistent_item } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
 
 // Globally exposed by our extension (nbextension_snp/main.js and snp_jupyter/snp_jupyter.js)
@@ -16,7 +16,11 @@ export function create_ai_panel(state: State): HTMLElement {
   const panel_heading = create_el("h2", [], panel_el);
   panel_heading.append("AI")
 
-  // Gear button (right of the "AI" header) toggles the LLM config panel.
+  // Provider / model / effort sit right in the header — they're the knobs worth fiddling with
+  // while prompting. Only the endpoint and API key live behind the gear.
+  const header_controls = create_el("div", "snp-ai-header-controls", panel_heading);
+
+  // Gear button (right of the header controls) toggles the LLM config panel.
   const gear_btn = create_el("span", "snp-ai-config-toggle", panel_heading) as HTMLButtonElement;
   gear_btn.title = 'AI Settings';
   gear_btn.textContent = '⚙\uFE0E'; // ⚙︎ in text style. second char signals to be not emoji
@@ -24,14 +28,29 @@ export function create_ai_panel(state: State): HTMLElement {
   gear_btn.style.lineHeight = '10px';
   gear_btn.style.marginTop = '-2px';
 
-  const config_panel = create_config_panel(state);
+  // Whether the user has explicitly opened (true) or closed (false) the config; undefined means
+  // "no opinion", so the default rule applies: show it exactly when the active provider has no
+  // usable key, so the user can add one. Picking a provider clears the opinion, so switching to
+  // one you have no key for pops the key field open (and switching back tucks it away again).
+  let user_wants_config: boolean | undefined = undefined;
+  function reconsider_config_visibility() {
+    const has_key = llm_api_key(state.llm_api_keys).trim().length > 0;
+    config_panel.classList.toggle("hidden", user_wants_config === undefined ? has_key : !user_wants_config);
+  }
+
+  const config_panel = create_config_ui(state, header_controls, () => {
+    user_wants_config = undefined; // the new provider gets the default rule, not the old one's fate
+    reconsider_config_visibility();
+  });
   panel_el.append(config_panel);
-  // Open config by default when there's no usable key yet, so the user can add one. The server
-  // keys aren't known until fetch_server_llm_keys resolves below, so this first pass sees only
-  // the user's own key (state.llm_api_keys starts empty); the .then() reconsiders once they land.
-  config_panel.classList.toggle("hidden", llm_api_key(state.llm_api_keys).trim().length > 0);
-  let user_toggled_config = false;
-  gear_btn.addEventListener("click", () => { user_toggled_config = true; config_panel.classList.toggle("hidden"); });
+  // The server keys aren't known until fetch_server_llm_keys resolves below, so this first pass
+  // sees only the user's own key (state.llm_api_keys starts empty); the .then() reconsiders
+  // once they land.
+  reconsider_config_visibility();
+  gear_btn.addEventListener("click", () => {
+    user_wants_config = config_panel.classList.contains("hidden");
+    reconsider_config_visibility();
+  });
 
   // The server's keys are deliberately not baked into the saved notebook (that would leak them
   // when shared), so we pull them from the kernel here and fill in state.llm_api_keys, which
@@ -40,15 +59,22 @@ export function create_ai_panel(state: State): HTMLElement {
   fetch_server_llm_keys(state).then(keys => {
     state.llm_api_keys = keys;
     config_panel.refresh(); // the API-key placeholder now reflects whether the server has one
-    if (!user_toggled_config) {
-      config_panel.classList.toggle("hidden", llm_api_key(state.llm_api_keys).trim().length > 0);
-    }
+    reconsider_config_visibility();
   });
 
   const prompt_wrapper = create_el("div", "snp-ai-prompt-wrapper", panel_el);
 
   const prompt_el = create_el("input", [], prompt_wrapper) as HTMLInputElement;
   prompt_el.placeholder = "🤖 How should I change the plot?";
+
+  // Submitting/accepting a prompt reruns the cell, which tears this panel down and builds a new
+  // one; the flag apply_code_to_cell left behind (it outlives the rerun) says the box was where
+  // the user was working, so put them back in it. Deferred a tick because the panel isn't in the
+  // DOM until attach_snp appends it.
+  if (get_persistent_item(state, "ai_prompt_focus") === "true") {
+    set_persistent_item(state, "ai_prompt_focus", "");
+    setTimeout(() => prompt_el.focus(), 0);
+  }
 
   const spinner_el = create_el("div", "snp-spinner", prompt_wrapper);
 
@@ -65,6 +91,13 @@ export function create_ai_panel(state: State): HTMLElement {
   let debounce_timer: number | undefined = undefined;
   let inflight: { user_prompt: string, xhr: XMLHttpRequest } | undefined = undefined;
   let preview: { user_prompt: string, code: string } | undefined = undefined;
+  // A reply that wasn't code (a refusal or a question). Shown in the output area instead of
+  // the code box; tracked like a preview so it survives until the prompt text changes.
+  let message: { user_prompt: string } | undefined = undefined;
+  // A failed preview request (bad model name, bad key, timeout), also shown in the output
+  // area. Tracked separately from `message` so Enter still resubmits rather than treating it
+  // as a reply to accept — the config may have been fixed since it failed.
+  let error_shown: { user_prompt: string } | undefined = undefined;
   // Captured just before the first preview swaps the figure, so reverting restores the
   // original render even after several successive previews.
   let original: {
@@ -85,6 +118,10 @@ export function create_ai_panel(state: State): HTMLElement {
     return preview !== undefined && preview.user_prompt === prompt_el.value;
   }
 
+  function message_is_current(): boolean {
+    return message !== undefined && message.user_prompt === prompt_el.value;
+  }
+
   // Write the preview code into the editor and highlight the changed lines (by content,
   // the same rule apply_code_to_cell uses).
   function show_code_preview(new_code: string) {
@@ -102,8 +139,22 @@ export function create_ai_panel(state: State): HTMLElement {
     });
   }
 
+  // The pre-preview render/code, captured before anything is swapped (see `original`).
+  function snapshot() {
+    return {
+      img_src: (state.plot_area.querySelector("img") as HTMLImageElement).src,
+      stdout_html: state.stdout_stderr.innerHTML,
+      hover_regions_hidden: state.hover_regions_container.classList.contains("hidden"),
+      cell_code: state.cell.code_mirror.getValue(),
+      previewed_cell_code: state.cell.code_mirror.getValue(),
+      highlighted_lines: [] as number[],
+    };
+  }
+
   function revert_preview() {
     preview = undefined;
+    message = undefined;
+    error_shown = undefined;
     if (!original) return;
     const cm = state.cell.code_mirror as any;
     // Remove highlights first, while the recorded line numbers still describe the previewed doc.
@@ -128,6 +179,7 @@ export function create_ai_panel(state: State): HTMLElement {
     const user_prompt = prompt_el.value;
     if (user_prompt.trim() === "") return;
     if (preview_is_current()) return;
+    if (message_is_current()) return;
     if (inflight?.user_prompt === user_prompt) return;
     inflight?.xhr.abort();
 
@@ -145,19 +197,24 @@ export function create_ai_panel(state: State): HTMLElement {
           log_event("ai", "live preview diff apply failed", { prompt: user_prompt, reply });
           return;
         }
+
+        // A reply that isn't code (a refusal, a question) falls through reply_to_new_cell_code
+        // as its own prose, which would replace the cell with English. Show it as a warning
+        // instead and leave the code and figure alone.
+        if (drops_show_call(state.cell.get_text(), raw_code)) {
+          log_event("ai", "live preview non-code reply", { prompt: user_prompt, reply });
+          original ||= snapshot();
+          show_ai_message(state, reply);
+          message = { user_prompt };
+          return;
+        }
+
         // The editor previews the raw code; the annotated version is what runs in the
         // kernel and what Enter commits (same as the pre-preview flow).
         const code = annotate_code(raw_code, state);
         log_event("ai", "live preview response", { prompt: user_prompt, code });
 
-        original ||= {
-          img_src: (state.plot_area.querySelector("img") as HTMLImageElement).src,
-          stdout_html: state.stdout_stderr.innerHTML,
-          hover_regions_hidden: state.hover_regions_container.classList.contains("hidden"),
-          cell_code: state.cell.code_mirror.getValue(),
-          previewed_cell_code: state.cell.code_mirror.getValue(),
-          highlighted_lines: [],
-        };
+        original ||= snapshot();
         show_code_preview(raw_code);
         const this_preview = { user_prompt, code };
         preview = this_preview;
@@ -165,9 +222,15 @@ export function create_ai_panel(state: State): HTMLElement {
         // being the live one when the output message arrives.
         preview_figure_only(state, code, () => preview === this_preview);
       },
-      () => {
+      error_message => {
         if (inflight?.xhr === xhr) { inflight = undefined; spinner_el.style.display = ''; }
-        log_event("ai", "live preview error", { prompt: user_prompt });
+        log_event("ai", "live preview error", { prompt: user_prompt, message: error_message });
+        if (prompt_el.value !== user_prompt) return; // Stale: the user kept typing.
+        // Surface it where non-code replies go — a misconfigured model/key otherwise makes
+        // the panel look like it's doing nothing at all.
+        original ||= snapshot();
+        show_ai_error(state, error_message);
+        error_shown = { user_prompt };
       },
       state.llm_api_keys
     );
@@ -177,7 +240,8 @@ export function create_ai_panel(state: State): HTMLElement {
   prompt_el.addEventListener("input", () => {
     if (debounce_timer !== undefined) { window.clearTimeout(debounce_timer); debounce_timer = undefined; }
     if (inflight && inflight.user_prompt !== prompt_el.value) { inflight.xhr.abort(); inflight = undefined; spinner_el.style.display = ''; }
-    if (preview && !preview_is_current()) revert_preview();
+    if ((preview && !preview_is_current()) || (message && !message_is_current()) ||
+        (error_shown && error_shown.user_prompt !== prompt_el.value)) revert_preview();
     if (prompt_el.value.trim() !== "") {
       debounce_timer = window.setTimeout(() => { debounce_timer = undefined; request_preview(); }, 222);
     }
@@ -209,6 +273,10 @@ export function create_ai_panel(state: State): HTMLElement {
         original = undefined; // hard_rerun below replaces the whole output; nothing to restore
         log_event("ai", "live preview accept", { prompt: user_prompt, code });
         apply_code_to_cell(code, state, code_before_ai_changes);
+      } else if (message_is_current()) {
+        // Nothing to accept: the shown reply wasn't code. Leave it up; Escape dismisses it.
+        log_event("ai", "non-code reply accept attempt", { prompt: prompt_el.value });
+        cancel_pending();
       } else {
         cancel_pending();
         revert_preview();
@@ -229,22 +297,32 @@ export function create_ai_panel(state: State): HTMLElement {
   return panel_el;
 }
 
-// The LLM config panel opened by the gear icon: provider / endpoint / model / effort / API key.
+// The LLM config controls, split across two places: provider / model / effort go inline in the
+// AI header (`header_el`, always visible), while endpoint / API key go in the panel this
+// returns, which the gear shows and hides.
 // Every change is written straight to localStorage via save_llm_config, so the next prompt
-// request (which reads get_llm_config fresh) picks it up. Changing the provider resets model,
-// effort, and endpoint to that provider's defaults and re-renders the form.
-// Returns the config panel element with a `.refresh()` that re-renders it — used when the
-// server keys arrive after first render, so the API-key placeholder reflects them.
-function create_config_panel(state: State): HTMLElement & { refresh: () => void } {
+// request (which reads get_llm_config fresh) picks it up. Changing the provider switches to
+// that provider's own model/effort/endpoint/key and re-renders both halves, then calls
+// on_provider_change (the caller re-decides whether the key field should be showing).
+// The returned panel has a `.refresh()` that re-renders everything — used when the server keys
+// arrive after first render, so the API-key placeholder reflects them.
+function create_config_ui(state: State, header_el: HTMLElement, on_provider_change: () => void): HTMLElement & { refresh: () => void } {
   const el = create_el("div", "snp-ai-config") as HTMLElement & { refresh: () => void };
 
-  // Build one labeled row: <label>text</label> + control.
+  // Build one labeled row of the gear panel: <label>text</label> + control.
   function row(label_text: string, control: HTMLElement): HTMLElement {
     const r = create_el("div", "snp-ai-config-row", el);
     const label = create_el("label", [], r);
     label.append(label_text);
     r.append(control);
     return r;
+  }
+
+  // Put a control in the header instead. No room for a label there, so the name is the tooltip.
+  function header_control<T extends HTMLElement>(title: string, control: T): T {
+    control.title = title;
+    header_el.append(control);
+    return control;
   }
 
   // A fixed dropdown. "" is rendered as "(default)" (i.e. don't send the param at all).
@@ -270,7 +348,10 @@ function create_config_panel(state: State): HTMLElement & { refresh: () => void 
     input.placeholder = placeholder;
     input.value = value;
     if (suggestions.length > 0) {
-      const datalist = create_el("datalist", [], el) as HTMLDataListElement;
+      // Hung off the header (a `datalist` is display:none anyway, so it costs no layout there)
+      // rather than the gear panel, whose `display: none` while hidden would take its options
+      // with it. Only header fields have suggestions today; this keeps that from mattering.
+      const datalist = create_el("datalist", [], header_el) as HTMLDataListElement;
       // Datalist ids must be unique document-wide, and a notebook can have an AI panel per
       // cell. Counter on window (not a top-level `let`, which would break bundle re-injection
       // — AGENTS.md), matching plottery_instrumentation_eventno in instrumentation.ts.
@@ -288,6 +369,7 @@ function create_config_panel(state: State): HTMLElement & { refresh: () => void 
 
   function render() {
     el.innerHTML = "";
+    header_el.innerHTML = "";
     const { provider } = get_llm_config();
     const settings = current_llm_settings();
     const { PROVIDERS } = llm_config_constants();
@@ -300,10 +382,22 @@ function create_config_panel(state: State): HTMLElement & { refresh: () => void 
     const provider_order = ["openai", "anthropic", "gemini", "bedrock", "openrouter", "inception", "cerebras", "openai_compatible"];
     const provider_labels: { [v: string]: string } = {};
     provider_order.forEach(key => { provider_labels[key] = PROVIDERS[key].label; });
-    row("Provider", fixed_dropdown(provider_order, provider, provider_labels, new_provider => {
+    header_control("Provider", fixed_dropdown(provider_order, provider, provider_labels, new_provider => {
       set_llm_provider(new_provider);
       render(); // the endpoint/model/effort fields all depend on the provider
-    }));
+      on_provider_change();
+    })).classList.add("snp-ai-provider-field");
+
+    header_control("Model", text_field(meta.models, settings.model, "model", v => update({ model: v })))
+      .classList.add("snp-ai-model-field");
+
+    // Effort (hidden for providers with no reasoning_effort knob)
+    if (meta.efforts.length > 0) {
+      const on_effort = (v: string) => update({ effort: v });
+      header_control("Effort", meta.custom_effort
+        ? text_field(meta.efforts, settings.effort, "(default)", on_effort)
+        : fixed_dropdown(meta.efforts, settings.effort, {}, on_effort)).classList.add("snp-ai-effort-field");
+    }
 
     // Endpoint (providers whose URL isn't fixed: OpenAI Compatible, and Bedrock's region host)
     if (meta.custom_endpoint) {
@@ -311,20 +405,10 @@ function create_config_panel(state: State): HTMLElement & { refresh: () => void 
         v => update({ endpoint: v })));
     }
 
-    row("Model", text_field(meta.models, settings.model, "model", v => update({ model: v })));
-
-    // Effort (hidden for providers with no reasoning_effort knob)
-    if (meta.efforts.length > 0) {
-      const on_effort = (v: string) => update({ effort: v });
-      row("Effort", meta.custom_effort
-        ? text_field(meta.efforts, settings.effort, "(default)", on_effort)
-        : fixed_dropdown(meta.efforts, settings.effort, {}, on_effort));
-    }
-
     // API key. Placeholder tells the user a server key is available (env var from snp.py).
     const server_has_key = (state.llm_api_keys[provider] || "").trim().length > 0;
     row("API Key", text_field([], settings.api_key,
-      server_has_key ? `Server has ${meta.label} API key. Leave blank to use.` : `${meta.label} API key`,
+      server_has_key ? `Server has API key. Override here.` : `${meta.label} API key`,
       v => update({ api_key: v }), "password"));
   }
 
@@ -488,6 +572,30 @@ function reply_to_new_cell_code(reply: string, state: State): string | undefined
   return code.replace(/### Cell \d.*\n/, '');
 }
 
+// Did the reply lose the plt.show()/fig.show() call the cell had? Plottery only renders a cell
+// that ends in .show(), so a reply without it is essentially never the edit the user asked for
+// — it's the model answering in prose (a refusal, a clarifying question), which
+// reply_to_new_cell_code passes through wholesale and would otherwise clobber the code.
+function drops_show_call(old_code: string, new_code: string): boolean {
+  return old_code.includes(".show(") && !new_code.includes(".show(");
+}
+
+// Show a non-code reply where kernel output/errors go, instead of putting it in the code box.
+function show_ai_message(state: State, reply: string) {
+  state.stdout_stderr.innerHTML = "";
+  const msg_el = create_el("div", "snp-ai-message", state.stdout_stderr);
+  msg_el.append(`🤖 ${reply.trim()}`);
+}
+
+// Same place, for a request that failed outright. `message` is the provider's own wording
+// when it gave us one (a bad model name or key is the common case, and only the provider can
+// say which) — otherwise all we honestly know is that something went wrong.
+function show_ai_error(state: State, message?: string) {
+  state.stdout_stderr.innerHTML = "";
+  const msg_el = create_el("div", ["snp-ai-message", "snp-ai-error"], state.stdout_stderr);
+  msg_el.append(message ? `⚠️ AI request failed: ${message}` : "⚠️ Oops, the AI request failed.");
+}
+
 // Inject figure/axes parameter type annotations (mirrors the manual-execution pre-pass in
 // the notebook extensions) so calls inside any function the model wrote get recognized. The
 // function is shared via the extension-exposed global rather than duplicated here.
@@ -530,6 +638,10 @@ function apply_code_to_cell(code: string, state: State, code_before_ai_changes?:
 
   const old_code_lines = (code_before_ai_changes ?? cm.getValue()).split("\n");
   cm.setValue(code);
+  // The rerun replaces the output, so the AI panel the user just hit Enter in is about to be
+  // destroyed. This outlives the rerun and tells the freshly attached panel to take focus back
+  // (see create_ai_panel), so the user can keep prompting without clicking into the box again.
+  set_persistent_item(state, "ai_prompt_focus", "true");
   hard_rerun(state);
 
   // console.log("old_code_lines", old_code_lines);
@@ -561,12 +673,16 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
 
   log_event("ai", "prompt submit", {prompt: user_prompt, code: cm.getValue()});
 
-  function failure() {
-    prompt_el.parentElement!.append("Oops there was an error.");
+  function reenable_prompt() {
     prompt_el.disabled = false;
     prompt_el.focus();
     spinner_el.style.display = '';
     prompt_el.style.opacity = '';
+  }
+
+  function failure(message?: string) {
+    show_ai_error(state, message);
+    reenable_prompt();
   }
 
   prompt_llm(
@@ -578,13 +694,20 @@ function submit_prompt(prompt_el: HTMLInputElement, spinner_el: HTMLElement, sta
         failure();
         return;
       }
+      // Prose, not code (see drops_show_call): show it rather than replacing the cell with it.
+      if (drops_show_call(cm.getValue(), raw_code)) {
+        log_event("ai", "non-code reply", {prompt: user_prompt, reply});
+        show_ai_message(state, reply);
+        reenable_prompt();
+        return;
+      }
       const code = annotate_code(raw_code, state);
       log_event("ai", "llm response", {prompt: user_prompt, code: code});
       apply_code_to_cell(code, state);
     },
-    () => {
-      log_event("ai", "llm timeout or error", {prompt: user_prompt});
-      failure();
+    message => {
+      log_event("ai", "llm timeout or error", {prompt: user_prompt, message});
+      failure(message);
     },
     state.llm_api_keys
   )

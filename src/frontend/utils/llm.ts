@@ -346,6 +346,19 @@ export function llm_api_key(server_keys: LLMApiKeys): string {
   return own || server_keys[config.provider] || '';
 }
 
+// OpenAI- and Anthropic-shaped error bodies nest the human-readable text under
+// `error.message`; some providers (e.g. Bedrock) put it at the top level instead. Fall back
+// to undefined (rather than the raw body) if the response isn't JSON or doesn't match either
+// shape, so callers can tell "no message" from "here's a message".
+function error_message_from_response(response_text: string): string | undefined {
+  try {
+    const parsed = JSON.parse(response_text);
+    return parsed?.error?.message || parsed?.message;
+  } catch {
+    return undefined;
+  }
+}
+
 // Takes the prompt as a list of user-message contents rather than one string: some models
 // (gpt-5.6-luna) only prompt-cache whole messages, so the big shared notebook prefix must be
 // its own message — sent alone to warm, then unchanged while the final ask message varies.
@@ -353,7 +366,7 @@ export function llm_api_key(server_keys: LLMApiKeys): string {
 // Returns the XHR so callers can abort() a request that's no longer wanted (aborting fires
 // neither success nor failure). is_warmup makes a cache-warming request whose reply we
 // don't care about (each provider caps or suppresses the completion its own way).
-export function prompt_llm(message_contents: string[], success: (reply: string) => void, failure: () => void, api_keys: LLMApiKeys, opts: { is_warmup?: boolean } = {}): XMLHttpRequest {
+export function prompt_llm(message_contents: string[], success: (reply: string) => void, failure: (message?: string) => void, api_keys: LLMApiKeys, opts: { is_warmup?: boolean } = {}): XMLHttpRequest {
 
   const config = provider_config();
 
@@ -371,7 +384,7 @@ export function prompt_llm(message_contents: string[], success: (reply: string) 
       success(reply);
     } else {
       console.warn('prompt error', xhr.responseText);
-      failure();
+      failure(error_message_from_response(xhr.responseText) || `HTTP ${xhr.status}`);
     }
   }
 
@@ -380,8 +393,8 @@ export function prompt_llm(message_contents: string[], success: (reply: string) 
   const headers = config.headers(llm_api_key(api_keys));
   Object.keys(headers).forEach(name => xhr.setRequestHeader(name, headers[name]));
   xhr.addEventListener('load', handle_llm_response);
-  xhr.addEventListener('error',   () => { console.warn('prompt error', xhr); failure() });
-  xhr.addEventListener('timeout', () => { console.warn('prompt timeout'); failure() });
+  xhr.addEventListener('error',   () => { console.warn('prompt error', xhr); failure('network error') });
+  xhr.addEventListener('timeout', () => { console.warn('prompt timeout'); failure('request timed out') });
   xhr.timeout = 60*1000;
 
   console.log('LLM prompt', message_contents.join('\n\n---(next message)---\n\n'));

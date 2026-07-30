@@ -6,26 +6,76 @@
 
 .snp-ai-panel h2 {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  /* gap: 0.4em; */
   /* font-size: 1.3em; */
   font-size: 15px;
   font-weight: bold; /* JupyterLab */
-  padding: 0.5em 0.5em;
+  padding: 0.4em 0.5em;
   margin: 0 !important; /* there's some default stylesheet in the notebook clobbering the top margin */
   background-color: #656565;
   color: #f2f2f2;
 }
+
+/* Provider / model / effort, inline in the header. They push right, up against the gear. */
+.snp-ai-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+}
+.snp-ai-header-controls > select,
+.snp-ai-header-controls > input {
+  font-size: 10px;
+  font-weight: normal;
+  height: 16px;
+  padding: 0 1px;
+  min-width: 0; /* so the flex items can shrink instead of overflowing a narrow sidebar */
+  max-width: 75px;
+  box-sizing: border-box; /* JupyterLab */
+  border-radius: 3px;
+  background-color: #656565;
+  color:#ddddddaa;
+  border: solid 1px #8a8a8a55;
+}
+.snp-ai-header-controls > .snp-ai-effort-field {
+  max-width: 40px;
+}
+.snp-ai-header-controls > input::-webkit-calendar-picker-indicator {
+  /* When arrow not shown, reveal any occluded text underneath the dropdown arrow */
+  display: none !important;
+}
+.snp-ai-header-controls > select:hover,
+.snp-ai-header-controls > select:focus {
+  background-color:#737373;
+  color:#e4e4e4;
+  border-color: #bbb;
+}
+.snp-ai-header-controls > input:hover,
+.snp-ai-header-controls > input:focus {
+  background-color: #fff;
+  color:#333;
+  border-color: #333;
+  border-radius: 0px;
+}
+.snp-ai-header-controls > input:hover::-webkit-calendar-picker-indicator,
+.snp-ai-header-controls > input:focus::-webkit-calendar-picker-indicator {
+  display: list-item !important;
+  width: 0.6em;
+}
+
 .snp-ai-config-toggle {
   background: none;
   border: none;
   padding: 2px;
-  margin: 0 0 0 0.5em;
+  margin: 0 0 0 0.3em;
   cursor: pointer;
-  color: #f2f2f2;
+  color: #fff;
   display: flex;
   align-items: center;
-  opacity: 0.85;
+  opacity: 0.7;
 }
 .snp-ai-config-toggle:hover {
   opacity: 1;
@@ -42,14 +92,14 @@
 .snp-ai-config-row {
   display: flex;
   align-items: center;
+  gap: 0.5em;
   margin-bottom: 0.35em;
 }
 .snp-ai-config-row:last-child {
   margin-bottom: 0;
 }
 .snp-ai-config-row > label {
-  flex: 0 0 5.5em;
-  font-size: 13px;
+  font-size: 12px;
   color: #333;
 }
 .snp-ai-config-row > select,
@@ -57,8 +107,8 @@
   flex: 1 1 auto;
   min-width: 0;
   box-sizing: border-box; /* JupyterLab */
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 12px;
+  line-height: 15px;
 }
 
 .snp-ai-prompt-wrapper {
@@ -87,6 +137,20 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* A non-code AI reply, shown in the .stdout_stderr warning area. Prose, so let it wrap
+   rather than scroll off the right edge like kernel output does. */
+.snp-ai-message {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  font-family: sans-serif;
+  font-size: 13px;
+}
+
+/* A failed request, rather than a reply. */
+.snp-ai-error {
+  color: #a3311f;
 }
 
 .CodeMirror .snp-ai-line-changed:not(.snp-line-selected) .CodeMirror-gutter-elt {
