@@ -19,7 +19,7 @@ import {
   cm_end_pos,
   get_persistent_item,
   set_persistent_item,
-  notebook_cells,
+  notebook_code_cells,
   attach_jupyter_cell_height_sync,
 } from "./utils/misc";
 import { Cell, JupyterLabNotebookPanel, JupyterType, jupyterlab_cell_to_notebook_v6_cell } from "./utils/types";
@@ -42,7 +42,7 @@ declare const Jupyter: JupyterType | undefined;
 
 function find_cell(snp_outer: HTMLElement): Cell {
   const cell_el = snp_outer.closest(Jupyter ? ".code_cell" : ".jp-Cell");
-  return notebook_cells(snp_outer).filter(cell => cell.element[0] === cell_el)[0];
+  return notebook_code_cells(snp_outer).filter(cell => cell.element[0] === cell_el)[0];
 }
 
 

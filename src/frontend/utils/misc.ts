@@ -58,11 +58,15 @@ declare const Jupyter: JupyterType | undefined;
 function jupyterlab_notebook_panel(snp_outer: HTMLElement): JupyterLabNotebookPanel {
   return (snp_outer.closest(".jp-NotebookPanel") as any).__panel;
 }
-function jupyterlab_cells(snp_outer: HTMLElement): Cell[] {
-  return jupyterlab_notebook_panel(snp_outer).content.cellsArray.map(jupyterlab_cell_to_notebook_v6_cell);
+function jupyterlab_code_cells(snp_outer: HTMLElement): Cell[] {
+  return jupyterlab_notebook_panel(snp_outer).content.cellsArray
+    .filter(jl_cell => jl_cell.model.sharedModel.cell_type === "code")
+    .map(jupyterlab_cell_to_notebook_v6_cell);
 }
-export function notebook_cells(snp_outer: HTMLElement): Cell[] {
-  return Jupyter ? Jupyter.notebook.get_cells() : jupyterlab_cells(snp_outer);
+export function notebook_code_cells(snp_outer: HTMLElement): Cell[] {
+  return Jupyter
+    ? Jupyter.notebook.get_cells().filter(cell => cell.cell_type === "code")
+    : jupyterlab_code_cells(snp_outer);
 }
 
 

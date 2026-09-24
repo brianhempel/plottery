@@ -3,7 +3,7 @@ import { State } from "../types";
 import { LineHandle } from "../utils/codemirror";
 import { rate_limit, log_event } from "../utils/instrumentation";
 import { current_llm_settings, get_llm_config, llm_api_key, llm_config_constants, LLMProviderSettings, prompt_llm, set_llm_provider, update_llm_provider_settings } from "../utils/llm";
-import { create_el, get_persistent_item, notebook_cells, set_persistent_item } from "../utils/misc";
+import { create_el, get_persistent_item, notebook_code_cells, set_persistent_item } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
 
 // Globally exposed by our extension (nbextension_snp/main.js and snp_jupyter/snp_jupyter.js)
@@ -446,12 +446,11 @@ declare const Jupyter: JupyterType | undefined;
 // real request, with the ask as a second message. It must be its own message — luna only
 // prompt-caches whole messages, so a prefix that varies at the tail would never hit.
 function prompt_prefix_for_llm(state: State): { prefix: string, last_cell_no: number } {
-  const cells = notebook_cells(state.snp_outer);
-  const code_cells: Cell[] = cells.filter((cell: Cell) => cell.cell_type === "code" && is_not_magic(cell.get_text()));
+  const code_cells: Cell[] = notebook_code_cells(state.snp_outer).filter((cell: Cell) => is_not_magic(cell.get_text()));
 
   const code_cells_through_cell = code_cells.slice(
     0,
-    1 + code_cells.findLastIndex(c => c.element[0] === state.cell.element[0]) // They won't be the same object in JupyterLab because notebook_cells makes a new wrapper each time it is called
+    1 + code_cells.findLastIndex(c => c.element[0] === state.cell.element[0]) // They won't be the same object in JupyterLab because notebook_code_cells makes a new wrapper each time it is called
   );
 
   let notebook_code = ""
@@ -601,7 +600,7 @@ function show_ai_error(state: State, message?: string) {
 // function is shared via the extension-exposed global rather than duplicated here.
 function annotate_code(code: string, state: State): string {
   if (__snp_annotate_figure_axes_params) {
-    const code_cells = notebook_cells(state.snp_outer).filter((cell: Cell) => cell.cell_type === "code" && is_not_magic(cell.get_text()));
+    const code_cells = notebook_code_cells(state.snp_outer).filter((cell: Cell) => is_not_magic(cell.get_text()));
     const prior_code = code_cells
       .slice(0, code_cells.findLastIndex(c => c.element[0] === state.cell.element[0]))
       .map(c => c.get_text())
