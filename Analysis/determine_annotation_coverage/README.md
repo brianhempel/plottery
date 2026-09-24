@@ -41,7 +41,9 @@ revert rather than authoring — see Exclusions.
 | `ANNOTATION_GUIDE.md` | the classification rubric and tag vocabulary |
 | `parts-e328827/`, `annotated-e328827/` | per-file splits; the annotated diff is their concatenation |
 | `upstream-stubs-e328827/` | the vendored upstream baseline the diff is taken against |
-| `top matplotlib pages …csv` | doc-page traffic, for the not-yet-done coverage join |
+| `top matplotlib pages …csv` | doc-page traffic (400 pages, 28 days to 2026-07-24) |
+| `coverage_of_top_pages.ipynb` | joins the two: how much of what people read do we annotate? |
+| `evidence_{plt,ax}_plot_panel.png` | the `plt.plot` vs `ax.plot` panels, evidence for the counting rule |
 
 The annotated diff is byte-identical to the diff it annotates — stripping the annotation lines
 reproduces the source exactly:
@@ -118,6 +120,34 @@ parameters verbatim from `Figure.colorbar` (correctly making `mappable` optional
 `mirrors-figure`. The other three (`figure`, `subplots`, `get_cmap`) are independent, and
 `get_cmap` is absent from upstream entirely. Every `pyplot` wrapper that merely mirrored an `Axes`
 method came out cosmetic under the find-and-replace rule, so there is no further double-counting.
+
+## Coverage of the most-read documentation
+
+`coverage_of_top_pages.ipynb` joins the 47 against doc-page traffic. Of the **top 100 most-visited
+matplotlib *function* doc pages** (the `/api/_as_gen/` pages, minus class and module pages), **30 are
+functions we hand-annotated** — 28% of the traffic those 100 pages receive.
+
+The rule is deliberately strict: a page counts only if the call *that page documents* resolves to a
+stub we annotated. Plottery reads whichever stub mypy picks for the code the user typed, so
+annotating `Axes.plot` does nothing for `plt.plot`. Verified live — `plt.plot([1,2,3],[2,1,3])` shows
+4 property rows and misbinds the y-data to `scalex`; `ax.plot(...)` shows 35.
+
+Other cutoffs, since 100 is arbitrary: **28% at 25, 36% at 50, 30% at 100**, 29% over all 104 function
+pages in the sample. It peaks at 50 because ranks 1–12 are almost all `pyplot` pages while ranks 13–50
+are where the `Axes` pages cluster; don't quote 36% without also giving 30%.
+
+Sliced by calling surface instead of by cutoff, the number is much stronger and says more: of the
+top-50 pages documenting an **`Axes`/`Figure` method** — the object-oriented API Plottery is built
+around — we hand-annotated **15 of 16 (94%)**, and 26 of 39 (67%) over the top 100. The only top-50
+miss is `Axes.imshow`.
+
+That strictness costs 29 pages, 46% of top-100 traffic: they are `pyplot` wrappers of functions we
+already annotated (`plt.plot`, `plt.legend`, `plt.scatter`, `plt.hist`, `plt.bar`, `plt.title`, …)
+whose wrapper stub was never given the same treatment. Delegating those signatures to their
+`Axes`/`Figure` twins would take coverage from 30 to 59 with no new annotation work.
+
+Of the 47 annotated functions, 30 have a top-100 page, 7 are `Axes` methods whose only popular page
+is the `pyplot` twin, and 10 have no page in the top 400 under any spelling.
 
 ## Caveats for anyone citing these numbers
 

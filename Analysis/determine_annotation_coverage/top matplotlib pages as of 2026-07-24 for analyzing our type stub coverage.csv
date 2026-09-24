@@ -1,4 +1,4 @@
-# From clicking "Load More" thrice on https://views.scientific-python.org/matplotlib.org/pages. 400 items. Last 28 days.
+# From clicking "Load More" thrice on https://views.scientific-python.org/matplotlib.org/pages. 400 items. Last 28 days. 1,768,090 total page views
 # made <table> element a global var and ran `console.log([...temp1.querySelectorAll('tr')].map(tr => [...tr.querySelectorAll('td,th')].map(el => el.innerText.replace('\n',' ').replace(/^\//,'https://matplotlib.org/')).join(',')).join('\n'))`
 Page url,Visitors ↓,Pageviews ↓,Bounce rate ↓,Time on page ↓,Scroll depth ↓
 https://matplotlib.org/stable/users/explain/colors/colormaps.html,63.5k,75.3k,81%,1m 10s,44%
