@@ -1768,14 +1768,17 @@ class TaggedStructSeq(tuple):
 # build a new class on every call.
 _tagged_namedtuple_classes = {}
 
-def _make_tagged_namedtuple(value, call_id):
+def _make_tagged_namedtuple(value, call_id=None):
     cls = type(value)
     tagged_cls = _tagged_namedtuple_classes.get(cls)
     if tagged_cls is None:
         tagged_cls = type("Tagged" + cls.__name__, (cls,), {})
         _tagged_namedtuple_classes[cls] = tagged_cls
     # _make builds from an iterable via tuple.__new__, bypassing any custom __new__ (so we don't
-    # re-run field validation); the fields keep their names, and children stay tagged for provenance.
+    # re-run field validation) and keeping the field names.
+    if call_id is None:
+        return tagged_cls._make(value)  # var provenance: the caller attaches its own attributes
+    # Children stay tagged so provenance survives destructuring.
     out = tagged_cls._make(tag_with_call_provenance(child, call_id) for child in value)
     out._snp_came_from_call_id = call_id
     return out
@@ -1847,37 +1850,73 @@ def tag_with_call_provenance(ret_obj, call_id):
 # Locations are cell-relative (converted to notebook coordinates at serialize).
 
 
+# Exact type -> constructor for a faithful copy that can carry provenance attributes. Only the
+# builtins we know how to rebuild, plus our own stand-ins for them, because a second binding of an
+# already-tagged value needs its own copy too (`w2 = w1` must not overwrite w1's chain).
+#
+# Keyed on the *exact* type rather than tested with isinstance: rebuilding a foreign subclass
+# through its base silently flattens it into something that only looks like the original.
+# matplotlib's BarContainer is a tuple subclass, so `bars = ax.bar(...)` came back as a plain
+# TaggedTuple of Rectangles, missing the .patches/.datavalues that ax.bar_label(bars) reads;
+# np.float64 is a float subclass. Foreign subclasses instead take the in-place path in
+# _attach_var_provenance, which preserves their type.
+_taggable_copy_ctors = {
+    tuple: TaggedTuple, TaggedTuple: TaggedTuple,
+    list:  TaggedList,  TaggedList:  TaggedList,   # a plain list has no __dict__, so it's copied too
+    str:   TaggedStr,   TaggedStr:   TaggedStr,
+    bool:  TaggedBool,  TaggedBool:  TaggedBool,   # distinct key from int, though bool subclasses it
+    int:   TaggedInt,   TaggedInt:   TaggedInt,
+    float: TaggedFloat, TaggedFloat: TaggedFloat,
+    TaggedStructSeq: TaggedStructSeq,
+}
+
+
+# A copy of `value` that behaves the same and can hold provenance, or None if it must not be
+# rebuilt (mutable, or a type we can't reproduce faithfully).
+def _fresh_taggable_copy(value):
+    ctor = _taggable_copy_ctors.get(type(value))
+    if ctor is not None:
+        return ctor(value)
+    # A tagged namedtuple stand-in (see _make_tagged_namedtuple): re-copy through its own type so
+    # the field names survive. Plain namedtuples aren't here — they can't hold attributes at all,
+    # so _attach_var_provenance builds them a stand-in instead.
+    if type(value) in _tagged_namedtuple_classes.values():
+        try:
+            return type(value)._make(value)
+        except Exception:
+            return None
+    return None
+
+
 def _attach_var_provenance(value, node):
-    # Immutables (and lists — plain list has no __dict__) are fresh-copied so that
-    # distinct names never alias provenance (e.g. `w2 = w1` must not overwrite w1's chain).
-    # bool is handled as int.
-    if isinstance(value, tuple):
-        fresh = TaggedTuple(value)
-    elif isinstance(value, list):
-        fresh = TaggedList(value)
-    elif isinstance(value, str):
-        fresh = TaggedStr(value)
-    elif isinstance(value, int):
-        fresh = TaggedInt(value)
-    elif isinstance(value, float):
-        fresh = TaggedFloat(value)
-    else:
-        fresh = None
+    fresh = _fresh_taggable_copy(value)
 
-    if fresh is not None:
-        if hasattr(value, "_snp_came_from_call_id"):
-            fresh._snp_came_from_call_id = value._snp_came_from_call_id
-        fresh._snp_provenance = node
-        return fresh
+    if fresh is None:
+        # Mutable objects — and subclasses of the builtins above, which have to keep their own
+        # type — are tagged in place (aliased names legitimately share a value).
+        # Use object.__setattr__ to bypass custom __setattr__ hooks (e.g. pandas', which
+        # otherwise warns "Pandas doesn't allow columns to be created via a new attribute name").
+        try:
+            object.__setattr__(value, "_snp_provenance", node)
+            return value
+        except:
+            pass
+        # Can hold no attribute at all: a namedtuple's __slots__ is (), a structseq has no
+        # __dict__. Stand in with a copy that keeps the fields, as tag_with_call_provenance does.
+        if isinstance(value, tuple):
+            try:
+                fresh = _make_tagged_namedtuple(value) if hasattr(value, "_fields") else TaggedStructSeq(value)
+            except Exception:
+                return value
+        else:
+            # Some other un-taggable object (a numpy scalar, ...): losing provenance on it is
+            # cheaper than changing its type.
+            return value
 
-    # Mutable objects: attach in place (aliased names legitimately share a value).
-    # Use object.__setattr__ to bypass custom __setattr__ hooks (e.g. pandas', which
-    # otherwise warns "Pandas doesn't allow columns to be created via a new attribute name").
-    try:
-        object.__setattr__(value, "_snp_provenance", node)
-    except:
-        pass
-    return value
+    if hasattr(value, "_snp_came_from_call_id"):
+        fresh._snp_came_from_call_id = value._snp_came_from_call_id
+    fresh._snp_provenance = node
+    return fresh
 
 
 def tag_with_var_provenance(value, var_name, lineno, col_offset, end_lineno, end_col_offset):

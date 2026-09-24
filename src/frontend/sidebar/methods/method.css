@@ -11,6 +11,7 @@
   border-radius: 2px;
   margin-left: 2px;
   z-index: 6;
+  font-family: sans-serif;
 }
 .snp-method-view {
   background-color: rgba(0, 0, 0, 0.7);
