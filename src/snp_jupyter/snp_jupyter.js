@@ -331,6 +331,31 @@ const plugin = {
       notebook_cells(panel.content).forEach(strip_plottery_outputs);
     }
 
+    function without_plottery_outputs(notebook_json) {
+      return {
+        ...notebook_json,
+        cells: notebook_json.cells.map(cell =>
+          cell.cell_type === "code" && cell.outputs?.some(is_plottery_output)
+            ? { ...cell, outputs: cell.outputs.flatMap(plain_plot_outputs) }
+            : cell
+        ),
+      };
+    }
+
+    // Keep Plottery UIs out of the saved notebook, even while Plottery is on: each one inlines the
+    // whole frontend bundle plus MBs of type info, and can't come back to life from a save anyway.
+    // Every save (manual, autosave, Save As) funnels through contents.save with an already-serialized
+    // copy of the notebook, so filtering that copy leaves the live UIs on the page untouched.
+    // The saved notebook keeps each plot's PNG; re-running the cell brings the UI back.
+    const contents = app.serviceManager.contents;
+    const original_contents_save = contents.save.bind(contents);
+    contents.save = (path, options) => {
+      if (options?.type === 'notebook' && options.content?.cells) {
+        options = { ...options, content: without_plottery_outputs(options.content) };
+      }
+      return original_contents_save(path, options);
+    };
+
     function set_kernel_plottery_enabled(kernel) {
       kernel?.requestExecute({ code: `snp.set_enabled(${plottery_enabled() ? 'True' : 'False'})`, silent: true, store_history: false });
     }
