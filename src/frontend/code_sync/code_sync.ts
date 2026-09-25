@@ -5,6 +5,7 @@ import { TextMarker, MarkerRange } from "../utils/codemirror";
 import { debounce, log_event } from "../utils/instrumentation";
 import { get_persistent_item } from "../utils/misc";
 import { LLMApiKeys } from "../utils/llm";
+import { undo_group_origin } from "./undo_group";
 import { CellCallbacks, CellMessage, JupyterType } from "../utils/types";
 
 
@@ -135,7 +136,7 @@ function sync_code_range(
   marks.forEach(mark => {
     const range = mark.find();
     if (!range) return; // mark was dropped (e.g. cleared by a concurrent rerun); nothing to sync
-    cm.replaceRange(code, range.from, range.to);
+    cm.replaceRange(code, range.from, range.to, undo_group_origin(state));
   });
 
   // Selecting the code leaves a highlight on what has changed, BUT it scrolls

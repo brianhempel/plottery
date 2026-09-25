@@ -1,4 +1,5 @@
 import { refresh_hover_regions } from "../../code_sync/code_sync";
+import { begin_undo_group, end_undo_group, UndoGroup } from "../../code_sync/undo_group";
 import { select_layer, selected_layers } from "../../layer_panel/layer_panel";
 import {
   MethodWithCode,
@@ -186,6 +187,7 @@ export function attach_events_to_hover_regions(state: State) {
 
         let pressed = false;
         let moved = false;
+        let drag_undo_group: UndoGroup | undefined;
         let click_start: Date = new Date();
         let start_x = 0;
         let start_y = 0;
@@ -301,6 +303,7 @@ export function attach_events_to_hover_regions(state: State) {
           if (pressed) {
             if (!moved) {
               log_event("gui", "on-plot drag start", {call: call_info.func_code, code: state.cell.code_mirror.getValue()});
+              drag_undo_group = begin_undo_group(state); // The whole drag is one undo step
             }
             moved = true;
             const dx = evt.clientX - start_x;
@@ -333,6 +336,8 @@ export function attach_events_to_hover_regions(state: State) {
               select_layer(layer, state, call_view);
             } else {
               moved = false;
+              if (drag_undo_group) end_undo_group(state, drag_undo_group);
+              drag_undo_group = undefined;
               refresh_hover_regions(state);
               log_event("gui", "on-plot drag end", {call: call_info.func_code, code: state.cell.code_mirror.getValue()});
             }

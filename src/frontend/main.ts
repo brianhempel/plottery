@@ -31,6 +31,7 @@ import { id_as_new_call } from "./sidebar/call/call";
 import { method_info_to_method_with_args } from "./sidebar/methods/method";
 import { ParseableComment } from "./layer_panel/layer_panel";
 import { attach_ai_line_highlight_clearing_handlers, create_ai_panel } from "./ai_panel/ai_panel";
+import { attach_undo_groups_to_continuous_inputs } from "./code_sync/undo_group";
 import { log_event, rate_limit } from "./utils/instrumentation";
 import { DocOrEditor } from "./utils/codemirror";
 
@@ -295,6 +296,7 @@ div#notebook .CodeMirror { font-size: 17px }
   place_add_method_buttons_on_plot(state);
 
   attach_events_to_hover_regions(state);
+  attach_undo_groups_to_continuous_inputs(state);
   reposition_plot_widgets(state);
 
   console.timeEnd('time make plot widgets');
