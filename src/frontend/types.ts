@@ -164,7 +164,7 @@ export type Arg = {
   kind: "ARG_POS" | "ARG_OPT" | "ARG_STAR" | "ARG_NAMED" | "ARG_STAR2" | "ARG_NAMED_OPT";
   code: string;
   type: Type | null; // Sometimes users provide an argument that's not in the type definition.
-  // code_type: Type | null; // unused
+  code_type?: Type | null; // mypy's type for `code` as of the last full render. Only for given args.
   default_code: string | null;
   type_compatible_code_snippets: string[];
   required: boolean;

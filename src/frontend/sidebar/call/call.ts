@@ -8,6 +8,7 @@ import {
   CallView,
   CallWithArgs,
   State,
+  Type,
 } from "../../types";
 import { log_event, rate_limit } from "../../utils/instrumentation";
 import {
@@ -208,124 +209,66 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
 }
 
 
-export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
+type DragHandler1D = (client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void;
 
-  const first_ten_args = call_view.arguments.slice(0, 10);
-
-  const perhaps_x_view = first_ten_args.find(({ arg }) => arg.name == 'x')?.view;
-  if (perhaps_x_view) {
-    return drag_handler_for_arg_view(perhaps_x_view, 'x', false);
-  }
-
-  return undefined;
+export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | DragHandler1D {
+  return first_drag_handler(call_view, 'x', [['x', false]]);
 }
 
-export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
-
-  const first_ten_args = call_view.arguments.slice(0, 10);
-
-  let perhaps_view = first_ten_args.find(({ arg }) => arg.name == 'y')?.view;
-
-  let coord_sys: 'axes_units' | 'axes_size' = 'axes_units'
-
+export function perhaps_get_drag_y_handler(call_view: CallView) : undefined | DragHandler1D {
   // the y for ax.set_title is relative to the axes height
-  if ((call_view.els.name_el.textContent ?? "").endsWith(".set_title")) {
-    coord_sys = 'axes_size'
-  }
+  const coord_sys = (call_view.els.name_el.textContent ?? "").endsWith(".set_title") ? 'axes_size' : 'axes_units';
 
-  return perhaps_view ? drag_handler_for_arg_view(perhaps_view, 'y', false, coord_sys) : undefined;
+  return first_drag_handler(call_view, 'y', [['y', false]], coord_sys);
 }
 
-export function perhaps_get_drag_left_edge_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
+export function perhaps_get_drag_left_edge_handler(call_view: CallView) : undefined | DragHandler1D {
+  return first_drag_handler(call_view, 'x', [['xmin', false], ['left', false], ['width', true]]);
+}
+
+export function perhaps_get_drag_right_edge_handler(call_view: CallView) : undefined | DragHandler1D {
+  return first_drag_handler(call_view, 'x', [['xmax', false], ['right', false], ['width', false]]);
+}
+
+export function perhaps_get_drag_top_edge_handler(call_view: CallView) : undefined | DragHandler1D {
+  return first_drag_handler(call_view, 'y', [['ymax', false], ['top', false], ['height', false]]);
+}
+
+export function perhaps_get_drag_bottom_edge_handler(call_view: CallView) : undefined | DragHandler1D {
+  return first_drag_handler(call_view, 'y', [['ymin', false], ['bottom', false], ['height', true]]);
+}
+
+// Handler for the first of the candidate args (among the call's first ten) that can be dragged.
+// An arg whose code can't take a `+ N` (e.g. a list) is skipped in favor of the next candidate.
+function first_drag_handler(call_view: CallView, x_or_y: 'x' | 'y', candidates: [arg_name: string, reversed: boolean][], coord_sys: 'axes_units' | 'axes_size' = 'axes_units') : undefined | DragHandler1D {
 
   const first_ten_args = call_view.arguments.slice(0, 10);
 
-  const perhaps_xmin_view = first_ten_args.find(({ arg }) => arg.name == 'xmin')?.view;
-  if (perhaps_xmin_view) {
-    return drag_handler_for_arg_view(perhaps_xmin_view, 'x', false);
-  }
-
-  const perhaps_left_view = first_ten_args.find(({ arg }) => arg.name == 'left')?.view;
-  if (perhaps_left_view) {
-    return drag_handler_for_arg_view(perhaps_left_view, 'x', false);
-  }
-
-  const perhaps_width_view = first_ten_args.find(({ arg }) => arg.name == 'width')?.view;
-  if (perhaps_width_view) {
-    return drag_handler_for_arg_view(perhaps_width_view, 'x', true);
+  for (const [arg_name, reversed] of candidates) {
+    const arg_and_view = first_ten_args.find(({ arg }) => arg.name == arg_name);
+    const handler = arg_and_view && drag_handler_for_arg_view(arg_and_view.arg, arg_and_view.view, x_or_y, reversed, coord_sys);
+    if (handler) { return handler; }
   }
 
   return undefined;
 }
 
-export function perhaps_get_drag_right_edge_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
-
-  const first_ten_args = call_view.arguments.slice(0, 10);
-
-  const perhaps_xmax_view = first_ten_args.find(({ arg }) => arg.name == 'xmax')?.view;
-  if (perhaps_xmax_view) {
-    return drag_handler_for_arg_view(perhaps_xmax_view, 'x', false);
+// Whether code of this type might take a `+ N`. Only rules out types we know can't (lists,
+// strings, ...), so unknowns like an untyped pandas column (AnyType) stay draggable.
+function type_could_be_number(type: Type) : boolean {
+  switch (type[".class"]) {
+    case "Instance":      return !["builtins.list", "builtins.tuple", "builtins.str", "builtins.bytes", "builtins.dict", "builtins.set", "builtins.frozenset", "builtins.range"].includes(type.type_ref);
+    case "TupleType":
+    case "TypedDictType": return false;
+    case "LiteralType":   return type_could_be_number(type.fallback); // Literal["left"] falls back to builtins.str
+    case "TypeAliasType": return type_could_be_number(type.resolved);
+    case "UnionType":     return type.items.every(type_could_be_number);
+    default:              return true; // AnyType, NoneType (which snp.py also sends when mypy has no type), etc.
   }
-
-  const perhaps_right_view = first_ten_args.find(({ arg }) => arg.name == 'right')?.view;
-  if (perhaps_right_view) {
-    return drag_handler_for_arg_view(perhaps_right_view, 'x', false);
-  }
-
-  const perhaps_width_view = first_ten_args.find(({ arg }) => arg.name == 'width')?.view;
-  if (perhaps_width_view) {
-    return drag_handler_for_arg_view(perhaps_width_view, 'x', false);
-  }
-
-  return undefined;
 }
 
-export function perhaps_get_drag_top_edge_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
-
-  const first_ten_args = call_view.arguments.slice(0, 10);
-
-  const perhaps_ymax_view = first_ten_args.find(({ arg }) => arg.name == 'ymax')?.view;
-  if (perhaps_ymax_view) {
-    return drag_handler_for_arg_view(perhaps_ymax_view, 'y', false);
-  }
-
-  const perhaps_top_view = first_ten_args.find(({ arg }) => arg.name == 'top')?.view;
-  if (perhaps_top_view) {
-    return drag_handler_for_arg_view(perhaps_top_view, 'y', false);
-  }
-
-  const perhaps_height_view = first_ten_args.find(({ arg }) => arg.name == 'height')?.view;
-  if (perhaps_height_view) {
-    return drag_handler_for_arg_view(perhaps_height_view, 'y', false);
-  }
-
-  return undefined;
-}
-
-export function perhaps_get_drag_bottom_edge_handler(call_view: CallView) : undefined | ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
-
-  const first_ten_args = call_view.arguments.slice(0, 10);
-
-  const perhaps_ymin_view = first_ten_args.find(({ arg }) => arg.name == 'ymin')?.view;
-  if (perhaps_ymin_view) {
-    return drag_handler_for_arg_view(perhaps_ymin_view, 'y', false);
-  }
-
-  const perhaps_bottom_view = first_ten_args.find(({ arg }) => arg.name == 'bottom')?.view;
-  if (perhaps_bottom_view) {
-    return drag_handler_for_arg_view(perhaps_bottom_view, 'y', false);
-  }
-
-  const perhaps_height_view = first_ten_args.find(({ arg }) => arg.name == 'height')?.view;
-  if (perhaps_height_view) {
-    return drag_handler_for_arg_view(perhaps_height_view, 'y', true);
-  }
-
-  return undefined;
-}
-
-
-function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', reversed: boolean = false, coord_sys: 'axes_units' | 'axes_size' = 'axes_units') : ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) {
+// Returns undefined if the arg's code can't be dragged, rather than generating code that would crash on rerun (e.g. `[1, 2, 3] + 0.5`).
+function drag_handler_for_arg_view(arg: Arg, view: ArgView, x_or_y: 'x' | 'y', reversed: boolean = false, coord_sys: 'axes_units' | 'axes_size' = 'axes_units') : undefined | DragHandler1D {
   // If the value reached this arg through variables ending in a numeric literal (e.g. w2 ▸ w1 ▸ 0.5),
   // direct manipulation edits that trailing literal (the last chain link) in place; otherwise it edits
   // the arg's own code via the usual EXPR + NUMBER scheme on the first widget. Only consider links that
@@ -355,6 +298,12 @@ function drag_handler_for_arg_view(view: ArgView, x_or_y: 'x' | 'y', reversed: b
     code_lhs = stuff_plus_lit_match.groups!["stuff"].trim();
     starting_number = parseFloat(stuff_plus_lit_match.groups!["number"]);
   } else { // code has no number in it yet
+    // Only start an EXPR + NUMBER if EXPR might be a number. arg.code_type is from the last full
+    // render, so only trust it while the code is unchanged since then (e.g. not edited in the properties panel).
+    const code_type_is_current = !!arg.code_type && starting_arg_code.trim() == arg.code.trim();
+    if (!code_type_is_current || !type_could_be_number(arg.code_type!) || starting_arg_code.trim() == "None") {
+      return undefined;
+    }
     starting_number = 0;
     code_lhs = starting_arg_code;
   }

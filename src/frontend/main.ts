@@ -463,6 +463,9 @@ export function call_info_to_call_with_args(
       cm_end_pos(given_arg.pos, cell_lineno)
     );
 
+    // snp.py spreads the arg expression's serialized type into given_arg
+    const code_type = ".class" in given_arg ? (given_arg as Type) : null;
+
     // Find the corresponding default arg template based on name or position
     const arg_template = given_arg.name ? arg_defaults.find(arg => given_arg.name === arg.name) : arg_defaults[arg_i];
 
@@ -474,8 +477,8 @@ export function call_info_to_call_with_args(
         is_positional: given_arg.name == null,
         kind: given_arg.name ? "ARG_NAMED" : "ARG_OPT",
         code: arg_val_code,
-        type: null, // Could use the given arg type, `given_arg`
-        // code_type: null,
+        type: null,
+        code_type,
         default_code: null,
         type_compatible_code_snippets: [],
         provenance: given_arg.provenance,
@@ -487,6 +490,7 @@ export function call_info_to_call_with_args(
       ...arg_template,
       is_positional: given_arg.name == null,
       code: arg_val_code,
+      code_type,
       provenance: given_arg.provenance,
     };
   });
