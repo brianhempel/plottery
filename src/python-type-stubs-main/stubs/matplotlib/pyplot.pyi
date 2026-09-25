@@ -128,10 +128,22 @@ def subplots(
     ncols: int = ...,
     *,
     squeeze: Literal[False],
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, List[List[Axes]]]: ...
 @overload
@@ -142,8 +154,20 @@ def subplots(
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     squeeze: Literal[True] = ...,
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, Axes]: ...
 
@@ -157,8 +181,20 @@ def subplots(
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     squeeze: Literal[True] = ...,
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, List[Axes]]: ...
 @overload
@@ -169,8 +205,20 @@ def subplots(
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     squeeze: Literal[True] = ...,
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, List[Axes]]: ...
 @overload
@@ -181,8 +229,20 @@ def subplots(
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     squeeze: Literal[True] = ...,
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, List[List[Axes]]]: ...
 @overload
@@ -192,8 +252,20 @@ def subplots(
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     squeeze: Literal[True] = ...,
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, List[Axes]]: ...
 @overload
@@ -203,8 +275,20 @@ def subplots(
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     squeeze: Literal[True] = ...,
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, List[Axes]]: ...
 
@@ -214,8 +298,20 @@ def subplots(
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     squeeze: Literal[True] = ...,
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, Axes]: ...
 
@@ -227,8 +323,20 @@ def subplots(
     sharex: bool | Literal["none", "all", "row", "col"] = ...,
     sharey: bool | Literal["none", "all", "row", "col"] = ...,
     squeeze: bool = ...,
+    width_ratios: Sequence[float] | None = ...,
+    height_ratios: Sequence[float] | None = ...,
     subplot_kw: dict = ...,
     gridspec_kw: dict = ...,
+    # plt.figure's params, which subplots passes through as **fig_kw
+    num: int | str | Figure | SubFigure | None = None,
+    figsize: tuple[float, float] = (6.4, 4.8),
+    dpi: float = 100,
+    facecolor: ColorType = 'white',
+    edgecolor: ColorType = 'white',
+    frameon: bool = True,
+    FigureClass: type[Figure] | None = None,
+    clear: bool = False,
+    layout: Literal['constrained', 'compressed', 'tight', 'none'] | LayoutEngine | None = None,
     **fig_kw
 ) -> tuple[Figure, List[List[Axes]]]: ...
 

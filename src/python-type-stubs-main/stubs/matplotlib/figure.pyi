@@ -92,7 +92,7 @@ class FigureBase(Artist):
         self,
         nrows: int, # The Sketch-n-Plot default int is 1
         ncols: int, # The Sketch-n-Plot default int is 1
-        index: int, # The Sketch-n-Plot default int is 1
+        index: int | tuple[int, int], # The Sketch-n-Plot default int is 1
         /,
         projection: Literal['aitoff', 'hammer', 'lambert', 'mollweide', 'polar', 'rectilinear'] | str | None = None,
         polar: bool = False,
@@ -100,15 +100,17 @@ class FigureBase(Artist):
         sharey: Axes | None = None,
         frameon: bool = True,
         label: str = '',
-        xscale: float | None = None,
-        yscale: float | None = None,
+        xscale: Literal["linear", "log", "symlog", "logit"] | str | None = None,
+        yscale: Literal["linear", "log", "symlog", "logit"] | str | None = None,
         box_aspect: float | None = None,
         facecolor: ColorType | None = None,
         **kwargs
     ) -> Axes: ...
+    # Also covers fig.add_subplot() with no args, fig.add_subplot(gs[0, :]), and fig.add_subplot((2, 2, 1))
+    @overload
     def add_subplot(
         self,
-        grid: Literal[111] | int,
+        grid: Literal[111] | int | SubplotSpec | tuple[int, int, int] = 111,
         /,
         projection: Literal['aitoff', 'hammer', 'lambert', 'mollweide', 'polar', 'rectilinear'] | str | None = None,
         polar: bool = False,
@@ -116,53 +118,60 @@ class FigureBase(Artist):
         sharey: Axes | None = None,
         frameon: bool = True,
         label: str = '',
-        xscale: float | None = None,
-        yscale: float | None = None,
+        xscale: Literal["linear", "log", "symlog", "logit"] | str | None = None,
+        yscale: Literal["linear", "log", "symlog", "logit"] | str | None = None,
         box_aspect: float | None = None,
         facecolor: ColorType | None = None,
         **kwargs
     ) -> Axes: ...
+    # Unreachable: the overloads above also match projection="3d", so 3D subplots type as Axes.
+    # Kept for when mplot3d has stubs; until then Axes3D is Any, and Axes is more useful to Plottery.
     @overload
     def add_subplot(
         self, *args, projection: Literal["3d"], **kwargs
     ) -> Axes3D: ...
+    # Returns np.ndarrays at runtime, but typed as lists (see the comment on pyplot.subplots).
     @overload
     def subplots(
         self,
         nrows: Literal[1] = 1,
         ncols: Literal[1] = 1,
         *,
-        squeeze: Literal[False] = True,
         sharex: bool | Literal["none", "all", "row", "col"] = False,
         sharey: bool | Literal["none", "all", "row", "col"] = False,
-        width_ratios: ArrayLike = ...,
-        height_ratios: ArrayLike = ...,
-        subplot_kw: dict = ...,
-        gridspec_kw: dict = ...,
+        squeeze: Literal[True] = True,
+        width_ratios: Sequence[float] | None = None,
+        height_ratios: Sequence[float] | None = None,
+        subplot_kw: dict | None = None,
+        gridspec_kw: dict | None = None,
     ) -> Axes: ...
     @overload
     def subplots(
         self,
-        nrows: int = 1,
-        ncols: Literal[1] = 1,
-        *,
-        squeeze: Literal[True] = True,
-        sharex: bool | Literal["none", "all", "row", "col"] = False,
-        sharey: bool | Literal["none", "all", "row", "col"] = False,
-        subplot_kw: dict = ...,
-        gridspec_kw: dict = ...,
-    ) -> List[Axes]: ...
-    @overload
-    def subplots(
-        self,
         nrows: Literal[1] = 1,
         ncols: int = 1,
         *,
-        squeeze: bool = True,
         sharex: bool | Literal["none", "all", "row", "col"] = False,
         sharey: bool | Literal["none", "all", "row", "col"] = False,
-        subplot_kw: dict = ...,
-        gridspec_kw: dict = ...,
+        squeeze: Literal[True] = True,
+        width_ratios: Sequence[float] | None = None,
+        height_ratios: Sequence[float] | None = None,
+        subplot_kw: dict | None = None,
+        gridspec_kw: dict | None = None,
+    ) -> List[Axes]: ...
+    @overload
+    def subplots(
+        self,
+        nrows: int = 1,
+        ncols: Literal[1] = 1,
+        *,
+        sharex: bool | Literal["none", "all", "row", "col"] = False,
+        sharey: bool | Literal["none", "all", "row", "col"] = False,
+        squeeze: Literal[True] = True,
+        width_ratios: Sequence[float] | None = None,
+        height_ratios: Sequence[float] | None = None,
+        subplot_kw: dict | None = None,
+        gridspec_kw: dict | None = None,
     ) -> List[Axes]: ...
     @overload
     def subplots(
@@ -170,11 +179,13 @@ class FigureBase(Artist):
         nrows: int = 1,
         ncols: int = 1,
         *,
-        squeeze: Literal[False] = True,
         sharex: bool | Literal["none", "all", "row", "col"] = False,
         sharey: bool | Literal["none", "all", "row", "col"] = False,
-        subplot_kw: dict = ...,
-        gridspec_kw: dict = ...,
+        squeeze: bool = True,
+        width_ratios: Sequence[float] | None = None,
+        height_ratios: Sequence[float] | None = None,
+        subplot_kw: dict | None = None,
+        gridspec_kw: dict | None = None,
     ) -> List[List[Axes]]: ...
     def delaxes(self, ax: Axes) -> None: ...
     def clear(self, keep_observers: bool = False) -> None: ...

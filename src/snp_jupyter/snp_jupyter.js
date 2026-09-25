@@ -113,36 +113,42 @@ const plugin = {
       return -1;
     }
 
+    // For a regex match ending in a call's opening "(", return the text of its (possibly
+    // multi-line) argument list, up to the matching ")".
+    function call_args_str(code, match) {
+      const open_idx = match.index + match[0].length - 1;
+      const close_idx = index_of_matching_paren(code, open_idx);
+      return code.slice(open_idx + 1, close_idx === -1 ? code.length : close_idx);
+    }
+
+    // Classify what plt.subplots(...) / fig.subplots(...) returns for the axes slot, matching
+    // how mypy resolves the bundled matplotlib stub's overloads: a single Axes, a 1-D list of Axes,
+    // or a 2-D list of lists of Axes. The stub's squeezed overloads only match a literal `1` for
+    // nrows/ncols and a literal `squeeze=True`, so anything else (a variable, `n + 1`, `squeeze=b`)
+    // counts as "maybe more than 1" / "maybe unsqueezed", same as mypy.
     function subplots_axes_kind(args_str) {
-      if (/\bsqueeze\s*=\s*False\b/.test(args_str)) return "axes_list2d";
-      let nrows = 1, ncols = 1, pos_idx = 0;
+      let nrows_is_1 = true, ncols_is_1 = true, squeeze = true, pos_idx = 0;
       for (const part of split_top_level(args_str)) {
         const trimmed = part.trim();
-        if (trimmed === "") continue;
-        const kw = trimmed.match(/^(\w+)\s*=\s*(.+)$/);
-        if (kw) {
-          if (kw[1] === "nrows") nrows = parseInt(kw[2]) || nrows;
-          else if (kw[1] === "ncols") ncols = parseInt(kw[2]) || ncols;
-        } else {
-          const n = parseInt(trimmed);
-          if (!isNaN(n)) {
-            if (pos_idx === 0) nrows = n;
-            else if (pos_idx === 1) ncols = n;
-          }
-          pos_idx++;
-        }
+        if (trimmed === "" || trimmed.startsWith("*")) continue;
+        const kw = trimmed.match(/^(\w+)\s*=\s*([\s\S]+)$/);
+        const [name, value] = kw ? [kw[1], kw[2].trim()] : [[ "nrows", "ncols" ][pos_idx++], trimmed];
+        if (name === "nrows") nrows_is_1 = value === "1";
+        else if (name === "ncols") ncols_is_1 = value === "1";
+        else if (name === "squeeze") squeeze = value === "True";
       }
-      if (nrows > 1 && ncols > 1) return "axes_list2d";
-      if (nrows > 1 || ncols > 1) return "axes_list";
-      return "axes";
+      if (!squeeze) return "axes_list2d";
+      if (nrows_is_1 && ncols_is_1) return "axes";
+      if (nrows_is_1 || ncols_is_1) return "axes_list";
+      return "axes_list2d";
     }
 
     function track_figure_axes_vars(notebook_code, plt) {
       const kinds = {};
       const P = regex_escape(plt);
-      for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*,[ \\t]*(\\w+)[ \\t]*=[ \\t]*${P}\\.subplots[ \\t]*\\(([^\\n]*?)\\)`, "mg"))) {
+      for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*,[ \\t]*(\\w+)[ \\t]*=[ \\t]*${P}\\.subplots[ \\t]*\\(`, "mg"))) {
         kinds[m[1]] = "figure";
-        kinds[m[2]] = subplots_axes_kind(m[3]);
+        kinds[m[2]] = subplots_axes_kind(call_args_str(notebook_code, m));
       }
       for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*=[ \\t]*${P}\\.(?:figure|gcf)[ \\t]*\\(`, "mg"))) {
         kinds[m[1]] = "figure";
@@ -155,8 +161,8 @@ const plugin = {
         for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*=[ \\t]*${F}\\.add_subplot[ \\t]*\\(`, "mg"))) {
           kinds[m[1]] = "axes";
         }
-        for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*=[ \\t]*${F}\\.subplots[ \\t]*\\(([^\\n]*?)\\)`, "mg"))) {
-          kinds[m[1]] = subplots_axes_kind(m[2]);
+        for (const m of notebook_code.matchAll(new RegExp(`^[ \\t]*(\\w+)[ \\t]*=[ \\t]*${F}\\.subplots[ \\t]*\\(`, "mg"))) {
+          kinds[m[1]] = subplots_axes_kind(call_args_str(notebook_code, m));
         }
       }
       return kinds;
