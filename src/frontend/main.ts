@@ -220,11 +220,12 @@ div#notebook .CodeMirror { font-size: 17px }
   notebook_parseable_comments.filter(comment => comment.line >= cell_lineno).forEach(comment => {
     const layers_from_comment = layers_from_parseable_comment(comment, state);
 
-    // Put the layer in the right location
+    // Put the layer in the right location: before the first layer that starts after it.
+    // (Not the first that *ends* after it, or a comment inside e.g. a function body would land above the def.)
     layers_from_comment.forEach(comment_layer => {
       const comment_layer_line = comment_layer.mark.find()!.to.line;
-      const insert_i = layers.findIndex(layer => layer.mark.find()!.to.line > comment_layer_line);
-      if (insert_i) {
+      const insert_i = layers.findIndex(layer => layer.mark.find()!.from.line > comment_layer_line);
+      if (insert_i >= 0) {
         layers.splice(insert_i, 0, comment_layer);
       } else {
         layers.push(comment_layer);

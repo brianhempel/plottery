@@ -24,7 +24,8 @@ export type Layer = {
   call_views: CallView[];
 }
 
-export type ParseableComment = Position & { uncommented: string; };
+// `uncommented` is dedented; `indent` is the width of its first line's inferred indentation.
+export type ParseableComment = Position & { uncommented: string; indent: number; };
 
 export type LayersPanel = {
   el: HTMLElement;
@@ -375,7 +376,9 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
       replace_all_preserving_marks(cm, /^([ \t]*)/mg, '$1# ', (_match, start_pos, _end_pos) => start_pos.line >= layer_range.from.line && start_pos.line <= layer_range.to.line)
       log_event("gui", "layers panel layer visibility click off", {layer: layer_el.innerText, code: cm.getValue()});
     } else {
-      replace_all_preserving_marks(cm, /^([ \t]*)# /mg, '$1', (_match, start_pos, _end_pos) => start_pos.line >= layer_range.from.line && start_pos.line <= layer_range.to.line)
+      // Uncomment every line the same way as the first, so continuation lines keep their alignment.
+      const uncomment_regexp = comment_drops_space(cm.getLine(layer_range.from.line) || '') ? /^([ \t]*)# ?/mg : /^([ \t]*)#/mg;
+      replace_all_preserving_marks(cm, uncomment_regexp, '$1', (_match, start_pos, _end_pos) => start_pos.line >= layer_range.from.line && start_pos.line <= layer_range.to.line)
       log_event("gui", "layers panel layer visibility click on", {layer: layer_el.innerText, code: cm.getValue()});
     }
 
@@ -390,6 +393,17 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
   visible_checkbox.addEventListener("click", ev => ev.stopPropagation());
 }
 
+// Commented-out code comes in a few styles. The "#" may be followed by the conventional space
+// ("    # code", "#     code") or may itself stand in for an indentation char ("    #code",
+// "#    code"). If the whitespace around the "#" adds up to an odd width, assume the conventional
+// space and drop it. Keep in sync with comment_drops_space in snp.py.
+function comment_drops_space(line: string): boolean {
+  const match = line.match(/^([ \t]*)#([ \t]*)/);
+  if (!match) return false;
+  const [, before, after] = match;
+  return after.startsWith(' ') && (before.length + after.length) % 2 === 1;
+}
+
 export function layers_from_parseable_comment(comment: ParseableComment, state: State): Layer[] {
   const layer_el = create_el("div", "snp-layer");
 
@@ -402,7 +416,7 @@ export function layers_from_parseable_comment(comment: ParseableComment, state: 
   layer_el.innerText = comment.uncommented;
   // layer_el.classList.add("snp-code-layer");
 
-  const indent_level = Math.floor(comment.uncommented.match(/^ */)![0].length / 4);
+  const indent_level = Math.floor(comment.indent / 4);
   layer_el.classList.add(`indent-${indent_level}`)
 
   const layer = {

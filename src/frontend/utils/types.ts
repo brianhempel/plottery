@@ -476,12 +476,19 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
       };
 
       // https://codemirror.net/docs/ref/#view.Decoration%5Emark
-      const deco_mark: CM6Mark = __CM6Decoration.mark({
+      const deco = __CM6Decoration.mark({
         inclusiveStart: options.inclusiveLeft,
         inclusiveEnd:   options.inclusiveRight,
         mark_id: mark_id,
         cm5_mark: cm5_mark,
-      }).range(from_offset, to_offset);
+      });
+      // CM6's MarkDecoration.range() throws "Mark decorations may not be empty", but CM5 allows
+      // empty marks (e.g. the params of a zero-arg `def f():`). RangeSets keep and map empty
+      // ranges fine (an inclusive one grows to cover typed text, like CM5), so for empty marks
+      // skip the check by calling the base RangeValue.range() that MarkDecoration overrides.
+      const deco_mark: CM6Mark = from_offset < to_offset
+        ? deco.range(from_offset, to_offset)
+        : Object.getPrototypeOf(Object.getPrototypeOf(deco)).range.call(deco, from_offset, to_offset);
 
       cm6.dispatch({ effects: add_marks.of([deco_mark]) })
 

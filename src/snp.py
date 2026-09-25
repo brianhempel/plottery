@@ -1470,32 +1470,42 @@ class SNP(SNPFigureAndHoverRegions):
 
         with Timer("notebook_parseable_comments"):
             self.notebook_parseable_comments = []
-            # find contiguous # comment chunks in notebook_code_through_cell
-            multiline_comments = [] # list of (start_line_no, start_col, [lines])
+            # find contiguous runs of comment-only lines in notebook_code_through_cell
+            multiline_comments = [] # list of (start_line_no, [raw lines])
             cur_comment = None
             for line_no, line in enumerate(self.notebook_code_lines):
-                if not cur_comment:
-                    # If the line includes #, start a new multiline_comment
-                    hash_idx = line.find('#')
-                    if hash_idx != -1:
-                        cur_comment = (line_no + 1, hash_idx, [line[hash_idx:]])
-                elif line.strip().startswith('#'):
-                    cur_comment[2].append(line)
-                else:
+                if line.lstrip().startswith('#'):
+                    if not cur_comment:
+                        cur_comment = (line_no + 1, [])
+                    cur_comment[1].append(line)
+                elif cur_comment:
                     multiline_comments.append(cur_comment)
                     cur_comment = None
             if cur_comment:
                 multiline_comments.append(cur_comment)
 
-            # A multiline comment might have multiple expression lines, each of which
-            # should be a separate layer. So, parse the comment into an expression list
-            # to split the comment into sub-comments.
-            for multiline_comment in multiline_comments:
-                # Replace /# ?/ at the beginning of each line with "" and then join them
-                comment_as_code = '\n'.join([re.sub(r'^(\s*)# ?', '\\1', line) for line in multiline_comment[2]])
+            # A comment run may dedent partway through (e.g. the end of a function body followed
+            # by a top-level line), which can't parse as one chunk. So split each run wherever a
+            # line's inferred indentation drops below that of the sub-run's first line.
+            comment_runs = [] # list of (start_line_no, [raw lines], [uncommented lines])
+            for start_line_no, raw_lines in multiline_comments:
+                cur_run = None
+                for i, raw_line in enumerate(raw_lines):
+                    uncommented = uncomment_line(raw_line, comment_drops_space(raw_line))
+                    indent = len(uncommented) - len(uncommented.lstrip())
+                    if not cur_run or (uncommented.strip() != '' and indent < cur_run[3]):
+                        cur_run = (start_line_no + i, [], [], indent)
+                        comment_runs.append(cur_run)
+                    cur_run[1].append(raw_line)
+                    cur_run[2].append(uncommented)
+
+            # A comment run might have multiple statements, each of which should be a separate
+            # layer. So, parse the run into a statement list to split it into sub-comments.
+            for line_no, raw_lines, uncommented_lines, base_indent in comment_runs:
+                comment_as_code = '\n'.join(dedent_line(line, base_indent) for line in uncommented_lines)
 
                 try:
-                    chunks_in_comment = ast.parse(comment_as_code).body # list of expressions
+                    chunks_in_comment = ast.parse(comment_as_code).body # list of statements
                 except SyntaxError:
                     chunks_in_comment = []
 
@@ -1504,15 +1514,20 @@ class SNP(SNPFigureAndHoverRegions):
                     if isinstance(chunk_in_comment, ast.Expr) and isinstance(chunk_in_comment.value, ast.Name):
                         continue
 
-                    line_no, col_offset, raw_lines = multiline_comment
-                    (chunk_lineno, chunk_col, chunk_endlineno, chunk_endcol) = ast_loc(chunk_in_comment)
+                    (chunk_lineno, _chunk_col, chunk_endlineno, _chunk_endcol) = ast_loc(chunk_in_comment)
                     chunk_lines = raw_lines[chunk_lineno-1:chunk_endlineno]
+                    # Uncomment the whole chunk with its first line's convention (same as the
+                    # frontend's show-layer toggle) so continuation lines keep their alignment.
+                    drops_space = comment_drops_space(chunk_lines[0])
+                    chunk_uncommented = [uncomment_line(line, drops_space) for line in chunk_lines]
+                    indent = len(chunk_uncommented[0]) - len(chunk_uncommented[0].lstrip())
                     self.notebook_parseable_comments.append({
                         'line':        line_no + chunk_lineno - 1,
-                        'end_line':    line_no + chunk_lineno - 1 + len(chunk_lines) - 1,
-                        'column':      (col_offset if chunk_lineno == 1 else chunk_col),
-                        'end_column':  len(chunk_lines[-1]) + (col_offset if chunk_endlineno == 1 else 0),
-                        'uncommented': "\n".join(comment_as_code.split('\n')[chunk_lineno-1:chunk_endlineno])
+                        'end_line':    line_no + chunk_endlineno - 1,
+                        'column':      chunk_lines[0].index('#'),
+                        'end_column':  len(chunk_lines[-1]),
+                        'indent':      indent,
+                        'uncommented': "\n".join(dedent_line(line, indent) for line in chunk_uncommented)
                     })
 
         # Walk all the files in the frontend folder, and append all the contents of the .css files
@@ -1987,6 +2002,24 @@ def code_at_range(notebook_code_lines, line, column, end_line, end_column):
 
 def ast_loc(node):
     return (node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+
+
+# Commented-out code comes in a few styles. The "#" may be followed by the conventional space
+# ("    # code", "#     code") or may itself stand in for an indentation char ("    #code",
+# "#    code"). If the whitespace around the "#" adds up to an odd width, assume the conventional
+# space and drop it. Keep in sync with comment_drops_space in layer_panel.ts.
+def comment_drops_space(line):
+    before, after = re.match(r'^([ \t]*)#([ \t]*)', line).groups()
+    return after.startswith(' ') and (len(before) + len(after)) % 2 == 1
+
+
+def uncomment_line(line, drops_space):
+    return re.sub(r'^([ \t]*)# ?' if drops_space else r'^([ \t]*)#', r'\1', line, count=1)
+
+
+# Remove up to n leading whitespace chars.
+def dedent_line(line, n):
+    return re.sub(r'^[ \t]{0,%d}' % n, '', line, count=1)
 
 
 def _snp_attr_call(func_name, args):
