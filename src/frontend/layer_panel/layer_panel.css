@@ -180,7 +180,11 @@ input.snp-layer-checkbox {
   background-color: #c0def8;
   color: #444
 }
-.CodeMirror .snp-line-selected.CodeMirror-linebackground,
-.cm-editor .cm-line.snp-line-selected {
+.CodeMirror .snp-line-selected.CodeMirror-linebackground {
   background-color: #e8f3fc;
+}
+/* CM6 draws the text selection in a layer *behind* the lines, so an opaque line
+   background would hide it. Translucent: same #e8f3fc over white, selection shows through. */
+.cm-editor .cm-line.snp-line-selected {
+  background-color: rgba(25, 135, 225, 0.1);
 }

@@ -157,7 +157,10 @@
   background-color: #c7ebbe;
   color: #555;
 }
-.CodeMirror .snp-ai-line-changed:not(.snp-line-selected).CodeMirror-linebackground,
-.cm-editor .cm-line.snp-ai-line-changed:not(.snp-line-selected) {
+.CodeMirror .snp-ai-line-changed:not(.snp-line-selected).CodeMirror-linebackground {
   background-color: #e8f4e6;
+}
+/* Translucent so CM6's text selection layer (drawn behind the lines) shows through. Same #e8f4e6 over white. */
+.cm-editor .cm-line.snp-ai-line-changed:not(.snp-line-selected) {
+  background-color: rgba(25, 145, 5, 0.1);
 }
