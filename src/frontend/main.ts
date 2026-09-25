@@ -21,6 +21,7 @@ import {
   set_persistent_item,
   notebook_code_cells,
   attach_jupyter_cell_height_sync,
+  detach_jupyter_cell_height_sync,
 } from "./utils/misc";
 import { Cell, JupyterLabNotebookPanel, JupyterType, jupyterlab_cell_to_notebook_v6_cell } from "./utils/types";
 import * as deserialize from "./utils/deserialize";
@@ -430,6 +431,33 @@ div#notebook .CodeMirror { font-size: 17px }
 }
 
 (window as any)["attach_snp"] = attach_snp;
+
+
+// Undo attach_snp's changes to the cell's input editor (marks, line highlights, cursor listener,
+// height cap, height sync). The extensions' global Plottery on/off toggle calls this before it
+// strips the UI out of the cell's output, which removes everything else.
+function detach_snp(snp_outer: HTMLElement) {
+  const cell = find_cell(snp_outer);
+  if (!cell) return;
+
+  const cm = cell.code_mirror as any;
+  if (typeof cm.clear_all_marks === "function") {
+    cm.clear_all_marks(); // CM6 facade: also clears line classes
+  } else {
+    cm.getAllMarks?.().forEach((m: any) => m.clear());
+    cm.eachLine?.((line: any) => {
+      cm.removeLineClass(line, "gutter", "snp-ai-line-changed");
+      cm.removeLineClass(line, "background", "snp-ai-line-changed");
+    });
+  }
+  cm.__snp_cursor_activity_off?.();
+  delete cm.__snp_cursor_activity_off;
+  cm.getScrollerElement().style.maxHeight = "";
+
+  detach_jupyter_cell_height_sync(cell, snp_outer);
+}
+
+(window as any)["detach_snp"] = detach_snp;
 
 
 // # Positional argument

@@ -180,6 +180,26 @@ export function attach_jupyter_cell_height_sync(state: State): void {
   cleanups.push(() => cells_changed!.disconnect(on_cells_changed));
 }
 
+// Stop syncing and forget the pushed height, so Notebook estimates the cell's size itself again
+// once its Plottery UI is gone.
+export function detach_jupyter_cell_height_sync(cell: Cell, snp_outer: HTMLElement): void {
+  if (Jupyter) return;
+
+  const jl_cell = cell.jupyterlab_cell;
+  const node = jl_cell?.node as any;
+  if (!node) return;
+  node.__snp_cell_height_sync_teardown?.();
+  delete node.__snp_last_synced_height;
+  node.style.containIntrinsicSize = "";
+
+  const cell_id = jl_cell!.model.sharedModel.id || jl_cell!.model.sharedModel.getId();
+  const notebook = jupyterlab_notebook_panel(snp_outer)?.content as
+    | (JupyterLabNotebookPanel["content"] & { _viewModel?: JupyterLabNotebookPanel["content"]["viewModel"] })
+    | undefined;
+  const view_model = notebook?.viewModel ?? notebook?._viewModel;
+  view_model?.setEstimatedWidgetSize?.(cell_id, null);
+}
+
 
 // Things than need to last between cell reruns
 //

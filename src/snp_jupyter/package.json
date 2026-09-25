@@ -11,7 +11,8 @@
   "dependencies": {
     "@jupyterlab/application": ">=3.6.6",
     "@codemirror/state": "^6",
-    "@codemirror/view": "^6"
+    "@codemirror/view": "^6",
+    "@lumino/widgets": "^2"
   },
   "devDependencies": {
     "@jupyter/builder": "^1.0.0"

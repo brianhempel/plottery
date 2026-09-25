@@ -2156,6 +2156,24 @@ class RootProvenanceTagger:
 IPython.get_ipython().kernel.shell.ast_transformers = [RootProvenanceTagger()]
 
 
+# The extensions' global Plottery on/off toolbar toggle calls this. Off means the notebook runs as
+# ordinary matplotlib: no provenance tagging of every call, and pyplot's interactive mode back on
+# so figures auto-display at the end of a cell like normal (we turn it off at import, see top).
+def set_enabled(enabled):
+    shell = IPython.get_ipython().kernel.shell
+    others = [t for t in shell.ast_transformers if type(t).__name__ != "RootProvenanceTagger"]
+    if enabled:
+        shell.ast_transformers = [RootProvenanceTagger()] + others
+        plt.ioff()
+    else:
+        shell.ast_transformers = others
+        plt.ion()
+        # Plottery leaves figures open (and stashed in cell_figs) where the inline backend would
+        # have closed them after each cell, so the next plain plt.show() would display them all.
+        cell_figs.clear()
+        plt.close("all")
+
+
 # -------------------------------------------------------- #
 #                   Type serialization                     #
 # -------------------------------------------------------- #

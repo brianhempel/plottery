@@ -277,6 +277,140 @@ define(["require", "base/js/namespace", "base/js/events"], function (
   // Expose for the bundle (the AI panel reuses this on LLM results) so the logic isn't duplicated.
   window.__snp_annotate_figure_axes_params = annotate_figure_axes_params;
 
+  // The names plt.show might go by, given the notebook's imports. Look for
+  // import matplotlib.pyplot as SOMETHING
+  // from matplotlib.pyplot import show
+  // from matplotlib.pyplot import *
+  function plt_show_names(notebook_code_through_cell) {
+    const matplotlib_show_names = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib as (\w+)/mg)].map(m => `${m[1]}.pyplot.show`)
+    const pyplot_show_names = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib\.pyplot as (\w+)/mg)].map(m => `${m[1]}.show`)
+    const just_show_names = [...notebook_code_through_cell.matchAll(/^\s*from matplotlib\.pyplot import .*(\*|\bshow\b)/mg)].map(_ => `show`)
+    return ['matplotlib.pyplot.show', ...matplotlib_show_names, ...pyplot_show_names, ...just_show_names];
+  }
+
+  // Would running this cell draw a Plottery UI?
+  function calls_plt_show(cell) {
+    const code = cell.get_text();
+    if (cell.cell_type !== "code" || !is_not_magic(code) || !code.includes('show')) return false;
+    const targets = plt_show_names(get_notebook_code_through(cell)[1]);
+    return targets.some(target => new RegExp(`\\b${target}\\b\\s*\\(`).test(code));
+  }
+
+  // ---- Global Plottery on/off toggle ------------------------------------------
+  //
+  // Off, the notebook runs as ordinary matplotlib: plt.show() isn't rewritten, the kernel stops
+  // provenance tagging (snp.set_enabled), and every Plottery UI is stripped down to its plain plot
+  // PNG so none of it is saved in the notebook. The setting is per browser (localStorage), shared
+  // with the JupyterLab extension.
+
+  function plottery_enabled() {
+    return window.localStorage.getItem('plottery_enabled') !== 'false';
+  }
+
+  function mime_str(value) {
+    return Array.isArray(value) ? value.join('') : value;
+  }
+
+  function is_plottery_output(output) {
+    const html = output.data && mime_str(output.data['text/html']);
+    return typeof html === 'string' && html.includes('snp_outer');
+  }
+
+  // What plain matplotlib would have shown: just the plot PNG, which the SNP output carries
+  // alongside its UI HTML (and its hover-region SVG, which we must not show instead).
+  function plain_plot_outputs(output) {
+    if (!is_plottery_output(output)) return [output];
+    const png = output.data['image/png'];
+    if (!png) return [];
+    const png_metadata = output.metadata && output.metadata['image/png'];
+    return [{
+      output_type: 'display_data',
+      data: { 'image/png': png, 'text/plain': '<Figure>' },
+      metadata: png_metadata ? { 'image/png': png_metadata } : {},
+    }];
+  }
+
+  function strip_plottery_outputs(cell) {
+    const output_area = cell.output_area;
+    if (!output_area || !output_area.outputs.some(is_plottery_output)) return;
+    output_area.element[0].querySelectorAll('.snp_outer').forEach(snp_outer => window.detach_snp && window.detach_snp(snp_outer));
+    const outputs = output_area.outputs.flatMap(plain_plot_outputs);
+    output_area.clear_output(false, true);
+    output_area.fromJSON(outputs);
+    Jupyter.notebook.set_dirty(true);
+  }
+
+  function strip_all_plottery_outputs() {
+    Jupyter.notebook.get_cells().filter(cell => cell.cell_type === "code").forEach(strip_plottery_outputs);
+  }
+
+  // Same look as the properties panel's bool switch (sidebar/widgets/bool/bool.css), under its own
+  // class: the bundle's CSS only loads with a Plottery output, and its switch is position: absolute.
+  const plottery_toggle_css = `
+    .snp-toolbar-switch {
+      --knob-size: 14px;
+      --travel: var(--knob-size);
+      box-sizing: border-box;
+      display: inline-block;
+      vertical-align: middle;
+      width: calc(var(--knob-size) + 2px + var(--travel));
+      height: calc(var(--knob-size) + 2px);
+      border-radius: calc(var(--knob-size) / 2 + 1px);
+      line-height: var(--knob-size);
+      padding: 1px;
+      border: 1px solid darkgray;
+      background-color: lightgray;
+      transition: all 80ms;
+    }
+    .snp-toolbar-switch.on {
+      padding-left: calc(1px + var(--travel));
+      background-color: rgb(69, 231, 69);
+    }
+    .snp-toolbar-switch > .switch-knob {
+      box-sizing: border-box;
+      display: inline-block;
+      vertical-align: top;
+      height: calc(var(--knob-size) - 2px);
+      width: calc(var(--knob-size) - 2px);
+      border-radius: calc(var(--knob-size) / 2);
+      background-color: whitesmoke;
+      border: 1px solid darkgray;
+    }
+    #plottery-toggle .snp-toolbar-switch { margin-right: 5px; }
+  `;
+
+  function update_plottery_toggle_button() {
+    const button = document.getElementById('plottery-toggle');
+    if (!button) return;
+    const enabled = plottery_enabled();
+    button.querySelector('.snp-toolbar-switch').classList.toggle('on', enabled);
+    button.title = enabled ? 'Plottery is on. Click to use ordinary Matplotlib.' : 'Plottery is off. Click to turn it on.';
+  }
+
+  // rerun_current_cell: redraw the selected cell with Plottery (only on this tab's own toggle,
+  // not when following a toggle made in another tab).
+  function apply_plottery_enabled(rerun_current_cell) {
+    const enabled = plottery_enabled();
+    update_plottery_toggle_button();
+
+    const kernel = Jupyter.notebook.kernel;
+    if (kernel && kernel.is_connected()) {
+      kernel.execute(`snp.set_enabled(${enabled ? 'True' : 'False'})`);
+    }
+
+    if (!enabled) {
+      strip_all_plottery_outputs();
+    } else if (rerun_current_cell) {
+      const cell = Jupyter.notebook.get_selected_cell();
+      if (cell && calls_plt_show(cell)) cell.execute();
+    }
+  }
+
+  function toggle_plottery() {
+    window.localStorage.setItem('plottery_enabled', plottery_enabled() ? 'false' : 'true');
+    apply_plottery_enabled(true);
+  }
+
   // Thanks, GPT-4o!
   function add_new_plot_button() {
     Jupyter.toolbar.add_buttons_group([
@@ -323,8 +457,23 @@ plt.show()`
             new_cell.execute();
           }
         }
+      },
+      {
+        'label'   : 'Plottery',
+        'id'      : 'plottery-toggle',
+        'callback': toggle_plottery
       }
     ])
+
+    // Swap the button's icon for the switch.
+    const style = document.createElement('style');
+    style.textContent = plottery_toggle_css;
+    document.head.appendChild(style);
+    const switch_el = document.createElement('span');
+    switch_el.className = 'snp-toolbar-switch';
+    switch_el.innerHTML = '<span class="switch-knob"></span>';
+    document.querySelector('#plottery-toggle i').replaceWith(switch_el);
+    update_plottery_toggle_button();
   }
 
   function load_extension() {
@@ -340,7 +489,8 @@ plt.show()`
     // import snp when kernel (re)starts
     Jupyter.notebook.events.on('kernel_ready.Kernel', function(ev, { kernel }) {
       console.log("Kernel ready, importing snp");
-      kernel.execute('import snp')
+      // Also on a page reload, which reconnects to a kernel that may be in the other on/off state.
+      kernel.execute(`import snp\nsnp.set_enabled(${plottery_enabled() ? 'True' : 'False'})`)
     })
 
     const orig_cell_execute = IPython.CodeCell.prototype.execute;
@@ -355,7 +505,7 @@ plt.show()`
       // directly (bypassing this), so drags/toggles/reorders never trigger the rewrite.
       try {
         const code = this.get_text();
-        if (is_not_magic(code) && code.includes('show')) {
+        if (plottery_enabled() && is_not_magic(code) && code.includes('show')) {
           const notebook_code_through_cell = get_notebook_code_through(this)[1];
           const annotated = annotate_figure_axes_params(code, notebook_code_through_cell);
           if (annotated !== code) this.set_text(annotated);
@@ -373,6 +523,11 @@ plt.show()`
     Jupyter.notebook.events.on(
       "execution_request.Kernel",
       function (ev, { kernel, content }) {
+        if (!plottery_enabled()) {
+          delete content['cell'] // otherwise, the whole cell memory graph gets serialized!
+          return;
+        }
+
         const cell_code = content.code;
 
         if (is_not_magic(cell_code) && cell_code.includes('show')) {
@@ -381,15 +536,7 @@ plt.show()`
           delete content['cell'] // otherwise, the whole cell memory graph gets serialized!
           const [cell_lineno, notebook_code_through_cell] = get_notebook_code_through(cell);
 
-          // look for
-          // import matplotlib.pyplot as SOMETHING
-          // from matplotlib.pyplot import show
-          // from matplotlib.pyplot import *
-
-          const matplotlib_show_names = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib as (\w+)/mg)].map(m => `${m[1]}.pyplot.show`)
-          const pyplot_show_names = [...notebook_code_through_cell.matchAll(/^\s*import matplotlib\.pyplot as (\w+)/mg)].map(m => `${m[1]}.show`)
-          const just_show_names = [...notebook_code_through_cell.matchAll(/^\s*from matplotlib\.pyplot import .*(\*|\bshow\b)/mg)].map(_ => `show`)
-          const targets = ['matplotlib.pyplot.show', ...matplotlib_show_names, ...pyplot_show_names, ...just_show_names];
+          const targets = plt_show_names(notebook_code_through_cell);
 
           // console.log('cell_lineno', cell_lineno);
           // console.log('notebook_code_through_cell', notebook_code_through_cell);
@@ -429,8 +576,20 @@ last_snp`;
       }
     );
 
-    // "New Plot" Button
-    Jupyter.notebook._fully_loaded ? add_new_plot_button() : events.on("notebook_loaded.Notebook", add_new_plot_button);
+    // Plottery off: keep its UIs out of the saved notebook, including any opened from an older save.
+    Jupyter.notebook.events.on('before_save.Notebook', function () {
+      if (!plottery_enabled()) strip_all_plottery_outputs();
+    });
+    function on_notebook_loaded() {
+      add_new_plot_button(); // and the Plottery on/off toggle
+      if (!plottery_enabled()) strip_all_plottery_outputs();
+    }
+    Jupyter.notebook._fully_loaded ? on_notebook_loaded() : events.on("notebook_loaded.Notebook", on_notebook_loaded);
+
+    // Follow a toggle made in another tab.
+    window.addEventListener('storage', function (ev) {
+      if (ev.key === 'plottery_enabled') apply_plottery_enabled(false);
+    });
   }
 
   return {
