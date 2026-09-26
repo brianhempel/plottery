@@ -210,7 +210,7 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
         enable_arg_view(view);
 
         const [fig_x0,  fig_y0,  fig_x1,  fig_y1]  = boundses.fig_px_bounds;
-        const [axes_x0, axes_y0, axes_x1, axes_y1] = boundses.axes_px_bounds;
+        const [axes_x0, axes_y0, axes_x1, axes_y1] = boundses.axes_px_bounds ?? boundses.fig_px_bounds; // A figure legend's loc is relative to the figure
 
         const [mouse_x, mouse_y] = client_px_in_fig;
         // const [mouse_dx,    mouse_dy]    = delta_px;
@@ -335,22 +335,27 @@ function drag_handler_for_arg_view(arg: Arg, view: ArgView, x_or_y: 'x' | 'y', r
   return (_client_px_in_fig, delta_px, fig_bb: DOMRect, boundses: Boundses) => {
     enable_arg_view(view);
 
-    // Convert pixels to the units of the axes
-    const [x_min,    y_min,    x_max,    y_max]    = boundses.axes_unit_bounds;
-    const [x_min_px, y_min_px, x_max_px, y_max_px] = boundses.axes_px_bounds;
-
     // If at higher DPI, these are not 1-to-1
-    const [fig_x0,  _fig_y0,  fig_x1,  _fig_y1]  = boundses.fig_px_bounds;
+    const [fig_x0,  fig_y0,  fig_x1,  fig_y1]  = boundses.fig_px_bounds;
     const client_px_per_fig_px = fig_bb.width / (fig_x1 - fig_x0);
+
+    // Convert pixels to the units of the axes
     let units_per_fig_px: number;
-    if (coord_sys == 'axes_units') {
-      // y inverted
-      units_per_fig_px = x_or_y == 'x' ? (x_max - x_min) / (x_max_px - x_min_px) : -(y_max - y_min) / (y_max_px - y_min_px);
-    } else if (coord_sys = 'axes_size') {
-      // y inverted
-      units_per_fig_px = x_or_y == 'x' ? 1 / (x_max_px - x_min_px) : -1 / (y_max_px - y_min_px);
+    if (!boundses.axes_px_bounds || !boundses.axes_unit_bounds) {
+      // Not in an axes (fig.suptitle, fig.text, ...), so x and y are fractions of the figure. y inverted
+      units_per_fig_px = x_or_y == 'x' ? 1 / (fig_x1 - fig_x0) : -1 / (fig_y1 - fig_y0);
     } else {
-      throw new Error(`drag_handler_for_arg_view this shouldn't happen ${coord_sys}`);
+      const [x_min,    y_min,    x_max,    y_max]    = boundses.axes_unit_bounds;
+      const [x_min_px, y_min_px, x_max_px, y_max_px] = boundses.axes_px_bounds;
+      if (coord_sys == 'axes_units') {
+        // y inverted
+        units_per_fig_px = x_or_y == 'x' ? (x_max - x_min) / (x_max_px - x_min_px) : -(y_max - y_min) / (y_max_px - y_min_px);
+      } else if (coord_sys == 'axes_size') {
+        // y inverted
+        units_per_fig_px = x_or_y == 'x' ? 1 / (x_max_px - x_min_px) : -1 / (y_max_px - y_min_px);
+      } else {
+        throw new Error(`drag_handler_for_arg_view this shouldn't happen ${coord_sys}`);
+      }
     }
 
     if (reversed) { delta_px = -delta_px; }

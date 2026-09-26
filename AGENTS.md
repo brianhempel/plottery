@@ -121,9 +121,12 @@ node cdp_send.js Domain.method '{"param":"value"}' - send arbitrary CDP command 
         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
           --remote-debugging-port=9222 --user-data-dir=/tmp/plottery-cdp \
           --no-first-run --window-size=1400,1000 \
+          --disable-backgrounding-occluded-windows --disable-renderer-backgrounding \
           "http://localhost:8888/notebooks/src/<nb>.ipynb?token=..."
 
    Let the shell background it (no `nohup &`). Clean up later with `pkill -f /tmp/plottery-cdp`, which leaves the user's normal Chrome untouched.
+
+   Keep the two `--disable-*backgrounding*` flags. Without them, once other windows cover the Chrome window, macOS reports the page as hidden and Chrome pauses `requestAnimationFrame`. Plottery syncs GUI edits into the code on animation frames, so drags and widget changes then silently never reach the code, even though handlers still fire and cursors still arm. If edits aren't landing, check `node eval.js 'document.visibilityState'`.
 2. `node ready.js` — wait for CDP and confirm the notebook is the `page` target.
 3. A fresh kernel has no live UI yet, so **run the cell**, then wait for the UI:
 

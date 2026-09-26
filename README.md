@@ -136,7 +136,7 @@ There are roughly three technical parts.
 | `src/visitor_mypy.py` | A `TraverserVisitor` over mypy AST nodes (vendored/derived from mypy). Used to walk typed calls. |
 | `src/python-type-stubs-main/` | Our fork of Microsoft's `.pyi` type stubs (matplotlib, numpy, etc.). These determine the arguments in the Properties panel for each MPL call. |
 | `vite.config.js`, `tsconfig.json`, `package.json` | Frontend build + the `npm run` scripts that install/enable the extensions. |
-| `requirements.txt` | Pinned Python deps (note `notebook==6.2.0`, `mypy==1.8.0`, `numpy<2`, `shapely==2.0.2`). |
+| `requirements.txt` | Python deps. Only `mypy` is capped, to tested minors (Plottery drives mypy's internal, unstable API). `matplotlib>=3.11` because the bundled stubs and method tables describe 3.11; newer versions work with slightly-off types. |
 | `src/see.py` | `See(...)` — a dev-only HTML object inspector for poking at values in the notebook. Not part of the product flow. |
 | `src/*.ipynb`, `study_2_*/`, `*.rb` | Demo notebooks and user-study data/analysis. Not part of the tool. |
 

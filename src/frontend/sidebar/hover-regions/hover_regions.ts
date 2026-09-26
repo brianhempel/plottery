@@ -153,11 +153,11 @@ export function compute_selected_hover_regions(state: State) {
   });
 }
 
-// (x0, y0, x1, y1)
+// (x0, y0, x1, y1). The axes bounds are null for figure-level artists (fig.suptitle, fig.text, fig.legend, ...).
 export type Boundses = {
   fig_px_bounds:    [number, number, number, number];
-  axes_px_bounds:   [number, number, number, number];
-  axes_unit_bounds: [number, number, number, number];
+  axes_px_bounds:   [number, number, number, number] | null;
+  axes_unit_bounds: [number, number, number, number] | null;
   region_px_bounds: [number, number, number, number];
 };
 
@@ -198,8 +198,8 @@ export function attach_events_to_hover_regions(state: State) {
         let y_handler  : ((client_px_in_fig: number,           delta_px: number,           fig_bb: DOMRect, boundses: Boundses) => void) | undefined = undefined;
 
         let fig_px_bounds    : [number, number, number, number] = hover_region.dataset.figPxBounds    ? (JSON.parse(hover_region.dataset.figPxBounds)    || [0, 0, 0, 0]) : [0, 0, 0, 0];
-        let axes_px_bounds   : [number, number, number, number] = hover_region.dataset.axesPxBounds   ? (JSON.parse(hover_region.dataset.axesPxBounds)   || [0, 0, 0, 0]) : [0, 0, 0, 0];
-        let axes_unit_bounds : [number, number, number, number] = hover_region.dataset.axesUnitBounds ? (JSON.parse(hover_region.dataset.axesUnitBounds) || [0, 0, 0, 0]) : [0, 0, 0, 0];
+        let axes_px_bounds   : [number, number, number, number] | null = hover_region.dataset.axesPxBounds   ? JSON.parse(hover_region.dataset.axesPxBounds)   : null;
+        let axes_unit_bounds : [number, number, number, number] | null = hover_region.dataset.axesUnitBounds ? JSON.parse(hover_region.dataset.axesUnitBounds) : null;
         let region_px_bounds : [number, number, number, number] = hover_region.dataset.regionPxBounds ? (JSON.parse(hover_region.dataset.regionPxBounds) || [0, 0, 0, 0]) : [0, 0, 0, 0];
 
         let boundses: Boundses = { fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds };

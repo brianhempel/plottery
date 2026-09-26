@@ -471,7 +471,7 @@ def method_type_json(receiver, method_name, type_graph):
 # data-call-id indicates the artist was returned from a call, so that artist on the canvas should be associated with that call in the layers panel.
 
 # Preserve heirarchical structure so that JS mouseenter events work as intended
-def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names):
+def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names, drawn=True):
     artist, methods, (fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds), geom, children = artist_methods_bounds_geom_children
     if isinstance(geom, shapely.geometry.multipolygon.MultiPolygon):
         # Would produce a <g>, but we need them flat
@@ -482,7 +482,16 @@ def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names):
     geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="0"', geom_svg)
     # geom_svg = re.sub(r'stroke-width="[^"]*"', 'stroke-width="1"', geom_svg)
     # geom_svg = re.sub(r'stroke="[^"]*"', 'stroke="#81C4FF"', geom_svg)
-    child_svgs_str = "\n".join([region2_to_svg_g(child, artist_names) for child in children])
+
+    # Only what matplotlib actually draws should catch the mouse. Otherwise a twinx() axes, which sits on top
+    # of the original axes with its background patch and x-axis hidden, covers everything in the original axes.
+    # An invisible artist isn't drawn, nor are its children. An Axes' own region stands in for its background.
+    # The region stays in the SVG either way, since on-plot method buttons are positioned over it.
+    drawn = drawn and artist.get_visible()
+    if not drawn or (isinstance(artist, mpl.axes.Axes) and not artist.patch.get_visible()):
+        geom_svg = geom_svg.replace("<path ", '<path pointer-events="none" ')
+
+    child_svgs_str = "\n".join([region2_to_svg_g(child, artist_names, drawn) for child in children])
 
     name = shortest_qualified_name(artist_names.get(id(artist), (None, {}))[1])
 
