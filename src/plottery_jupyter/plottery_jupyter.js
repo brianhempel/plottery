@@ -23,7 +23,7 @@ import {EditorView, Decoration} from "@codemirror/view"
 
 
 const plugin = {
-  id: 'snp_jupyter',
+  id: 'plottery_jupyter',
   autoStart: true,
   requires: [INotebookTracker],
   activate: function(app, tracker) {
@@ -46,7 +46,7 @@ const plugin = {
 
     function get_persistent_item(cell, key) {
       console.log("get_persistent_item cell", cell)
-      return sessionStorage.getItem(`cell-${cell.model.sharedModel.id}-snp-${key}`);
+      return sessionStorage.getItem(`cell-${cell.model.sharedModel.id}-plottery-${key}`);
     }
 
     function get_notebook_code_through(notebook, cell) {
@@ -67,7 +67,7 @@ const plugin = {
     }
 
     // ---- Figure/axes parameter annotation pre-pass --------------------------
-    // See nbextension_snp/main.js for the rationale. Mirrored here for JupyterLab.
+    // See nbextension_plottery/main.js for the rationale. Mirrored here for JupyterLab.
 
     function regex_escape(s) {
       return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -288,7 +288,7 @@ const plugin = {
     }
 
     // ---- Global Plottery on/off toggle ----------------------------------------
-    // See nbextension_snp/main.js for the rationale. Mirrored here for JupyterLab.
+    // See nbextension_plottery/main.js for the rationale. Mirrored here for JupyterLab.
 
     function plottery_enabled() {
       return window.localStorage.getItem('plottery_enabled') !== 'false';
@@ -300,10 +300,10 @@ const plugin = {
 
     function is_plottery_output(output) {
       const html = output.data && mime_str(output.data['text/html']);
-      return typeof html === 'string' && html.includes('snp_outer');
+      return typeof html === 'string' && html.includes('plottery_outer');
     }
 
-    // What plain matplotlib would have shown: just the plot PNG, which the SNP output carries
+    // What plain matplotlib would have shown: just the plot PNG, which the Plottery output carries
     // alongside its UI HTML (and its hover-region SVG, which we must not show instead).
     function plain_plot_outputs(output) {
       if (!is_plottery_output(output)) return [output];
@@ -322,7 +322,7 @@ const plugin = {
       const outputs = cell.model.outputs;
       const output_jsons = Array.from({ length: outputs.length }, (_, i) => outputs.get(i).toJSON());
       if (!output_jsons.some(is_plottery_output)) return;
-      cell.node.querySelectorAll('.snp_outer').forEach(snp_outer => window.detach_snp?.(snp_outer));
+      cell.node.querySelectorAll('.plottery_outer').forEach(plottery_outer => window.detach_plottery?.(plottery_outer));
       outputs.clear();
       output_jsons.flatMap(plain_plot_outputs).forEach(output => outputs.add(output));
     }
@@ -357,7 +357,7 @@ const plugin = {
     };
 
     function set_kernel_plottery_enabled(kernel) {
-      kernel?.requestExecute({ code: `snp.set_enabled(${plottery_enabled() ? 'True' : 'False'})`, silent: true, store_history: false });
+      kernel?.requestExecute({ code: `plottery.set_enabled(${plottery_enabled() ? 'True' : 'False'})`, silent: true, store_history: false });
     }
 
     // rerun_current_cell: redraw the active cell with Plottery (only on this tab's own toggle,
@@ -386,10 +386,10 @@ const plugin = {
 
         // Pre-pass: inject figure/axes parameter type annotations into the user's visible cell
         // so calls inside their functions get recognized by type inference. Skip quick redraws
-        // (on-plot drags / direct manipulation), which set doesnt_need_snp_show_ui. (JupyterLab
+        // (on-plot drags / direct manipulation), which set doesnt_need_plottery_show_ui. (JupyterLab
         // has no manual-only execution hook, so hard_rerun-based GUI actions still pass through;
         // those are idempotent no-ops once annotated. LLM results are annotated in ai_panel.)
-        if (cell && !metadata.doesnt_need_snp_show_ui) {
+        if (cell && !metadata.doesnt_need_plottery_show_ui) {
           const current = cell.model.sharedModel.source;
           const annotated = annotate_figure_axes_params(current, notebook_code_through_cell);
           if (annotated !== current) {
@@ -417,30 +417,30 @@ const plugin = {
             cell_code_show_replaced.replaceAll(regex, function (_match, index) {
               const plt_show_lineno_in_cell = cell_code_show_replaced.substr(0, index).split('\n').length; // 1-indexed
               const notebook_code_as_python_str = JSON.stringify(notebook_code_through_cell);
-              return `snp.show(globals() | locals(), ${cell_lineno}, ${plt_show_lineno_in_cell}, ${provenance_is_off_by_n_lines}, ${notebook_code_as_python_str},`;;
+              return `plottery.show(globals() | locals(), ${cell_lineno}, ${plt_show_lineno_in_cell}, ${provenance_is_off_by_n_lines}, ${notebook_code_as_python_str},`;;
             });
         }
 
         // Only replace code if the cell is somehow using plt.show()
-        if (cell_code_show_replaced.includes('snp.show(')) {
-          // Sometimes the front end explicitly adds snp.show_ui(snp_class=FigureOnly) etc to
+        if (cell_code_show_replaced.includes('plottery.show(')) {
+          // Sometimes the front end explicitly adds plottery.show_ui(plottery_class=FigureOnly) etc to
           // do a quick render, then we don't need to add another show_ui
-          if (metadata.doesnt_need_snp_show_ui) {
-            // console.log('metadata.doesnt_need_snp_show_ui', metadata.doesnt_need_snp_show_ui);
+          if (metadata.doesnt_need_plottery_show_ui) {
+            // console.log('metadata.doesnt_need_plottery_show_ui', metadata.doesnt_need_plottery_show_ui);
             content.code = cell_code_show_replaced;
           } else {
             const fig_idx = get_persistent_item(cell, 'fig_idx') || '0'; // Recall which fig is selected in the UI by querying the front-end's state.persistent_dataset
             content.code =
 `${cell_code_show_replaced}
-last_snp = snp.show_ui(fig_idx=${fig_idx}) # Store to a variable for debugging
-last_snp`;
+last_plottery = plottery.show_ui(fig_idx=${fig_idx}) # Store to a variable for debugging
+last_plottery`;
           }
         }
       }
     }
 
 
-    console.log('Activating snp_jupyter');
+    console.log('Activating plottery_jupyter');
     console.log('app', app);
     console.log('tracker', tracker);
     window.app = app; // debugging
@@ -461,11 +461,11 @@ last_snp`;
     window.__CM6Decoration = Decoration;
 
     // Expose for the bundle (the AI panel reuses this on LLM results) so the logic isn't duplicated.
-    window.__snp_annotate_figure_axes_params = annotate_figure_axes_params;
+    window.__plottery_annotate_figure_axes_params = annotate_figure_axes_params;
 
     const { commands } = app;
-    const new_plot_command = 'snp:new-plot';
-    const toggle_plottery_command = 'snp:toggle-plottery';
+    const new_plot_command = 'plottery:new-plot';
+    const toggle_plottery_command = 'plottery:toggle';
 
     commands.addCommand(toggle_plottery_command, {
       label: 'Toggle Plottery',
@@ -479,7 +479,7 @@ last_snp`;
     // class: the bundle's CSS only loads with a Plottery output, and its switch is position: absolute.
     const plottery_toggle_style = document.createElement('style');
     plottery_toggle_style.textContent = `
-      .snp-toolbar-switch {
+      .plottery-toolbar-switch {
         --knob-size: 14px;
         --travel: var(--knob-size);
         box-sizing: border-box;
@@ -494,11 +494,11 @@ last_snp`;
         background-color: lightgray;
         transition: all 80ms;
       }
-      .snp-toolbar-switch.on {
+      .plottery-toolbar-switch.on {
         padding-left: calc(1px + var(--travel));
         background-color: rgb(69, 231, 69);
       }
-      .snp-toolbar-switch > .switch-knob {
+      .plottery-toolbar-switch > .switch-knob {
         box-sizing: border-box;
         display: inline-block;
         vertical-align: top;
@@ -508,7 +508,7 @@ last_snp`;
         background-color: whitesmoke;
         border: 1px solid darkgray;
       }
-      .snp-plottery-toggle {
+      .plottery-toggle {
         display: flex;
         align-items: center;
         gap: 5px;
@@ -522,16 +522,16 @@ last_snp`;
 
     function update_plottery_toggles() {
       const enabled = plottery_enabled();
-      document.querySelectorAll('.snp-plottery-toggle').forEach(el => {
-        el.querySelector('.snp-toolbar-switch').classList.toggle('on', enabled);
+      document.querySelectorAll('.plottery-toggle').forEach(el => {
+        el.querySelector('.plottery-toolbar-switch').classList.toggle('on', enabled);
         el.title = enabled ? 'Plottery is on. Click to use ordinary Matplotlib.' : 'Plottery is off. Click to turn it on.';
       });
     }
 
     function make_plottery_toggle() {
       const node = document.createElement('div');
-      node.className = 'snp-plottery-toggle';
-      node.innerHTML = '<span class="snp-toolbar-switch"><span class="switch-knob"></span></span><span>Plottery</span>';
+      node.className = 'plottery-toggle';
+      node.innerHTML = '<span class="plottery-toolbar-switch"><span class="switch-knob"></span></span><span>Plottery</span>';
       node.addEventListener('click', () => commands.execute(toggle_plottery_command));
       return new Widget({ node });
     }
@@ -627,14 +627,14 @@ plt.show()`;
       // from our own JS later.
       panel.node.__panel = panel;
 
-      // import snp whenever kernel is restarted
+      // import plottery whenever kernel is restarted
       panel.sessionContext.kernelChanged.connect((_, { newValue: kernel }) => {
         console.log('kernel', kernel);
         window.kernel = kernel; // debugging
         if (kernel) {
-          console.log("Kernel ready, importing snp");
+          console.log("Kernel ready, importing plottery");
           // Also on a page reload, which reconnects to a kernel that may be in the other on/off state.
-          kernel.requestExecute({ code: `import snp\nsnp.set_enabled(${plottery_enabled() ? 'True' : 'False'})` });
+          kernel.requestExecute({ code: `import plottery\nplottery.set_enabled(${plottery_enabled() ? 'True' : 'False'})` });
         }
       // });
 
@@ -647,7 +647,7 @@ plt.show()`;
           return;
         }
 
-        if (!kernel.snp_wrapper_attached) {
+        if (!kernel.plottery_wrapper_attached) {
           kernel.sendShellMessage = (
             (originalSendShellMessage => (...args) => {
               const { header, content, metadata } = args[0];
@@ -674,7 +674,7 @@ plt.show()`;
             })(kernel.sendShellMessage)
           );
 
-          kernel.snp_wrapper_attached = true;
+          kernel.plottery_wrapper_attached = true;
         }
       });
     });

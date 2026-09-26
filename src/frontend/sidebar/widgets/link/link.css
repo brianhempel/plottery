@@ -1,11 +1,11 @@
-.snp-link-suggestion {
+.plottery-link-suggestion {
   display: flex;
   align-items: center;
   gap: 5px;
   white-space: nowrap;
 }
 
-.snp-link-swatch {
+.plottery-link-swatch {
   width: 11px;
   height: 11px;
   flex-shrink: 0;
@@ -13,11 +13,11 @@
   border: 1px solid rgba(0, 0, 0, 0.25);
 }
 
-.snp-link-arg-name {
+.plottery-link-arg-name {
   font-weight: bold;
 }
 
-.snp-link-of {
+.plottery-link-of {
   opacity: 0.55;
   font-style: italic;
 }

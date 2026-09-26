@@ -33,7 +33,7 @@ import "./call.css";
 // Reference a call by name and line number.
 //
 // Used only to identify newly added calls in the code, for
-// selecting them after SNP regenerates on the cell re-run.
+// selecting them after Plottery regenerates on the cell re-run.
 // So it's quite transient.
 //
 // We can't use call_id because it's hard to compute the appropriate call number
@@ -71,11 +71,11 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
   const call_el = create_el("div", []);
   const header_el = create_el("div", [], call_el);
-  // const proxies_el = create_el("div", ["snp-args", "snp-proxy-args"], call_el);
-  const properties_el = create_el("div", ["snp-args"], call_el);
+  // const proxies_el = create_el("div", ["plottery-args", "plottery-proxy-args"], call_el);
+  const properties_el = create_el("div", ["plottery-args"], call_el);
 
-  call_el.classList.add("snp-call");
-  const name_el = create_el("div", "snp-call-name", header_el);
+  call_el.classList.add("plottery-call");
+  const name_el = create_el("div", "plottery-call-name", header_el);
 
 
   name_el.textContent = call.call_info.func_code;
@@ -287,7 +287,7 @@ function type_could_be_number(type: Type) : boolean {
     case "LiteralType":   return type_could_be_number(type.fallback); // Literal["left"] falls back to builtins.str
     case "TypeAliasType": return type_could_be_number(type.resolved);
     case "UnionType":     return type.items.every(type_could_be_number);
-    default:              return true; // AnyType, NoneType (which snp.py also sends when mypy has no type), etc.
+    default:              return true; // AnyType, NoneType (which plottery.py also sends when mypy has no type), etc.
   }
 }
 
@@ -372,6 +372,6 @@ function drag_handler_for_arg_view(arg: Arg, view: ArgView, x_or_y: 'x' | 'y', r
     }
     target_widget.set_code(new_arg_code);
 
-    rate_limit("dragging", 500, () => { log_event("gui", "on-plot dragging", {arg: view.el.querySelector('.snp-arg-name')?.textContent || '', arg_code: new_arg_code, drag_direction: x_or_y}); });
+    rate_limit("dragging", 500, () => { log_event("gui", "on-plot dragging", {arg: view.el.querySelector('.plottery-arg-name')?.textContent || '', arg_code: new_arg_code, drag_direction: x_or_y}); });
   };
 }

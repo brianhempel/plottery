@@ -6,12 +6,10 @@
 
 Quick orientation (details in `README.md`):
 
-- `src/snp.py` — Python core: rendering, mypy type inference, hover regions, serialization.
-- `src/frontend/` — TypeScript UI, bundled by Vite → `dist/plugin.js` (entry `attach_snp()` in `main.ts`).
-- `src/nbextension_snp/` — browser extension for classic Jupyter Notebook v6.
-- `src/snp_jupyter/` — browser extension for JupyterLab / Notebook v7.
-
-The product is "Plottery" but the code still uses the old name `snp` / `SNP`.
+- `src/plottery.py` — Python core: rendering, mypy type inference, hover regions, serialization.
+- `src/frontend/` — TypeScript UI, bundled by Vite → `dist/plugin.js` (entry `attach_plottery()` in `main.ts`).
+- `src/nbextension_plottery/` — browser extension for classic Jupyter Notebook v6.
+- `src/plottery_jupyter/` — browser extension for JupyterLab / Notebook v7.
 
 ## No Outer-Level const/let in Typescript
 
@@ -26,8 +24,8 @@ To answer questions about Matplotlib's internals, reference its current source a
 | Change you made | How to rebuild |
 |---|---|
 | `src/frontend/` (TS/CSS) | `npm run watch-ts` (rebuilds on save) or `npm run build-ts` (one-shot) |
-| Notebook v6 extension (`src/nbextension_snp/`) | `npm run build` (installs + enables the nbextension and builds the bundle) |
-| JupyterLab extension (`src/snp_jupyter/`) | `npm run install-labextension` |
+| Notebook v6 extension (`src/nbextension_plottery/`) | `npm run build` (installs + enables the nbextension and builds the bundle) |
+| JupyterLab extension (`src/plottery_jupyter/`) | `npm run install-labextension` |
 
 There is **no automated test suite**. Verify changes by exercising the live UI (below).
 
@@ -38,8 +36,8 @@ Plottery only exists as the interactive output of a Jupyter cell, so "testing" m
 ### 1. Make sure your change is actually live
 
 - **Frontend (`src/frontend/`):** keep `npm run watch-ts` running, then **re-run the plot cell**. The JS bundle is re-inlined into the cell output on every manual run, so a cell re-run is enough to pick up TS/CSS changes — no Jupyter restart needed.
-- **Python (`src/snp.py`, `src/serialize.py`, …):** `snp` is imported once at kernel start, so **restart the kernel** and re-run the cell to pick up changes.
-- **Extensions (`nbextension_snp` / `snp_jupyter`):** rebuild (`npm run build` / `npm run install-labextension`), then hard-reload the browser page.
+- **Python (`src/plottery.py`, `src/serialize.py`, …):** `plottery` is imported once at kernel start, so **restart the kernel** and re-run the cell to pick up changes.
+- **Extensions (`nbextension_plottery` / `plottery_jupyter`):** rebuild (`npm run build` / `npm run install-labextension`), then hard-reload the browser page.
 
 ### 2. Start Jupyter in the background
 
@@ -70,7 +68,7 @@ plt.show()
 
 Run it with Shift+Enter; the Plottery UI renders in the cell output. (Most demo notebooks under `src/` rely on local data — prefer the snippet above.)
 
-> **Put the test notebook in `src/`.** The nbextension boots the kernel with a bare `import snp` and no `sys.path` setup, and a kernel's working dir is its notebook's folder — so the notebook must sit next to `src/snp.py`. A notebook elsewhere (e.g. the repo root) fails with `NameError: name 'snp' is not defined`, even though the `plt.show()` → `snp.show(...)` rewrite still succeeds (a confusing symptom).
+> **Put the test notebook in `src/`.** The nbextension boots the kernel with a bare `import plottery` and no `sys.path` setup, and a kernel's working dir is its notebook's folder — so the notebook must sit next to `src/plottery.py`. A notebook elsewhere (e.g. the repo root) fails with `NameError: name 'plottery' is not defined`, even though the `plt.show()` → `plottery.show(...)` rewrite still succeeds (a confusing symptom).
 
 ### 4. Exercise the UI and verify
 
@@ -131,7 +129,7 @@ node cdp_send.js Domain.method '{"param":"value"}' - send arbitrary CDP command 
 3. A fresh kernel has no live UI yet, so **run the cell**, then wait for the UI:
 
         node eval.js 'Jupyter.notebook.execute_cells([0])'
-        node wait_for.js '.snp-layers-panel' 40000
+        node wait_for.js '.plottery-layers-panel' 40000
 
 4. Check the code-is-ground-truth invariant anytime with `node eval.js 'Jupyter.notebook.get_cell(0).get_text()'`.
 
@@ -150,10 +148,10 @@ Overlapping regions intercept by z-order (`fig` / `ax` span the whole plot; a fr
 
 #### Key DOM hooks (for CDP selectors)
 
-- `.snp-layers-panel`, `.snp-layer` — layer rows (includes a hidden `.snp-code-layer` per import/blank line).
-- `.snp-properties-panel`, `.snp-args` — the selected call's argument rows/widgets.
+- `.plottery-layers-panel`, `.plottery-layer` — layer rows (includes a hidden `.plottery-code-layer` per import/blank line).
+- `.plottery-properties-panel`, `.plottery-args` — the selected call's argument rows/widgets.
 - `[data-call-id]` — hover-region `<g>` on the plot (also carries `data-artist-name` and `data-*-bounds`).
-- `.snp-method-view` — on-plot ＋ buttons/menus; **only visible while the plot is hovered** (`.plot_area:hover`), so move the mouse over the plot first. `.snp-menu-item` are the items inside an opened menu.
+- `.plottery-method-view` — on-plot ＋ buttons/menus; **only visible while the plot is hovered** (`.plot_area:hover`), so move the mouse over the plot first. `.plottery-menu-item` are the items inside an opened menu.
 - `.plot_area img` (plot PNG), `.hover_regions` (SVG overlay), `.stdout_stderr` (renders kernel error text — check it after an action).
 
 Note: a click on a plot object is swallowed while an argument **dropdown drawer is open** — send `node type.js --key Escape` first.

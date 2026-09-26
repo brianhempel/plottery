@@ -12,14 +12,14 @@ export type LiteralWidget = Widget & {
 // the user edit it freely anyway.
 export function create_literal_widget(type: LiteralType): LiteralWidget {
 
-  const el = create_el("div", ["snp-widget", "literal-widget"]);
+  const el = create_el("div", ["plottery-widget", "literal-widget"]);
   el.textContent = type.value_unparsed;
 
   if ((type.fallback as IInstanceType)?.type_ref == 'builtins.str') {
-    el.classList.add("snp-arg-str");
+    el.classList.add("plottery-arg-str");
   } else if ((type.fallback as IInstanceType)?.type_ref == 'builtins.float' ||
              (type.fallback as IInstanceType)?.type_ref == 'builtins.int') {
-    el.classList.add("snp-arg-number");
+    el.classList.add("plottery-arg-number");
   }
 
   const widget: LiteralWidget = {

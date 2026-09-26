@@ -18,31 +18,31 @@ import { Cell, jupyterlab_cell_to_notebook_v6_cell, JupyterLabCell, JupyterLabNo
 
 // declare global {
 //   interface EventTarget {
-//     snpOrigAddEventListener: EventTarget['addEventListener'];
-//     snpEventListeners: { eventName: string, f: EventListenerOrEventListenerObject | null, opts: boolean | AddEventListenerOptions | undefined }[];
+//     plotteryOrigAddEventListener: EventTarget['addEventListener'];
+//     plotteryEventListeners: { eventName: string, f: EventListenerOrEventListenerObject | null, opts: boolean | AddEventListenerOptions | undefined }[];
 //     // removeEventListeners: () => void;
 //   }
 // }
 
-// if(!EventTarget.prototype.snpOrigAddEventListener) {
+// if(!EventTarget.prototype.plotteryOrigAddEventListener) {
 //   // Keep track of event listeners so we can remove them
 //   // Based on Ivan Castellanos & alex, https://stackoverflow.com/a/6434924
-//   EventTarget.prototype.snpOrigAddEventListener = EventTarget.prototype.addEventListener;
+//   EventTarget.prototype.plotteryOrigAddEventListener = EventTarget.prototype.addEventListener;
 //   EventTarget.prototype.addEventListener = function (eventName, f, opts) {
-//     this.snpOrigAddEventListener(eventName, f, opts);
-//     this.snpEventListeners = this.snpEventListeners || [];
-//     this.snpEventListeners.push({ eventName: eventName, f: f , opts: opts });
+//     this.plotteryOrigAddEventListener(eventName, f, opts);
+//     this.plotteryEventListeners = this.plotteryEventListeners || [];
+//     this.plotteryEventListeners.push({ eventName: eventName, f: f , opts: opts });
 //   };
 //   // EventTarget.prototype.removeEventListeners = function() {
-//   //   for (const { eventName, f, opts } of (this.snpEventListeners || [])) {
+//   //   for (const { eventName, f, opts } of (this.plotteryEventListeners || [])) {
 //   //     this.removeEventListener(eventName, f, opts)
 //   //   }
-//   //   this.snpEventListeners = [];
+//   //   this.plotteryEventListeners = [];
 //   // };
 // }
 
 // export function copy_event_listeners(from: EventTarget, to: EventTarget) {
-//   for (const { eventName, f, opts } of (from.snpEventListeners || [])) {
+//   for (const { eventName, f, opts } of (from.plotteryEventListeners || [])) {
 //     to.addEventListener(eventName, f, opts);
 //   }
 // }
@@ -55,18 +55,18 @@ declare const Jupyter: JupyterType | undefined;
 
 // Our extension throws the JS object onto the DOM object
 // so we can get it here.
-function jupyterlab_notebook_panel(snp_outer: HTMLElement): JupyterLabNotebookPanel {
-  return (snp_outer.closest(".jp-NotebookPanel") as any).__panel;
+function jupyterlab_notebook_panel(plottery_outer: HTMLElement): JupyterLabNotebookPanel {
+  return (plottery_outer.closest(".jp-NotebookPanel") as any).__panel;
 }
-function jupyterlab_code_cells(snp_outer: HTMLElement): Cell[] {
-  return jupyterlab_notebook_panel(snp_outer).content.cellsArray
+function jupyterlab_code_cells(plottery_outer: HTMLElement): Cell[] {
+  return jupyterlab_notebook_panel(plottery_outer).content.cellsArray
     .filter(jl_cell => jl_cell.model.sharedModel.cell_type === "code")
     .map(jupyterlab_cell_to_notebook_v6_cell);
 }
-export function notebook_code_cells(snp_outer: HTMLElement): Cell[] {
+export function notebook_code_cells(plottery_outer: HTMLElement): Cell[] {
   return Jupyter
     ? Jupyter.notebook.get_cells().filter(cell => cell.cell_type === "code")
-    : jupyterlab_code_cells(snp_outer);
+    : jupyterlab_code_cells(plottery_outer);
 }
 
 
@@ -103,14 +103,14 @@ export function sync_jupyter_cell_height(state: State): void {
   // every cell run, so we can't hold it in a module-level cache. Sub-pixel tolerance avoids
   // churn from layout rounding.
   const node_store = node as any;
-  const prev_height: number | undefined = node_store.__snp_last_synced_height;
+  const prev_height: number | undefined = node_store.__plottery_last_synced_height;
   if (prev_height !== undefined && Math.abs(prev_height - height) < 1) return;
-  node_store.__snp_last_synced_height = height;
+  node_store.__plottery_last_synced_height = height;
 
   node.style.containIntrinsicSize = `auto ${height}px`;
 
   const cell_id = jl_cell.model.sharedModel.id || jl_cell.model.sharedModel.getId();
-  const notebook = jupyterlab_notebook_panel(state.snp_outer)?.content as
+  const notebook = jupyterlab_notebook_panel(state.plottery_outer)?.content as
     | (JupyterLabNotebookPanel["content"] & { _viewModel?: JupyterLabNotebookPanel["content"]["viewModel"] })
     | undefined;
   const view_model = notebook?.viewModel ?? notebook?._viewModel;
@@ -122,32 +122,32 @@ export function sync_jupyter_cell_height(state: State): void {
 export function attach_jupyter_cell_height_sync(state: State): void {
   if (Jupyter) return;
 
-  // The Cell widget persists across manual re-runs (only its output — and thus snp_outer — is
+  // The Cell widget persists across manual re-runs (only its output — and thus plottery_outer — is
   // replaced), so tear down the previous render's observers before wiring up new ones. Otherwise
   // each re-run leaks a ResizeObserver + a cells.changed slot that pin the old, detached
-  // snp_outer subtree until some later structural cell change happens to sweep them. The teardown
+  // plottery_outer subtree until some later structural cell change happens to sweep them. The teardown
   // fn is stashed on the (persistent) cell node — the bundle is re-injected each run, so it can't
   // live in a module-level variable.
   const cell_node = state.cell.jupyterlab_cell?.node;
   if (!cell_node) return;
   const store = cell_node as any;
-  store.__snp_cell_height_sync_teardown?.();
+  store.__plottery_cell_height_sync_teardown?.();
 
   const cleanups: Array<() => void> = [];
   const teardown = () => {
     while (cleanups.length) cleanups.pop()!();
-    if (store.__snp_cell_height_sync_teardown === teardown) {
-      delete store.__snp_cell_height_sync_teardown;
+    if (store.__plottery_cell_height_sync_teardown === teardown) {
+      delete store.__plottery_cell_height_sync_teardown;
     }
   };
-  store.__snp_cell_height_sync_teardown = teardown;
+  store.__plottery_cell_height_sync_teardown = teardown;
 
   const sync = () => sync_jupyter_cell_height(state);
 
   // After this attach's layout settles.
   requestAnimationFrame(sync);
 
-  // snp_outer resizes rapidly during shape drags / sidebar-width changes, and each sync forces a
+  // plottery_outer resizes rapidly during shape drags / sidebar-width changes, and each sync forces a
   // synchronous reflow (it toggles content-visibility to measure). Coalesce a burst of resizes
   // into a single trailing sync.
   let resize_timer: number | undefined;
@@ -156,7 +156,7 @@ export function attach_jupyter_cell_height_sync(state: State): void {
     if (resize_timer !== undefined) window.clearTimeout(resize_timer);
     resize_timer = window.setTimeout(() => { resize_timer = undefined; sync(); }, 100);
   });
-  resize_observer.observe(state.snp_outer);
+  resize_observer.observe(state.plottery_outer);
   cleanups.push(() => {
     resize_observer.disconnect();
     if (resize_timer !== undefined) window.clearTimeout(resize_timer);
@@ -164,7 +164,7 @@ export function attach_jupyter_cell_height_sync(state: State): void {
 
   let cells_changed: JupyterLabNotebookPanel["content"]["model"]["cells"]["changed"] | undefined;
   try {
-    cells_changed = jupyterlab_notebook_panel(state.snp_outer)?.content?.model?.cells?.changed;
+    cells_changed = jupyterlab_notebook_panel(state.plottery_outer)?.content?.model?.cells?.changed;
   } catch {
     return;
   }
@@ -182,18 +182,18 @@ export function attach_jupyter_cell_height_sync(state: State): void {
 
 // Stop syncing and forget the pushed height, so Notebook estimates the cell's size itself again
 // once its Plottery UI is gone.
-export function detach_jupyter_cell_height_sync(cell: Cell, snp_outer: HTMLElement): void {
+export function detach_jupyter_cell_height_sync(cell: Cell, plottery_outer: HTMLElement): void {
   if (Jupyter) return;
 
   const jl_cell = cell.jupyterlab_cell;
   const node = jl_cell?.node as any;
   if (!node) return;
-  node.__snp_cell_height_sync_teardown?.();
-  delete node.__snp_last_synced_height;
+  node.__plottery_cell_height_sync_teardown?.();
+  delete node.__plottery_last_synced_height;
   node.style.containIntrinsicSize = "";
 
   const cell_id = jl_cell!.model.sharedModel.id || jl_cell!.model.sharedModel.getId();
-  const notebook = jupyterlab_notebook_panel(snp_outer)?.content as
+  const notebook = jupyterlab_notebook_panel(plottery_outer)?.content as
     | (JupyterLabNotebookPanel["content"] & { _viewModel?: JupyterLabNotebookPanel["content"]["viewModel"] })
     | undefined;
   const view_model = notebook?.viewModel ?? notebook?._viewModel;
@@ -206,21 +206,21 @@ export function detach_jupyter_cell_height_sync(cell: Cell, snp_outer: HTMLEleme
 // E.g. selected layers, which fig to show
 function persistent_dataset(state: State) {
   if (!Jupyter) { throw new Error("persistent_dataset not implemented for JupyterLab"); }
-  return (state.snp_outer.closest('.output')! as HTMLElement).dataset;
+  return (state.plottery_outer.closest('.output')! as HTMLElement).dataset;
 }
 export function get_persistent_item(state: State, key: string) {
   if (Jupyter) { // Notebooks v6, cells may not have ids
     return persistent_dataset(state)[key];
   } else { // JupyterLab
     // this needs to match our labextension's get_persistent_item() function
-    return sessionStorage.getItem(`cell-${state.cell.jupyterlab_cell!.model.sharedModel.id}-snp-${key}`);
+    return sessionStorage.getItem(`cell-${state.cell.jupyterlab_cell!.model.sharedModel.id}-plottery-${key}`);
   }
 }
 export function set_persistent_item(state: State, key: string, value: string) {
   if (Jupyter) { // Notebooks v6, cells may not have ids
     persistent_dataset(state)[key] = value;
   } else { // JupyterLab
-    sessionStorage.setItem(`cell-${state.cell.jupyterlab_cell!.model.sharedModel.id}-snp-${key}`, value);
+    sessionStorage.setItem(`cell-${state.cell.jupyterlab_cell!.model.sharedModel.id}-plottery-${key}`, value);
   }
 }
 
@@ -575,7 +575,7 @@ export function cm_end_pos(pos: Position, cell_lineno: number) {
   return { line: pos.end_line - cell_lineno, ch: pos.end_column };
 }
 
-export function snp_logo_svg_html() {
+export function plottery_logo_svg_html() {
   return `<svg height="22.0955" viewBox="0 0 119.803 22.0955" width="119.803" xmlns="http://www.w3.org/2000/svg"><path d="m24.5353 2.18898v14.36252h-3.8031v-14.36252z"/><path d="m19.3836.134156v16.397844h-3.8031v-16.397844z"/><path d="m14.232 5.47245v11.05955h-3.803v-11.05955z"/><path d="m9.08052 8.75592v7.77608h-3.80303v-7.77608z"/><path d="m3.80303 7.66143v8.87057h-3.80303v-8.87057z"/><path d="m32.4881 7.65507h1.4094c1.5612 0 2.3417-.67939 2.3417-2.03816s-.7805-2.03815-2.3417-2.03815h-1.4094zm0 8.84643h-4.2497v-16.348583h6.7649c1.8358 0 3.2416.477016 4.2173 1.431043.9757.95403 1.4635 2.29835 1.4635 4.03295s-.4878 3.07892-1.4635 4.03295c-.9757.95404-2.3815 1.43104-4.2173 1.43104h-2.5152z"/><path d="m46.4951.0829737v16.4185263h-3.9246v-16.4185263z"/><path d="m52.8914 10.8858c0 .3758.0687.7191.206 1.0299s.318.5818.5421.8131c.224.2313.4914.4119.8022.542s.6396.1952.9866.1952c.3469 0 .6757-.0651.9865-.1952s.5782-.3107.8023-.542c.224-.2313.4047-.5023.542-.8131.1374-.3108.206-.6469.206-1.0083 0-.3469-.0686-.6757-.206-.98651-.1373-.31078-.318-.58181-.542-.81309-.2241-.23128-.4915-.41197-.8023-.54206-.3108-.1301-.6396-.19515-.9865-.19515-.347 0-.6758.06505-.9866.19515-.3108.13009-.5782.31078-.8022.54206-.2241.23128-.4048.4987-.5421.80225s-.206.62875-.206.97575zm-4.1414-.0434c0-.8239.1663-1.59366.4987-2.30919.3325-.71552.7951-1.33709 1.3877-1.8647.5927-.5276 1.2974-.94318 2.1141-1.24674.8167-.30355 1.7093-.45533 2.6778-.45533.954 0 1.8394.14816 2.6561.44449s1.525.70829 2.1249 1.2359c.5998.52761 1.066 1.1564 1.3985 1.88638.3324.72998.4987 1.53589.4987 2.41759 0 .8818-.1699 1.6876-.5096 2.4176s-.8058 1.3588-1.3985 1.8864c-.5926.5276-1.3046.936-2.1357 1.2251-.8312.2891-1.731.4336-2.6995.4336-.954 0-1.8358-.1445-2.6453-.4336-.8094-.2891-1.5069-.7011-2.0923-1.2359-.5855-.5349-1.0444-1.1745-1.3769-1.919-.3324-.7444-.4987-1.5719-.4987-2.4826z"/><path d="m68.8064 8.65247v7.84903h-3.9246v-7.84903h-1.3009v-3.27406h1.3009v-3.33911h3.9246v3.33911h2.2333v3.27406z"/><path d="m77.4794 8.65247v7.84903h-3.9246v-7.84903h-1.3009v-3.27406h1.3009v-3.33911h3.9246v3.33911h2.2333v3.27406z"/><path d="m89.5349 9.32462c-.1301-.54929-.3976-.99016-.8023-1.32263s-.8962-.4987-1.4744-.4987c-.6071 0-1.1022.15901-1.4853.47702-.383.31801-.6251.76611-.7263 1.34431zm-4.5967 2.27668c0 1.6912.795 2.5368 2.385 2.5368.8529 0 1.4961-.3469 1.9298-1.0407h3.7944c-.7661 2.5441-2.6814 3.8161-5.7458 3.8161-.9396 0-1.7997-.1409-2.5803-.4228-.7805-.2819-1.4491-.683-2.0056-1.2034s-.9865-1.1419-1.2901-1.8647c-.3036-.7227-.4553-1.5322-.4553-2.4284 0-.9251.1445-1.75992.4336-2.50435.2891-.74444.7011-1.37684 1.2359-1.89722.5349-.52038 1.1817-.92151 1.9406-1.20338.7589-.28188 1.6154-.42281 2.5694-.42281.9396 0 1.7852.14093 2.5368.42281.7517.28187 1.3877.69022 1.9081 1.22506.5204.53483.9179 1.18892 1.1925 1.96227.2747.77334.412 1.64422.412 2.61272v.412z"/><path d="m95.4325 5.37841h3.9245v1.82133c.4192-.66493.932-1.17447 1.539-1.52862.608-.35415 1.316-.53122 2.125-.53122h.336c.123 0 .264.01445.423.04336v3.75108c-.52-.26019-1.084-.39029-1.691-.39029-.911 0-1.594.27103-2.049.8131-.4553.54206-.683 1.33345-.683 2.37425v4.7701h-3.9245z"/><path d="m110.242 14.9838s-5.378-9.60539-5.378-9.60539h4.554s2.97 5.70249 2.97 5.70249 2.884-5.70249 2.884-5.70249h4.51s-8.933 16.67389-8.933 16.67389h-4.402s3.795-7.0685 3.795-7.0685z"/></svg>`
 }
 

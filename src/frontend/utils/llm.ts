@@ -1,4 +1,4 @@
-// Server-provided API keys, keyed by provider name (passed in from snp.py's env vars).
+// Server-provided API keys, keyed by provider name (passed in from plottery.py's env vars).
 // The user can override any of these with their own key via the AI config panel (below).
 export type LLMApiKeys = { [provider: string]: string };
 
@@ -12,7 +12,7 @@ export type LLMProviderSettings = {
 };
 
 // The user-editable LLM config, stored in localStorage. Config lives in the frontend now
-// (it was the window.snp_ai_provider flag + hardcoded models) so it's editable from the UI.
+// (it was the window.plottery_ai_provider flag + hardcoded models) so it's editable from the UI.
 export type LLMConfig = {
   provider: string; // the active provider
   by_provider: { [provider: string]: LLMProviderSettings };
@@ -46,7 +46,7 @@ export function llm_config_constants(): {
   DEFAULT_PROVIDER: string;
   CONFIG_KEY: string; // localStorage key
 } {
-  return (window as any).__snp_llm_config_constants ||= {
+  return (window as any).__plottery_llm_config_constants ||= {
   PROVIDERS: {
   openai: {
     label: "OpenAI",
@@ -176,7 +176,7 @@ export function llm_config_constants(): {
   },
   },
   DEFAULT_PROVIDER: "openai",
-  CONFIG_KEY: "snp_llm_config",
+  CONFIG_KEY: "plottery_llm_config",
   };
 }
 

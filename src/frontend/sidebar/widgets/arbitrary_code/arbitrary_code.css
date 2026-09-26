@@ -1,13 +1,13 @@
-.snp-widget.arbitrary-code-widget {
+.plottery-widget.arbitrary-code-widget {
   min-width: 45px;
 }
 
-.snp-dropdown:hover .snp-dropdown-selected-item .snp-widget.arbitrary-code-widget {
+.plottery-dropdown:hover .plottery-dropdown-selected-item .plottery-widget.arbitrary-code-widget {
   border: solid 1px gray;
   margin: -1px 1px -1px -1px;
 }
 
-.snp-chain-link .snp-widget.arbitrary-code-widget {
+.plottery-chain-link .plottery-widget.arbitrary-code-widget {
   /* Lessen chances of code going off the edge of the properties panel: */
   max-width: 133px;
 }

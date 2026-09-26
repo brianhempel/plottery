@@ -20,7 +20,7 @@ export function create_arg_view(
   flush_call?: () => void, // writes the call's current widget state into the cell synchronously (for breaking the first chain link, which edits the call arg)
   call_mark?: TextMarker<MarkerRange> // the call's own mark (for locating the call when applying a link suggestion)
 ): ArgView {
-  const arg_el = create_el("div", "snp-arg-view");
+  const arg_el = create_el("div", "plottery-arg-view");
 
   // Look for '...arg_name...:' and anything following at a higher indent level
   const regex = new RegExp(`^([ \\t]*)[\\w ,]*\\b${arg.name}\\b.*:.*(\\n+\\1[ \\t].*)*`, 'm');
@@ -34,7 +34,7 @@ export function create_arg_view(
   // arg_el.title = JSON.stringify(arg.type);
 
   // Prefix with the argument name
-  const prefixEl = create_el("div", "snp-arg-name", arg_el);
+  const prefixEl = create_el("div", "plottery-arg-name", arg_el);
   prefixEl.innerText = arg.name;
 
   if (options.disabled && arg.required) {
@@ -42,7 +42,7 @@ export function create_arg_view(
   }
 
   if (options.disabled) {
-    arg_el.classList.add("snp-arg-disabled");
+    arg_el.classList.add("plottery-arg-disabled");
   }
 
   // Cross-call link suggestions: dropdown items that introduce a variable shared with another
@@ -266,20 +266,20 @@ function render_provenance_chain(arg: Arg, view: ArgView, state: State, flush_ca
     const to = cm_end_pos(pos, cell_lineno);
     const link_src = cm.getRange(from, to);
 
-    const sep_el = create_el("div", "snp-chain-sep", view.el);
-    const arrow_el = create_el("span", "snp-chain-arrow", sep_el);
+    const sep_el = create_el("div", "plottery-chain-sep", view.el);
+    const arrow_el = create_el("span", "plottery-chain-arrow", sep_el);
     arrow_el.innerText = "▸";
 
     // "×" replacing the arrow on hover: break the chain here (inline this value one level up,
     // re-rooting the chain), previewing by striking out the variable that would be dropped.
-    const break_el = create_el("div", "snp-chain-break", sep_el);
+    const break_el = create_el("div", "plottery-chain-break", sep_el);
     break_el.append(create_red_x_button_icon());
     const var_name = node.var_name ?? (idx === 0 ? committed_code(view.widget) : committed_code(links[idx - 1].widget));
     break_el.title = `Stop using \`${var_name}\` and instead use just \`${link_src}\``;
     // The dropped element is the one immediately left of this arrow (it shows `var_name`).
     const dropped_el = idx === 0 ? view.widget.el : links[idx - 1].link_el;
-    break_el.addEventListener("mouseenter", () => dropped_el.classList.add("snp-chain-strike"));
-    break_el.addEventListener("mouseleave", () => dropped_el.classList.remove("snp-chain-strike"));
+    break_el.addEventListener("mouseenter", () => dropped_el.classList.add("plottery-chain-strike"));
+    break_el.addEventListener("mouseleave", () => dropped_el.classList.remove("plottery-chain-strike"));
     break_el.addEventListener("click", ev => {
       ev.stopPropagation();
       ev.preventDefault();
@@ -287,7 +287,7 @@ function render_provenance_chain(arg: Arg, view: ArgView, state: State, flush_ca
     });
 
     // Wrapper so chain-link sliders can be styled narrower than standalone arg sliders.
-    const link_el = create_el("div", "snp-chain-link", view.el);
+    const link_el = create_el("div", "plottery-chain-link", view.el);
     const widget = make_widget_for_code_and_type(link_src, arg.type, arg.default_code, arg.type_compatible_code_snippets);
     link_el.append(widget.el);
 
@@ -336,21 +336,21 @@ function set_max_width(el: HTMLElement, width_px: number) {
 }
 
 export function enable_arg_view(arg_view: ArgView) {
-  arg_view.el.classList.remove("snp-arg-disabled");
+  arg_view.el.classList.remove("plottery-arg-disabled");
   arg_view.disabled = false;
 }
 
 function disable_arg_view(arg_view: ArgView) {
-  arg_view.el.classList.add("snp-arg-disabled");
+  arg_view.el.classList.add("plottery-arg-disabled");
   arg_view.disabled = true;
 }
 
 // Show the value the value of the control, but in the layer panel
 // export function make_proxy_arg_el(arg : Arg, view : ArgView, state: State) : HTMLElement {
-//   const proxy_arg_el = create_el("div", ["snp-arg-view", "snp-proxy"]);
+//   const proxy_arg_el = create_el("div", ["plottery-arg-view", "plottery-proxy"]);
 
-//   const name_el = create_el("div", ["snp-arg-name", "snp-proxy"], proxy_arg_el);
-//   const code_el = create_el("div", ["snp-arg-value", "snp-proxy"], proxy_arg_el);
+//   const name_el = create_el("div", ["plottery-arg-name", "plottery-proxy"], proxy_arg_el);
+//   const code_el = create_el("div", ["plottery-arg-value", "plottery-proxy"], proxy_arg_el);
 
 //   name_el.innerText = arg.name;
 
@@ -366,7 +366,7 @@ function disable_arg_view(arg_view: ArgView) {
 //     }
 //     if (view.disabled !== last_disabled) {
 //       last_disabled = view.disabled;
-//       proxy_arg_el.classList.toggle("snp-arg-disabled", last_disabled);
+//       proxy_arg_el.classList.toggle("plottery-arg-disabled", last_disabled);
 //     }
 //     state.is_in_dom() && requestAnimationFrame(sync);
 //   }

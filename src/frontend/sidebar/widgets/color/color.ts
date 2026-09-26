@@ -11,10 +11,10 @@ export type ColorWidget = Widget & {
 };
 
 export function create_color_widget(type: TypeAliasType): ColorWidget {
-  const el = create_el("div", "snp-widget");
+  const el = create_el("div", "plottery-widget");
 
   // Color picker
-  const color_picker = create_el("input", "snp-arg-color") as HTMLInputElement;
+  const color_picker = create_el("input", "plottery-arg-color") as HTMLInputElement;
   color_picker.setAttribute("type", "color");
   color_picker.setAttribute("value", "#e66465");
 

@@ -49,7 +49,7 @@ export function place_add_method_buttons_on_plot(state: State) {
     hover_regions.filter(el => el.getAttribute("data-artist-id") == artist_id).forEach(hover_region => {
       let el: HTMLElement;
       if (methods.length == 1) {
-        el = create_el("div", "snp-method-view");
+        el = create_el("div", "plottery-method-view");
         el.innerText = methods[0].receiver_dot_name; // "ax.bar"
         el.title = methods[0].method_info.docstring_first_line || `No documenation for ${methods[0].receiver_dot_name}`;
         el.addEventListener("click", _ => {
@@ -59,10 +59,10 @@ export function place_add_method_buttons_on_plot(state: State) {
       } else {
 
         // Hmm, could probably pull this off the methods somehow
-        // Would avoid the need to store the artist name in the hover region in snp.py
+        // Would avoid the need to store the artist name in the hover region in plottery.py
         const artist_name = (hover_region.getAttribute("data-artist-name") || "unknown").replace(/\.patch$/, ''); // show 'ax.patch' as 'ax' although we want the method positioned relative to the patch
 
-        el = create_menu_el(`<span class="snp-methods-dropdown">${artist_name}&nbsp▾</span>`, 'snp-method-view', undefined)
+        el = create_menu_el(`<span class="plottery-methods-dropdown">${artist_name}&nbsp▾</span>`, 'plottery-method-view', undefined)
 
         if (methods.length >= 5) { add_search(el) }
 
@@ -287,10 +287,10 @@ export function attach_events_to_hover_regions(state: State) {
           fig_bb = state.hover_regions_svg()!.getBoundingClientRect();
           evt.stopPropagation();
           evt.preventDefault();
-          // but still need to gain focus on SNP
-          // Need to focus snp_outer, or whatever has our keyboard command handlers,
+          // but still need to gain focus on Plottery
+          // Need to focus plottery_outer, or whatever has our keyboard command handlers,
           // so that cmd-d etc work after user clicks the plot
-          state.snp_outer.focus({ preventScroll: true });
+          state.plottery_outer.focus({ preventScroll: true });
         });
 
         hover_region.addEventListener("click", evt => {

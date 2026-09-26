@@ -1,28 +1,28 @@
 
-.snp-menu {
+.plottery-menu {
   display: inline-block;
   position: relative;
   cursor: pointer;
 }
-.snp-menu.open {
+.plottery-menu.open {
   z-index: 10;
 }
-.snp-submenu {
+.plottery-submenu {
   display: inline-block;
   position: relative;
 }
-.snp-menu > .snp-menu-panel, /* when menu is opened, snp-menu-panel is moved to document.body and this rule no longer hides it. */
-.snp-submenu > .snp-menu-panel {
+.plottery-menu > .plottery-menu-panel, /* when menu is opened, plottery-menu-panel is moved to document.body and this rule no longer hides it. */
+.plottery-submenu > .plottery-menu-panel {
   display: none;
 }
 /* just for iteration */
-/* .snp-menu.open > .snp-menu-panel {
+/* .plottery-menu.open > .plottery-menu-panel {
   display: block;
 } */
-.snp-submenu:hover > .snp-menu-panel {
+.plottery-submenu:hover > .plottery-menu-panel {
   display: block;
 }
-.snp-menu-panel {
+.plottery-menu-panel {
   background: white;
   position: absolute;
   z-index: 1002;
@@ -30,19 +30,19 @@
   border: solid 1px lightgray;
   overflow: auto;
 }
-.snp-menu-items {
+.plottery-menu-items {
   max-height: 33vh;
   overflow: auto;
 }
-.snp-submenu > .snp-menu-panel {
+.plottery-submenu > .plottery-menu-panel {
   top: 0;
   right: -100%;
 }
 
-.snp-search-container {
+.plottery-search-container {
   position: relative;
 }
-input.snp-menu-search {
+input.plottery-menu-search {
   margin: 4px;
   color: #000;
   border-radius: 1em;
@@ -50,7 +50,7 @@ input.snp-menu-search {
   padding-left: 23px;
   font-size: 12px;
 }
-.snp-search-icon {
+.plottery-search-icon {
   position: absolute;
   left: 10px;
   height: 14px;
@@ -59,7 +59,7 @@ input.snp-menu-search {
   opacity: 0.7;
 }
 
-.snp-menu-item {
+.plottery-menu-item {
   box-sizing: border-box; /* JupyterLab */
 
   margin: 0;
@@ -73,14 +73,14 @@ input.snp-menu-search {
   justify-content: space-between;
   align-items: flex-end;
 }
-.snp-menu-item kbd {
+.plottery-menu-item kbd {
   margin: 0;
 }
-.snp-menu-item:hover:not(.disabled),
-.snp-menu-item.active:not(.disabled) {
+.plottery-menu-item:hover:not(.disabled),
+.plottery-menu-item.active:not(.disabled) {
   background: whitesmoke;
 }
-.snp-menu-click-to-close-overlay {
+.plottery-menu-click-to-close-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -90,10 +90,10 @@ input.snp-menu-search {
   background-color: transparent;
   cursor: default;
 }
-.snp-menu-item.disabled {
+.plottery-menu-item.disabled {
   color: lightgray;
 }
-.snp-menu-item.disabled kbd {
+.plottery-menu-item.disabled kbd {
   color: lightgray;
   border-color: lightgray;
 }

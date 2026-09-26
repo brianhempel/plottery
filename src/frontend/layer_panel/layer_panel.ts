@@ -37,7 +37,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
   // group per clause, so it can't use the single-layer flow below.
   if (typed_node['.class'] === 'mypy.nodes.IfStmt') return if_stmt_layers(typed_node, state, indent_level);
 
-  const layer_el = create_el("div", "snp-layer");
+  const layer_el = create_el("div", "plottery-layer");
 
   // console.log('layer typed node:', typed_node)
 
@@ -207,7 +207,7 @@ export function layers_from_typed_node(typed_node: any, state: State, indent_lev
     sublayers.push(...typed_node.body.body.flatMap((node: any) => layers_from_typed_node(node, state, indent_level + 1)));
   } else {
     layer_el.innerText = typed_node.unparsed;
-    layer_el.classList.add("snp-code-layer");
+    layer_el.classList.add("plottery-code-layer");
   }
   layer_el.classList.add(`indent-${indent_level}`)
 
@@ -293,7 +293,7 @@ function if_stmt_layers(typed_node: any, state: State, indent_level: number): La
   const layers: Layer[] = [];
 
   clauses.forEach((clause, c) => {
-    const layer_el = create_el("div", "snp-layer");
+    const layer_el = create_el("div", "plottery-layer");
     const layer_code_line = create_el('div', [], layer_el);
 
     const header_start = { line: clause.header_line, ch: 0 };
@@ -366,7 +366,7 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
   layer_el.addEventListener("drop", ev => drop(ev, layer, state));
 
   // Show/hide layers
-  const visible_checkbox = create_el("input", "snp-layer-checkbox", layer_el) as HTMLInputElement;
+  const visible_checkbox = create_el("input", "plottery-layer-checkbox", layer_el) as HTMLInputElement;
   visible_checkbox.type = "checkbox";
   visible_checkbox.checked = checked;
   visible_checkbox.addEventListener("change", ev => {
@@ -396,7 +396,7 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
 // Commented-out code comes in a few styles. The "#" may be followed by the conventional space
 // ("    # code", "#     code") or may itself stand in for an indentation char ("    #code",
 // "#    code"). If the whitespace around the "#" adds up to an odd width, assume the conventional
-// space and drop it. Keep in sync with comment_drops_space in snp.py.
+// space and drop it. Keep in sync with comment_drops_space in plottery.py.
 function comment_drops_space(line: string): boolean {
   const match = line.match(/^([ \t]*)#([ \t]*)/);
   if (!match) return false;
@@ -405,7 +405,7 @@ function comment_drops_space(line: string): boolean {
 }
 
 export function layers_from_parseable_comment(comment: ParseableComment, state: State): Layer[] {
-  const layer_el = create_el("div", "snp-layer");
+  const layer_el = create_el("div", "plottery-layer");
 
   const mark = state.cell.code_mirror.markText(
     cm_start_pos(comment, state.cell_lineno),
@@ -414,7 +414,7 @@ export function layers_from_parseable_comment(comment: ParseableComment, state: 
   );
 
   layer_el.innerText = comment.uncommented;
-  // layer_el.classList.add("snp-code-layer");
+  // layer_el.classList.add("plottery-code-layer");
 
   const indent_level = Math.floor(comment.indent / 4);
   layer_el.classList.add(`indent-${indent_level}`)
@@ -699,11 +699,11 @@ export function selected_layers(state: State): Layer[] {
 }
 
 export function create_layers_panel(layers: Layer[], state: State): LayersPanel {
-  const layers_el = create_el("div", "snp-layers-panel");
+  const layers_el = create_el("div", "plottery-layers-panel");
   const layers_panel_heading = create_el("h2", [], layers_el);
   layers_panel_heading.append("Layers")
 
-  const add_layer_menu = create_menu_el('<span class="snp-add-layer-button">＋ Add Layer</span>', 'add-layer-menu', layers_panel_heading)
+  const add_layer_menu = create_menu_el('<span class="plottery-add-layer-button">＋ Add Layer</span>', 'add-layer-menu', layers_panel_heading)
   add_search(add_layer_menu);
 
   const default_iterable = default_code_for_type({".class": "Instance", "type_ref": "matplotlib._typing.ArrayLike", "args": []});
@@ -899,15 +899,15 @@ export function load_selected_layers(state: State) {
 function highlight_lines_for_selected_layers(state: State) {
   const cm = state.cell.code_mirror;
   cm.eachLine(line => {
-    cm.removeLineClass(line, "gutter", "snp-line-selected");
-    cm.removeLineClass(line, "background", "snp-line-selected");
+    cm.removeLineClass(line, "gutter", "plottery-line-selected");
+    cm.removeLineClass(line, "background", "plottery-line-selected");
   });
   state.layers_panel.layers.forEach(layer => {
     if (is_layer_selected(layer)) {
       const range = layer.mark.find()!;
       for(let i = range.from.line; i <= range.to.line; i++) {
-        cm.addLineClass(i, "gutter", "snp-line-selected");
-        cm.addLineClass(i, "background", "snp-line-selected");
+        cm.addLineClass(i, "gutter", "plottery-line-selected");
+        cm.addLineClass(i, "background", "plottery-line-selected");
       }
     }
   });

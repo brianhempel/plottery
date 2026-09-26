@@ -1,57 +1,57 @@
 /* Don't show until transplanted to properties panel */
-.snp-layers-panel .snp-args:not(.snp-proxy-args) {
+.plottery-layers-panel .plottery-args:not(.plottery-proxy-args) {
   display: none;
 }
 
-.snp-args {
+.plottery-args {
   padding: 0 4px;
 }
 
-/* .snp-proxy-args {
+/* .plottery-proxy-args {
   font-size: 12px;
   opacity: 0.8;
 } */
 
-.snp-arg-str {
+.plottery-arg-str {
   color: #BA2121;
 }
 
-.snp-arg-number {
+.plottery-arg-number {
   color: #080;
 }
 
-.snp-arg-operator {
+.plottery-arg-operator {
   color: #AA22FF;
 }
 
-.snp-arg:focus-visible {
+.plottery-arg:focus-visible {
   outline: none;
 }
 
-/* .snp-remove-arg-button {
+/* .plottery-remove-arg-button {
   content: "\00d7";
 } */
 
-.snp-arg-view {
+.plottery-arg-view {
   display: flex;
   margin-bottom: -3px;
 }
 
 /* Variable-sharing provenance chain separator, e.g. the ▸ in `w2 ▸ w1 ▸ 0.5` */
-.snp-chain-sep {
+.plottery-chain-sep {
   position: relative;
   color: #9a9a9a;
   margin: 0 4px;
   user-select: none;
 }
 
-.snp-chain-sep:hover {
+.plottery-chain-sep:hover {
   color: #686868;
 }
 
 /* Red × that replaces the arrow on hover to break the chain at that link (inline the value,
    stop sharing), previewing the drop by striking out the variable to its left. */
-.snp-chain-break {
+.plottery-chain-break {
   position: absolute;
   inset: 0;
   display: flex;
@@ -62,26 +62,26 @@
   line-height: 0;
 }
 
-.snp-chain-sep:hover .snp-chain-arrow {
+.plottery-chain-sep:hover .plottery-chain-arrow {
   visibility: hidden;
 }
 
-.snp-chain-sep:hover .snp-chain-break {
+.plottery-chain-sep:hover .plottery-chain-break {
   visibility: visible;
 }
 
-.snp-chain-break > svg {
+.plottery-chain-break > svg {
   width: 11px;
   height: 11px;
 }
 
 /* Preview of a chain break: the variable that would be dropped, struck through in red. */
-.snp-chain-strike {
+.plottery-chain-strike {
   position: relative;
   opacity: 0.5;
 }
 
-.snp-chain-strike::after {
+.plottery-chain-strike::after {
   content: "";
   position: absolute;
   left: 0;
@@ -92,40 +92,40 @@
 }
 
 /* Sliders inside a var usage chain are narrower than standalone arg sliders. */
-.snp-chain-link input.snp-slider {
+.plottery-chain-link input.plottery-slider {
   width: 60px;
 }
 
-.snp-arg-disabled {
+.plottery-arg-disabled {
   opacity: 0.5;
   filter: saturate(0.15);
 }
-/* .snp-arg-disabled.snp-proxy {
+/* .plottery-arg-disabled.plottery-proxy {
   display: none;
 } */
 
-.snp-arg-disabled:not(.snp-proxy):hover {
+.plottery-arg-disabled:not(.plottery-proxy):hover {
   opacity: 0.66;
   filter: saturate(0.3);
 }
 
-.snp-arg-name {
+.plottery-arg-name {
   color: #2f67ac;
   font-weight: bold;
   margin-right: 5px;
   /* Width is set in JS because we do some fancy resizing if the name is too long */
 }
-/* .snp-arg-name.snp-proxy {
+/* .plottery-arg-name.plottery-proxy {
   color:#2d4467;
 } */
 
-.snp-arg-disabled > .snp-arg-name {
+.plottery-arg-disabled > .plottery-arg-name {
   font-weight: normal;
   color: #6a6a6a;
 }
 
-.snp-arg-name:not(.snp-proxy):hover,
-.snp-arg-disabled:not(.snp-proxy):hover > .snp-arg-name {
+.plottery-arg-name:not(.plottery-proxy):hover,
+.plottery-arg-disabled:not(.plottery-proxy):hover > .plottery-arg-name {
   cursor: pointer;
   color: #0e4991;
 

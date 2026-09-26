@@ -2,7 +2,7 @@
   margin: 0;
 }
 
-.snp-sidebar-menu-bar {
+.plottery-sidebar-menu-bar {
   display: flex;
   align-items: center;
 
@@ -22,10 +22,10 @@
   padding: 0 0.5em;
 }
 
-.snp-sidebar-menu-bar > .snp-menu > .snp-menu-name {
+.plottery-sidebar-menu-bar > .plottery-menu > .plottery-menu-name {
   padding: 4px 10px;
 }
 
-.snp-fig-selector {
+.plottery-fig-selector {
   max-width: 130px;
 }

@@ -1,10 +1,10 @@
-.snp-ai-panel {
+.plottery-ai-panel {
   font-size: 14px;
   border: solid 1px gray;
   padding: 0;
 }
 
-.snp-ai-panel h2 {
+.plottery-ai-panel h2 {
   display: flex;
   align-items: center;
   /* gap: 0.4em; */
@@ -18,7 +18,7 @@
 }
 
 /* Provider / model / effort, inline in the header. They push right, up against the gear. */
-.snp-ai-header-controls {
+.plottery-ai-header-controls {
   display: flex;
   align-items: center;
   gap: 0.2em;
@@ -26,8 +26,8 @@
   min-width: 0;
   justify-content: flex-end;
 }
-.snp-ai-header-controls > select,
-.snp-ai-header-controls > input {
+.plottery-ai-header-controls > select,
+.plottery-ai-header-controls > input {
   font-size: 10px;
   font-weight: normal;
   height: 16px;
@@ -40,33 +40,33 @@
   color:#ddddddaa;
   border: solid 1px #8a8a8a55;
 }
-.snp-ai-header-controls > .snp-ai-effort-field {
+.plottery-ai-header-controls > .plottery-ai-effort-field {
   max-width: 40px;
 }
-.snp-ai-header-controls > input::-webkit-calendar-picker-indicator {
+.plottery-ai-header-controls > input::-webkit-calendar-picker-indicator {
   /* When arrow not shown, reveal any occluded text underneath the dropdown arrow */
   display: none !important;
 }
-.snp-ai-header-controls > select:hover,
-.snp-ai-header-controls > select:focus {
+.plottery-ai-header-controls > select:hover,
+.plottery-ai-header-controls > select:focus {
   background-color:#737373;
   color:#e4e4e4;
   border-color: #bbb;
 }
-.snp-ai-header-controls > input:hover,
-.snp-ai-header-controls > input:focus {
+.plottery-ai-header-controls > input:hover,
+.plottery-ai-header-controls > input:focus {
   background-color: #fff;
   color:#333;
   border-color: #333;
   border-radius: 0px;
 }
-.snp-ai-header-controls > input:hover::-webkit-calendar-picker-indicator,
-.snp-ai-header-controls > input:focus::-webkit-calendar-picker-indicator {
+.plottery-ai-header-controls > input:hover::-webkit-calendar-picker-indicator,
+.plottery-ai-header-controls > input:focus::-webkit-calendar-picker-indicator {
   display: list-item !important;
   width: 0.6em;
 }
 
-.snp-ai-config-toggle {
+.plottery-ai-config-toggle {
   background: none;
   border: none;
   padding: 2px;
@@ -77,33 +77,33 @@
   align-items: center;
   opacity: 0.7;
 }
-.snp-ai-config-toggle:hover {
+.plottery-ai-config-toggle:hover {
   opacity: 1;
 }
 
-.snp-ai-config {
+.plottery-ai-config {
   padding: 0.5em;
   border-bottom: solid 1px #ccc;
   background-color: #f7f7f7;
 }
-.snp-ai-config.hidden {
+.plottery-ai-config.hidden {
   display: none;
 }
-.snp-ai-config-row {
+.plottery-ai-config-row {
   display: flex;
   align-items: center;
   gap: 0.5em;
   margin-bottom: 0.35em;
 }
-.snp-ai-config-row:last-child {
+.plottery-ai-config-row:last-child {
   margin-bottom: 0;
 }
-.snp-ai-config-row > label {
+.plottery-ai-config-row > label {
   font-size: 12px;
   color: #333;
 }
-.snp-ai-config-row > select,
-.snp-ai-config-row > input {
+.plottery-ai-config-row > select,
+.plottery-ai-config-row > input {
   flex: 1 1 auto;
   min-width: 0;
   box-sizing: border-box; /* JupyterLab */
@@ -111,17 +111,17 @@
   line-height: 15px;
 }
 
-.snp-ai-prompt-wrapper {
+.plottery-ai-prompt-wrapper {
   position: relative;
 }
-.snp-ai-prompt-wrapper > input {
+.plottery-ai-prompt-wrapper > input {
   margin: 0.3em;
   width: calc(100% - 0.6em);
   box-sizing: border-box; /* JupyterLab */
   line-height: 20px; /* JupyterLab */
 }
 
-.snp-spinner {
+.plottery-spinner {
   display: none;
   position: absolute;
   top: calc(50% - 9px);
@@ -141,7 +141,7 @@
 
 /* A non-code AI reply, shown in the .stdout_stderr warning area. Prose, so let it wrap
    rather than scroll off the right edge like kernel output does. */
-.snp-ai-message {
+.plottery-ai-message {
   white-space: pre-wrap;
   overflow-wrap: break-word;
   font-family: sans-serif;
@@ -149,18 +149,18 @@
 }
 
 /* A failed request, rather than a reply. */
-.snp-ai-error {
+.plottery-ai-error {
   color: #a3311f;
 }
 
-.CodeMirror .snp-ai-line-changed:not(.snp-line-selected) .CodeMirror-gutter-elt {
+.CodeMirror .plottery-ai-line-changed:not(.plottery-line-selected) .CodeMirror-gutter-elt {
   background-color: #c7ebbe;
   color: #555;
 }
-.CodeMirror .snp-ai-line-changed:not(.snp-line-selected).CodeMirror-linebackground {
+.CodeMirror .plottery-ai-line-changed:not(.plottery-line-selected).CodeMirror-linebackground {
   background-color: #e8f4e6;
 }
 /* Translucent so CM6's text selection layer (drawn behind the lines) shows through. Same #e8f4e6 over white. */
-.cm-editor .cm-line.snp-ai-line-changed:not(.snp-line-selected) {
+.cm-editor .cm-line.plottery-ai-line-changed:not(.plottery-line-selected) {
   background-color: rgba(25, 145, 5, 0.1);
 }

@@ -12,7 +12,7 @@ export type AliasWidget = Widget & {
 };
 
 export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
-  const el = create_el("div", ["snp-arg", "snp-arg-alias"]);
+  const el = create_el("div", ["plottery-arg", "plottery-arg-alias"]);
   const value = default_code_for_type(a_type);
   el.textContent = value;
 
@@ -22,8 +22,8 @@ export function create_alias_widget(a_type: TypeAliasType): AliasWidget {
     if (ev.code === "Enter") {
       ev.stopPropagation();
       ev.preventDefault();
-      el.closest('.snp-dropdown.expanded')?.classList.remove('expanded');
-      el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
+      el.closest('.plottery-dropdown.expanded')?.classList.remove('expanded');
+      el.closest(".plottery_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
       el.blur();
     }
   });

@@ -1,9 +1,9 @@
 {
-  "name": "snp_jupyter",
+  "name": "plottery_jupyter",
   "version": "1.0.0",
   "description": "A graphical and AI interface for Matplotlib.",
   "homepage": "https://github.com/brianhempel/plottery",
-  "main": "snp_jupyter.js",
+  "main": "plottery_jupyter.js",
   "jupyterlab": {
     "extension": true,
     "outputDir": "labextension"

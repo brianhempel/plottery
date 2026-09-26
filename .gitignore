@@ -4,11 +4,10 @@ __pycache__
 .mypy_cache
 node_modules
 venv
-snp.js.map
 __plottery_mypy_temp.py
 dist/
 .DS_Store
 build_log.json
-src/snp_jupyter/labextension/
+src/plottery_jupyter/labextension/
 usage_events/
 bin/

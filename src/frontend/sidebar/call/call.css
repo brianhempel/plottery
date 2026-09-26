@@ -1,9 +1,9 @@
-.snp-call {
+.plottery-call {
   width: fit-content;
   position: relative;
 }
 
-.snp-call-name {
+.plottery-call-name {
   /* font-style: italic; */
   /* background: #6f0eff17; */
   font-weight: bold;
@@ -14,14 +14,14 @@
   /* margin-left: 2px; */
 }
 
-/* .snp-call-name::before {
+/* .plottery-call-name::before {
   content: "ƒ:";
   font-style: italic;
   opacity: 0.5;
   margin-right: 3px;
 } */
 
-.snp-call-expand-button {
+.plottery-call-expand-button {
   display: flex;
   cursor: pointer;
   align-items: center;
@@ -29,29 +29,29 @@
   margin-left: 5px;
 }
 
-.snp-call.expanded > .snp-call-expand-button {
+.plottery-call.expanded > .plottery-call-expand-button {
   background: #e5e5e5;
 }
 
-.snp-call-expand-button:hover  > svg {
+.plottery-call-expand-button:hover  > svg {
   opacity: 0.7;
 }
 
-.snp-call.expanded > .snp-call-expand-button > svg {
+.plottery-call.expanded > .plottery-call-expand-button > svg {
   opacity: 0.6;
 }
 
-.snp-call.expanded > .snp-call-expand-button:hover > svg {
+.plottery-call.expanded > .plottery-call-expand-button:hover > svg {
   opacity: 1;
 }
 
-.snp-call-expand-button > svg {
+.plottery-call-expand-button > svg {
   transform: rotate(-90deg);
   width: 20px;
   opacity: 0.5;
 }
 
-/* .snp-call-kwargs-label {
+/* .plottery-call-kwargs-label {
   width: fit-content;
   cursor: pointer;
   border-radius: 2px;

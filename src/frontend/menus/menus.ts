@@ -9,15 +9,15 @@ export function create_menu_el(innerHTML: string, classes: string | string[], pa
     classes = [classes];
   }
 
-  const menu = create_el("div", ["snp-menu", ...classes], parent);
-  const menu_name = create_el("div", "snp-menu-name", menu);
+  const menu = create_el("div", ["plottery-menu", ...classes], parent);
+  const menu_name = create_el("div", "plottery-menu-name", menu);
   menu_name.innerHTML = innerHTML;
 
   const menu_id = menu_name.innerText + Math.random().toString() + Math.random().toString()
 
-  const menu_panel = create_el("div", ["snp-menu-panel", ...classes], menu);
+  const menu_panel = create_el("div", ["plottery-menu-panel", ...classes], menu);
 
-  create_el("div", ["snp-menu-items", ...classes], menu_panel);
+  create_el("div", ["plottery-menu-items", ...classes], menu_panel);
 
   // When we move the menu items to a child of the body, need to correlate back
   menu.dataset.menu_id = menu_id
@@ -35,17 +35,17 @@ export function create_menu_el(innerHTML: string, classes: string | string[], pa
 }
 
 export function add_search(menu: HTMLElement) {
-  const menu_panel = menu.querySelector(".snp-menu-panel")!;
+  const menu_panel = menu.querySelector(".plottery-menu-panel")!;
 
   // Create a container for the search input and the icon
-  const search_container = create_el("div", "snp-search-container");
+  const search_container = create_el("div", "plottery-search-container");
 
-  const search = create_el("input", "snp-menu-search", search_container) as HTMLInputElement;
+  const search = create_el("input", "plottery-menu-search", search_container) as HTMLInputElement;
   search.placeholder = "Search";
 
   // Add SVG magnifying glass icon
   const icon = create_search_icon();
-  icon.classList.add("snp-search-icon");
+  icon.classList.add("plottery-search-icon");
   search_container.appendChild(icon);
 
   // Don't trigger notebook actions from typing in the search
@@ -54,7 +54,7 @@ export function add_search(menu: HTMLElement) {
   search.addEventListener("input", ev => {
     debounce('search menu', 333, () => log_event('gui', 'search menu', {query: search.value}));
     const query_words = search.value.toLowerCase().split(/\s+/);
-    for(const item of menu_panel.querySelector(".snp-menu-items")!.children) {
+    for(const item of menu_panel.querySelector(".plottery-menu-items")!.children) {
       const text = item.textContent!.toLowerCase();
       item.classList.remove("active");
       if (query_words.every(word => text.includes(word))) {
@@ -66,7 +66,7 @@ export function add_search(menu: HTMLElement) {
   });
 
   search.addEventListener("keydown", ev => {
-    const items = [...menu_panel.querySelector(".snp-menu-items")!.children].filter(item => !item.classList.contains("hidden")) as HTMLElement[];
+    const items = [...menu_panel.querySelector(".plottery-menu-items")!.children].filter(item => !item.classList.contains("hidden")) as HTMLElement[];
 
     if (ev.code === "Escape") {
       if (search.value === "") {
@@ -118,12 +118,12 @@ export function add_menu_item(
   enabled_predicate: (item: HTMLElement, state: State) => boolean,
   state: State
 ) {
-  const menu_items = menu.querySelector(".snp-menu-items")!;
-  const menu_item = create_el("div", "snp-menu-item", menu_items);
+  const menu_items = menu.querySelector(".plottery-menu-items")!;
+  const menu_item = create_el("div", "plottery-menu-item", menu_items);
   menu_item.innerHTML = innerHTML;
 
   function do_action(state: State) {
-    const menu_name: string = menu.querySelector(".snp-menu-name")?.textContent || '';
+    const menu_name: string = menu.querySelector(".plottery-menu-name")?.textContent || '';
     const menu_item_name: string = menu_item.innerText;
     close_menu(menu);
     action(state);
@@ -153,26 +153,26 @@ export function add_submenu(
   enabled_predicate: (item: HTMLElement, state: State) => boolean,
   state: State
 ) {
-  const menu_items = menu.querySelector(".snp-menu-items")!;
-  const menu_item = create_el("div", ["snp-menu-item", "snp-submenu"], menu_items);
+  const menu_items = menu.querySelector(".plottery-menu-items")!;
+  const menu_item = create_el("div", ["plottery-menu-item", "plottery-submenu"], menu_items);
 
   menu.addEventListener("click", _ => {
     enabled_predicate(menu_item, state) ? enable_menu_item(menu_item) : disable_menu_item(menu_item);
   })
 
   menu_item.innerText = name;
-  create_el("div", "snp-menu-items", menu_item);
+  create_el("div", "plottery-menu-items", menu_item);
 
   return menu_item;
 }
 
 export function open_menu(menu: HTMLElement) {
-  const menu_name: string = menu.querySelector(".snp-menu-name")?.textContent || '';
+  const menu_name: string = menu.querySelector(".plottery-menu-name")?.textContent || '';
   log_event('gui', 'open menu', {menu: menu_name});
 
   const rect = menu.getBoundingClientRect();
   menu.classList.add("open");
-  const overlay = create_el("div", "snp-menu-click-to-close-overlay");
+  const overlay = create_el("div", "plottery-menu-click-to-close-overlay");
   overlay.dataset.menu_id = menu.dataset.menu_id
   document.body.append(overlay);
   // menu.prepend(overlay);
@@ -180,43 +180,43 @@ export function open_menu(menu: HTMLElement) {
     ev.stopPropagation();
     close_menu(menu);
   });
-  const panel_el = menu.querySelector(".snp-menu-panel")! as HTMLElement;
+  const panel_el = menu.querySelector(".plottery-menu-panel")! as HTMLElement;
   panel_el.remove();
   document.body.append(panel_el);
   panel_el.style.position = "absolute";
   panel_el.style.top = `${rect.bottom}px`;
   panel_el.style.left = `${rect.left}px`;
 
-  (panel_el.querySelector('.snp-menu-search') as HTMLInputElement)?.focus();
+  (panel_el.querySelector('.plottery-menu-search') as HTMLInputElement)?.focus();
 }
 
 export function close_menu(menu: HTMLElement) {
-  const menu_name: string = menu.querySelector(".snp-menu-name")?.textContent || '';
+  const menu_name: string = menu.querySelector(".plottery-menu-name")?.textContent || '';
   log_event('gui', 'close menu', {menu: menu_name});
 
-  // menu.querySelector(".snp-menu-click-to-close-overlay")?.remove();
+  // menu.querySelector(".plottery-menu-click-to-close-overlay")?.remove();
   menu.classList.remove("open");
-  // const panel_el = document.body.querySelector(".snp-menu-panel")! as HTMLElement;
+  // const panel_el = document.body.querySelector(".plottery-menu-panel")! as HTMLElement;
 
-  document.querySelectorAll('body > .snp-menu-click-to-close-overlay').forEach(overlay_el => {
+  document.querySelectorAll('body > .plottery-menu-click-to-close-overlay').forEach(overlay_el => {
     if ((overlay_el as HTMLElement).dataset.menu_id === menu.dataset.menu_id) {
       overlay_el.remove();
     }
   })
-  document.querySelectorAll('body > .snp-menu-panel').forEach(panel_el => {
+  document.querySelectorAll('body > .plottery-menu-panel').forEach(panel_el => {
     if ((panel_el as HTMLElement).dataset.menu_id === menu.dataset.menu_id) {
       panel_el.remove();
       menu.append(panel_el);
     }
 
-    panel_el.querySelectorAll('.snp-menu-item.active').forEach(menu_item => {
+    panel_el.querySelectorAll('.plottery-menu-item.active').forEach(menu_item => {
       menu_item.classList.remove('active');
     });
   })
 }
 
 export function close_all_menus(state: State) {
-  ([...state.snp_outer.querySelectorAll(".open")] as HTMLElement[]).forEach(close_menu);
+  ([...state.plottery_outer.querySelectorAll(".open")] as HTMLElement[]).forEach(close_menu);
 }
 
 function enable_menu_item(menu_item: HTMLElement) {

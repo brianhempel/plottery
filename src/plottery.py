@@ -32,13 +32,13 @@ import numpy as np
 
 import shapely
 
-# if 'snp_src_directory' not in globals():
-#     snp_src_directory = os.getcwd()
+# if 'plottery_src_directory' not in globals():
+#     plottery_src_directory = os.getcwd()
 
-snp_src_directory = os.path.dirname(os.path.abspath(__file__))
-# print('snp_src_directory', snp_src_directory)
+plottery_src_directory = os.path.dirname(os.path.abspath(__file__))
+# print('plottery_src_directory', plottery_src_directory)
 
-# sys.path.append(snp_src_directory)
+# sys.path.append(plottery_src_directory)
 
 import serialize
 # import visitor_ast
@@ -70,7 +70,7 @@ class Timer:
         # print(f"{self.message}: {self.elapsed_time:.2f} seconds")
 
 
-snp_trivial_names = set(dir(object())) # stuff like __class__, __doc__, etc.
+plottery_trivial_names = set(dir(object())) # stuff like __class__, __doc__, etc.
 
 # File path that the notebook code will be written to for mypy
 notebook_as_code_file_path = "__plottery_mypy_temp.py"
@@ -114,7 +114,7 @@ def do_mypy_inference(code):
             options.fine_grained_incremental = True
             options.use_fine_grained_cache = True
             options.local_partial_types = True  # https://github.com/python/mypy/issues/4492
-            options.mypy_path = [f"{snp_src_directory}/python-type-stubs-main/stubs"]
+            options.mypy_path = [f"{plottery_src_directory}/python-type-stubs-main/stubs"]
             # options.follow_imports = "silent"
             options.follow_imports_for_stubs = True
             options.export_types = True
@@ -127,14 +127,14 @@ def do_mypy_inference(code):
             # `follow_imports = "skip"` replaces them with `Any` without parsing them or their deps,
             # roughly halving the resident mypy build (memory) and the first-build time. PIL itself is
             # left in so matplotlib image arg/return types still resolve; only its IPython edge is cut.
-            snp_skip_runtime_pkgs = [
+            plottery_skip_runtime_pkgs = [
                 "IPython", "ipykernel", "jupyter_client", "jupyter_core", "traitlets", "comm", "debugpy",
                 "prompt_toolkit", "pygments", "jedi", "parso", "pickleshare",
                 "zmq", "tornado", "nbformat", "nbconvert", "fastjsonschema",
                 "black", "blib2to3", "click", "pathspec",
             ]
             options.per_module_options = {
-                f"{pkg}.*": {"follow_imports": "skip"} for pkg in snp_skip_runtime_pkgs
+                f"{pkg}.*": {"follow_imports": "skip"} for pkg in plottery_skip_runtime_pkgs
             }
 
             mypy_fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
@@ -323,15 +323,15 @@ def regions2(artist, fig_px_axes_px_axes_unit_bounds, renderer, artist_ids_that_
             # Two: Transfer the provenance to the artists.
             for container in artist.containers:
                 for child in container.get_children():
-                    if not hasattr(child, "_snp_came_from_call_id") and hasattr(container, "_snp_came_from_call_id"): # Don't overwrite if already set.
-                        child._snp_came_from_call_id = container._snp_came_from_call_id
+                    if not hasattr(child, "_plottery_came_from_call_id") and hasattr(container, "_plottery_came_from_call_id"): # Don't overwrite if already set.
+                        child._plottery_came_from_call_id = container._plottery_came_from_call_id
 
             # Annoyingly, colorbar is not in the artist scene graph, but is returned by the fig.colorbar function.
             # Transfer the colorbar provenance to the ax IF this axes is a color.
 
             if hasattr(ax, "_colorbar") and ax._colorbar is not None:
-                if not hasattr(ax, "_snp_came_from_call_id") and hasattr(ax._colorbar, "_snp_came_from_call_id"):
-                    ax._snp_came_from_call_id = ax._colorbar._snp_came_from_call_id
+                if not hasattr(ax, "_plottery_came_from_call_id") and hasattr(ax._colorbar, "_plottery_came_from_call_id"):
+                    ax._plottery_came_from_call_id = ax._colorbar._plottery_came_from_call_id
 
             # For some reason, the background patch is last in the children list when it should be first so it doesn't cover everything.
             # (It has special handling in Axes.draw() so this isn't any hackier than that is.)
@@ -496,7 +496,7 @@ def region2_to_svg_g(artist_methods_bounds_geom_children, artist_names, drawn=Tr
     name = shortest_qualified_name(artist_names.get(id(artist), (None, {}))[1])
 
     perhaps_name = f'data-artist-name="{name}"' if name is not None else ""
-    perhaps_call_loc = f'data-call-id="{escape_for_double_quoted_html_attr(artist._snp_came_from_call_id)}" data-fig-px-bounds="{json_for_double_quoted_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_double_quoted_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_double_quoted_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_double_quoted_attr(region_px_bounds)}"' if hasattr(artist, "_snp_came_from_call_id") else ""
+    perhaps_call_loc = f'data-call-id="{escape_for_double_quoted_html_attr(artist._plottery_came_from_call_id)}" data-fig-px-bounds="{json_for_double_quoted_attr(fig_px_bounds)}" data-axes-px-bounds="{json_for_double_quoted_attr(axes_px_bounds)}" data-axes-unit-bounds="{json_for_double_quoted_attr(axes_unit_bounds)}" data-region-px-bounds="{json_for_double_quoted_attr(region_px_bounds)}"' if hasattr(artist, "_plottery_came_from_call_id") else ""
     return f"""<g data-artist="{str(artist)}" data-artist-id="{id(artist)}" {perhaps_name} {perhaps_call_loc}>
     {geom_svg}
     {child_svgs_str}
@@ -527,7 +527,7 @@ def _artist_names_deep(out, obj, name, max_depth):
         out[key] = (_obj, names.union({name}))
 
         for prop_name in dir(obj):
-            if prop_name not in snp_trivial_names:
+            if prop_name not in plottery_trivial_names:
                 prop = getattr(obj, prop_name)
                 _artist_names_deep(out, prop, f"{name}.{prop_name}", max_depth - 1)
 
@@ -544,7 +544,7 @@ def artist_names(locals, user_nameset, max_depth=4):
     out = {}
 
     with mpl._api.deprecation.suppress_matplotlib_deprecation_warning():
-        for name, value in [(name, value) for name, value in locals.items() if name in user_nameset and name not in snp_trivial_names]:
+        for name, value in [(name, value) for name, value in locals.items() if name in user_nameset and name not in plottery_trivial_names]:
             _artist_names_deep(out, value, f"{name}", max_depth)
 
     return out
@@ -561,7 +561,7 @@ def methods_for(a, default_child_to_show_methods_on=''):
         doc = (getattr(a, name).__doc__ or '').strip().split('\n\n')[0]
         print(f"([{repr(default_child_to_show_methods_on)}], {repr(name)}, float('inf'), {repr(squish(doc))}),")
 
-# snp.methods_for(ax, '.patch')
+# plottery.methods_for(ax, '.patch')
 axes_method_associations = [
     # (['.patch'], 'ArtistList', float('inf'), 'A sublist of Axes children based on their type.'),
     (['.patch'], 'acorr', float('inf'), 'Plot the autocorrelation of *x*.'),
@@ -893,7 +893,7 @@ axes_method_associations = [
     # ([''], 'bar_label', float('inf')),
 ]
 
-# snp.methods_for(fig)
+# plottery.methods_for(fig)
 fig_method_associations = [
     # ([''], 'add_artist', float('inf'), 'Add an `.Artist` to the figure.'),
     # ([''], 'add_axes', float('inf'), 'Add an `~.axes.Axes` to the figure.'),
@@ -1052,7 +1052,7 @@ fig_method_associations = [
     # ([''], 'zorder', float('inf'), 'int([x]) -> integer int(x, base=10) -> integer'),
 ]
 
-# snp.methods_for(ax.spines.top)
+# plottery.methods_for(ax.spines.top)
 # spine_method_associations = [
 # ]
 
@@ -1091,8 +1091,8 @@ def get_user_nameset(code):
 
 
 # For when you want quick redraws during mouse manipulations. Also reduces DPI
-# The frontend calls this by explicitly adding snp.show_ui(snp_class=SNPFigureOnly) to the cell code.
-class SNPFigureOnly:
+# The frontend calls this by explicitly adding plottery.show_ui(plottery_class=PlotteryFigureOnly) to the cell code.
+class PlotteryFigureOnly:
     def __init__(
         self,
         figure,
@@ -1123,8 +1123,8 @@ class SNPFigureOnly:
 
 
 # When there's a free moment during manipulation, re-gen the hover regions too.
-# The frontend calls this by explicitly adding snp.show_ui(snp_class=SNPFigureAndHoverRegions) to the cell code.
-class SNPFigureAndHoverRegions(SNPFigureOnly):
+# The frontend calls this by explicitly adding plottery.show_ui(plottery_class=PlotteryFigureAndHoverRegions) to the cell code.
+class PlotteryFigureAndHoverRegions(PlotteryFigureOnly):
     def __init__(
         self,
         figure,
@@ -1212,7 +1212,7 @@ def try_to_add_docstring_to_call(locals, call):
 
 keywordset = set(keyword.kwlist)
 
-class SNP(SNPFigureAndHoverRegions):
+class Plottery(PlotteryFigureAndHoverRegions):
     def __init__(
         self,
         figure,
@@ -1295,7 +1295,7 @@ class SNP(SNPFigureAndHoverRegions):
             datetime_inferred_kinds = {"datetime", "datetime64", "date", "time", "timedelta", "timedelta64", "period"}
             pd = sys.modules.get("pandas") # Only inspect DataFrames if pandas is already imported (it must be, if a value is a DataFrame). Avoids importing pandas ourselves.
             for name, value in locals.items():
-                if name in self.user_nameset and name not in snp_trivial_names and not callable(value):
+                if name in self.user_nameset and name not in plottery_trivial_names and not callable(value):
                     name_type = None
                     if name in tree.names:
                         name_type = tree.names[name].type
@@ -1548,10 +1548,10 @@ class SNP(SNPFigureAndHoverRegions):
 
         # Walk all the files in the frontend folder, and append all the contents of the .css files
         with Timer("frontend_css"):
-            frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path(f"{snp_src_directory}/frontend").rglob("*.css")])
+            frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path(f"{plottery_src_directory}/frontend").rglob("*.css")])
 
         with Timer("out_html"):
-            js = pathlib.Path(f"{snp_src_directory}/../dist/plugin.js").read_text()
+            js = pathlib.Path(f"{plottery_src_directory}/../dist/plugin.js").read_text()
 
             # sometimes AI or humans write top-level consts/lets in the JS, which causes JS attachment
             # to fail because it redefines the consts/lets. Fail less silently if so.
@@ -1565,10 +1565,10 @@ class SNP(SNPFigureAndHoverRegions):
                 """
 
             out_html = f"""
-                <div class="snp_outer">
+                <div class="plottery_outer">
                 <script>{js}</script>
                 <div class="plot_and_sidebar">
-                    <div class="snp-sidebar"></div>
+                    <div class="plottery-sidebar"></div>
                     <div class="plot_area" style="position:relative;">
                         <img src='{data_url}'> <!-- the plot -->
                         <div class="hover_regions">{self._repr_svg_()}</div>
@@ -1578,7 +1578,7 @@ class SNP(SNPFigureAndHoverRegions):
                     <!-- properties panel added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload='attach_snp(this.closest(".snp_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
+                <style onload='attach_plottery(this.closest(".plottery_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
                     {frontend_css}
                 </style>
                 </div>
@@ -1606,12 +1606,12 @@ class SNP(SNPFigureAndHoverRegions):
 
 cell_figs = []
 
-# The most recent full-UI (SNP) output. Its figure is released when the next full
+# The most recent full-UI (Plottery) output. Its figure is released when the next full
 # render supersedes it, so stale outputs sitting in IPython's Out[N] cache don't
 # pin a Figure (and its data/canvas) for the life of the kernel and bloat memory usage.
-_snp_prev_full_snp = None
+_prev_full_plottery = None
 
-# The notebook extension replaces plt.show() with this snp.show() instead.
+# The notebook extension replaces plt.show() with this plottery.show() instead.
 #
 # Unlike plt.show(), this will only show the most recent fig if multiple figs were created since
 # the last show(). Showing only the last makes more sense because show() is the anchor point for
@@ -1619,7 +1619,7 @@ _snp_prev_full_snp = None
 #
 # Like plt.show, you can call this multiple times.
 #
-# The notebook extension replaces the cell return with snp.show_ui(), which renders the SNP UI which includes a picker to select which fig to show.
+# The notebook extension replaces the cell return with plottery.show_ui(), which renders the Plottery UI which includes a picker to select which fig to show.
 def show(locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, **we_ignore_plt_show_kwargs):
     fig_managers = mpl._pylab_helpers.Gcf.get_all_fig_managers()
 
@@ -1632,9 +1632,9 @@ def show(locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_li
     return None
 
 
-def show_ui(fig_idx=0, snp_class=SNP):
+def show_ui(fig_idx=0, plottery_class=Plottery):
     global cell_figs
-    global _snp_prev_full_snp
+    global _prev_full_plottery
     if len(cell_figs) == 0:
         print("No figures to show. Be sure plt.show() is called within the cell.")
         return None
@@ -1654,16 +1654,16 @@ def show_ui(fig_idx=0, snp_class=SNP):
             fig_names.append(fig_name)
 
         cell_figs = []
-        result = snp_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names, var_provenance_snapshot)
+        result = plottery_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names, var_provenance_snapshot)
 
-        # A full SNP render becomes the cell's output, which IPython pins in Out[N] for the life
+        # A full Plottery render becomes the cell's output, which IPython pins in Out[N] for the life
         # of the kernel. Its repr (PNG/SVG/HTML) is generated immediately on return, after which
         # none of its heavy per-render data is needed again — most importantly the serialized
         # mypy type graph in `calls`/`methods` (several MB of nested dicts per render) and the
         # figure. So when a new full render supersedes the previous one, drop the previous
         # output's data to keep stale Out[N] entries from bloating our memory usage.
-        if snp_class is SNP:
-            prev = _snp_prev_full_snp
+        if plottery_class is Plottery:
+            prev = _prev_full_plottery
             if prev is not None and prev is not result:
                 prev_fig = prev.__dict__.get("figure")
                 if prev_fig is not None:
@@ -1672,7 +1672,7 @@ def show_ui(fig_idx=0, snp_class=SNP):
                     except Exception:
                         pass
                 prev.__dict__.clear()
-            _snp_prev_full_snp = result
+            _prev_full_plottery = result
 
         return result
 
@@ -1693,13 +1693,13 @@ def show_ui(fig_idx=0, snp_class=SNP):
 # lines = ax.plot(xs, ys)
 
 # Output:
-# fig, ax = snp.tag_with_call_provenance(plt.subplots(), 'plt.subplots #1')
-# snp.tag_with_call_provenance(ax.set_title('My Plot'), 'ax.set_title #1')
-# xs = snp.tag_with_call_provenance(np.linspace(0, 2 * np.pi, 20), 'np.linspace #1')
-# ys = snp.tag_with_call_provenance(np.sin(xs), 'np.sin #1')
-# lines = snp.tag_with_call_provenance(ax.plot(xs, ys), 'ax.plot #1')
+# fig, ax = plottery.tag_with_call_provenance(plt.subplots(), 'plt.subplots #1')
+# plottery.tag_with_call_provenance(ax.set_title('My Plot'), 'ax.set_title #1')
+# xs = plottery.tag_with_call_provenance(np.linspace(0, 2 * np.pi, 20), 'np.linspace #1')
+# ys = plottery.tag_with_call_provenance(np.sin(xs), 'np.sin #1')
+# lines = plottery.tag_with_call_provenance(ax.plot(xs, ys), 'ax.plot #1')
 
-# snp.tag_with_call_provenance() gives the returned object an `_snp_came_from_call_id` attribute, which references calls by code and occurance number in the code, e.g. "ax.bar #1"
+# plottery.tag_with_call_provenance() gives the returned object an `_plottery_came_from_call_id` attribute, which references calls by code and occurance number in the code, e.g. "ax.bar #1"
 
 
 # "ax.bar #1"
@@ -1708,13 +1708,13 @@ def make_call_id(func_code, call_num):
 
 
 # Thanks GPT-4, this works, apparently.
-# The call_id is optional so these can also carry _snp_provenance (variable
+# The call_id is optional so these can also carry _plottery_provenance (variable
 # sharing provenance) without a call id.
 class TaggedTuple(tuple):
     def __new__(cls, iterable, call_id=None):
         out = tuple.__new__(cls, iterable)
         if call_id is not None:
-            out._snp_came_from_call_id = call_id
+            out._plottery_came_from_call_id = call_id
         return out
 
 
@@ -1722,21 +1722,21 @@ class TaggedStr(str):
     def __new__(cls, string, call_id=None):
         out = str.__new__(cls, string)
         if call_id is not None:
-            out._snp_came_from_call_id = call_id
+            out._plottery_came_from_call_id = call_id
         return out
 
 
 class TaggedList(list):
     def __init__(self, iterable, call_id=None):
         if call_id is not None:
-            self._snp_came_from_call_id = call_id
+            self._plottery_came_from_call_id = call_id
         super().__init__(iterable)
 
 
 class TaggedDict(dict):
     def __init__(self, dictionary, call_id=None):
         if call_id is not None:
-            self._snp_came_from_call_id = call_id
+            self._plottery_came_from_call_id = call_id
         super().__init__(dictionary)
 
 
@@ -1744,7 +1744,7 @@ class TaggedInt(int):
     def __new__(cls, x, call_id=None):
         out = int.__new__(cls, x)
         if call_id is not None:
-            out._snp_came_from_call_id = call_id
+            out._plottery_came_from_call_id = call_id
         return out
 
 
@@ -1752,7 +1752,7 @@ class TaggedFloat(float):
     def __new__(cls, x, call_id=None):
         out = float.__new__(cls, x)
         if call_id is not None:
-            out._snp_came_from_call_id = call_id
+            out._plottery_came_from_call_id = call_id
         return out
 
 
@@ -1764,7 +1764,7 @@ class TaggedBool(int):
     def __new__(cls, value, call_id=None):
         out = int.__new__(cls, bool(value))
         if call_id is not None:
-            out._snp_came_from_call_id = call_id
+            out._plottery_came_from_call_id = call_id
         return out
     def __repr__(self):
         return "True" if self else "False"
@@ -1780,7 +1780,7 @@ class TaggedStructSeq(tuple):
     def __new__(cls, structseq, call_id=None):
         out = tuple.__new__(cls, structseq)
         if call_id is not None:
-            out._snp_came_from_call_id = call_id
+            out._plottery_came_from_call_id = call_id
         for name in dir(structseq):
             if name.startswith("_"):
                 continue
@@ -1793,7 +1793,7 @@ class TaggedStructSeq(tuple):
         return out
 
 
-# TaggedNamedTuple: a namedtuple can't hold a `_snp_came_from_call_id` attribute (its __slots__ is
+# TaggedNamedTuple: a namedtuple can't hold a `_plottery_came_from_call_id` attribute (its __slots__ is
 # ()), but a *subclass* without __slots__ gets a __dict__ while inheriting the field names and
 # behavior (isinstance still holds). Cache one tagged subclass per namedtuple type so we don't
 # build a new class on every call.
@@ -1811,12 +1811,12 @@ def _make_tagged_namedtuple(value, call_id=None):
         return tagged_cls._make(value)  # var provenance: the caller attaches its own attributes
     # Children stay tagged so provenance survives destructuring.
     out = tagged_cls._make(tag_with_call_provenance(child, call_id) for child in value)
-    out._snp_came_from_call_id = call_id
+    out._plottery_came_from_call_id = call_id
     return out
 
 
 def tag_with_call_provenance(ret_obj, call_id):
-    if hasattr(ret_obj, "_snp_came_from_call_id"):
+    if hasattr(ret_obj, "_plottery_came_from_call_id"):
         return ret_obj  # Don't rewrite oldest loc.
 
     # TaggedEnum: an enum member is a shared singleton, so there's no class that could stand in for
@@ -1826,13 +1826,13 @@ def tag_with_call_provenance(ret_obj, call_id):
     # returned the member). Enum members rarely become plot artists, so this is acceptable.
     if isinstance(ret_obj, enum.Enum):
         try:
-            ret_obj._snp_came_from_call_id = call_id
+            ret_obj._plottery_came_from_call_id = call_id
         except Exception:
             pass
         return ret_obj
 
     try:
-        ret_obj._snp_came_from_call_id = call_id
+        ret_obj._plottery_came_from_call_id = call_id
         return ret_obj
     except:
         # Match the *exact* builtin type, not isinstance: a subclass rebuilt through the wrong base
@@ -1928,7 +1928,7 @@ def _attach_var_provenance(value, node):
         # Use object.__setattr__ to bypass custom __setattr__ hooks (e.g. pandas', which
         # otherwise warns "Pandas doesn't allow columns to be created via a new attribute name").
         try:
-            object.__setattr__(value, "_snp_provenance", node)
+            object.__setattr__(value, "_plottery_provenance", node)
             return value
         except:
             pass
@@ -1944,14 +1944,14 @@ def _attach_var_provenance(value, node):
             # cheaper than changing its type.
             return value
 
-    if hasattr(value, "_snp_came_from_call_id"):
-        fresh._snp_came_from_call_id = value._snp_came_from_call_id
-    fresh._snp_provenance = node
+    if hasattr(value, "_plottery_came_from_call_id"):
+        fresh._plottery_came_from_call_id = value._plottery_came_from_call_id
+    fresh._plottery_provenance = node
     return fresh
 
 
 def tag_with_var_provenance(value, var_name, lineno, col_offset, end_lineno, end_col_offset):
-    child = getattr(value, "_snp_provenance", None)
+    child = getattr(value, "_plottery_provenance", None)
     node = {
         "kind": "var",
         "var_name": var_name,
@@ -1975,7 +1975,7 @@ def _reset_var_provenance_at_call():
 
 
 def note_arg_provenance(value, call_id, arg_key):
-    var_provenance_at_call[(call_id, arg_key)] = getattr(value, "_snp_provenance", None)
+    var_provenance_at_call[(call_id, arg_key)] = getattr(value, "_plottery_provenance", None)
     return value
 
 
@@ -2038,10 +2038,10 @@ def dedent_line(line, n):
     return re.sub(r'^[ \t]{0,%d}' % n, '', line, count=1)
 
 
-def _snp_attr_call(func_name, args):
-    # snp.<func_name>(*args)
+def _plottery_attr_call(func_name, args):
+    # plottery.<func_name>(*args)
     return ast.Call(
-        ast.Attribute(ast.Name('snp', ast.Load()), func_name, ast.Load()),
+        ast.Attribute(ast.Name('plottery', ast.Load()), func_name, ast.Load()),
         args,
         [],
     )
@@ -2063,12 +2063,12 @@ class ProvenanceTagger(ast.NodeTransformer):
         self.user_defs = user_defs or {}
         # tag_calls: emit tag_with_call_provenance (needed for hover-region -> code mapping).
         # tag_vars:  emit the variable-sharing wrappers (tag_with_var_provenance / note_arg_provenance),
-        #            only consumed by the full SNP render's GatherTypedCalls.
+        #            only consumed by the full Plottery render's GatherTypedCalls.
         self.tag_calls = tag_calls
         self.tag_vars = tag_vars
         super().__init__()
 
-    # name = <rhs>  ->  name = snp.tag_with_var_provenance(<rhs>, 'name', <rhs loc>)
+    # name = <rhs>  ->  name = plottery.tag_with_var_provenance(<rhs>, 'name', <rhs loc>)
     def visit_Assign(self, node):
         if not self.tag_vars:
             return self.generic_visit(node)
@@ -2076,7 +2076,7 @@ class ProvenanceTagger(ast.NodeTransformer):
             case [ast.Name(id=var_name)]:
                 loc = ast_loc(node.value) # capture original RHS loc before generic_visit rewrites it
                 node = self.generic_visit(node)
-                node.value = _snp_attr_call(
+                node.value = _plottery_attr_call(
                     'tag_with_var_provenance',
                     [node.value, ast.Constant(var_name), *[ast.Constant(x) for x in loc]],
                 )
@@ -2103,7 +2103,7 @@ class ProvenanceTagger(ast.NodeTransformer):
                     self._note_call_args(node, call_id)
 
                 if self.tag_calls:
-                    return _snp_attr_call('tag_with_call_provenance', [node, ast.Constant(call_id)])
+                    return _plottery_attr_call('tag_with_call_provenance', [node, ast.Constant(call_id)])
                 return node
 
             # same-cell user function: flow provenance into it by parameter name.
@@ -2124,13 +2124,13 @@ class ProvenanceTagger(ast.NodeTransformer):
             if isinstance(a, ast.Starred):
                 new_args.append(a)
             else:
-                new_args.append(_snp_attr_call('note_arg_provenance', [a, ast.Constant(call_id), ast.Constant(pos_idx)]))
+                new_args.append(_plottery_attr_call('note_arg_provenance', [a, ast.Constant(call_id), ast.Constant(pos_idx)]))
                 pos_idx += 1
         node.args = new_args
         for kw in node.keywords:
             if kw.arg is None:
                 continue
-            kw.value = _snp_attr_call('note_arg_provenance', [kw.value, ast.Constant(call_id), ast.Constant(kw.arg)])
+            kw.value = _plottery_attr_call('note_arg_provenance', [kw.value, ast.Constant(call_id), ast.Constant(kw.arg)])
 
     # Wrap each arg mapped to a parameter with tag_with_var_provenance(arg, param_name, <arg loc>).
     def _tag_user_func_args(self, node, param_names, arg_locs, kw_locs):
@@ -2139,7 +2139,7 @@ class ProvenanceTagger(ast.NodeTransformer):
             if isinstance(a, ast.Starred) or i >= len(param_names) or i >= len(arg_locs):
                 new_args.append(a)
             else:
-                new_args.append(_snp_attr_call(
+                new_args.append(_plottery_attr_call(
                     'tag_with_var_provenance',
                     [a, ast.Constant(param_names[i]), *[ast.Constant(x) for x in arg_locs[i]]],
                 ))
@@ -2147,7 +2147,7 @@ class ProvenanceTagger(ast.NodeTransformer):
         for j, kw in enumerate(node.keywords):
             if kw.arg is None or kw.arg not in param_names or j >= len(kw_locs):
                 continue
-            kw.value = _snp_attr_call(
+            kw.value = _plottery_attr_call(
                 'tag_with_var_provenance',
                 [kw.value, ast.Constant(kw.arg), *[ast.Constant(x) for x in kw_locs[j]]],
             )
@@ -2156,9 +2156,9 @@ class ProvenanceTagger(ast.NodeTransformer):
 # We need a new ProvenanceTagger each time, to reset call_nums
 class RootProvenanceTagger:
     # The frontend (code_sync.ts) appends one of:
-    #   last_snp = snp.show_ui(fig_idx=N, snp_class=snp.SNPFigureOnly)
-    #   last_snp = snp.show_ui(fig_idx=N, snp_class=snp.SNPFigureAndHoverRegions)
-    # Read that trailing snp_class so we can tag only as much provenance as the render consumes.
+    #   last_plottery = plottery.show_ui(fig_idx=N, plottery_class=plottery.PlotteryFigureOnly)
+    #   last_plottery = plottery.show_ui(fig_idx=N, plottery_class=plottery.PlotteryFigureAndHoverRegions)
+    # Read that trailing plottery_class so we can tag only as much provenance as the render consumes.
     def _detect_render_class(self, node):
         for stmt in node.body:
             value = stmt.value if isinstance(stmt, (ast.Assign, ast.Expr)) else None
@@ -2167,8 +2167,8 @@ class RootProvenanceTagger:
                     and value.func.attr == "show_ui"):
                 continue
             for kw in value.keywords:
-                if kw.arg == "snp_class":
-                    # snp.SNPFigureOnly (Attribute) or a bare SNPFigureOnly (Name).
+                if kw.arg == "plottery_class":
+                    # plottery.PlotteryFigureOnly (Attribute) or a bare PlotteryFigureOnly (Name).
                     if isinstance(kw.value, ast.Attribute):
                         return kw.value.attr
                     if isinstance(kw.value, ast.Name):
@@ -2178,15 +2178,15 @@ class RootProvenanceTagger:
     def visit(self, node):
         with Timer("ProvenanceTagger"):
             render_class = self._detect_render_class(node)
-            if render_class == "SNPFigureOnly":
+            if render_class == "PlotteryFigureOnly":
                 # Fast drag redraw: figure PNG only, reads no provenance, so skip the
                 # tagging *and* the per-cell reset entirely.
                 tag_calls, tag_vars = False, False
-            elif render_class == "SNPFigureAndHoverRegions":
-                # Hover regions need call ids (_snp_came_from_call_id) but not var-sharing provenance.
+            elif render_class == "PlotteryFigureAndHoverRegions":
+                # Hover regions need call ids (_plottery_came_from_call_id) but not var-sharing provenance.
                 tag_calls, tag_vars = True, False
             else:
-                # Full SNP render (or a normal run with no explicit snp_class): tag everything.
+                # Full Plottery render (or a normal run with no explicit plottery_class): tag everything.
                 tag_calls, tag_vars = True, True
 
             if not tag_calls and not tag_vars:
@@ -2196,7 +2196,7 @@ class RootProvenanceTagger:
             out = ProvenanceTagger(user_defs, tag_calls=tag_calls, tag_vars=tag_vars).visit(node)
             if tag_vars:
                 # Reset the per-call provenance log at the start of each cell run.
-                out.body.insert(0, ast.Expr(_snp_attr_call('_reset_var_provenance_at_call', [])))
+                out.body.insert(0, ast.Expr(_plottery_attr_call('_reset_var_provenance_at_call', [])))
             ast.fix_missing_locations(out)
         # print(ast.unparse(out))
         return out
@@ -2316,7 +2316,7 @@ def first_arg_name(callable_type):
 
 
 # Per-render memoization cache for is_subtype, keyed on (id(subtype), id(type)).
-# MUST be reset (to a fresh dict) at the start of every render in SNP.__init__: mypy
+# MUST be reset (to a fresh dict) at the start of every render in Plottery.__init__: mypy
 # reuses/frees type objects across fine-grained incremental builds, so an id() from a
 # prior render can alias a different object. None disables caching outside a render.
 _is_subtype_cache = None

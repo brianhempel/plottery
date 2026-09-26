@@ -2,7 +2,7 @@ import { create_layers_panel, deselect_all_layers, is_layer_selected, layers_fro
 // import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets, reposition_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
-import "./snp.css";
+import "./plottery.css";
 import {
   Arg,
   CallWithArgs,
@@ -42,16 +42,16 @@ import { DocOrEditor } from "./utils/codemirror";
 declare const Jupyter: JupyterType | undefined;
 (window as any).Jupyter ||= (window as any).Jupter
 
-function find_cell(snp_outer: HTMLElement): Cell {
-  const cell_el = snp_outer.closest(Jupyter ? ".code_cell" : ".jp-Cell");
-  return notebook_code_cells(snp_outer).filter(cell => cell.element[0] === cell_el)[0];
+function find_cell(plottery_outer: HTMLElement): Cell {
+  const cell_el = plottery_outer.closest(Jupyter ? ".code_cell" : ".jp-Cell");
+  return notebook_code_cells(plottery_outer).filter(cell => cell.element[0] === cell_el)[0];
 }
 
 
 
 // Entry point
-function attach_snp(
-  snp_outer: HTMLElement,
+function attach_plottery(
+  plottery_outer: HTMLElement,
   cell_lineno: number,
   plt_show_lineno_in_cell: number,
   provenance_is_off_by_n_lines: number,
@@ -65,11 +65,11 @@ function attach_snp(
   fig_idx: number,
   fig_names: string[],
 ) {
-  console.time('time attach_snp');
+  console.time('time attach_plottery');
 
   console.time('time init state');
   // Initialize state
-  const cell = find_cell(snp_outer);
+  const cell = find_cell(plottery_outer);
   console.log("cell", cell);
   (window as any).cell = cell;
   const state: State = {
@@ -101,20 +101,20 @@ function attach_snp(
 
     dragging_layers: [],
 
-    snp_outer: snp_outer,
-    plot_area: snp_outer.querySelector(".plot_area")!,
-    hover_regions_container: snp_outer.querySelector(".hover_regions")!,
+    plottery_outer: plottery_outer,
+    plot_area: plottery_outer.querySelector(".plot_area")!,
+    hover_regions_container: plottery_outer.querySelector(".hover_regions")!,
     hover_regions_svg: () => state.hover_regions_container.querySelector("svg") as SVGElement | undefined,
     set_hover_regions_html: (html_svg_str: string) => { state.hover_regions_container.innerHTML = html_svg_str; },
 
-    is_in_dom: () => state.snp_outer.isConnected,
+    is_in_dom: () => state.plottery_outer.isConnected,
 
     plot_widgets: [],
 
-    sidebar_el:    snp_outer.querySelector(".snp-sidebar")!,
-    properties_el: create_el("div", ["snp-properties-panel", "hidden"], snp_outer.querySelector(".plot_and_sidebar")!),
+    sidebar_el:    plottery_outer.querySelector(".plottery-sidebar")!,
+    properties_el: create_el("div", ["plottery-properties-panel", "hidden"], plottery_outer.querySelector(".plot_and_sidebar")!),
 
-    stdout_stderr: snp_outer.querySelector(".stdout_stderr")!,
+    stdout_stderr: plottery_outer.querySelector(".stdout_stderr")!,
 
     command_shortcuts: {}, // Added by menu items in menus.ts
   };
@@ -187,9 +187,9 @@ div#notebook .CodeMirror { font-size: 17px }
 
   // Put stdout_stderr at the bottom
   // state.stdout_stderr.remove();
-  // snp_outer.append(state.stdout_stderr);
+  // plottery_outer.append(state.stdout_stderr);
 
-  snp_outer.tabIndex = 0; // So it can recieve keyboard events (cmd-d for duplicate, etc)
+  plottery_outer.tabIndex = 0; // So it can recieve keyboard events (cmd-d for duplicate, etc)
 
   console.log("State", state);
 
@@ -251,7 +251,7 @@ div#notebook .CodeMirror { font-size: 17px }
     // This listener lives on the cell's *input* editor, which survives re-runs, so a new
     // one would pile up on every render and keep acting on dead renders. Remove the previous
     // render's listener so exactly one (the live render's) is ever attached at a time.
-    cm.__snp_cursor_activity_off?.();
+    cm.__plottery_cursor_activity_off?.();
 
     const on_cursor_activity = () => {
       // Guard the brief window between this render's output being cleared and the next
@@ -280,13 +280,13 @@ div#notebook .CodeMirror { font-size: 17px }
     };
 
     cm.on("cursorActivity", on_cursor_activity);
-    cm.__snp_cursor_activity_off = () => cm.off("cursorActivity", on_cursor_activity);
+    cm.__plottery_cursor_activity_off = () => cm.off("cursorActivity", on_cursor_activity);
   }
 
   state.sidebar_el.append(state.layers_panel.el);
 
 
-  create_el("h2", "snp-properties-panel-header", state.properties_el);
+  create_el("h2", "plottery-properties-panel-header", state.properties_el);
 
   console.timeEnd('time make layers');
   console.time('time make plot widgets');
@@ -306,7 +306,7 @@ div#notebook .CodeMirror { font-size: 17px }
 
   // Keyboard commands
   // Registered on the outer element that can accept keyboard events
-  snp_outer.addEventListener("keydown", evt => {
+  plottery_outer.addEventListener("keydown", evt => {
     const ev = evt as KeyboardEvent;
     const isMac = window.navigator.platform.match(/Mac|iPhone/);
 
@@ -424,21 +424,21 @@ div#notebook .CodeMirror { font-size: 17px }
   // real layout, including after New Cell rewrites them from the bad estimate.
   attach_jupyter_cell_height_sync(state);
 
-  (window as any)["last_snp_state"] = state;
+  (window as any)["last_plottery_state"] = state;
 
   console.timeEnd('time final setup');
 
-  console.timeEnd('time attach_snp');
+  console.timeEnd('time attach_plottery');
 }
 
-(window as any)["attach_snp"] = attach_snp;
+(window as any)["attach_plottery"] = attach_plottery;
 
 
-// Undo attach_snp's changes to the cell's input editor (marks, line highlights, cursor listener,
+// Undo attach_plottery's changes to the cell's input editor (marks, line highlights, cursor listener,
 // height cap, height sync). The extensions' global Plottery on/off toggle calls this before it
 // strips the UI out of the cell's output, which removes everything else.
-function detach_snp(snp_outer: HTMLElement) {
-  const cell = find_cell(snp_outer);
+function detach_plottery(plottery_outer: HTMLElement) {
+  const cell = find_cell(plottery_outer);
   if (!cell) return;
 
   const cm = cell.code_mirror as any;
@@ -447,18 +447,18 @@ function detach_snp(snp_outer: HTMLElement) {
   } else {
     cm.getAllMarks?.().forEach((m: any) => m.clear());
     cm.eachLine?.((line: any) => {
-      cm.removeLineClass(line, "gutter", "snp-ai-line-changed");
-      cm.removeLineClass(line, "background", "snp-ai-line-changed");
+      cm.removeLineClass(line, "gutter", "plottery-ai-line-changed");
+      cm.removeLineClass(line, "background", "plottery-ai-line-changed");
     });
   }
-  cm.__snp_cursor_activity_off?.();
-  delete cm.__snp_cursor_activity_off;
+  cm.__plottery_cursor_activity_off?.();
+  delete cm.__plottery_cursor_activity_off;
   cm.getScrollerElement().style.maxHeight = "";
 
-  detach_jupyter_cell_height_sync(cell, snp_outer);
+  detach_jupyter_cell_height_sync(cell, plottery_outer);
 }
 
-(window as any)["detach_snp"] = detach_snp;
+(window as any)["detach_plottery"] = detach_plottery;
 
 
 // # Positional argument
@@ -494,7 +494,7 @@ export function call_info_to_call_with_args(
       cm_end_pos(given_arg.pos, cell_lineno)
     );
 
-    // snp.py spreads the arg expression's serialized type into given_arg
+    // plottery.py spreads the arg expression's serialized type into given_arg
     const code_type = ".class" in given_arg ? (given_arg as Type) : null;
 
     // Find the corresponding default arg template based on name or position

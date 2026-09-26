@@ -1,6 +1,6 @@
 import { deselect_all_layers, duplicate_selected_layers, selected_layers } from "../layer_panel/layer_panel";
 import { State } from "../types";
-import { create_el, set_persistent_item, snp_logo_svg_html } from "../utils/misc";
+import { create_el, set_persistent_item, plottery_logo_svg_html } from "../utils/misc";
 import { add_menu_item, create_menu_el } from "../menus/menus";
 import { hard_rerun } from "../code_sync/code_sync";
 import { log_event } from "../utils/instrumentation";
@@ -22,10 +22,10 @@ export function set_margin_right_to_width(el: HTMLElement, margin_right: number,
 
 
 export function create_sidebar_menu_bar(state: State, fig_idx: number, fig_names: string[]) {
-  const sidebar_menu_bar = create_el("div", "snp-sidebar-menu-bar");
+  const sidebar_menu_bar = create_el("div", "plottery-sidebar-menu-bar");
 
   // Add Logo
-  sidebar_menu_bar.innerHTML = snp_logo_svg_html().replace('<svg ', '<svg class="sketch-n-plot-logo" style="margin-bottom:-5px" ')
+  sidebar_menu_bar.innerHTML = plottery_logo_svg_html().replace('<svg ', '<svg class="sketch-n-plot-logo" style="margin-bottom:-5px" ')
 
   // Add Edit menu
   const edit_menu = create_menu_el("<strong>Edit</strong>", [], sidebar_menu_bar)
@@ -63,7 +63,7 @@ export function create_sidebar_menu_bar(state: State, fig_idx: number, fig_names
 
   if (fig_names.length > 1) {
     // Add fig selector
-    const fig_selector = create_el("select", "snp-fig-selector", sidebar_menu_bar) as HTMLSelectElement;
+    const fig_selector = create_el("select", "plottery-fig-selector", sidebar_menu_bar) as HTMLSelectElement;
 
     fig_names.forEach((name, i) => {
       const option = create_el("option", [], fig_selector) as HTMLOptionElement;

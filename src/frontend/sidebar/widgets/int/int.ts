@@ -8,14 +8,14 @@ export type IntWidget = Widget & {
 };
 
 export function create_int_widget(code: string): IntWidget {
-  const el = create_el("div", "snp-widget");
+  const el = create_el("div", "plottery-widget");
 
-  let slider = create_el("input", "snp-slider") as HTMLInputElement;
+  let slider = create_el("input", "plottery-slider") as HTMLInputElement;
   slider.type = "range";
   slider.value = parseInt(code).toString();
 
   el.append(slider);
-  el.classList.add("snp-arg-number");
+  el.classList.add("plottery-arg-number");
 
   const widget: IntWidget = {
     kind: "IntWidget",
@@ -31,8 +31,8 @@ export function create_int_widget(code: string): IntWidget {
   adjust_slider_range(slider);
 
   // Prevent layer drag by @mech https://stackoverflow.com/a/34588661
-  slider.addEventListener('mouseenter', () => slider.closest(".snp-layer")?.setAttribute("draggable", "false") );
-  slider.addEventListener('mouseleave', () => slider.closest(".snp-layer")?.setAttribute("draggable", "true")  );
+  slider.addEventListener('mouseenter', () => slider.closest(".plottery-layer")?.setAttribute("draggable", "false") );
+  slider.addEventListener('mouseleave', () => slider.closest(".plottery-layer")?.setAttribute("draggable", "true")  );
 
   // Prevent click from opening dropdown
   slider.addEventListener("click", ev => { ev.stopPropagation(); });

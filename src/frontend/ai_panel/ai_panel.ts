@@ -6,22 +6,22 @@ import { current_llm_settings, get_llm_config, llm_api_key, llm_config_constants
 import { create_el, get_persistent_item, notebook_code_cells, set_persistent_item } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
 
-// Globally exposed by our extension (nbextension_snp/main.js and snp_jupyter/snp_jupyter.js)
+// Globally exposed by our extension (nbextension_plottery/main.js and plottery_jupyter/plottery_jupyter.js)
 // so we don't duplicate the figure/axes annotation logic in this bundle.
-declare const __snp_annotate_figure_axes_params: ((cell_code: string, notebook_code_through_cell: string) => string) | undefined;
-(window as any).__snp_annotate_figure_axes_params ||= (window as any).__snp_annotate_figure_axes_params;
+declare const __plottery_annotate_figure_axes_params: ((cell_code: string, notebook_code_through_cell: string) => string) | undefined;
+(window as any).__plottery_annotate_figure_axes_params ||= (window as any).__plottery_annotate_figure_axes_params;
 
 export function create_ai_panel(state: State): HTMLElement {
-  const panel_el = create_el("div", "snp-ai-panel");
+  const panel_el = create_el("div", "plottery-ai-panel");
   const panel_heading = create_el("h2", [], panel_el);
   panel_heading.append("AI")
 
   // Provider / model / effort sit right in the header — they're the knobs worth fiddling with
   // while prompting. Only the endpoint and API key live behind the gear.
-  const header_controls = create_el("div", "snp-ai-header-controls", panel_heading);
+  const header_controls = create_el("div", "plottery-ai-header-controls", panel_heading);
 
   // Gear button (right of the header controls) toggles the LLM config panel.
-  const gear_btn = create_el("span", "snp-ai-config-toggle", panel_heading) as HTMLButtonElement;
+  const gear_btn = create_el("span", "plottery-ai-config-toggle", panel_heading) as HTMLButtonElement;
   gear_btn.title = 'AI Settings';
   gear_btn.textContent = '⚙\uFE0E'; // ⚙︎ in text style. second char signals to be not emoji
   gear_btn.style.fontSize = '20px';
@@ -62,7 +62,7 @@ export function create_ai_panel(state: State): HTMLElement {
     reconsider_config_visibility();
   });
 
-  const prompt_wrapper = create_el("div", "snp-ai-prompt-wrapper", panel_el);
+  const prompt_wrapper = create_el("div", "plottery-ai-prompt-wrapper", panel_el);
 
   const prompt_el = create_el("input", [], prompt_wrapper) as HTMLInputElement;
   prompt_el.placeholder = "🤖 How should I change the plot?";
@@ -70,13 +70,13 @@ export function create_ai_panel(state: State): HTMLElement {
   // Submitting/accepting a prompt reruns the cell, which tears this panel down and builds a new
   // one; the flag apply_code_to_cell left behind (it outlives the rerun) says the box was where
   // the user was working, so put them back in it. Deferred a tick because the panel isn't in the
-  // DOM until attach_snp appends it.
+  // DOM until attach_plottery appends it.
   if (get_persistent_item(state, "ai_prompt_focus") === "true") {
     set_persistent_item(state, "ai_prompt_focus", "");
     setTimeout(() => prompt_el.focus(), 0);
   }
 
-  const spinner_el = create_el("div", "snp-spinner", prompt_wrapper);
+  const spinner_el = create_el("div", "plottery-spinner", prompt_wrapper);
 
   // ---- Live preview ----
   // After 222ms of typing pause, send the prompt to the LLM and preview the resulting figure
@@ -133,8 +133,8 @@ export function create_ai_panel(state: State): HTMLElement {
     new_code.split("\n").forEach((line_text, line) => {
       if (!old_lines.includes(line_text)) {
         original!.highlighted_lines.push(line);
-        cm.addLineClass(line, "gutter", "snp-ai-line-changed");
-        cm.addLineClass(line, "background", "snp-ai-line-changed");
+        cm.addLineClass(line, "gutter", "plottery-ai-line-changed");
+        cm.addLineClass(line, "background", "plottery-ai-line-changed");
       }
     });
   }
@@ -160,8 +160,8 @@ export function create_ai_panel(state: State): HTMLElement {
     // Remove highlights first, while the recorded line numbers still describe the previewed doc.
     original.highlighted_lines.forEach(line => {
       if (line < cm.lineCount()) {
-        cm.removeLineClass(line, "gutter", "snp-ai-line-changed");
-        cm.removeLineClass(line, "background", "snp-ai-line-changed");
+        cm.removeLineClass(line, "gutter", "plottery-ai-line-changed");
+        cm.removeLineClass(line, "background", "plottery-ai-line-changed");
       }
     });
     // Restore the code with the inverse minimal replace — unless the user edited the cell
@@ -307,11 +307,11 @@ export function create_ai_panel(state: State): HTMLElement {
 // The returned panel has a `.refresh()` that re-renders everything — used when the server keys
 // arrive after first render, so the API-key placeholder reflects them.
 function create_config_ui(state: State, header_el: HTMLElement, on_provider_change: () => void): HTMLElement & { refresh: () => void } {
-  const el = create_el("div", "snp-ai-config") as HTMLElement & { refresh: () => void };
+  const el = create_el("div", "plottery-ai-config") as HTMLElement & { refresh: () => void };
 
   // Build one labeled row of the gear panel: <label>text</label> + control.
   function row(label_text: string, control: HTMLElement): HTMLElement {
-    const r = create_el("div", "snp-ai-config-row", el);
+    const r = create_el("div", "plottery-ai-config-row", el);
     const label = create_el("label", [], r);
     label.append(label_text);
     r.append(control);
@@ -355,8 +355,8 @@ function create_config_ui(state: State, header_el: HTMLElement, on_provider_chan
       // Datalist ids must be unique document-wide, and a notebook can have an AI panel per
       // cell. Counter on window (not a top-level `let`, which would break bundle re-injection
       // — AGENTS.md), matching plottery_instrumentation_eventno in instrumentation.ts.
-      const seq = (window as any).snp_datalist_seq = ((window as any).snp_datalist_seq || 0) + 1;
-      datalist.id = `snp-ai-list-${seq}`;
+      const seq = (window as any).plottery_datalist_seq = ((window as any).plottery_datalist_seq || 0) + 1;
+      datalist.id = `plottery-ai-list-${seq}`;
       suggestions.filter(s => s !== "").forEach(s => {
         const opt = create_el("option", [], datalist) as HTMLOptionElement;
         opt.value = s;
@@ -386,17 +386,17 @@ function create_config_ui(state: State, header_el: HTMLElement, on_provider_chan
       set_llm_provider(new_provider);
       render(); // the endpoint/model/effort fields all depend on the provider
       on_provider_change();
-    })).classList.add("snp-ai-provider-field");
+    })).classList.add("plottery-ai-provider-field");
 
     header_control("Model", text_field(meta.models, settings.model, "model", v => update({ model: v })))
-      .classList.add("snp-ai-model-field");
+      .classList.add("plottery-ai-model-field");
 
     // Effort (hidden for providers with no reasoning_effort knob)
     if (meta.efforts.length > 0) {
       const on_effort = (v: string) => update({ effort: v });
       header_control("Effort", meta.custom_effort
         ? text_field(meta.efforts, settings.effort, "(default)", on_effort)
-        : fixed_dropdown(meta.efforts, settings.effort, {}, on_effort)).classList.add("snp-ai-effort-field");
+        : fixed_dropdown(meta.efforts, settings.effort, {}, on_effort)).classList.add("plottery-ai-effort-field");
     }
 
     // Endpoint (providers whose URL isn't fixed: OpenAI Compatible, and Bedrock's region host)
@@ -405,7 +405,7 @@ function create_config_ui(state: State, header_el: HTMLElement, on_provider_chan
         v => update({ endpoint: v })));
     }
 
-    // API key. Placeholder tells the user a server key is available (env var from snp.py).
+    // API key. Placeholder tells the user a server key is available (env var from plottery.py).
     const server_has_key = (state.llm_api_keys[provider] || "").trim().length > 0;
     row("API Key", text_field([], settings.api_key,
       server_has_key ? `Server has API key. Override here.` : `${meta.label} API key`,
@@ -424,8 +424,8 @@ export function attach_ai_line_highlight_clearing_handlers() {
       (Jupyter.notebook as any).events.on('execute.CodeCell', (_ev: any, data: any) => {
         const cm = data.cell.code_mirror;
         cm.eachLine((line: LineHandle) => {
-          cm.removeLineClass(line, "gutter", "snp-ai-line-changed");
-          cm.removeLineClass(line, "background", "snp-ai-line-changed");
+          cm.removeLineClass(line, "gutter", "plottery-ai-line-changed");
+          cm.removeLineClass(line, "background", "plottery-ai-line-changed");
         });
       });
     }
@@ -446,7 +446,7 @@ declare const Jupyter: JupyterType | undefined;
 // real request, with the ask as a second message. It must be its own message — luna only
 // prompt-caches whole messages, so a prefix that varies at the tail would never hit.
 function prompt_prefix_for_llm(state: State): { prefix: string, last_cell_no: number } {
-  const code_cells: Cell[] = notebook_code_cells(state.snp_outer).filter((cell: Cell) => is_not_magic(cell.get_text()));
+  const code_cells: Cell[] = notebook_code_cells(state.plottery_outer).filter((cell: Cell) => is_not_magic(cell.get_text()));
 
   const code_cells_through_cell = code_cells.slice(
     0,
@@ -582,7 +582,7 @@ function drops_show_call(old_code: string, new_code: string): boolean {
 // Show a non-code reply where kernel output/errors go, instead of putting it in the code box.
 function show_ai_message(state: State, reply: string) {
   state.stdout_stderr.innerHTML = "";
-  const msg_el = create_el("div", "snp-ai-message", state.stdout_stderr);
+  const msg_el = create_el("div", "plottery-ai-message", state.stdout_stderr);
   msg_el.append(`🤖 ${reply.trim()}`);
 }
 
@@ -591,7 +591,7 @@ function show_ai_message(state: State, reply: string) {
 // say which) — otherwise all we honestly know is that something went wrong.
 function show_ai_error(state: State, message?: string) {
   state.stdout_stderr.innerHTML = "";
-  const msg_el = create_el("div", ["snp-ai-message", "snp-ai-error"], state.stdout_stderr);
+  const msg_el = create_el("div", ["plottery-ai-message", "plottery-ai-error"], state.stdout_stderr);
   msg_el.append(message ? `⚠️ AI request failed: ${message}` : "⚠️ Oops, the AI request failed.");
 }
 
@@ -599,13 +599,13 @@ function show_ai_error(state: State, message?: string) {
 // the notebook extensions) so calls inside any function the model wrote get recognized. The
 // function is shared via the extension-exposed global rather than duplicated here.
 function annotate_code(code: string, state: State): string {
-  if (__snp_annotate_figure_axes_params) {
-    const code_cells = notebook_code_cells(state.snp_outer).filter((cell: Cell) => is_not_magic(cell.get_text()));
+  if (__plottery_annotate_figure_axes_params) {
+    const code_cells = notebook_code_cells(state.plottery_outer).filter((cell: Cell) => is_not_magic(cell.get_text()));
     const prior_code = code_cells
       .slice(0, code_cells.findLastIndex(c => c.element[0] === state.cell.element[0]))
       .map(c => c.get_text())
       .join("\n");
-    code = __snp_annotate_figure_axes_params(code, `${prior_code}\n${code}`);
+    code = __plottery_annotate_figure_axes_params(code, `${prior_code}\n${code}`);
   }
   return code;
 }
@@ -647,11 +647,11 @@ function apply_code_to_cell(code: string, state: State, code_before_ai_changes?:
   cm.eachLine(line => {
     // console.log("line.text", line.text);
     if(old_code_lines.includes(line.text)) {
-      cm.removeLineClass(line, "gutter", "snp-ai-line-changed");
-      cm.removeLineClass(line, "background", "snp-ai-line-changed");
+      cm.removeLineClass(line, "gutter", "plottery-ai-line-changed");
+      cm.removeLineClass(line, "background", "plottery-ai-line-changed");
     } else {
-      cm.addLineClass(line, "gutter", "snp-ai-line-changed");
-      cm.addLineClass(line, "background", "snp-ai-line-changed");
+      cm.addLineClass(line, "gutter", "plottery-ai-line-changed");
+      cm.addLineClass(line, "background", "plottery-ai-line-changed");
     }
   });
 

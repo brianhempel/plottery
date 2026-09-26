@@ -89,10 +89,10 @@ function close_undo_group(state: State) {
 }
 
 // Undo groups for the widget interactions that write code continuously. (On-plot shape drags
-// are grouped in attach_events_to_hover_regions.) Delegated on snp_outer so it covers widgets
+// are grouped in attach_events_to_hover_regions.) Delegated on plottery_outer so it covers widgets
 // that are created and replaced after this runs.
 export function attach_undo_groups_to_continuous_inputs(state: State) {
-  const outer = state.snp_outer;
+  const outer = state.plottery_outer;
 
   // Slider scrubs: from pointer down on a range input until the pointer is released anywhere.
   outer.addEventListener("pointerdown", evt => {

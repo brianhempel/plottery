@@ -1,11 +1,11 @@
-.snp-widget:has(> .snp-bool-switch) {
+.plottery-widget:has(> .plottery-bool-switch) {
   --knob-size: 14px;
   --travel: var(--knob-size);
 
   min-width: calc(var(--knob-size) + 4px + var(--travel));
 }
 
-.snp-bool-switch {
+.plottery-bool-switch {
   box-sizing: border-box; /* JupyterLab */
 
   display: inline-block;
@@ -20,7 +20,7 @@
   position: absolute;
 }
 
-.snp-bool-switch > .switch-knob {
+.plottery-bool-switch > .switch-knob {
   box-sizing: border-box; /* JupyterLab */
 
   display: inline-block;
@@ -31,12 +31,12 @@
   border: 1px solid darkgray;
 }
 
-.snp-bool-switch {
+.plottery-bool-switch {
   padding-left: 1px;
   background-color: lightgray;
   transition: all 80ms;
 }
-.snp-bool-switch.on {
+.plottery-bool-switch.on {
   padding-left: calc(1px + var(--travel));
   background-color: rgb(69, 231, 69);
   transition: all 80ms;

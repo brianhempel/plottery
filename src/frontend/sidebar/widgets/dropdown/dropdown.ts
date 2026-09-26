@@ -28,12 +28,12 @@ export type DropdownWidget = Widget & {
  * remains available in the dropdown.
  */
 export function create_dropdown_widget(items: Widget[]): DropdownWidget {
-  const el = create_el("div", "snp-dropdown");
+  const el = create_el("div", "plottery-dropdown");
 
   // Put the first element as selected item
   const selected_item_holder_el = create_el(
     "div",
-    "snp-dropdown-selected-item",
+    "plottery-dropdown-selected-item",
     el
   );
 
@@ -43,10 +43,10 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
     if (el.classList.contains("expanded")) {
       // And hide the selected layer while previewing dropdown items
       log_event("gui", "dropdown suggestions open");
-      el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.add("hide_during_interaction");
+      el.closest(".plottery_outer")?.querySelector(".hover_regions")?.classList.add("hide_during_interaction");
     } else {
       log_event("gui", "dropdown suggestions close");
-      el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
+      el.closest(".plottery_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
     }
   });
 
@@ -56,7 +56,7 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
       if (el.classList.contains("expanded")) {
         log_event("gui", "dropdown suggestions close");
         el.classList.remove("expanded");
-        el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
+        el.closest(".plottery_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
       }
     }
   }
@@ -64,7 +64,7 @@ export function create_dropdown_widget(items: Widget[]): DropdownWidget {
   document.body.addEventListener("click", deselect);
 
   // Drawer items
-  const drawer_el = create_el("div", "snp-dropdown-drawer", el);
+  const drawer_el = create_el("div", "plottery-dropdown-drawer", el);
 
 
   // Create a dropdown with an empty drawer
@@ -118,7 +118,7 @@ function group_dropdown_items(dropdown: DropdownWidget) {
 
   const holders_by_prefix = new Map<string, HTMLElement[]>();
   for (const item of dropdown.items) {
-    const holder = item.el.parentElement; // the .snp-dropdown-item row
+    const holder = item.el.parentElement; // the .plottery-dropdown-item row
     if (!holder || holder.parentElement !== dropdown.drawer_el) continue;
     const prefix = item.to_code().match(PREFIX_REGEX)?.[0];
     // // When several regexes match, keep the longest match.
@@ -133,16 +133,16 @@ function group_dropdown_items(dropdown: DropdownWidget) {
   for (const [prefix, holders] of holders_by_prefix) {
     if (holders.length < GROUP_THRESHOLD) continue;
 
-    const group_el = create_el("div", "snp-dropdown-group");
-    const header_el = create_el("div", "snp-dropdown-group-header", group_el);
-    const chevron_el = create_el("span", "snp-dropdown-group-chevron", header_el);
+    const group_el = create_el("div", "plottery-dropdown-group");
+    const header_el = create_el("div", "plottery-dropdown-group-header", group_el);
+    const chevron_el = create_el("span", "plottery-dropdown-group-chevron", header_el);
     chevron_el.textContent = "›";
-    const label_el = create_el("span", "snp-dropdown-group-label", header_el);
+    const label_el = create_el("span", "plottery-dropdown-group-label", header_el);
     label_el.textContent = `${prefix.replace('(', '').replace('[', '')}...`;
-    const count_el = create_el("span", "snp-dropdown-group-count", header_el);
+    const count_el = create_el("span", "plottery-dropdown-group-count", header_el);
     count_el.textContent = String(holders.length);
 
-    const items_el = create_el("div", "snp-dropdown-group-items", group_el);
+    const items_el = create_el("div", "plottery-dropdown-group-items", group_el);
 
     // Put the accordion where the first item was, then move all the rows inside it.
     dropdown.drawer_el.insertBefore(group_el, holders[0]);
@@ -165,7 +165,7 @@ export function add_item_to_dropdown_widget(
 
   const item_holder = create_el(
     "div",
-    "snp-dropdown-item",
+    "plottery-dropdown-item",
     dropdown.drawer_el
   );
   item_holder.append(widget.el);
@@ -173,10 +173,10 @@ export function add_item_to_dropdown_widget(
   widget.el["tabIndex"] = 0
 
   // The id is a thing to the right of the item, like "str", or "int"
-  const id = create_el("div", "snp-widget-id", item_holder);
+  const id = create_el("div", "plottery-widget-id", item_holder);
   id.innerHTML = widget.kind_label_for_dropdown;
 
-  const item_overlay_el = create_el("div", "snp-dropdown-item-overlay", item_holder);
+  const item_overlay_el = create_el("div", "plottery-dropdown-item-overlay", item_holder);
 
   item_overlay_el.addEventListener("mouseover", ev => {
     // Link items preview the linked call's live value: locally previewing that value is
@@ -191,7 +191,7 @@ export function add_item_to_dropdown_widget(
   item_overlay_el.addEventListener("click", ev => {
     // Close the dropdown
     dropdown.el.classList.remove("expanded");
-    dropdown.el.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
+    dropdown.el.closest(".plottery_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
     if (is_link_widget(widget)) {
       // A link item is an action (introduce a shared variable), not a selectable value.
       // Clear the hover preview so the flushed call text doesn't pick it up over the

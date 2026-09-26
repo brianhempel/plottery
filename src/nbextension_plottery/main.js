@@ -6,7 +6,7 @@
 //
 // Calls to plt.show() are replace with
 //
-// snp.show(globals() | locals(), cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell)
+// plottery.show(globals() | locals(), cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell)
 //
 // Consequently, notebook_code_through_cell is what we run type inference on.
 // The line number info is ultimately used to correlate parsed code locations to
@@ -15,10 +15,10 @@
 //
 // At the end of the cell, we change the cell return value by adding:
 //
-// last_snp = snp.show_ui(fig_idx=0) # Store to a variable for debugging
-// last_snp
+// last_plottery = plottery.show_ui(fig_idx=0) # Store to a variable for debugging
+// last_plottery
 //
-// This is what actually produces the SNP UI.
+// This is what actually produces the Plottery UI.
 define(["require", "base/js/namespace", "base/js/events"], function (
   requirejs,
   Jupyter,
@@ -275,7 +275,7 @@ define(["require", "base/js/namespace", "base/js/events"], function (
   }
 
   // Expose for the bundle (the AI panel reuses this on LLM results) so the logic isn't duplicated.
-  window.__snp_annotate_figure_axes_params = annotate_figure_axes_params;
+  window.__plottery_annotate_figure_axes_params = annotate_figure_axes_params;
 
   // The names plt.show might go by, given the notebook's imports. Look for
   // import matplotlib.pyplot as SOMETHING
@@ -299,7 +299,7 @@ define(["require", "base/js/namespace", "base/js/events"], function (
   // ---- Global Plottery on/off toggle ------------------------------------------
   //
   // Off, the notebook runs as ordinary matplotlib: plt.show() isn't rewritten, the kernel stops
-  // provenance tagging (snp.set_enabled), and every Plottery UI is stripped down to its plain plot
+  // provenance tagging (plottery.set_enabled), and every Plottery UI is stripped down to its plain plot
   // PNG so none of it is saved in the notebook. The setting is per browser (localStorage), shared
   // with the JupyterLab extension.
 
@@ -313,10 +313,10 @@ define(["require", "base/js/namespace", "base/js/events"], function (
 
   function is_plottery_output(output) {
     const html = output.data && mime_str(output.data['text/html']);
-    return typeof html === 'string' && html.includes('snp_outer');
+    return typeof html === 'string' && html.includes('plottery_outer');
   }
 
-  // What plain matplotlib would have shown: just the plot PNG, which the SNP output carries
+  // What plain matplotlib would have shown: just the plot PNG, which the Plottery output carries
   // alongside its UI HTML (and its hover-region SVG, which we must not show instead).
   function plain_plot_outputs(output) {
     if (!is_plottery_output(output)) return [output];
@@ -333,7 +333,7 @@ define(["require", "base/js/namespace", "base/js/events"], function (
   function strip_plottery_outputs(cell) {
     const output_area = cell.output_area;
     if (!output_area || !output_area.outputs.some(is_plottery_output)) return;
-    output_area.element[0].querySelectorAll('.snp_outer').forEach(snp_outer => window.detach_snp && window.detach_snp(snp_outer));
+    output_area.element[0].querySelectorAll('.plottery_outer').forEach(plottery_outer => window.detach_plottery && window.detach_plottery(plottery_outer));
     const outputs = output_area.outputs.flatMap(plain_plot_outputs);
     output_area.clear_output(false, true);
     output_area.fromJSON(outputs);
@@ -347,7 +347,7 @@ define(["require", "base/js/namespace", "base/js/events"], function (
   // Same look as the properties panel's bool switch (sidebar/widgets/bool/bool.css), under its own
   // class: the bundle's CSS only loads with a Plottery output, and its switch is position: absolute.
   const plottery_toggle_css = `
-    .snp-toolbar-switch {
+    .plottery-toolbar-switch {
       --knob-size: 14px;
       --travel: var(--knob-size);
       box-sizing: border-box;
@@ -362,11 +362,11 @@ define(["require", "base/js/namespace", "base/js/events"], function (
       background-color: lightgray;
       transition: all 80ms;
     }
-    .snp-toolbar-switch.on {
+    .plottery-toolbar-switch.on {
       padding-left: calc(1px + var(--travel));
       background-color: rgb(69, 231, 69);
     }
-    .snp-toolbar-switch > .switch-knob {
+    .plottery-toolbar-switch > .switch-knob {
       box-sizing: border-box;
       display: inline-block;
       vertical-align: top;
@@ -376,14 +376,14 @@ define(["require", "base/js/namespace", "base/js/events"], function (
       background-color: whitesmoke;
       border: 1px solid darkgray;
     }
-    #plottery-toggle .snp-toolbar-switch { margin-right: 5px; }
+    #plottery-toggle .plottery-toolbar-switch { margin-right: 5px; }
   `;
 
   function update_plottery_toggle_button() {
     const button = document.getElementById('plottery-toggle');
     if (!button) return;
     const enabled = plottery_enabled();
-    button.querySelector('.snp-toolbar-switch').classList.toggle('on', enabled);
+    button.querySelector('.plottery-toolbar-switch').classList.toggle('on', enabled);
     button.title = enabled ? 'Plottery is on. Click to use ordinary Matplotlib.' : 'Plottery is off. Click to turn it on.';
   }
 
@@ -395,7 +395,7 @@ define(["require", "base/js/namespace", "base/js/events"], function (
 
     const kernel = Jupyter.notebook.kernel;
     if (kernel && kernel.is_connected()) {
-      kernel.execute(`snp.set_enabled(${enabled ? 'True' : 'False'})`);
+      kernel.execute(`plottery.set_enabled(${enabled ? 'True' : 'False'})`);
     }
 
     if (!enabled) {
@@ -470,7 +470,7 @@ plt.show()`
     style.textContent = plottery_toggle_css;
     document.head.appendChild(style);
     const switch_el = document.createElement('span');
-    switch_el.className = 'snp-toolbar-switch';
+    switch_el.className = 'plottery-toolbar-switch';
     switch_el.innerHTML = '<span class="switch-knob"></span>';
     document.querySelector('#plottery-toggle i').replaceWith(switch_el);
     update_plottery_toggle_button();
@@ -484,13 +484,13 @@ plt.show()`
     // link.href = requirejs.toUrl("./style.css");
     // document.getElementsByTagName("head")[0].appendChild(link);
 
-    console.log("Setting up SNP...");
+    console.log("Setting up Plottery...");
 
-    // import snp when kernel (re)starts
+    // import plottery when kernel (re)starts
     Jupyter.notebook.events.on('kernel_ready.Kernel', function(ev, { kernel }) {
-      console.log("Kernel ready, importing snp");
+      console.log("Kernel ready, importing plottery");
       // Also on a page reload, which reconnects to a kernel that may be in the other on/off state.
-      kernel.execute(`import snp\nsnp.set_enabled(${plottery_enabled() ? 'True' : 'False'})`)
+      kernel.execute(`import plottery\nplottery.set_enabled(${plottery_enabled() ? 'True' : 'False'})`)
     })
 
     const orig_cell_execute = IPython.CodeCell.prototype.execute;
@@ -511,7 +511,7 @@ plt.show()`
           if (annotated !== code) this.set_text(annotated);
         }
       } catch (e) {
-        console.error('snp: figure/axes annotation pre-pass failed', e);
+        console.error('plottery: figure/axes annotation pre-pass failed', e);
       }
 
       const out = orig_cell_execute.call(this, stop_on_error);
@@ -519,7 +519,7 @@ plt.show()`
       return out;
     }
 
-    // Replace plt.show() with snp.show()
+    // Replace plt.show() with plottery.show()
     Jupyter.notebook.events.on(
       "execution_request.Kernel",
       function (ev, { kernel, content }) {
@@ -532,7 +532,7 @@ plt.show()`
 
         if (is_not_magic(cell_code) && cell_code.includes('show')) {
           // console.log('content', content);
-          const cell = content.cell || cell_executing; // content.cell if SNP called kernel.execute directly, cell_executing from above if user manually ran the cell
+          const cell = content.cell || cell_executing; // content.cell if Plottery called kernel.execute directly, cell_executing from above if user manually ran the cell
           delete content['cell'] // otherwise, the whole cell memory graph gets serialized!
           const [cell_lineno, notebook_code_through_cell] = get_notebook_code_through(cell);
 
@@ -551,22 +551,22 @@ plt.show()`
               cell_code_show_replaced.replaceAll(regex, function (_match, index) {
                 const plt_show_lineno_in_cell = cell_code_show_replaced.substr(0, index).split('\n').length; // 1-indexed
                 const notebook_code_as_python_str = JSON.stringify(notebook_code_through_cell);
-                return `snp.show(globals() | locals(), ${cell_lineno}, ${plt_show_lineno_in_cell}, ${provenance_is_off_by_n_lines}, ${notebook_code_as_python_str},`;;
+                return `plottery.show(globals() | locals(), ${cell_lineno}, ${plt_show_lineno_in_cell}, ${provenance_is_off_by_n_lines}, ${notebook_code_as_python_str},`;;
               });
           }
 
           // Only replace code if the cell is somehow using plt.show()
-          if (cell_code_show_replaced.includes('snp.show(')) {
-              // Sometimes the front end explicitly adds snp.show_ui(snp_class=FigureOnly) etc to
+          if (cell_code_show_replaced.includes('plottery.show(')) {
+              // Sometimes the front end explicitly adds plottery.show_ui(plottery_class=FigureOnly) etc to
               // do a quick render, then we don't need to add another show_ui
-              if (content.doesnt_need_snp_show_ui) {
+              if (content.doesnt_need_plottery_show_ui) {
                 content.code = cell_code_show_replaced;
               } else {
                 const fig_idx = cell.output_area.element[0].dataset.fig_idx || '0'; // Recall which fig is selected in the UI by querying the front-end's persistent_dataset
                 content.code =
 `${cell_code_show_replaced}
-last_snp = snp.show_ui(fig_idx=${fig_idx}) # Store to a variable for debugging
-last_snp`;
+last_plottery = plottery.show_ui(fig_idx=${fig_idx}) # Store to a variable for debugging
+last_plottery`;
               }
           }
 

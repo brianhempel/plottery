@@ -1,18 +1,18 @@
-.snp-layers-panel,
-.snp-properties-panel {
+.plottery-layers-panel,
+.plottery-properties-panel {
   line-height: 16px; /* override div#notebook's 20px line-height */
   font-size: 12px; /* same size as the code in the code box */
   border: solid 1px gray;
   padding: 0;
 }
-.snp-layers-panel {
+.plottery-layers-panel {
   min-width: 270px;
   max-width: 330px;
   overflow: hidden;
 }
 
-.snp-layers-panel h2,
-.snp-properties-panel h2 {
+.plottery-layers-panel h2,
+.plottery-properties-panel h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -23,15 +23,15 @@
   margin: 0 !important; /* there's some default stylesheet in the notebook clobbering the top margin */
 }
 
-.snp-layers-panel h2,
-.snp-properties-panel h2,
+.plottery-layers-panel h2,
+.plottery-properties-panel h2,
 .add-layer-menu,
-.add-layer-menu .snp-menu-panel { /* submenu */
+.add-layer-menu .plottery-menu-panel { /* submenu */
   background-color: #656565;
   color: #f2f2f2;
 }
-.add-layer-menu .snp-menu-item:hover,
-.add-layer-menu .snp-menu-item.active {
+.add-layer-menu .plottery-menu-item:hover,
+.add-layer-menu .plottery-menu-item.active {
   background-color: #929292;
 }
 
@@ -40,7 +40,7 @@
   font-size: 12px;
 }
 
-.snp-add-layer-button {
+.plottery-add-layer-button {
   display: block;
   border-radius: 3px;
   border: solid 1px gray;
@@ -48,12 +48,12 @@
   margin: 0;
 }
 
-.snp-properties-panel .snp-args {
+.plottery-properties-panel .plottery-args {
   font-family: monospace;
   white-space: pre-wrap;
 }
 
-.snp-layer {
+.plottery-layer {
   /* these flex params put the layer checkbox at the center right */
   display: flex;
   justify-content: space-between;
@@ -68,63 +68,63 @@
   --indent-spacing: 2em;
 }
 
-.for-loop > div > .snp-widget,
-.for-loop > div > .snp-dropdown,
-.func-def > div > .snp-widget,
-.func-def > div > .snp-dropdown,
-.if-stmt > div > .snp-widget,
-.if-stmt > div > .snp-dropdown {
+.for-loop > div > .plottery-widget,
+.for-loop > div > .plottery-dropdown,
+.func-def > div > .plottery-widget,
+.func-def > div > .plottery-dropdown,
+.if-stmt > div > .plottery-widget,
+.if-stmt > div > .plottery-dropdown {
   border: solid 1px lightgray;
   display: inline-block;
 }
 
-.snp-layer.snp-code-layer {
+.plottery-layer.plottery-code-layer {
   color: lightgray;
   display: none;
 }
 
-input.snp-layer-checkbox {
+input.plottery-layer-checkbox {
   cursor: pointer;
   margin: 0;
   filter: saturate(0) brightness(0.8) contrast(2); /* remove the MacOS system selection color */
 }
 
 /* Unchecked layers */
-.snp-layer:has(> .snp-layer-checkbox:not(:checked)) > *:not(.snp-layer-checkbox) {
+.plottery-layer:has(> .plottery-layer-checkbox:not(:checked)) > *:not(.plottery-layer-checkbox) {
   opacity: 0.2;
 }
 
-.snp-layer.selected {
+.plottery-layer.selected {
   background-color: #efefef;
 }
 
-.snp-layer.indent-1 {
+.plottery-layer.indent-1 {
   padding-left: var(--indent-spacing);
 }
-.snp-layer.indent-2 {
+.plottery-layer.indent-2 {
   padding-left: calc(var(--indent-spacing) * 2);
 }
-.snp-layer.indent-3 {
+.plottery-layer.indent-3 {
   padding-left: calc(var(--indent-spacing) * 3);
 }
-.snp-layer.indent-4 {
+.plottery-layer.indent-4 {
   padding-left: calc(var(--indent-spacing) * 4);
 }
-.snp-layer.indent-5 {
+.plottery-layer.indent-5 {
   padding-left: calc(var(--indent-spacing) * 5);
 }
 
-.snp-layer.dragover-top {
+.plottery-layer.dragover-top {
   border-top: solid 3px black;
   margin-top: -1px;
   position: relative;
 }
-.snp-layer.dragover-bottom {
+.plottery-layer.dragover-bottom {
   border-bottom: solid 3px black;
   /* margin-bottom: -1px; */
   position: relative;
 }
-.snp-layer.dragover-top::before {
+.plottery-layer.dragover-top::before {
   content: '';
   position: absolute;
   top: -7px;
@@ -134,7 +134,7 @@ input.snp-layer-checkbox {
   background-color: rgb(0, 0, 0); /* Color of the circle */
   border-radius: 50%; /* Makes the element a circle */
 }
-.snp-layer.dragover-bottom::after {
+.plottery-layer.dragover-bottom::after {
   content: '';
   position: absolute;
   bottom: -7px;
@@ -145,46 +145,46 @@ input.snp-layer-checkbox {
   border-radius: 50%; /* Makes the element a circle */
 }
 
-.snp-layer.dragover-top.drag-indent-1::before {
+.plottery-layer.dragover-top.drag-indent-1::before {
   left: calc(-6px + var(--indent-spacing) * 1);
 }
-.snp-layer.dragover-bottom.drag-indent-1::after {
+.plottery-layer.dragover-bottom.drag-indent-1::after {
   left: calc(-6px + var(--indent-spacing) * 1);
 }
-.snp-layer.dragover-top.drag-indent-2::before {
+.plottery-layer.dragover-top.drag-indent-2::before {
   left: calc(-6px + var(--indent-spacing) * 2);
 }
-.snp-layer.dragover-bottom.drag-indent-2::after {
+.plottery-layer.dragover-bottom.drag-indent-2::after {
   left: calc(-6px + var(--indent-spacing) * 2);
 }
-.snp-layer.dragover-top.drag-indent-3::before {
+.plottery-layer.dragover-top.drag-indent-3::before {
   left: calc(-6px + var(--indent-spacing) * 3);
 }
-.snp-layer.dragover-bottom.drag-indent-3::after {
+.plottery-layer.dragover-bottom.drag-indent-3::after {
   left: calc(-6px + var(--indent-spacing) * 3);
 }
-.snp-layer.dragover-top.drag-indent-4::before {
+.plottery-layer.dragover-top.drag-indent-4::before {
   left: calc(-6px + var(--indent-spacing) * 4);
 }
-.snp-layer.dragover-bottom.drag-indent-4::after {
+.plottery-layer.dragover-bottom.drag-indent-4::after {
   left: calc(-6px + var(--indent-spacing) * 4);
 }
-.snp-layer.dragover-top.drag-indent-5::before {
+.plottery-layer.dragover-top.drag-indent-5::before {
   left: calc(-6px + var(--indent-spacing) * 5);
 }
-.snp-layer.dragover-bottom.drag-indent-5::after {
+.plottery-layer.dragover-bottom.drag-indent-5::after {
   left: calc(-6px + var(--indent-spacing) * 5);
 }
 
-.CodeMirror .snp-line-selected .CodeMirror-gutter-elt {
+.CodeMirror .plottery-line-selected .CodeMirror-gutter-elt {
   background-color: #c0def8;
   color: #444
 }
-.CodeMirror .snp-line-selected.CodeMirror-linebackground {
+.CodeMirror .plottery-line-selected.CodeMirror-linebackground {
   background-color: #e8f3fc;
 }
 /* CM6 draws the text selection in a layer *behind* the lines, so an opaque line
    background would hide it. Translucent: same #e8f3fc over white, selection shows through. */
-.cm-editor .cm-line.snp-line-selected {
+.cm-editor .cm-line.plottery-line-selected {
   background-color: rgba(25, 135, 225, 0.1);
 }

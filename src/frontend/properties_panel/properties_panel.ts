@@ -9,7 +9,7 @@ export function set_properties_panel_on({ els: { name_el, properties_el: args_el
 
   args_el.remove();
   properties_el.append(args_el);
-  (properties_el.querySelector('.snp-properties-panel-header')! as HTMLElement).innerText = `${name_el.innerText} Properties`;
+  (properties_el.querySelector('.plottery-properties-panel-header')! as HTMLElement).innerText = `${name_el.innerText} Properties`;
 }
 
 function clear_properties_panel(state: State) {

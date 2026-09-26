@@ -12,11 +12,11 @@ export type FloatWidget = Widget & {
 };
 
 export function create_float_widget(code: string): FloatWidget {
-  const el = create_el("div", "snp-widget");
+  const el = create_el("div", "plottery-widget");
 
   // let slider: Slider = make_slider(parseFloat(code));
 
-  let slider = create_el("input", "snp-slider") as HTMLInputElement;
+  let slider = create_el("input", "plottery-slider") as HTMLInputElement;
   slider.type = "range";
   slider.min = "-1";
   slider.value = "0";
@@ -24,7 +24,7 @@ export function create_float_widget(code: string): FloatWidget {
   slider.step = "any";
 
   el.append(slider);
-  el.classList.add("snp-arg-number");
+  el.classList.add("plottery-arg-number");
 
   const widget: FloatWidget = {
     kind: "FloatWidget",
@@ -40,8 +40,8 @@ export function create_float_widget(code: string): FloatWidget {
   };
 
   // Prevent layer drag by @mech https://stackoverflow.com/a/34588661
-  slider.addEventListener('mouseenter', () => slider.closest(".snp-layer")?.setAttribute("draggable", "false") );
-  slider.addEventListener('mouseleave', () => slider.closest(".snp-layer")?.setAttribute("draggable", "true")  );
+  slider.addEventListener('mouseenter', () => slider.closest(".plottery-layer")?.setAttribute("draggable", "false") );
+  slider.addEventListener('mouseleave', () => slider.closest(".plottery-layer")?.setAttribute("draggable", "true")  );
 
   // Prevent click from opening dropdown
   slider.addEventListener("click", ev => { ev.stopPropagation(); });
@@ -54,7 +54,7 @@ export function create_float_widget(code: string): FloatWidget {
     if (sibling) {
       (sibling as HTMLElement).style.width = sibling.getBoundingClientRect().width + "px";
     }
-    slider.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.add("hide_during_interaction");
+    slider.closest(".plottery_outer")?.querySelector(".hover_regions")?.classList.add("hide_during_interaction");
     log_event("gui", "slider widget drag begin", { arg_code: widget.to_code() });
   });
 
@@ -65,7 +65,7 @@ export function create_float_widget(code: string): FloatWidget {
       (sibling as HTMLElement).style.width = '';
     }
     // Show selected layer again
-    slider.closest(".snp_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
+    slider.closest(".plottery_outer")?.querySelector(".hover_regions")?.classList.remove("hide_during_interaction");
 
     // Reset the slider to the middle and adjust its range
     widget.base = position_to_float(widget.slider, widget.base);

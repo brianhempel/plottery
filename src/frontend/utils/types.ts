@@ -68,7 +68,7 @@ function offset_to_cm5_pos(doc: CM6Doc, offset: number) : CodeMirror.Position {
   return {line: line.number - 1, ch: offset - line.from}
 }
 
-// These are globally exposed by our extension in snp_jupyter/snp_jupyter.js
+// These are globally exposed by our extension in plottery_jupyter/plottery_jupyter.js
 // They should already be on window, but this makes them available but undefined if they're not.
 declare const __CM6StateEffect: any;
 (window as any).__CM6StateEffect  ||= (window as any).__CM6StateEffect
@@ -184,7 +184,7 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
 
   // Marks based on https://codemirror.net/docs/migration/#marked-text
 
-  // The __CM6StateEffect, __CM6StateField, __CM6EditorView, and __CM6Decoration classes are globally exposed by our extension in snp_jupyter/snp_jupyter.js
+  // The __CM6StateEffect, __CM6StateField, __CM6EditorView, and __CM6Decoration classes are globally exposed by our extension in plottery_jupyter/plottery_jupyter.js
 
   const add_marks    = __CM6StateEffect.define()
   const filter_marks = __CM6StateEffect.define()
@@ -433,7 +433,7 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     markText: (from: CodeMirror.Position, to: CodeMirror.Position, options: { inclusiveLeft: boolean, inclusiveRight: boolean, clearWhenEmpty: boolean }) => {
       // In our usage, clearWhenEmpty is always false, so don't bother supporting it
       if (options.clearWhenEmpty) {
-        throw new Error("snp: clearWhenEmpty is not supported in our hacky monkey-patch of CodeMirror 6")
+        throw new Error("plottery: clearWhenEmpty is not supported in our hacky monkey-patch of CodeMirror 6")
       }
       const from_offset = cm5_pos_to_offset(cm6.state.doc, from);
       const to_offset = cm5_pos_to_offset(cm6.state.doc, to);
@@ -502,7 +502,7 @@ export function monkey_patch_codemirror5_on_codemirror6(cm6: CM6Editor): CodeMir
     // Drop ALL of our marks (and selected-layer line classes) in a single transaction.
     // getAllMarks().forEach(m => m.clear()) dispatches once per mark, and each dispatch
     // re-filters the whole decoration RangeSet — O(n^2) in the number of marks. This is one
-    // O(n) filter dispatch. attach_snp calls it up front: the underlying CM6 editor persists
+    // O(n) filter dispatch. attach_plottery calls it up front: the underlying CM6 editor persists
     // across cell reruns, so without clearing, every render's marks piled onto the previous
     // render's (only GUI hard_rerun cleared them), making each attach re-sort an ever-larger
     // set — attach time grew ~4s per manual rerun (7s -> 38s over 8 runs on a big cell).
@@ -595,7 +595,7 @@ export function jupyterlab_cell_to_notebook_v6_cell(jl_cell: JupyterLabCell): Ce
   }
 
   if (!__JupyterNotebookActionsModule) {
-    throw new Error("jupyterlab_cell_to_notebook_v6_cell: __JupyterNotebookActionsModule not found, it should have been set globally by the snp_jupyter.js lab extension");
+    throw new Error("jupyterlab_cell_to_notebook_v6_cell: __JupyterNotebookActionsModule not found, it should have been set globally by the plottery_jupyter.js lab extension");
   }
 
   const cell: Cell = {
@@ -603,7 +603,7 @@ export function jupyterlab_cell_to_notebook_v6_cell(jl_cell: JupyterLabCell): Ce
     code_mirror: monkey_patch_codemirror5_on_codemirror6(jl_cell.editor!.editor),
     element: [jl_cell.node],
     get_text: () => jl_cell.model.sharedModel.source,
-    get_callbacks: () => { throw new Error("snp: get_callbacks not implemented for JupyterLab cells, need to execute some other way") },
+    get_callbacks: () => { throw new Error("plottery: get_callbacks not implemented for JupyterLab cells, need to execute some other way") },
     execute: () => { __JupyterNotebookActionsModule.runCells(jl_cell.parent, [jl_cell], jl_cell.parent.parent.sessionContext); },
     kernel: undefined,
     jupyterlab_cell: jl_cell,
@@ -638,7 +638,7 @@ export type Kernel = {
 };
 type ExecuteMetadataForTheNBExtension = {
   cell?: Cell
-  doesnt_need_snp_show_ui?: boolean
+  doesnt_need_plottery_show_ui?: boolean
 }
 
 export type CellOutput = {

@@ -8,11 +8,11 @@
     "watch-ts": "vite build --watch",
     "build": "npm run install-labextension && npm run build-ts",
     "build-nbv6": "npm run install-nbextension; npm run enable-nbextension && npm run build-ts",
-    "uninstall-labextension": "rm -r $(ruby -e 'print(`jupyter lab path`[/Application directory:\\s*(.*)/, 1].sub(/\\/lab$/, \"\"))')/labextensions/snp_jupyter",
-    "install-labextension": "cd src/snp_jupyter && npm run build && cd ../.. && npm run uninstall-labextension; cp -r src/snp_jupyter/labextension $(ruby -e 'print(`jupyter lab path`[/Application directory:\\s*(.*)/, 1].sub(/\\/lab$/, \"\"))')/labextensions/snp_jupyter",
-    "install-nbextension": "jupyter nbextension install src/nbextension_snp --debug --overwrite --user # will install to /Users/USERNAME/Library/Jupyter/nbextensions/",
-    "enable-nbextension": "jupyter nbextension enable nbextension_snp/main",
-    "disable-nbextension": "jupyter nbextension disable nbextension_snp/main"
+    "uninstall-labextension": "rm -r $(ruby -e 'print(`jupyter lab path`[/Application directory:\\s*(.*)/, 1].sub(/\\/lab$/, \"\"))')/labextensions/plottery_jupyter",
+    "install-labextension": "cd src/plottery_jupyter && npm run build && cd ../.. && npm run uninstall-labextension; cp -r src/plottery_jupyter/labextension $(ruby -e 'print(`jupyter lab path`[/Application directory:\\s*(.*)/, 1].sub(/\\/lab$/, \"\"))')/labextensions/plottery_jupyter",
+    "install-nbextension": "jupyter nbextension install src/nbextension_plottery --debug --overwrite --user # will install to /Users/USERNAME/Library/Jupyter/nbextensions/",
+    "enable-nbextension": "jupyter nbextension enable nbextension_plottery/main",
+    "disable-nbextension": "jupyter nbextension disable nbextension_plottery/main"
   },
   "author": "",
   "license": "ISC",

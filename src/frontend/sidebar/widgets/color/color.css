@@ -1,8 +1,8 @@
-.snp-widget:has(> .snp-arg-color) {
+.plottery-widget:has(> .plottery-arg-color) {
   min-width: calc(1em + 2px);
 }
 
-input.snp-arg-color {
+input.plottery-arg-color {
   width: calc(1em + 2px);
   height: calc(1em + 2px);
   border: none;
@@ -13,11 +13,11 @@ input.snp-arg-color {
   position: absolute;
 }
 
-input.snp-arg-color::-webkit-color-swatch-wrapper {
+input.plottery-arg-color::-webkit-color-swatch-wrapper {
   padding: 0;
 }
 
-input.snp-arg-color::-webkit-color-swatch {
+input.plottery-arg-color::-webkit-color-swatch {
   width: 1em;
   height: 1em;
   border: 1px solid darkgray; /* same as the bool controls */

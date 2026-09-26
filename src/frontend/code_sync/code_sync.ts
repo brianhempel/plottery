@@ -83,7 +83,7 @@ function execute_cell_but_delay_clearing_output(cell: any) {
 // contentVisibilityAuto so a skipped content-visibility subtree counts as not-rendered, and
 // fall back to "rendered" on browsers without checkVisibility.
 function ui_is_rendered(state: State): boolean {
-  const el = state.snp_outer as any;
+  const el = state.plottery_outer as any;
   if (typeof el.checkVisibility !== "function") return true;
   return el.checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true });
 }
@@ -202,7 +202,7 @@ function handle_error_or_stdout_stderr(state: State, msg: CellMessage) {
       state.stdout_stderr.innerText += msg.content.text;
     }
   } else {
-    console.warn("[snp unhandlable iopub message]", msg);
+    console.warn("[plottery unhandlable iopub message]", msg);
   }
 }
 
@@ -224,8 +224,8 @@ export function redraw_cell(state: State, ignore_busy: boolean = false) {
 
   const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
   const postfix =
-`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureOnly) # Store to a variable for debugging
-last_snp`;
+`\nlast_plottery = plottery.show_ui(fig_idx=${fig_idx}, plottery_class=plottery.PlotteryFigureOnly) # Store to a variable for debugging
+last_plottery`;
 
   // For JupyterLab, see https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L678
   const on_iopub_output = (msg: any) => {
@@ -282,7 +282,7 @@ last_snp`;
       // case 'idle':
       //   break;
     //   default:
-    //     console.warn("[snp redraw_cell_jupyterlab unhandlable output message]", msg);
+    //     console.warn("[plottery redraw_cell_jupyterlab unhandlable output message]", msg);
     //     break;
     // }
     // if (displayId && msgType === 'display_data') {
@@ -369,7 +369,7 @@ last_snp`;
   //     store_history: false,
   //     stop_on_error: true,
   //     cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
-  //     doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
+  //     doesnt_need_plottery_show_ui: true, // Tell the exention not to add another show_ui
   //   });
   // } else { // JupyterLab
   //   // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/cells/src/widget.ts#L1692
@@ -378,19 +378,19 @@ last_snp`;
   //   const jl_cell = cell.jupyterlab_cell;
 
   //   if (!jl_cell) {
-  //     throw new Error("snp redraw_cell_jupyterlab: cell should have a backing JupyterLab cell!");
+  //     throw new Error("plottery redraw_cell_jupyterlab: cell should have a backing JupyterLab cell!");
   //   }
 
   //   const metadata = {
   //     ...jl_cell.model.metadata,
   //     cellId: jl_cell.model.sharedModel.getId(),
-  //     doesnt_need_snp_show_ui: true, // Tell the labexention not to add another show_ui
+  //     doesnt_need_plottery_show_ui: true, // Tell the labexention not to add another show_ui
   //   };
 
   //   const kernel = jl_cell.parent.parent.sessionContext.session?.kernel;
 
   //   if (!kernel) {
-  //     throw new Error('snp redraw_cell jupyterlab: Session has no kernel.');
+  //     throw new Error('plottery redraw_cell jupyterlab: Session has no kernel.');
   //   }
 
   //   console.log("Executing");
@@ -461,7 +461,7 @@ last_snp`;
   //       // case 'idle':
   //       //   break;
   //     //   default:
-  //     //     console.warn("[snp redraw_cell_jupyterlab unhandlable output message]", msg);
+  //     //     console.warn("[plottery redraw_cell_jupyterlab unhandlable output message]", msg);
   //     //     break;
   //     // }
   //     // if (displayId && msgType === 'display_data') {
@@ -513,7 +513,7 @@ last_snp`;
 
 
 // Execute `code` — which need not match the cell's text — and swap in the resulting figure
-// image only, leaving the cell code, marks, and the rest of the SNP UI untouched. Used by the
+// image only, leaving the cell code, marks, and the rest of the Plottery UI untouched. Used by the
 // AI panel's live preview; the caller saves/restores the previous img src etc. to revert.
 // `should_apply` is checked at each output message so a preview the user has since abandoned
 // (kernel executions can't be aborted) doesn't clobber the restored original.
@@ -532,8 +532,8 @@ export function preview_figure_only(
 
   const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
   const postfix =
-`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureOnly) # Store to a variable for debugging
-last_snp`;
+`\nlast_plottery = plottery.show_ui(fig_idx=${fig_idx}, plottery_class=plottery.PlotteryFigureOnly) # Store to a variable for debugging
+last_plottery`;
 
   const on_iopub_output = (msg: CellMessage) => {
     if (!should_apply()) { return; }
@@ -574,8 +574,8 @@ export function refresh_hover_regions(state: State) {
 
   const fig_idx = get_persistent_item(state, 'fig_idx') || '0';
   const postfix =
-`\nlast_snp = snp.show_ui(fig_idx=${fig_idx}, snp_class=snp.SNPFigureAndHoverRegions) # Store to a variable for debugging
-last_snp`;
+`\nlast_plottery = plottery.show_ui(fig_idx=${fig_idx}, plottery_class=plottery.PlotteryFigureAndHoverRegions) # Store to a variable for debugging
+last_plottery`;
 
   const on_iopub_output = (msg: CellMessage) => {
 
@@ -617,7 +617,7 @@ last_snp`;
   //   store_history: false,
   //   stop_on_error: true,
   //   cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly
-  //   doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
+  //   doesnt_need_plottery_show_ui: true, // Tell the exention not to add another show_ui
   // });
 
   kernel_execute(code_executing, postfix, on_iopub_output, on_shell_reply, state);
@@ -625,7 +625,7 @@ last_snp`;
 
 
 // Handle Notebooks v6 and JupyterLab.
-// Also tell the extension not to add the snp.show_ui call, presumably it is in postfix.
+// Also tell the extension not to add the plottery.show_ui call, presumably it is in postfix.
 function kernel_execute(
   code_executing: string,
   postfix: string,
@@ -646,7 +646,7 @@ function kernel_execute(
       store_history: false,
       stop_on_error: true,
       cell: cell, // For our nbextension to know which cell is executing, even though we're not executing the cell's code exactly, the nbextension will then remove this field because it's wasteful and causes 'message too large' crashes if the cell gets serialized and sent to python
-      doesnt_need_snp_show_ui: true, // Tell the exention not to add another show_ui
+      doesnt_need_plottery_show_ui: true, // Tell the exention not to add another show_ui
     });
   } else { // JupyterLab
     // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/cells/src/widget.ts#L1692
@@ -655,19 +655,19 @@ function kernel_execute(
     const jl_cell = cell.jupyterlab_cell;
 
     if (!jl_cell) {
-      throw new Error("snp kernel_execute jupyterlab: cell should have a backing JupyterLab cell!");
+      throw new Error("plottery kernel_execute jupyterlab: cell should have a backing JupyterLab cell!");
     }
 
     const metadata = {
       ...jl_cell.model.metadata,
       cellId: jl_cell.model.sharedModel.getId(),
-      doesnt_need_snp_show_ui: true, // Tell the labexention not to add another show_ui
+      doesnt_need_plottery_show_ui: true, // Tell the labexention not to add another show_ui
     };
 
     const kernel = jl_cell.parent.parent.sessionContext.session?.kernel;
 
     if (!kernel) {
-      throw new Error('snp kernel_execute jupyterlab: Session has no kernel.');
+      throw new Error('plottery kernel_execute jupyterlab: Session has no kernel.');
     }
 
     console.log("Executing");
@@ -704,7 +704,7 @@ export function kernel_eval_stdout(code: string, state: State): Promise<string> 
 }
 
 
-// The server's LLM API keys live in the kernel's environment (snp.py reads them from env
+// The server's LLM API keys live in the kernel's environment (plottery.py reads them from env
 // vars). We deliberately do NOT bake them into a cell's saved _repr_html_ — that would leak
 // them into any shared .ipynb. Instead we fetch them from the kernel at runtime, once per
 // page (cached on window, since each cell output re-runs its own copy of this bundle in its
@@ -720,8 +720,8 @@ export function fetch_server_llm_keys(state: State): Promise<LLMApiKeys> {
   const sentinel = "__PLOTTERY_LLM_KEYS__"; // prefixed to the JSON so we can find our stdout line
 
   const code =
-`import snp as _snp
-print(${JSON.stringify(sentinel)} + _snp.llm_api_keys_json())`;
+`import plottery as _plottery
+print(${JSON.stringify(sentinel)} + _plottery.llm_api_keys_json())`;
 
   const promise = kernel_eval_stdout(code, state).then(stdout => {
     const line = stdout.split("\n").find(l => l.startsWith(sentinel));

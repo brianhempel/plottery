@@ -19,7 +19,7 @@ export type CodeAndControlWidget = Widget & {
 };
 
 export function create_code_and_control_widget(code: string, type: Type): CodeAndControlWidget {
-  const el = create_el("div", ["snp-widget", "code-and-control-widget"]);
+  const el = create_el("div", ["plottery-widget", "code-and-control-widget"]);
   const code_widget = create_arbitrary_code_widget(code);
 
   el.append(code_widget.el);

@@ -26,20 +26,20 @@ export function create_link_widget(
   preview_code: () => string,
   on_choose: () => void
 ): LinkWidget {
-  const el = create_el("div", ["snp-widget", "snp-link-suggestion"]);
+  const el = create_el("div", ["plottery-widget", "plottery-link-suggestion"]);
 
   // Color swatch preview, when the linked expression parses as an rgb tuple
   const hex = code_to_hex(suggestion.code);
   if (hex) {
-    const swatch_el = create_el("div", "snp-link-swatch", el);
+    const swatch_el = create_el("div", "plottery-link-swatch", el);
     swatch_el.style.background = hex;
   }
 
-  const label_el = create_el("div", "snp-link-label", el);
-  const arg_name_el = create_el("span", "snp-link-arg-name", label_el);
+  const label_el = create_el("div", "plottery-link-label", el);
+  const arg_name_el = create_el("span", "plottery-link-arg-name", label_el);
   arg_name_el.innerText = suggestion.arg_name;
   label_el.append(` ${suggestion.code} `);
-  const of_el = create_el("span", "snp-link-of", label_el);
+  const of_el = create_el("span", "plottery-link-of", label_el);
   of_el.innerText = "of";
   label_el.append(` ${suggestion.call_label}`);
 

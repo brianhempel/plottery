@@ -26,7 +26,7 @@ export type State = {
   user_iterables: string[];
   avoid_names: string[];
 
-  llm_api_keys: { [provider: string]: string }; // keyed by provider name, see snp_ai_provider in utils/llm.ts
+  llm_api_keys: { [provider: string]: string }; // keyed by provider name, see plottery_ai_provider in utils/llm.ts
   mpl_version: string;
 
   // **** Actual state ****
@@ -40,7 +40,7 @@ export type State = {
 
   // **** View outputs ****
 
-  snp_outer: HTMLElement;
+  plottery_outer: HTMLElement;
   plot_area: HTMLElement;
   stdout_stderr: HTMLElement;
 

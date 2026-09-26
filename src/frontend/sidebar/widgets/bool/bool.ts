@@ -9,11 +9,11 @@ export type BoolWidget = Widget & {
 };
 
 export function create_bool_widget(code: string): BoolWidget {
-  const el = create_el("div", "snp-widget");
+  const el = create_el("div", "plottery-widget");
 
-  el.innerHTML = `<div class="snp-bool-switch"><span class="switch-knob"></span></div>`;
+  el.innerHTML = `<div class="plottery-bool-switch"><span class="switch-knob"></span></div>`;
 
-  const switchEl = el.querySelector(".snp-bool-switch") as HTMLElement;
+  const switchEl = el.querySelector(".plottery-bool-switch") as HTMLElement;
   const isOn = code == "True";
 
   const widget: BoolWidget = {

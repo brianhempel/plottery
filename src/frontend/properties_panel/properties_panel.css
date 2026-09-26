@@ -1,23 +1,23 @@
-.snp-properties-panel {
+.plottery-properties-panel {
   min-width: 330px;
 }
 
-.snp-properties-panel .snp-args {
+.plottery-properties-panel .plottery-args {
   /* Hmmm, the below cause the dropdown widget menus to disappear */
   /* max-height: 50vh; */
   /* overflow: auto; */
   padding: 4px 8px;
 }
 
-.snp-properties-panel .snp-arg-view {
+.plottery-properties-panel .plottery-arg-view {
   margin-bottom: 2px;
   margin-top: 2px;
 }
 
-.snp-properties-panel .snp-arg-view:first-child {
+.plottery-properties-panel .plottery-arg-view:first-child {
   margin-top: 0px;
 }
 
-.snp-properties-panel .snp-arg-view:last-child {
+.plottery-properties-panel .plottery-arg-view:last-child {
   margin-bottom: 0px;
 }
