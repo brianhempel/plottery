@@ -1,7 +1,14 @@
 
 // window.location.pathname.replace('.ipynb','').replace('/notebooks','') + '/' + (new Date()).toISOString().replace(':','-')
 
+// Study logging is off unless opted in on the study machine (run usage_events.rb to receive the events):
+//   window.localStorage.setItem('plottery_study_logging', 'true')
+function study_logging_enabled(): boolean {
+  return window.localStorage.getItem('plottery_study_logging') === 'true'
+}
+
 export function log_event(mode: 'code' | 'gui' | 'ai' | 'other', kind: string, extra?: Object): void {
+  if (!study_logging_enabled()) return;
 
   (window as any).plottery_instrumentation_eventno = ((window as any).plottery_instrumentation_eventno || 0) + 1
   const n: number = (window as any).plottery_instrumentation_eventno // Milliseconds might still have collisions in rare cases, so add n

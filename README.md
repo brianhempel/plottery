@@ -250,7 +250,7 @@ TypeScript, bundled by **Vite** (`vite.config.js`) from `src/frontend/main.ts` i
 - **`properties_panel/properties_panel.ts`** — pops the selected call's args out next to the plot.
 - **`ai_panel/ai_panel.ts`** — natural-language editing; builds a prompt from the code so far, calls the LLM, replaces the cell text, `hard_rerun`s, and highlights changed lines. Hidden unless `OPENAI_API_KEY` is set.
 - **`menus/menus.ts`** — reusable dropdown-menu + keyboard-shortcut framework.
-- **`utils/`** — `types.ts` (a `Cell` abstraction that papers over CM5/Notebook vs CM6/Lab), `deserialize.ts` (rebuilds Python's id-based JSON graphs into JS objects — inverse of `serialize.py`), `llm.ts` (OpenAI client), `instrumentation.ts` (study logging to `localhost:7777`), `misc.ts`, `stdlib.ts`, and a vendored CodeMirror 5 `codemirror/` type-defs folder.
+- **`utils/`** — `types.ts` (a `Cell` abstraction that papers over CM5/Notebook vs CM6/Lab), `deserialize.ts` (rebuilds Python's id-based JSON graphs into JS objects — inverse of `serialize.py`), `llm.ts` (OpenAI client), `instrumentation.ts` (study logging to `localhost:7777`, received by `usage_events.rb`; off unless `window.localStorage.setItem('plottery_study_logging', 'true')`), `misc.ts`, `stdlib.ts`, and a vendored CodeMirror 5 `codemirror/` type-defs folder.
 - **`types.ts` / `ast_types.ts`** — app domain types and a (largely unused) mirror of Python `ast` nodes.
 
 ---
