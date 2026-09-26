@@ -1,5 +1,6 @@
 import { Layer, LayersPanel } from "./layer_panel/layer_panel";
 import { PlotWidget } from "./sidebar/plot-widget/plot_widget";
+import { CallLayout } from "./sidebar/call/call_layout";
 import { Widget } from "./sidebar/widgets/widget";
 import { MarkerRange, TextMarker } from "./utils/codemirror";
 import { Cell } from "./utils/types";
@@ -63,6 +64,8 @@ export type CallView = {
     arg: Arg;
     view: ArgView;
   }[];
+  // The call's source formatting, so edits preserve it. given_args[i] fills call_layout.slots[i].
+  layout: { call_layout: CallLayout; given_args: Arg[] };
 };
 
 export type CallViewEls = {
@@ -169,6 +172,7 @@ export type Arg = {
   type_compatible_code_snippets: string[];
   required: boolean;
   is_positional: boolean;
+  pos?: Position; // source position of the value, for args given in the call
   provenance?: ProvNode; // variable-sharing provenance chain, if this arg is a tracked variable
   link_suggestions?: LinkSuggestion[]; // type-compatible non-variable args at other call sites
 };

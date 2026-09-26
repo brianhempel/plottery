@@ -20,13 +20,13 @@ import {
   maybe_round_number,
 } from "../../utils/misc";
 import {
-  arg_view_to_code,
   create_arg_view,
   enable_arg_view,
   // make_proxy_arg_el,
   // make_proxy_arg_view,
 } from "../arg/arg";
 import { Boundses } from "../hover-regions/hover_regions";
+import { capture_call_layout, render_call_layout } from "./call_layout";
 import "./call.css";
 
 
@@ -135,6 +135,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
     },
     mark: mark,
     arguments: arg_and_views,
+    layout: capture_layout(call, code_mirror, cell_lineno),
   };
 
   add_sync_code_on_change_watcher(() => call_to_code(call_view), [mark], state);
@@ -150,17 +151,40 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   return call_view;
 }
 
-export function call_to_code(call_view: CallView) : string {
-  // textContent (not innerText): innerText returns "" for elements inside non-rendered
-  // subtrees (Notebook 7 windows offscreen cells with content-visibility:auto). Reading
-  // "" here let the code-sync watcher rewrite the call as `func(...)` with all args blanked.
-  const func_code = call_view.els.name_el.textContent ?? "";
-  const args_str =
-    call_view.arguments.
-      filterMap(({ arg, view }) => view.disabled ? null : arg_view_to_code(arg, view)).
-      join(", ");
+// Capture the call's formatting (line breaks, comments, etc.) from the cell source so edits
+// can rewrite argument values in place. See call_layout.ts.
+function capture_layout(call: CallWithArgs, code_mirror: CodeMirror.DocOrEditor, cell_lineno: number): CallView["layout"] {
+  const call_pos = call.call_info.call.pos;
+  const call_start = cm_start_pos(call_pos, cell_lineno);
+  const text = code_mirror.getRange(call_start, cm_end_pos(call_pos, cell_lineno));
+  const offset_in_call = (pos: CodeMirror.Position) => code_mirror.getRange(call_start, pos).length;
 
-  return `${func_code}(${args_str})`;
+  const given_args = [...call.given_positional_args, ...call.given_keyword_args];
+  given_args.sort((a, b) => a.pos!.line - b.pos!.line || a.pos!.column - b.pos!.column);
+
+  const arg_ranges = given_args.map(arg => [
+    offset_in_call(cm_start_pos(arg.pos!, cell_lineno)),
+    offset_in_call(cm_end_pos(arg.pos!, cell_lineno)),
+  ] as [number, number]);
+  const callee_end = offset_in_call(cm_end_pos(call.call_info.callee.pos, cell_lineno));
+
+  return { call_layout: capture_call_layout(text, callee_end, arg_ranges), given_args };
+}
+
+export function call_to_code(call_view: CallView) : string {
+  const { call_layout, given_args } = call_view.layout;
+  const given: { slot: number; value: string }[] = [];
+  const new_positional: { value: string }[] = [];
+  const new_keyword: { prefix: string; value: string }[] = [];
+  call_view.arguments.forEach(({ arg, view }) => {
+    if (view.disabled) return;
+    const value = view.widget.to_code();
+    const slot = given_args.indexOf(arg);
+    if (slot !== -1)          given.push({ slot, value });
+    else if (view.positional) new_positional.push({ value });
+    else                      new_keyword.push({ prefix: `${arg.name}=`, value });
+  });
+  return render_call_layout(call_layout, given, new_positional, new_keyword);
 }
 
 // The handling for dragging on the plot has to be routed through the layers UI element because all the logic

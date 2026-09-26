@@ -508,6 +508,7 @@ export function call_info_to_call_with_args(
         is_positional: given_arg.name == null,
         kind: given_arg.name ? "ARG_NAMED" : "ARG_OPT",
         code: arg_val_code,
+        pos: given_arg.pos,
         type: null,
         code_type,
         default_code: null,
@@ -521,6 +522,7 @@ export function call_info_to_call_with_args(
       ...arg_template,
       is_positional: given_arg.name == null,
       code: arg_val_code,
+      pos: given_arg.pos,
       code_type,
       provenance: given_arg.provenance,
     };

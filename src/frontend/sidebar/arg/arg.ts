@@ -345,11 +345,6 @@ function disable_arg_view(arg_view: ArgView) {
   arg_view.disabled = true;
 }
 
-export function arg_view_to_code(arg: Arg, arg_view: ArgView): string {
-  const value_code = arg_view.widget.to_code();
-  return arg_view.positional ? value_code : `${arg.name}=${value_code}`;
-}
-
 // Show the value the value of the control, but in the layer panel
 // export function make_proxy_arg_el(arg : Arg, view : ArgView, state: State) : HTMLElement {
 //   const proxy_arg_el = create_el("div", ["snp-arg-view", "snp-proxy"]);
