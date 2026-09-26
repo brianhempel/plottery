@@ -97,52 +97,59 @@ def do_mypy_inference(code):
     global mypy_result
     global mypy_fscache
 
-    # Write out to a temp file
+    # Write out to a temp file, deleted afterwards so it doesn't litter the notebook's directory.
+    # The fine-grained manager keeps its state in memory and only needs the file during update().
     with open(notebook_as_code_file_path, "w") as file:
         file.write(code)
 
-    if mypy_fine_grained_build_manager is None or import_lineset != import_lineset_in(code):
-        import_lineset = import_lineset_in(code)
-        sources, options = mypy.main.process_options([notebook_as_code_file_path])
+    try:
+        if mypy_fine_grained_build_manager is None or import_lineset != import_lineset_in(code):
+            import_lineset = import_lineset_in(code)
+            sources, options = mypy.main.process_options([notebook_as_code_file_path])
 
-        options.incremental = True
-        options.preserve_asts = True
-        options.strict_optional = True
-        options.warn_unused_configs = True
-        options.fine_grained_incremental = True
-        options.use_fine_grained_cache = True
-        options.local_partial_types = True  # https://github.com/python/mypy/issues/4492
-        options.mypy_path = [f"{snp_src_directory}/python-type-stubs-main/stubs"]
-        # options.follow_imports = "silent"
-        options.follow_imports_for_stubs = True
-        options.export_types = True
-        options.check_untyped_defs = True # Otherwise the bodies of user functions will not get inferred.
-        options.ignore_errors = True
+            options.incremental = True
+            options.preserve_asts = True
+            options.strict_optional = True
+            options.warn_unused_configs = True
+            options.fine_grained_incremental = True
+            options.use_fine_grained_cache = True
+            options.local_partial_types = True  # https://github.com/python/mypy/issues/4492
+            options.mypy_path = [f"{snp_src_directory}/python-type-stubs-main/stubs"]
+            # options.follow_imports = "silent"
+            options.follow_imports_for_stubs = True
+            options.export_types = True
+            options.check_untyped_defs = True # Otherwise the bodies of user functions will not get inferred.
+            options.ignore_errors = True
 
-        # Don't type-check the notebook runtime. A user's `import matplotlib.pyplot` transitively
-        # pulls PIL -> IPython -> prompt_toolkit / ipykernel / zmq / jupyter_client / black / ...
-        # (~470 of ~950 modules), none of which Plottery needs types for. Marking these
-        # `follow_imports = "skip"` replaces them with `Any` without parsing them or their deps,
-        # roughly halving the resident mypy build (memory) and the first-build time. PIL itself is
-        # left in so matplotlib image arg/return types still resolve; only its IPython edge is cut.
-        snp_skip_runtime_pkgs = [
-            "IPython", "ipykernel", "jupyter_client", "jupyter_core", "traitlets", "comm", "debugpy",
-            "prompt_toolkit", "pygments", "jedi", "parso", "pickleshare",
-            "zmq", "tornado", "nbformat", "nbconvert", "fastjsonschema",
-            "black", "blib2to3", "click", "pathspec",
-        ]
-        options.per_module_options = {
-            f"{pkg}.*": {"follow_imports": "skip"} for pkg in snp_skip_runtime_pkgs
-        }
+            # Don't type-check the notebook runtime. A user's `import matplotlib.pyplot` transitively
+            # pulls PIL -> IPython -> prompt_toolkit / ipykernel / zmq / jupyter_client / black / ...
+            # (~470 of ~950 modules), none of which Plottery needs types for. Marking these
+            # `follow_imports = "skip"` replaces them with `Any` without parsing them or their deps,
+            # roughly halving the resident mypy build (memory) and the first-build time. PIL itself is
+            # left in so matplotlib image arg/return types still resolve; only its IPython edge is cut.
+            snp_skip_runtime_pkgs = [
+                "IPython", "ipykernel", "jupyter_client", "jupyter_core", "traitlets", "comm", "debugpy",
+                "prompt_toolkit", "pygments", "jedi", "parso", "pickleshare",
+                "zmq", "tornado", "nbformat", "nbconvert", "fastjsonschema",
+                "black", "blib2to3", "click", "pathspec",
+            ]
+            options.per_module_options = {
+                f"{pkg}.*": {"follow_imports": "skip"} for pkg in snp_skip_runtime_pkgs
+            }
 
-        mypy_fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
-        mypy_result = mypy.build.build(sources, options=options, fscache=mypy_fscache)
+            mypy_fscache = mypy.fscache.FileSystemCache()  # IDK if this is needed
+            mypy_result = mypy.build.build(sources, options=options, fscache=mypy_fscache)
 
-        mypy_fine_grained_build_manager = mypy.server.update.FineGrainedBuildManager(mypy_result)
+            mypy_fine_grained_build_manager = mypy.server.update.FineGrainedBuildManager(mypy_result)
 
-    mypy_fine_grained_build_manager.update([(notebook_as_code_module_name, notebook_as_code_file_path)], [])
-    mypy_fine_grained_build_manager.flush_cache()
-    mypy_fscache.flush()
+        mypy_fine_grained_build_manager.update([(notebook_as_code_module_name, notebook_as_code_file_path)], [])
+        mypy_fine_grained_build_manager.flush_cache()
+        mypy_fscache.flush()
+    finally:
+        try:
+            os.remove(notebook_as_code_file_path)
+        except FileNotFoundError:
+            pass
 
     return mypy_result
 
