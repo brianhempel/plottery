@@ -4,7 +4,7 @@ Plottery is an in-notebook graphical interface for Matplotlib (MPL). Instead of 
 
 Plottery is described in our paper...
 
-Brian Hempel, Ruanqianqian (Lisa) Huang, Devamardeep Hayatpur, Sorin Lerner, and Haijun Xia. *Plottery: A Code-Integrated GUI for Matplotlib.* VL/HCC 2026.
+> Brian Hempel, Ruanqianqian (Lisa) Huang, Devamardeep Hayatpur, Sorin Lerner, and Haijun Xia. *Plottery: A Code-Integrated GUI for Matplotlib.* VL/HCC 2026.
 
 ...but should also be plausibly usable. See install instructions below.
 

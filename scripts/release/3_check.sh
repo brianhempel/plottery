@@ -21,7 +21,7 @@ for f in plottery/__init__.py plottery/serialize.py plottery/visitor_mypy.py \
   grep -q -- "$f\$" <<<"$WHEEL_FILES" || { echo "Wheel is missing $f" >&2; exit 1; }
 done
 if { echo "$WHEEL_FILES"; tar tzf "$SDIST"; } \
-    | grep -E '\.(ipynb|csv|mp4|sqlite3|pages|zip|rb)$|python-type-stubs-main/(tests|utils)/|node_modules/|__pycache__|\.DS_Store'; then
+    | grep -E '\.(ipynb|csv|mp4|sqlite3|pages|zip|rb|amdc)$|python-type-stubs-main/(tests|utils)/|node_modules/|__pycache__|\.DS_Store'; then
   echo "Files above don't belong in the package." >&2
   exit 1
 fi

@@ -106,6 +106,7 @@ include = [
 exclude = [
     "__pycache__",
     ".DS_Store",
+    "*.amdc",  # design source files for the SVG icons; not needed to build
     "/src/plottery/static",
     "/src/plottery/python-type-stubs-main/tests",
     "/src/plottery/python-type-stubs-main/utils",
