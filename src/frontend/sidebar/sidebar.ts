@@ -4,6 +4,7 @@ import { create_el, set_persistent_item, plottery_logo_svg_html } from "../utils
 import { add_menu_item, create_menu_el } from "../menus/menus";
 import { hard_rerun } from "../code_sync/code_sync";
 import { log_event } from "../utils/instrumentation";
+import "./sidebar.css";
 
 
 export function set_margin_right_to_width(el: HTMLElement, margin_right: number, dx: number) {

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A graphical and AI interface for Matplotlib.",
   "homepage": "https://github.com/brianhempel/plottery",
+  "license": "MIT",
   "main": "plottery_jupyter.js",
   "jupyterlab": {
     "extension": true,
@@ -18,6 +19,7 @@
     "@jupyter/builder": "^1.0.0"
   },
   "scripts": {
-    "build": "jupyter-builder build --development True ."
+    "build": "jupyter-builder build --development True .",
+    "build:prod": "jupyter-builder build ."
   }
 }

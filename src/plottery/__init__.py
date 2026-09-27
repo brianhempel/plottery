@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
 import math
@@ -9,6 +10,8 @@ import sys
 import pathlib
 import re
 import ast
+import shutil
+import tempfile
 import time
 import enum
 import keyword
@@ -21,6 +24,7 @@ import mypy
 import mypy.nodes
 import mypy.build
 import mypy.main
+import mypy.modulefinder
 import mypy.options
 import mypy.types
 import mypy.server.update
@@ -40,7 +44,7 @@ plottery_src_directory = os.path.dirname(os.path.abspath(__file__))
 
 # sys.path.append(plottery_src_directory)
 
-import serialize
+from . import serialize
 # import visitor_ast
 
 
@@ -90,6 +94,36 @@ if "import_lineset" not in globals():
     mypy_result = None  # The FineGrainedBuildManager mutates this, apparently.
     mypy_fscache = None
 
+def stubs_directory(python_executable):
+    """Our python-type-stubs fork, for mypy's mypy_path.
+
+    mypy exits ("... is in the MYPYPATH. Please remove it.") if any mypy_path entry is inside
+    site-packages, which is where the stubs are when plottery is pip-installed. In that case, use
+    a copy in the user's cache dir, made once per installed copy of plottery."""
+    stubs = os.path.join(plottery_src_directory, "python-type-stubs-main", "stubs")
+    _, site_packages = mypy.modulefinder.get_search_dirs(python_executable)
+    if not any(stubs == site or stubs.startswith(site + os.path.sep) for site in site_packages):
+        return stubs
+
+    # Keyed on the stubs dir's path and mtime, so a reinstall or upgrade gets a fresh copy.
+    key = hashlib.sha1(f"{stubs} {os.path.getmtime(stubs)}".encode()).hexdigest()[:12]
+    for cache_root in [os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache"), tempfile.gettempdir()]:
+        copy = os.path.join(cache_root, "plottery", f"stubs-{key}")
+        if os.path.isdir(copy):
+            return copy
+        try:
+            os.makedirs(os.path.dirname(copy), exist_ok=True)
+            partial = f"{copy}.partial-{os.getpid()}"
+            shutil.copytree(stubs, partial)
+            try:
+                os.rename(partial, copy)
+            except OSError:  # Another kernel made the copy first
+                shutil.rmtree(partial, ignore_errors=True)
+            return copy
+        except OSError:
+            continue  # Cache dir not writable; try the next one
+    return stubs  # mypy will refuse it, but that at least explains why
+
 def do_mypy_inference(code):
     # For caching
     global import_lineset
@@ -114,7 +148,7 @@ def do_mypy_inference(code):
             options.fine_grained_incremental = True
             options.use_fine_grained_cache = True
             options.local_partial_types = True  # https://github.com/python/mypy/issues/4492
-            options.mypy_path = [f"{plottery_src_directory}/python-type-stubs-main/stubs"]
+            options.mypy_path = [stubs_directory(options.python_executable)]
             # options.follow_imports = "silent"
             options.follow_imports_for_stubs = True
             options.export_types = True
@@ -1546,12 +1580,12 @@ class Plottery(PlotteryFigureAndHoverRegions):
                         'uncommented': "\n".join(dedent_line(line, indent) for line in chunk_uncommented)
                     })
 
-        # Walk all the files in the frontend folder, and append all the contents of the .css files
+        # The frontend bundle and its CSS, built by Vite (`npm run build-ts` / `npm run watch-ts`) into static/
         with Timer("frontend_css"):
-            frontend_css = "\n\n".join([path.read_text() for path in pathlib.Path(f"{plottery_src_directory}/frontend").rglob("*.css")])
+            frontend_css = pathlib.Path(f"{plottery_src_directory}/static/plottery.css").read_text()
 
         with Timer("out_html"):
-            js = pathlib.Path(f"{plottery_src_directory}/../dist/plugin.js").read_text()
+            js = pathlib.Path(f"{plottery_src_directory}/static/plugin.js").read_text()
 
             # sometimes AI or humans write top-level consts/lets in the JS, which causes JS attachment
             # to fail because it redefines the consts/lets. Fail less silently if so.
@@ -2234,7 +2268,7 @@ import mypy.options
 import mypy.types
 import mypy.server.update
 import mypy.types
-from visitor_mypy import TraverserVisitor
+from .visitor_mypy import TraverserVisitor
 import mypy.subtypes
 import pprint
 

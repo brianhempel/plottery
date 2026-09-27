@@ -1,6 +1,7 @@
 import { State } from "../types";
 import { debounce, log_event, rate_limit } from "../utils/instrumentation";
 import { create_el, create_search_icon } from "../utils/misc";
+import "./menus.css";
 
 // classes will be added both to the menu and the items holder, since the items
 // holder is moved to the body when the menu is opened

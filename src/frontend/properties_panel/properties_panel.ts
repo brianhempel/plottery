@@ -1,4 +1,5 @@
 import { CallView, State } from "../types";
+import "./properties_panel.css";
 // import { create_el } from "../utils/misc";
 
 export function set_properties_panel_on({ els: { name_el, properties_el: args_el }}: CallView, state: State): void {

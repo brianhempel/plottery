@@ -13,6 +13,7 @@ import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for
 import { Position } from "../types";
 import { set_properties_panel_on } from "../properties_panel/properties_panel";
 import { log_event } from "../utils/instrumentation";
+import "./layer_panel.css";
 
 
 export type Layer = {

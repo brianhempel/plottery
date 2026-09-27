@@ -1,6 +1,7 @@
 import { log_event } from "../../../utils/instrumentation";
 import { create_el, select_code_text } from "../../../utils/misc";
 import { Widget } from "../widget";
+import "./arbitrary_code.css";
 
 export type ArbitraryCodeWidget = Widget & {
   kind: "ArbitraryCode";

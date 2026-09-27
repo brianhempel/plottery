@@ -6,6 +6,7 @@ import { create_color_widget } from "../color/color";
 import { create_float_widget } from "../float/float";
 import { create_int_widget } from "../int/int";
 import { Widget } from "../widget";
+import "./code_and_control.css";
 
 // A text box next to a GUI control.
 // If the text becomes incompatible with the GUI, a new GUI is found or the GUI is removed.

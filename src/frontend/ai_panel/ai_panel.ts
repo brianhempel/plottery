@@ -5,6 +5,7 @@ import { rate_limit, log_event } from "../utils/instrumentation";
 import { current_llm_settings, get_llm_config, llm_api_key, llm_config_constants, LLMProviderSettings, prompt_llm, set_llm_provider, update_llm_provider_settings } from "../utils/llm";
 import { create_el, get_persistent_item, notebook_code_cells, set_persistent_item } from "../utils/misc";
 import { Cell, JupyterType } from "../utils/types";
+import "./ai_panel.css";
 
 // Globally exposed by our extension (nbextension_plottery/main.js and plottery_jupyter/plottery_jupyter.js)
 // so we don't duplicate the figure/axes annotation logic in this bundle.

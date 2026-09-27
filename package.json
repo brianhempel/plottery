@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build-ts": "vite build",
+    "build:prod": "vite build && cd src/plottery_jupyter && npm ci && npm run build:prod",
     "watch-ts": "vite build --watch",
     "build": "npm run install-labextension && npm run build-ts",
     "build-nbv6": "npm run install-nbextension; npm run enable-nbextension && npm run build-ts",
@@ -15,7 +16,7 @@
     "disable-nbextension": "jupyter nbextension disable nbextension_plottery/main"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "typescript": "^5.3.3",
     "vite": "^5.1.1"

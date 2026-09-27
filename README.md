@@ -2,7 +2,19 @@
 
 Plottery is an in-notebook graphical interface for Matplotlib (MPL). Instead of a static image, with Plottery `plt.show()` produces a rich graphical interface that lets you add plot elements, drag and resize shapes, tweak plot arguments with live preview, and prompt an LLM to make changes. All changes are written to the code live—the code is the ground truth—and code editing is supported at any time.
 
-## Install instructions
+## Install
+
+```
+pip install plottery-ui
+```
+
+Install it into the environment you run Jupyter from (JupyterLab 4 or Notebook 7). To install JupyterLab along with it, use `pip install "plottery-ui[lab]"`. Then start Jupyter and any cell that calls `plt.show()` shows the Plottery UI. The **Plottery** toggle in the notebook toolbar turns it off.
+
+If your notebook's kernel runs in a different Python environment than Jupyter itself, install `plottery-ui` into the kernel's environment too. Otherwise plots appear as ordinary Matplotlib images, with a message saying so.
+
+To enable the AI panel, set an LLM API key (e.g. `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`) in the environment you start Jupyter from.
+
+## Development setup
 
 ### Setup Python packages.
 
@@ -45,7 +57,7 @@ For **classic Jupyter Notebook (v6)**, `npm run build-nbv6` installs + enables t
 npm run build-nbv6
 ```
 
-While developing the frontend, `npm run watch-ts` rebuilds `dist/plugin.js` on change. The bundle is re-inlined into the output on each manual cell re-run, so you just re-run the cell to pick up changes.
+While developing the frontend, `npm run watch-ts` rebuilds `src/plottery/static/plugin.js` and `plottery.css` on change. The bundle is re-inlined into the output on each manual cell re-run, so you just re-run the cell to pick up changes.
 
 Test it by opening jupyter and running `src/plottery.ipynb`.
 
@@ -76,6 +88,33 @@ window.sessionStorage.removeItem('in_demo_mode')
 window.sessionStorage.setItem('in_demo_mode', 'true')
 ```
 
+## Releasing to PyPI
+
+`pip install plottery-ui` installs a wheel holding the `plottery` Python package (with the built frontend in `src/plottery/static/` and the type stubs), plus the built JupyterLab extension, which pip puts in `<env>/share/jupyter/labextensions/plottery_jupyter/` where JupyterLab 4 and Notebook 7 find it. `pyproject.toml` describes the package; the scripts in `scripts/release/` build, check, and publish it, one step each. Only `5_publish.sh` uploads anything, and only when told where.
+
+**One-time setup:** make accounts on [PyPI](https://pypi.org/account/register/) and [TestPyPI](https://test.pypi.org/account/register/) (they're separate), create an API token on each, and put them in `~/.pypirc`:
+
+```ini
+[pypi]
+username = __token__
+password = pypi-...
+
+[testpypi]
+username = __token__
+password = pypi-...
+```
+
+**Each release:**
+
+1. `scripts/release/1_set_version.sh 0.1.0`, then commit the version bump. The version lives only in `src/plottery_jupyter/package.json`.
+2. `scripts/release/2_build.sh` builds the sdist and wheel into `dist/` (needs node/npm; a few minutes).
+3. `scripts/release/3_check.sh` checks the package contents, installs the wheel into a fresh venv, and renders a plot through a real kernel.
+4. `scripts/release/4_try_in_browser.sh` (or `... notebook`) opens Jupyter from that venv so you can try the UI by hand. This is the only check that the JupyterLab extension actually loads.
+5. `scripts/release/5_publish.sh --testpypi` uploads a practice copy and prints the command to install it from TestPyPI. Try that in a fresh venv on another machine if you can.
+6. `scripts/release/5_publish.sh --pypi` publishes for real. It refuses unless you're on `main` and `dist/` was built from the current commit with nothing uncommitted, asks you to type the version to confirm, then tags the commit `v<version>` locally. Push the tag with `git push origin v<version>`.
+
+PyPI never lets you reuse a version number, even after deleting a release, so a broken upload means bumping the version (step 1) and starting over.
+
 ---
 
 The remaining sections below are a technical explanation of Plottery's operation.
@@ -84,15 +123,15 @@ The remaining sections below are a technical explanation of Plottery's operation
 
 There are roughly three technical parts.
 
-1. Jupyter/JupyterLab extension (`src/nbextension_plottery/main.js` / `src/plottery_jupyter/plottery_jupyter.js`) sets up three things: (a) automatic `import plottery` so user does not have to do anything to access Plottery, (b) adds a "New Plot" button and a "Plottery On/Off" toggle to the interface (off = ordinary matplotlib: no `plt.show()` rewrite, `plottery.set_enabled(False)` in the kernel, and every Plottery output stripped to its plain PNG so none of it is saved; the setting is in `localStorage`), and (c) sets ups a cell code rewriter to change `plt.show()` to `plottery.show()` (stashes the figure instead of showing it) and append `plottery.show_ui()` to the end of the cell (which actually shows the figure and UI). The JupyterLab version also lifts some Jupyter and CodeMirror modules to globals so we can reference them later.
-2. The Python backend (`src/plottery.py`) gathers all the information required to build the UI (function arguments and types via mypy, which user variables are type compatible with which arguments, the user's names for axes etc, and the regions where MPL shapes are on the plot).
+1. Jupyter/JupyterLab extension (`src/nbextension_plottery/main.js` / `src/plottery_jupyter/plottery_jupyter.js`) sets up three things: (a) automatic `import plottery` so user does not have to do anything to access Plottery (if the kernel can't import it, the labextension defines a stand-in `plottery` whose `show()` just calls `plt.show()` and prints why, so plotting cells still work), (b) adds a "New Plot" button and a "Plottery On/Off" toggle to the interface (off = ordinary matplotlib: no `plt.show()` rewrite, `plottery.set_enabled(False)` in the kernel, and every Plottery output stripped to its plain PNG so none of it is saved; the setting is in `localStorage`), and (c) sets ups a cell code rewriter to change `plt.show()` to `plottery.show()` (stashes the figure instead of showing it) and append `plottery.show_ui()` to the end of the cell (which actually shows the figure and UI). The JupyterLab version also lifts some Jupyter and CodeMirror modules to globals so we can reference them later.
+2. The Python backend (`src/plottery/`) gathers all the information required to build the UI (function arguments and types via mypy, which user variables are type compatible with which arguments, the user's names for axes etc, and the regions where MPL shapes are on the plot).
 3. The Typescript frontend (`src/frontend/main.ts`) builds the UI, attaches layer "marks" to text regions of the code editor, and coordinates event handling.
 
 ```
                   Jupyter browser extension                    Python kernel
                   (nbextension OR labextension)
   kernel    ───►  tells Python kernel to import plottery  ───► import plottery
-  startup                                                      plottery.py adds an AST rewriter that, on
+  startup                                                      plottery adds an AST rewriter that, on
                                                                each cell execution, wraps function
                                                                calls with logging code to set
                                                                _plottery_came_from_call_id on the call
@@ -107,7 +146,7 @@ There are roughly three technical parts.
                                                                Javascript and styles. It returns one big
                                                                HTML blob: <img> of the plot,
                                                                an SVG of "hover regions", the inlined
-                                                               built JS (dist/plugin.js), inlined CSS,
+                                                               built JS and CSS (static/),
                                                                and a <style onload="attach_plottery(...serialized
                                                                types/calls/AST...)"> that triggers the
                                                                Javascript to initialize the UI
@@ -126,15 +165,16 @@ There are roughly three technical parts.
 
 | Path | What it is |
 |------|------------|
-| `src/plottery.py` | **The Python core**. Rendering, type inference, hover regions, provenance, serialization, the `Plottery` output object classes, `show()` / `show_ui()`. |
-| `src/frontend/` | The actual UI (TypeScript, built with Vite → `dist/plugin.js`). Entry point is `attach_plottery()` in `main.ts`. |
+| `src/plottery/__init__.py` | **The Python core** (the `plottery` package). Rendering, type inference, hover regions, provenance, serialization, the `Plottery` output object classes, `show()` / `show_ui()`. |
+| `src/frontend/` | The actual UI (TypeScript, built with Vite → `src/plottery/static/plugin.js` and `plottery.css`). Entry point is `attach_plottery()` in `main.ts`. |
 | `src/nbextension_plottery/main.js` | Browser extension for **Jupyter Notebook (classic, v6)**. |
 | `src/plottery_jupyter/` | Browser extension for **JupyterLab / Jupyter Notebook v7** (its own npm package + build). |
-| `src/serialize.py` | Turns arbitrary Python/mypy object graphs into JSON (`arbitrary_to_json`). Inverse of the frontend's `deserialize.ts`. |
-| `src/visitor_mypy.py` | A `TraverserVisitor` over mypy AST nodes (vendored/derived from mypy). Used to walk typed calls. |
-| `src/python-type-stubs-main/` | Our fork of Microsoft's `.pyi` type stubs (matplotlib, numpy, etc.). These determine the arguments in the Properties panel for each MPL call. |
+| `src/plottery/serialize.py` | Turns arbitrary Python/mypy object graphs into JSON (`arbitrary_to_json`). Inverse of the frontend's `deserialize.ts`. |
+| `src/plottery/visitor_mypy.py` | A `TraverserVisitor` over mypy AST nodes (vendored/derived from mypy). Used to walk typed calls. |
+| `src/plottery/python-type-stubs-main/` | Our fork of Microsoft's `.pyi` type stubs (matplotlib, numpy, etc.). These determine the arguments in the Properties panel for each MPL call. |
 | `vite.config.js`, `tsconfig.json`, `package.json` | Frontend build + the `npm run` scripts that install/enable the extensions. |
-| `requirements.txt` | Python deps. Only `mypy` is capped, to tested minors (Plottery drives mypy's internal, unstable API). `matplotlib>=3.11` because the bundled stubs and method tables describe 3.11; newer versions work with slightly-off types. |
+| `pyproject.toml`, `scripts/release/` | The `plottery-ui` PyPI package and the scripts that build, check, and publish it (see Releasing to PyPI above). |
+| `requirements.txt` | Python deps for development. Only `mypy` is capped, to tested minors (Plottery drives mypy's internal, unstable API). `matplotlib>=3.11` because the bundled stubs and method tables describe 3.11; newer versions work with slightly-off types. |
 | `src/see.py` | `See(...)` — a dev-only HTML object inspector for poking at values in the notebook. Not part of the product flow. |
 | `src/*.ipynb`, `study_2_*/`, `*.rb` | Demo notebooks and user-study data/analysis. Not part of the tool. |
 
@@ -175,7 +215,7 @@ last_plottery
 | Hooks the rewrite via | listens to `execution_request.Kernel` event; monkeypatches `IPython.CodeCell.prototype.execute` to know the running cell | monkeypatches `kernel.sendShellMessage` and inspects `execute_request` messages |
 | Per-cell UI state (`fig_idx`) | read from the cell DOM `output_area … dataset.fig_idx` | read from `sessionStorage` key `cell-<id>-plottery-<key>` |
 | Editor it drives | CodeMirror **5** | CodeMirror **6** — so it stashes CM6 classes on `window` (`__CM6EditorView`, `__CM6Decoration`, `StateField`, …) and Lab classes (`__JupyterCodeCellModule`, `__JupyterNotebookActionsModule`) for the Plottery frontend to use |
-| Build | none — plain JS, installed via `jupyter nbextension install/enable` | its own npm package; `jupyter labextension build` → `src/plottery_jupyter/labextension`, then copied into Lab's `labextensions/` |
+| Build | none — plain JS, installed via `jupyter nbextension install/enable` | its own npm package; `jupyter-builder build` → `src/plottery_jupyter/labextension`, then copied into Lab's `labextensions/` (development) or shipped in the `plottery-ui` wheel |
 
 Both also pass a `doesnt_need_plottery_show_ui` flag through: when the frontend triggers a re-execute that already includes its own `plottery.show_ui(...)` (e.g. a fast figure-only redraw), the extension must not append a second `show_ui`.
 
@@ -189,9 +229,9 @@ The frontend itself (`src/frontend/`) is shared by both — it's injected into t
 |---------|-------|
 | Rewriting `plt.show` → `plottery.show` / appending `show_ui` | **Browser extension** (`main.js` / `plottery_jupyter.js`) |
 | Rendering the plot to PNG / SVG hover-regions | **Python** (`Plottery*._repr_png_` / `_repr_svg_`) |
-| Type inference (what args a call takes, their types) | **Python** (mypy, in `plottery.py`) |
+| Type inference (what args a call takes, their types) | **Python** (mypy, in `plottery/__init__.py`) |
 | Provenance: which MPL shapes came from which line of code | **Python** (IPython AST transformer + `tag_with_call_provenance`) |
-| Serializing types/calls/AST to JSON for the UI | **Python** (`serialize.py` + `plottery.py`) |
+| Serializing types/calls/AST to JSON for the UI | **Python** (`serialize.py` + `plottery/__init__.py`) |
 | Building the UI, widgets, drag handlers, layers, AI panel | **Frontend** (`src/frontend/`) |
 | Mapping a drag/GUI change back to a code edit | **Frontend** writes into CodeMirror, then asks the kernel to re-render |
 | Coordinate math (plot pixels ↔ data values) | **Frontend**, using `data-*-bounds` attributes Python writes onto the SVG |
@@ -199,16 +239,16 @@ The frontend itself (`src/frontend/`) is shared by both — it's injected into t
 
 ---
 
-## 5. Python backend (`src/plottery.py` and friends)
+## 5. Python backend (`src/plottery/`)
 
-`plottery.py` is imported into the kernel as the module `plottery`. Highlights, in rough order:
+`src/plottery/__init__.py` is imported into the kernel as the module `plottery`. Highlights, in rough order:
 
 - **`show(locals, cell_lineno, …, notebook_code_through_cell)`** — replacement for `plt.show()`. Just stashes the current figure + context into `cell_figs`. Returns nothing (so multiple `show()`s in a cell are fine; only the one is surfaced).
 - **`show_ui(fig_idx=0, plottery_class=Plottery)`** — pops one of the stashed figures and returns an instance of one of the render classes. `plottery_class` controls how much work is done:
   - **`PlotteryFigureOnly`** — just `_repr_png_()`. Used for fast live redraws during drags (it even drops DPI mid-drag, capping at ~1000px wide).
   - **`PlotteryFigureAndHoverRegions`** — adds `_repr_svg_()`, the interactive overlay with clickable shapes on the plot. Builds a map of artist→name and computes per-artist bounding regions (`regions2`).
-  - **`Plottery`** (the default, full) — additionally runs **mypy inference**, gathers typed **`calls`**, available **`methods`** on each artist, the typed **AST**, parseable **comments**, and user-defined iterable variables. Its **`_repr_html_()`** assembles the final output: the plot `<img>`, the hover-region `<svg>`, an inlined `<script>` of `dist/plugin.js`, all `frontend/**/*.css` inlined, and a `<style onload="attach_plottery(...)">` that hands every serialized blob to the frontend.
-- **Provenance tracking** — at import time, `plottery.py` installs an IPython AST transformer (`IPython.get_ipython().kernel.shell.ast_transformers = [RootProvenanceTagger()]`). It wraps every call result in `plottery.tag_with_call_provenance(value, "ax.plot #1")`, attaching `_plottery_came_from_call_id` to the returned objects (including tuple/str/list/int/float/etc, using special included `Tagged*` subclasses). That id is later written onto the SVG regions (`data-call-id=...`) so the frontend can map a clicked region to the source call.
+  - **`Plottery`** (the default, full) — additionally runs **mypy inference**, gathers typed **`calls`**, available **`methods`** on each artist, the typed **AST**, parseable **comments**, and user-defined iterable variables. Its **`_repr_html_()`** assembles the final output: the plot `<img>`, the hover-region `<svg>`, an inlined `<script>` of `static/plugin.js`, `static/plottery.css` inlined, and a `<style onload="attach_plottery(...)">` that hands every serialized blob to the frontend.
+- **Provenance tracking** — at import time, `plottery` installs an IPython AST transformer (`IPython.get_ipython().kernel.shell.ast_transformers = [RootProvenanceTagger()]`). It wraps every call result in `plottery.tag_with_call_provenance(value, "ax.plot #1")`, attaching `_plottery_came_from_call_id` to the returned objects (including tuple/str/list/int/float/etc, using special included `Tagged*` subclasses). That id is later written onto the SVG regions (`data-call-id=...`) so the frontend can map a clicked region to the source call.
 - **Variable-sharing provenance** — the same transformer also tracks how a value reached a matplotlib argument through variable bindings, so the Properties panel can show an editable chain like `w2 ▸ w1 ▸ 0.5`. It attaches a nested `_plottery_provenance` node to values at each binding (`plottery.tag_with_var_provenance` on assignment RHSes and same-cell user-function arguments), and at each matplotlib call site reads the argument's provenance into a global `var_provenance_at_call` log keyed by `(call_id, arg_key)` (`plottery.note_arg_provenance`). `plottery.show()` snapshots that log per figure; `GatherTypedCalls` looks it up per argument and serializes it (converted to notebook coordinates) as `given_arg["provenance"]`.
 - **`serialize_type` / `GatherTypedCalls`** — convert mypy types and call sites into the JSON the widgets need (arg names, kinds, types, defaults, source positions).
 - **Helpers worth knowing:** `serialize.arbitrary_to_json` (generic object-graph → JSON with id-based cycle handling), `artist_names` (names every matplotlib artist for the UI), `methods_for` / `method_associations` (which possible new function calls to offer on which artist, for on-plot buttons/menus).
@@ -219,7 +259,7 @@ The frontend itself (`src/frontend/`) is shared by both — it's injected into t
 
 Plottery needs accurate argument types to choose the right widget (slider vs color picker vs dropdown of literals vs free code). It does this by running mypy not as a type *checker*, but as a *type oracle*.
 
-`do_mypy_inference(code)` in `plottery.py`:
+`do_mypy_inference(code)` in `plottery/__init__.py`:
 
 - Writes the whole notebook-so-far to a temp file `__plottery_mypy_temp.py`. This is so the file is in the same place on the filesystem as the user's notebook. Currently, the file is also left on disk for debugging.
 - Builds a **fine-grained incremental** mypy build and caches it across cell runs; it only does a full rebuild when the set of `import` lines changes (cheap edits reuse the cache).
@@ -230,15 +270,15 @@ The result exposes `mypy_result.types` (expression → type) and `.graph` (the t
 
 ---
 
-## 7. Type stubs (`src/python-type-stubs-main/`)
+## 7. Type stubs (`src/plottery/python-type-stubs-main/`)
 
-An updated copy of **Microsoft's `python-type-stubs`** repo — `.pyi` files describing the public API of matplotlib, numpy, scipy, sklearn, networkx, etc. mypy reads these (via `options.mypy_path = ".../python-type-stubs-main/stubs"`) to know, e.g., that `Axes.bar(x, height, width=..., color=...)` takes a color, an array-like, etc., so the UI can render the right control. Only the `stubs/` subtree is used at runtime; the rest (`tests/`, `utils/`, its own README) is upstream baggage. Also includes types for potentially irrelevant projects.
+An updated copy of **Microsoft's `python-type-stubs`** repo — `.pyi` files describing the public API of matplotlib, numpy, scipy, sklearn, networkx, etc. mypy reads these (via `options.mypy_path = ".../python-type-stubs-main/stubs"`) to know, e.g., that `Axes.bar(x, height, width=..., color=...)` takes a color, an array-like, etc., so the UI can render the right control. Only the `stubs/` subtree is used at runtime; the rest (`tests/`, `utils/`, its own README) is upstream baggage, and is left out of the PyPI wheel. Also includes types for potentially irrelevant projects.
 
 ---
 
 ## 8. Frontend (`src/frontend/`)
 
-TypeScript, bundled by **Vite** (`vite.config.js`) from `src/frontend/main.ts` into `dist/plugin.js`. It is not loaded by the Jupyter extensions. The Python `Plottery` class's `_repr_html_()` result bundles the Javascript inline (on every manual cell re-run) for faster dev cycles.
+TypeScript, bundled by **Vite** (`vite.config.js`) from `src/frontend/main.ts` into `src/plottery/static/plugin.js` and `plottery.css`. Each module imports its own `.css` file (`import "./foo.css";`); a CSS file nothing imports is left out of the bundle. It is not loaded by the Jupyter extensions. The Python `Plottery` class's `_repr_html_()` result bundles the Javascript inline (on every manual cell re-run) for faster dev cycles.
 
 - **`main.ts`** — exposes `window.attach_plottery(...)`. Given the cell element plus all the serialized blobs from Python, it builds the `State`, wires up the sidebar, AI panel, layers panel, plot widgets, hover-region drag handlers, selection sync, and keyboard shortcuts.
 - **`code_sync/code_sync.ts`** — the heart of "GUI change → code change → re-render". It writes generated code into CodeMirror "marks" (the regions of code that correspond to layers), then runs the cell again via the right kernel API (CM5/Notebook vs CM6/Lab) with a trailing `show_ui(plottery_class=…)`, and swaps the returned PNG/SVG in place. Has `redraw_cell` (fast PNG), `refresh_hover_regions` (SVG overlay), and `hard_rerun` (full re-execute, used after AI/structural edits).
@@ -344,7 +384,7 @@ Layer rows are `draggable`; handlers live in `layer_panel.ts`:
 
 On-plot buttons are drawn by `place_add_method_buttons_on_plot` (`hover-regions/hover_regions.ts`): it groups `state.methods_with_code` by each method's `show_on` artist id, skips any method already called its `max_calls` times, and overlays a button on each matching hover region — a single button (e.g. `ax.set_title`) when one method applies, or a dropdown menu (labeled with the artist name) when several do. Placement uses `place_over_shape` / `place_centered_over_shape` + `reposition_to_avoid_overlap`.
 
-**How `show_on` finds the right shape — it's matched by Python `id()`.** When Python renders the hover-region SVG, `region2_to_svg_g` (`plottery.py`) stamps each region `<g>` with `data-artist-id="{id(artist)}"` (plus `data-artist-name`). When it builds the method list in `_repr_html_`, it walks the hard-coded `method_associations(artist)` tables (`axes_method_associations`, `fig_method_associations`, …); each entry is `(children_paths, method_name, max_calls, docstring_first_line)`, and Python sets `show_on = [id(eval("artist" + path)) for path in children_paths]` — e.g. an Axes-wide method like `bar` uses path `'.patch'` so it shows on `ax.patch`, while `set_title` uses `'.title'` → `ax.title`. `max_calls` is the per-method cap from those same tables (`1` for `set_title`, `float('inf')` for `bar`). The frontend then groups `state.methods_with_code` by `method.method_info.show_on.at(-1)` (the leaf id of the path), drops any whose `state.calls.count(...) >= max_calls`, and places the button(s) on every region whose `data-artist-id` equals that id. So the id flows Python `id(artist)` → `data-artist-id` *and* `show_on`, matched by plain equality in the browser; that's also why a `hard_rerun` (which re-`id()`s objects) is required after adding a call, not a fast redraw.
+**How `show_on` finds the right shape — it's matched by Python `id()`.** When Python renders the hover-region SVG, `region2_to_svg_g` (`plottery/__init__.py`) stamps each region `<g>` with `data-artist-id="{id(artist)}"` (plus `data-artist-name`). When it builds the method list in `_repr_html_`, it walks the hard-coded `method_associations(artist)` tables (`axes_method_associations`, `fig_method_associations`, …); each entry is `(children_paths, method_name, max_calls, docstring_first_line)`, and Python sets `show_on = [id(eval("artist" + path)) for path in children_paths]` — e.g. an Axes-wide method like `bar` uses path `'.patch'` so it shows on `ax.patch`, while `set_title` uses `'.title'` → `ax.title`. `max_calls` is the per-method cap from those same tables (`1` for `set_title`, `float('inf')` for `bar`). The frontend then groups `state.methods_with_code` by `method.method_info.show_on.at(-1)` (the leaf id of the path), drops any whose `state.calls.count(...) >= max_calls`, and places the button(s) on every region whose `data-artist-id` equals that id. So the id flows Python `id(artist)` → `data-artist-id` *and* `show_on`, matched by plain equality in the browser; that's also why a `hard_rerun` (which re-`id()`s objects) is required after adding a call, not a fast redraw.
 
 Clicking → `add_method_call(method, state)` (`sidebar/methods/method.ts`):
 
@@ -367,7 +407,7 @@ Argument rows are built by `create_arg_view` (`sidebar/arg/arg.ts`) and live in 
 - **`user_typed_snippets`** — a `{ code_string: mypy_type }` map of expressions that could fill an argument. It starts from the user's variables in scope (names that actually appear in the user's code via `get_user_nameset`, minus trivial/callable ones), each typed by mypy (`tree.names[name].type`, or, inside a function where mypy doesn't expose it, a builtins fallback inferred from `type(value).__name__`). It then goes *one level* into concrete containers using the live values: `d[key]`, `d.keys()` / `.values()` / `.items()` for dicts; `xs[i]` per element and `np.arange(len(xs))` for lists/tuples.
 - **`user_iterables`** — the subset whose type is an iterable: `is_subtype(t, Iterable[Any])` and **not** `is_subtype(t, str)` (so strings aren't offered to loop over), plus dynamic fallbacks for 1-D numpy arrays and lists. This feeds the for-loop iterable widget and the "＋ Add Layer → For-loop over …" menu.
 
-Then, per argument, `serialize_type` computes `type_compatible_code_snippets_by_arg_i = [name for name, t in user_typed_snippets.items() if is_subtype(t, arg_type)]` (and the analogous `…_by_i` for `**kwargs` TypedDicts). So **"type compatible" means a mypy *subtype*** — `mypy.subtypes.is_subtype`, wrapped in `plottery.py`'s `is_subtype` (line ~1709) to resolve type aliases first and to treat a bare `Any` snippet as *not* matching a non-`Any` parameter (otherwise untyped values would flood every dropdown). It's subtyping, not equality: a `list[int]` variable is therefore offered for an `Iterable` / `Sequence` / `ArrayLike` parameter, and matplotlib's `ArrayLike` alias resolves so numpy arrays match wherever it's accepted.
+Then, per argument, `serialize_type` computes `type_compatible_code_snippets_by_arg_i = [name for name, t in user_typed_snippets.items() if is_subtype(t, arg_type)]` (and the analogous `…_by_i` for `**kwargs` TypedDicts). So **"type compatible" means a mypy *subtype*** — `mypy.subtypes.is_subtype`, wrapped in `plottery/__init__.py`'s `is_subtype` (line ~1709) to resolve type aliases first and to treat a bare `Any` snippet as *not* matching a non-`Any` parameter (otherwise untyped values would flood every dropdown). It's subtyping, not equality: a `list[int]` variable is therefore offered for an `Iterable` / `Sequence` / `ArrayLike` parameter, and matplotlib's `ArrayLike` alias resolves so numpy arrays match wherever it's accepted.
 
 ### Dragging a shape on the plot
 

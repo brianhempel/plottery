@@ -6,8 +6,10 @@ node_modules
 venv
 __plottery_mypy_temp.py
 dist/
+/build/
 .DS_Store
 build_log.json
+src/plottery/static/
 src/plottery_jupyter/labextension/
 usage_events/
 bin/

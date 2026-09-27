@@ -1,0 +1,112 @@
+[build-system]
+requires = [
+    "hatchling>=1.27",
+    "hatch-nodejs-version>=0.3.2",
+    "hatch-jupyter-builder>=0.9.1",
+    "jupyter_builder>=1.0.2",  # the `jupyter-builder` CLI that builds the JupyterLab extension
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "plottery-ui"
+dynamic = ["version"]
+description = "An in-notebook graphical interface for Matplotlib: drag shapes, tweak arguments, and prompt an LLM, with the code always the ground truth."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "src/plottery/python-type-stubs-main/LICENSE"]
+requires-python = ">=3.11"
+authors = [
+    { name = "Brian Hempel" },
+    { name = "Ruanqianqian (Lisa) Huang" },
+    { name = "Devamardeep Hayatpur" },
+]
+keywords = ["jupyter", "jupyterlab", "jupyterlab-extension", "matplotlib", "plotting"]
+classifiers = [
+    "Framework :: Jupyter",
+    "Framework :: Jupyter :: JupyterLab",
+    "Framework :: Jupyter :: JupyterLab :: 4",
+    "Framework :: Jupyter :: JupyterLab :: Extensions",
+    "Framework :: Jupyter :: JupyterLab :: Extensions :: Prebuilt",
+    "Framework :: Matplotlib",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "ipykernel",
+    "ipython",
+    "matplotlib>=3.11",
+    "matplotlib-inline",
+    "mypy>=2.2,<2.4",  # plottery uses mypy internals (fine-grained incremental builds)
+    "numpy",
+    "shapely>=2",
+]
+
+[project.optional-dependencies]
+lab = ["jupyterlab>=4"]
+notebook = ["notebook>=7"]
+
+[project.urls]
+Homepage = "https://github.com/brianhempel/plottery"
+
+# The version lives only in the labextension's package.json; scripts/release/1_set_version.sh bumps it.
+[tool.hatch.version]
+source = "nodejs"
+path = "src/plottery_jupyter/package.json"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plottery"]
+artifacts = ["src/plottery/static"]  # gitignored Vite output, built by the hook below
+exclude = [
+    "__pycache__",
+    ".DS_Store",
+    # Only stubs/ and LICENSE of the type stubs fork are used at runtime.
+    "src/plottery/python-type-stubs-main/tests",
+    "src/plottery/python-type-stubs-main/utils",
+    "src/plottery/python-type-stubs-main/*.md",
+    "src/plottery/python-type-stubs-main/pyproject.toml",
+    "src/plottery/python-type-stubs-main/.gitignore",
+]
+
+# pip puts these in <env>/share/jupyter/labextensions/, where JupyterLab 4 and Notebook 7 find them.
+[tool.hatch.build.targets.wheel.shared-data]
+"src/plottery_jupyter/labextension" = "share/jupyter/labextensions/plottery_jupyter"
+"src/plottery_jupyter/install.json" = "share/jupyter/labextensions/plottery_jupyter/install.json"
+
+# Builds the frontend bundle and the labextension (`npm run build:prod`) before packing the wheel.
+[tool.hatch.build.targets.wheel.hooks.jupyter-builder]
+build-function = "hatch_jupyter_builder.npm_builder"
+ensured-targets = [
+    "src/plottery/static/plugin.js",
+    "src/plottery/static/plottery.css",
+    "src/plottery_jupyter/labextension/package.json",
+]
+
+[tool.hatch.build.targets.wheel.hooks.jupyter-builder.build-kwargs]
+build_cmd = "build:prod"
+npm = ["npm"]
+
+[tool.hatch.build.targets.sdist]
+# Explicit file list: .gitignore's `/*.js` would otherwise drop vite.config.js, and everything
+# else in the repo (notebooks, study data, analysis) doesn't belong in the package.
+ignore-vcs = true
+include = [
+    "/pyproject.toml",
+    "/README.md",
+    "/LICENSE",
+    "/package.json",
+    "/package-lock.json",
+    "/vite.config.js",
+    "/tsconfig.json",
+    "/src/plottery",
+    "/src/frontend",
+    "/src/plottery_jupyter/package.json",
+    "/src/plottery_jupyter/package-lock.json",
+    "/src/plottery_jupyter/plottery_jupyter.js",
+    "/src/plottery_jupyter/install.json",
+]
+exclude = [
+    "__pycache__",
+    ".DS_Store",
+    "/src/plottery/static",
+    "/src/plottery/python-type-stubs-main/tests",
+    "/src/plottery/python-type-stubs-main/utils",
+]

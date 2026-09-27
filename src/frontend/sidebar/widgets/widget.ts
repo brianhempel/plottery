@@ -7,6 +7,7 @@ import { create_arbitrary_code_widget } from "./arbitrary_code/arbitrary_code";
 import { default_code_for_type, get_proper_type } from "../../utils/misc";
 import { create_bool_widget } from "./bool/bool";
 import { create_code_and_control_widget } from "./code_and_control/code_and_control";
+import "./widget.css";
 
 export type Widget = {
   el: HTMLElement;

@@ -637,7 +637,30 @@ plt.show()`;
         if (kernel) {
           console.log("Kernel ready, importing plottery");
           // Also on a page reload, which reconnects to a kernel that may be in the other on/off state.
-          kernel.requestExecute({ code: `import plottery\nplottery.set_enabled(${plottery_enabled() ? 'True' : 'False'})` });
+          // If the kernel can't import plottery (e.g. it runs in a different Python environment than
+          // Jupyter), define a stand-in so the rewritten plt.show() still shows a plain Matplotlib plot
+          // (and says why) instead of every plotting cell failing with NameError.
+          kernel.requestExecute({ code:
+`try:
+    import plottery
+except Exception as _plottery_error:
+    class plottery:
+        error = _plottery_error
+        warned = False
+        @staticmethod
+        def show(_globals, _cell_lineno, _plt_show_lineno_in_cell, _provenance_is_off_by_n_lines, _notebook_code, *args, **kwargs):
+            import sys, matplotlib.pyplot as plt
+            if not plottery.warned:
+                plottery.warned = True
+                print(f"Plottery could not be loaded in this kernel ({sys.executable}): {plottery.error!r}. Showing a plain Matplotlib plot instead. To use Plottery, run %pip install plottery-ui and restart the kernel.", file=sys.stderr)
+            return plt.show(*args, **kwargs)
+        @staticmethod
+        def show_ui(*args, **kwargs):
+            return None
+        @staticmethod
+        def set_enabled(enabled):
+            pass
+plottery.set_enabled(${plottery_enabled() ? 'True' : 'False'})` });
         }
       // });
 

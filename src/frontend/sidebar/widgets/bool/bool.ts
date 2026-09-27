@@ -1,6 +1,7 @@
 import { log_event } from "../../../utils/instrumentation";
 import { create_el } from "../../../utils/misc";
 import { Widget } from "../widget";
+import "./bool.css";
 
 export type BoolWidget = Widget & {
   kind: "Bool";
