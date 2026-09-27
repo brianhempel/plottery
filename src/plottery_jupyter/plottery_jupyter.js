@@ -520,12 +520,14 @@ last_plottery`;
     `;
     document.head.appendChild(plottery_toggle_style);
 
-    function update_plottery_toggles() {
+    function render_plottery_toggle(el) {
       const enabled = plottery_enabled();
-      document.querySelectorAll('.plottery-toggle').forEach(el => {
-        el.querySelector('.plottery-toolbar-switch').classList.toggle('on', enabled);
-        el.title = enabled ? 'Plottery is on. Click to use ordinary Matplotlib.' : 'Plottery is off. Click to turn it on.';
-      });
+      el.querySelector('.plottery-toolbar-switch').classList.toggle('on', enabled);
+      el.title = enabled ? 'Plottery is on. Click to use ordinary Matplotlib.' : 'Plottery is off. Click to turn it on.';
+    }
+
+    function update_plottery_toggles() {
+      document.querySelectorAll('.plottery-toggle').forEach(render_plottery_toggle);
     }
 
     function make_plottery_toggle() {
@@ -533,6 +535,8 @@ last_plottery`;
       node.className = 'plottery-toggle';
       node.innerHTML = '<span class="plottery-toolbar-switch"><span class="switch-knob"></span></span><span>Plottery</span>';
       node.addEventListener('click', () => commands.execute(toggle_plottery_command));
+      // Render directly: the new panel isn't in the document yet, so update_plottery_toggles() can't find this node.
+      render_plottery_toggle(node);
       return new Widget({ node });
     }
 
@@ -607,7 +611,6 @@ plt.show()`;
 
       panel.toolbar.insertAfter('cellType', 'new-plot', button);
       panel.toolbar.insertAfter('new-plot', 'plottery-toggle', make_plottery_toggle());
-      update_plottery_toggles();
 
       // Plottery off: keep its UIs out of the saved notebook, including any opened from an older save.
       panel.context.ready.then(() => { if (!plottery_enabled()) strip_all_plottery_outputs(panel); });
