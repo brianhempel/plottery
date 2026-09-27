@@ -11,3 +11,17 @@ build_log.json
 src/plottery_jupyter/labextension/
 usage_events/
 bin/
+*.ipynb
+*.mp4
+/study_*
+*.rb
+*.csv
+/bin_disabled/
+/*.js
+/*.py
+/src/python-type-stubs-main.zip
+/src/*.png
+/src/TODO.md
+/src/mean_station_probability_of_an_asos_gust_day_given_n_estimated_gusts_within_25_miles.pdf
+prompt_to_*
+/color blind friendly scheme.pages
