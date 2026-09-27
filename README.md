@@ -10,7 +10,7 @@ Brian Hempel, Ruanqianqian (Lisa) Huang, Devamardeep Hayatpur, Sorin Lerner, and
 
 ## Video Figure From Paper
 
-![Plottery Video Figure](https://plottery.org/assets/Plottery%20Video%20Figure.mp4)
+<video controls><source src="https://plottery.org/assets/Plottery%20Video%20Figure.mp4" type="video/mp4"></video>
 
 ## Install
 
