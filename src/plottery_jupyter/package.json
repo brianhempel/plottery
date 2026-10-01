@@ -1,6 +1,6 @@
 {
   "name": "plottery_jupyter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A graphical and AI interface for Matplotlib.",
   "homepage": "https://github.com/brianhempel/plottery",
   "license": "MIT",
