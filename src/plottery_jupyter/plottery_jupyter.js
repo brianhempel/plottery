@@ -659,14 +659,13 @@ plottery.set_enabled(${plottery_enabled() ? 'True' : 'False'})` });
       }
 
       // A kernel restart keeps the same kernel connection object, so kernelChanged doesn't fire.
-      // Instead, watch for the restart and re-import once the new kernel process is idle.
-      let restarting = false;
+      // Instead, watch for the restart. Right after emitting this status the connection clears its
+      // message queue, so queue the import just after that (in a microtask): it then goes to the new
+      // kernel ahead of any cells run after the restart (e.g. "Restart and run all").
       panel.sessionContext.statusChanged.connect((sessionContext, status) => {
-        if (status === 'restarting' || status === 'autorestarting') {
-          restarting = true;
-        } else if (status === 'idle' && restarting && sessionContext.session?.kernel) {
-          restarting = false;
-          import_plottery(sessionContext.session.kernel);
+        const kernel = sessionContext.session?.kernel;
+        if ((status === 'restarting' || status === 'autorestarting') && kernel) {
+          Promise.resolve().then(() => import_plottery(kernel));
         }
       });
 
