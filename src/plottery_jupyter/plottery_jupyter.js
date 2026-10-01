@@ -630,17 +630,12 @@ plt.show()`;
       // from our own JS later.
       panel.node.__panel = panel;
 
-      // import plottery whenever kernel is restarted
-      panel.sessionContext.kernelChanged.connect((_, { newValue: kernel }) => {
-        console.log('kernel', kernel);
-        window.kernel = kernel; // debugging
-        if (kernel) {
-          console.log("Kernel ready, importing plottery");
-          // Also on a page reload, which reconnects to a kernel that may be in the other on/off state.
-          // If the kernel can't import plottery (e.g. it runs in a different Python environment than
-          // Jupyter), define a stand-in so the rewritten plt.show() still shows a plain Matplotlib plot
-          // (and says why) instead of every plotting cell failing with NameError.
-          kernel.requestExecute({ code:
+      // If the kernel can't import plottery (e.g. it runs in a different Python environment than
+      // Jupyter), define a stand-in so the rewritten plt.show() still shows a plain Matplotlib plot
+      // (and says why) instead of every plotting cell failing with NameError.
+      function import_plottery(kernel) {
+        console.log("Kernel ready, importing plottery");
+        kernel.requestExecute({ code:
 `try:
     import plottery
 except Exception as _plottery_error:
@@ -661,8 +656,28 @@ except Exception as _plottery_error:
         def set_enabled(enabled):
             pass
 plottery.set_enabled(${plottery_enabled() ? 'True' : 'False'})` });
+      }
+
+      // A kernel restart keeps the same kernel connection object, so kernelChanged doesn't fire.
+      // Instead, watch for the restart and re-import once the new kernel process is idle.
+      let restarting = false;
+      panel.sessionContext.statusChanged.connect((sessionContext, status) => {
+        if (status === 'restarting' || status === 'autorestarting') {
+          restarting = true;
+        } else if (status === 'idle' && restarting && sessionContext.session?.kernel) {
+          restarting = false;
+          import_plottery(sessionContext.session.kernel);
         }
-      // });
+      });
+
+      // import plottery whenever the kernel changes, including on page load (which reconnects to a
+      // kernel that may be in the other on/off state)
+      panel.sessionContext.kernelChanged.connect((_, { newValue: kernel }) => {
+        console.log('kernel', kernel);
+        window.kernel = kernel; // debugging
+        if (kernel) {
+          import_plottery(kernel);
+        }
 
       // Add wrapper to rewrite normal Matplotlib code to call our functions
 
@@ -689,7 +704,10 @@ plottery.set_enabled(${plottery_enabled() ? 'True' : 'False'})` });
                 // console.log('notebook', notebook);
                 // console.log('cell', cell);
 
-                perhaps_rewrite(content, metadata, cell, notebook);
+                // Only rewrite cell runs, not our own background requests (e.g. import_plottery)
+                if (cell) {
+                  perhaps_rewrite(content, metadata, cell, notebook);
+                }
 
                 // console.log("Code sent to kernel:");
                 // console.log(content.code);
