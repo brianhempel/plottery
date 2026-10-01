@@ -141,7 +141,7 @@ function attach_plottery(
     set_margin_right_to_width(state.sidebar_el, sidebar_margin_right, 83 + (make_stuff_nice_for_screenshots || in_demo_mode ? 113 : 0));
   } else if (document.body.dataset.notebook == 'notebooks') {
     // In Notebooks v7, the constant to center it is different.
-    set_margin_right_to_width(state.sidebar_el, sidebar_margin_right, 83 + 84 + (make_stuff_nice_for_screenshots || in_demo_mode ? 113 : 0));
+    set_margin_right_to_width(state.sidebar_el, sidebar_margin_right, 83 + 84 + (make_stuff_nice_for_screenshots || in_demo_mode ? 40 : 0));
   } else {
     // In JupyterLab, the cell codebox is the full width of the page, so it's not necessary.
     state.sidebar_el.style.marginRight = `${sidebar_margin_right}px`;
@@ -158,11 +158,13 @@ function attach_plottery(
     document.querySelectorAll('#notebook-container').forEach(el => (el as HTMLElement).style.boxShadow = 'none');
 
     if (in_demo_mode) {
-      state.plot_area.style.minWidth = '460px';
-      state.plot_area.style.maxWidth = '460px';
+      state.plot_area.style.minWidth = window.sessionStorage.getItem('plottery_demo_mode_plot_size') || '520px';
+      state.plot_area.style.maxWidth = window.sessionStorage.getItem('plottery_demo_mode_plot_size') || '520px';
 
-      document.getElementById('header')!.style.height = '0px';
-      document.getElementById('header')!.style.overflow = 'hidden';
+      if (document.getElementById('header')) {
+        document.getElementById('header')!.style.height = '0px';
+        document.getElementById('header')!.style.overflow = 'hidden';
+      }
 
       window.dispatchEvent(new Event('resize'));
     }
