@@ -656,6 +656,7 @@ export type CellOutput = {
 export interface CellCallbacks {
   iopub?: IOPubCallback;
   shell?: ShellCallback;
+  clear_on_done?: boolean;
 }
 
 export interface IOPubCallback {

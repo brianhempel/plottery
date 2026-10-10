@@ -193,7 +193,6 @@ div#notebook .CodeMirror { font-size: 17px }
 
   plottery_outer.tabIndex = 0; // So it can recieve keyboard events (cmd-d for duplicate, etc)
 
-  console.log("State", state);
 
   const sidebar_menu_bar = create_sidebar_menu_bar(state, fig_idx, fig_names);
 

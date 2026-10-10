@@ -639,6 +639,10 @@ function kernel_execute(
 
     callbacks.iopub!.output = on_iopub_output;
     callbacks.shell!.reply  = on_shell_reply
+    // get_callbacks() says clear_on_done: false, so the kernel would keep these callbacks (and the
+    // whole render they close over) until cleared by msg_id. CodeCell.execute clears its previous
+    // msg_id on the next run, but we don't track ours, so free them once the request is done.
+    callbacks.clear_on_done = true;
 
     // If we add an explicit show_ui, the notebook extension will not re-add it again
     cell.kernel.execute(code_executing + postfix, callbacks, {
@@ -671,12 +675,15 @@ function kernel_execute(
     }
 
     console.log("Executing");
+    // disposeOnDone: an undisposed future stays in the kernel's future map until the kernel restarts,
+    // pinning the whole render its handlers close over. (OutputArea.execute passes false because its
+    // `future` setter disposes the previous one; we have no such hook.)
     const future = kernel.requestExecute({
       code: code_executing + postfix,
       silent: false,
       store_history: false,
       stop_on_error: true,
-    }, false, metadata);
+    }, true, metadata);
 
     // Based on https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/outputarea/src/widget.ts#L678
     future.onIOPub = on_iopub_output;
