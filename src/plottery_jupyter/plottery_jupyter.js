@@ -317,10 +317,15 @@ const plugin = {
       }];
     }
 
+    function cell_output_jsons(cell) {
+      const outputs = cell.model.outputs;
+      return Array.from({ length: outputs.length }, (_, i) => outputs.get(i).toJSON());
+    }
+
     function strip_plottery_outputs(cell) {
       if (cell_type(cell) !== "code") return;
       const outputs = cell.model.outputs;
-      const output_jsons = Array.from({ length: outputs.length }, (_, i) => outputs.get(i).toJSON());
+      const output_jsons = cell_output_jsons(cell);
       if (!output_jsons.some(is_plottery_output)) return;
       cell.node.querySelectorAll('.plottery_outer').forEach(plottery_outer => window.detach_plottery?.(plottery_outer));
       outputs.clear();
@@ -438,6 +443,57 @@ last_plottery`;
         }
       }
     }
+
+    // ---- Keep a Plottery UI up while its cell reruns ----------------------------
+    // JupyterLab clears a cell's output the moment it starts running, so the plot flashes away until
+    // the new one arrives. For a cell showing a Plottery UI, keep the old output (grayed out and inert)
+    // until the run's first output replaces it, like execute_cell_but_delay_clearing_output in
+    // code_sync.ts does for Notebook v6's hard_rerun.
+    //
+    // CodeCell.execute clears twice, synchronously, before its first await: model.clearExecution()
+    // calls outputs.clear(), and OutputArea.execute's `output.future = future` clears again. While it
+    // runs, the first becomes a wait-clear (clears on the next added output, like
+    // clear_output(wait=True)) and the second becomes reattachFuture (attaches without clearing).
+    // JupyterLab looks up CodeCell.execute on the shared module at call time, so this covers every
+    // way of running a cell: Shift+Enter, Run All, and our own hard_rerun.
+
+    const original_code_cell_execute = CodeCell.execute;
+    CodeCell.execute = function (cell, sessionContext, metadata) {
+      // CodeCell.execute trusts the cell, and trusting outputs re-renders them, so only keep trusted ones
+      if (!cell.model.trusted || !cell_output_jsons(cell).some(is_plottery_output)) {
+        return original_code_cell_execute.apply(this, arguments);
+      }
+      const outputs = cell.model.outputs;
+      const output_area = cell.outputArea;
+      const clear = outputs.clear;
+      let future;
+      // These nodes are disposed when the new output replaces them, so no need to undo this.
+      // inert too because the dropdown's item overlay sets pointer-events: all
+      output_area.widgets.forEach(widget => {
+        widget.node.style.filter = 'grayscale(0.5) contrast(0.7) brightness(1.3)';
+        widget.node.style.pointerEvents = 'none';
+        widget.node.inert = true;
+      });
+      outputs.clear = () => clear.call(outputs, true);
+      Object.defineProperty(output_area, 'future', {
+        configurable: true,
+        get: () => future,
+        set: value => { future = value; output_area.reattachFuture(value); },
+      });
+      try {
+        return original_code_cell_execute.apply(this, arguments).finally(() => {
+          // Nothing replaced the old output: the run produced no output, or never started (e.g.
+          // no kernel). Clear it now, unless a newer run of this cell has taken over.
+          if (outputs.clearNext && (!future || output_area.future === future)) {
+            clear.call(outputs);
+            outputs.clearNext = false;
+          }
+        });
+      } finally {
+        delete outputs.clear;
+        delete output_area.future;
+      }
+    };
 
 
     console.log('Activating plottery_jupyter');

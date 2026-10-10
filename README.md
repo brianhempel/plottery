@@ -1,5 +1,7 @@
 # Plottery
 
+[Paper](https://plottery.org/assets/Plottery-%20A%20Code-Integrated%20GUI%20for%20Matplotlib%20Preprint%20with%20Appendix.pdf) · [5min Video Figure](https://plottery.org/assets/Plottery%20Video%20Figure.mp4) · [Appendix](https://plottery.org/assets/Plottery-%20A%20Code-Integrated%20GUI%20for%20Matplotlib%20Appendix.pdf) · [Study Replication Package](https://doi.org/10.17605/OSF.IO/DBU3C)
+
 Plottery is an in-notebook graphical interface for Matplotlib (MPL). Instead of a static image, with Plottery `plt.show()` produces a rich graphical interface that lets you add plot elements, drag and resize shapes, tweak plot arguments with live preview, and prompt an LLM to make changes. All changes are written to the code live—the code is the ground truth—and code editing is supported at any time.
 
 Plottery is described in our paper...
@@ -224,6 +226,7 @@ last_plottery
 | Notebook access | global `Jupyter.notebook` / `IPython` | `INotebookTracker` injected by Lab |
 | Hooks the rewrite via | listens to `execution_request.Kernel` event; monkeypatches `IPython.CodeCell.prototype.execute` to know the running cell | monkeypatches `kernel.sendShellMessage` and inspects `execute_request` messages |
 | Per-cell UI state (`fig_idx`) | read from the cell DOM `output_area … dataset.fig_idx` | read from `sessionStorage` key `cell-<id>-plottery-<key>` |
+| Rerunning a cell that shows a Plottery UI | only a GUI `hard_rerun` keeps the old output until the new result arrives (`execute_cell_but_delay_clearing_output` in `code_sync.ts`); a manual run clears it immediately | every run (manual, Run All, `hard_rerun`) keeps the old output, grayed out and `inert`, until the first new output replaces it: monkeypatches `CodeCell.execute` to defer both of its clears |
 | Editor it drives | CodeMirror **5** | CodeMirror **6** — so it stashes CM6 classes on `window` (`__CM6EditorView`, `__CM6Decoration`, `StateField`, …) and Lab classes (`__JupyterCodeCellModule`, `__JupyterNotebookActionsModule`) for the Plottery frontend to use |
 | Build | none — plain JS, installed via `jupyter nbextension install/enable` | its own npm package; `jupyter-builder build` → `src/plottery_jupyter/labextension`, then copied into Lab's `labextensions/` (development) or shipped in the `plottery-ui` wheel |
 

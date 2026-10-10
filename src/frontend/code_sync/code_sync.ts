@@ -16,7 +16,7 @@ export function hard_rerun(state: State) {
   state.cell.code_mirror.getAllMarks().forEach(mark => mark.clear());
   if (IPython) { // Notebooks v6, avoid the flash of clearing the output
     execute_cell_but_delay_clearing_output(state.cell);
-  } else { // JupyterLab, not going to try to try hack it
+  } else { // JupyterLab, where the plottery_jupyter extension's CodeCell.execute patch delays the clear
     state.cell.execute();
   }
 }
