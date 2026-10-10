@@ -22,6 +22,7 @@ export type JupyterLabNotebook = {
   model: JupyterLabNotebookModel;
   cellsArray: JupyterLabCell[];
   parent: JupyterLabNotebookPanel;
+  notebookConfig: { recordTiming: boolean };
   // Present when windowingMode is contentVisibility / full / defer (Notebook v7 + JupyterLab).
   viewModel?: {
     setEstimatedWidgetSize: (cellId: string, size: number | null) => void;
@@ -552,14 +553,6 @@ export type JupyterCodeCellModule = {
   execute(cell: JupyterLabCodeCell, sessionContext: JupyterLabSessionContext, metadata?: any): Promise<any | void>;
 }
 
-declare const __JupyterNotebookActionsModule: JupyterNotebookActionsModule | undefined;
-(window as any).__JupyterNotebookActionsModule ||= (window as any).__JupyterNotebookActionsModule
-
-// https://github.com/jupyterlab/jupyterlab/blob/v4.2.5/packages/notebook/src/actions.tsx#L579
-type JupyterNotebookActionsModule = {
-  runCells(notebook: JupyterLabNotebook, cells: JupyterLabCell[], sessionContext?: JupyterLabSessionContext): Promise<boolean>
-}
-
 
 
 export type JupyterLabNotebookModel = {
@@ -594,8 +587,8 @@ export function jupyterlab_cell_to_notebook_v6_cell(jl_cell: JupyterLabCell): Ce
     throw new Error("jupyterlab_cell_to_notebook_v6_cell: we should only be given code cells");
   }
 
-  if (!__JupyterNotebookActionsModule) {
-    throw new Error("jupyterlab_cell_to_notebook_v6_cell: __JupyterNotebookActionsModule not found, it should have been set globally by the plottery_jupyter.js lab extension");
+  if (!__JupyterCodeCellModule) {
+    throw new Error("jupyterlab_cell_to_notebook_v6_cell: __JupyterCodeCellModule not found, it should have been set globally by the plottery_jupyter.js lab extension");
   }
 
   const cell: Cell = {
@@ -604,7 +597,9 @@ export function jupyterlab_cell_to_notebook_v6_cell(jl_cell: JupyterLabCell): Ce
     element: [jl_cell.node],
     get_text: () => jl_cell.model.sharedModel.source,
     get_callbacks: () => { throw new Error("plottery: get_callbacks not implemented for JupyterLab cells, need to execute some other way") },
-    execute: () => { __JupyterNotebookActionsModule.runCells(jl_cell.parent, [jl_cell], jl_cell.parent.parent.sessionContext); },
+    // CodeCell.execute rather than NotebookActions.runCells: runCells then scrolls the active cell
+    // into view, which jumps to the top of a tall Plottery cell whenever its top is offscreen.
+    execute: () => { __JupyterCodeCellModule.execute(jl_cell, jl_cell.parent.parent.sessionContext, { recordTiming: jl_cell.parent.notebookConfig.recordTiming }); },
     kernel: undefined,
     jupyterlab_cell: jl_cell,
   };

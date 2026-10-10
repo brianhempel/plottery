@@ -495,6 +495,33 @@ last_plottery`;
       }
     };
 
+    // ---- Don't jump to the top of a Plottery cell when it reruns ------------------
+    // After a run (Ctrl+Enter, the Run button, Run All), NotebookActions scrolls the active cell into
+    // view with notebook.scrollToItem(index, 'smart'). 'smart' counts any cell whose top is above the
+    // viewport as not visible, so a tall Plottery cell jumps to its top. Skip that scroll while the
+    // cell is on screen. Only the post-run scroll uses 'smart'; run-and-advance also passes an
+    // alignment preference and scrolls to the next cell, which we leave alone. (Our own hard_rerun
+    // calls CodeCell.execute directly, which never scrolls.)
+
+    function overlaps_viewport(notebook, cell) {
+      const viewport = notebook.outerNode.getBoundingClientRect();
+      const rect = cell.node.getBoundingClientRect();
+      return rect.bottom > viewport.top && rect.top < viewport.bottom;
+    }
+
+    tracker.widgetAdded.connect((_sender, panel) => {
+      const notebook = panel.content;
+      const original_scroll_to_item = notebook.scrollToItem.bind(notebook);
+      notebook.scrollToItem = (index, align, margin, align_preference) => {
+        const cell = notebook.widgets[index];
+        if (align === 'smart' && align_preference === undefined && cell && plottery_enabled() &&
+            overlaps_viewport(notebook, cell) && calls_plt_show(notebook, cell)) {
+          return Promise.resolve();
+        }
+        return original_scroll_to_item(index, align, margin, align_preference);
+      };
+    });
+
 
     console.log('Activating plottery_jupyter');
     console.log('app', app);
@@ -504,8 +531,6 @@ last_plottery`;
 
     console.log('__JupyterCodeCellModule', CodeCell);
     window.__JupyterCodeCellModule = CodeCell; // actually we need this
-    console.log('__JupyterNotebookActionsModule', NotebookActions);
-    window.__JupyterNotebookActionsModule = NotebookActions; // actually we need this
 
     console.log('__CM6StateField', StateField);
     window.__CM6StateField = StateField;
