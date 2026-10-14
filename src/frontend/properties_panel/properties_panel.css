@@ -21,3 +21,31 @@
 .plottery-properties-panel .plottery-arg-view:last-child {
   margin-bottom: 0px;
 }
+
+input.plottery-properties-search {
+  margin: 4px;
+  width: calc(100% - 8px);
+  box-sizing: border-box; /* JupyterLab */
+  color: #000;
+  padding: 0.1em 0.5em;
+  padding-left: 23px;
+  padding-right: 20px; /* room for the clear button */
+  font-size: 12px;
+}
+
+.plottery-properties-search-clear {
+    position: absolute;
+    right: 6px;
+    top: calc(50% - 8px);
+    width: 16px;
+    height: 16px;
+    line-height: 14px;
+    text-align: center;
+    font-size: 14px;
+    color: #777;
+    cursor: pointer;
+}
+
+.plottery-properties-search-clear:hover {
+  color: #000;
+}

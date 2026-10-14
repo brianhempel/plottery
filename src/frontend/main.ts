@@ -30,6 +30,7 @@ import * as deserialize from "./utils/deserialize";
 import { attach_events_to_hover_regions, place_add_method_buttons_on_plot } from "./sidebar/hover-regions/hover_regions";
 import { create_sidebar_menu_bar, set_margin_right_to_width } from "./sidebar/sidebar";
 import { close_all_menus } from "./menus/menus";
+import { create_properties_search } from "./properties_panel/properties_panel";
 import { id_as_new_call } from "./sidebar/call/call";
 import { method_info_to_method_with_args } from "./sidebar/methods/method";
 import { ParseableComment } from "./layer_panel/layer_panel";
@@ -298,6 +299,7 @@ div#notebook .CodeMirror { font-size: 17px }
 
 
   create_el("h2", "plottery-properties-panel-header", state.properties_el);
+  create_properties_search(state);
 
   console.timeEnd('time make layers');
   console.time('time make plot widgets');
