@@ -33,6 +33,7 @@ export type State = {
 
   last_cell_code_executed: string;
   outstanding_kernel_request_time: undefined | number;
+  redraw_waiting_for_idle: boolean; // see redraw_when_idle in code_sync.ts
   dragging_layers: Layer[]
 
   // The selected layers, in the order they were selected (see select_layer in layer_panel.ts).

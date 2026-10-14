@@ -229,10 +229,33 @@ function handle_error_or_stdout_stderr(state: State, msg: CellMessage) {
   }
 }
 
+// A redraw asked for while the kernel is busy waits until the kernel is idle, rather than being
+// dropped, which left the edit undrawn until the next one: e.g. an edit made while the kernel
+// runs another cell or the AI panel's preview, or a reply's rerun that finds the kernel not yet
+// idle. Only one redraw waits, for whatever the code is by then, so the kernel's queue doesn't
+// fill up. It's no longer needed once a redraw or hover-region refresh (running or done) has
+// the code.
+function redraw_when_idle(state: State) {
+  if (state.redraw_waiting_for_idle) return;
+  state.redraw_waiting_for_idle = true;
+
+  const wait = () => {
+    if (!state.is_in_dom() || state.cell.get_text() === state.last_cell_code_executed) {
+      state.redraw_waiting_for_idle = false;
+    } else if (kernel_is_busy(state)) {
+      requestAnimationFrame(wait);
+    } else {
+      state.redraw_waiting_for_idle = false;
+      redraw_cell(state);
+    }
+  };
+  requestAnimationFrame(wait);
+}
+
 export function redraw_cell(state: State, ignore_busy: boolean = false) {
   const cell = state.cell;
 
-  if (!ignore_busy && kernel_is_busy(state)) return;
+  if (!ignore_busy && kernel_is_busy(state)) { redraw_when_idle(state); return; }
 
   const code_executing = cell.get_text();
   if (code_executing == state.last_cell_code_executed) return;

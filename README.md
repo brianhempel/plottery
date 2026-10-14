@@ -318,7 +318,7 @@ This section traces what happens for common interactions. All paths below are un
 **The `State` object (`types.ts`).** A single `State` is built by `attach_plottery()` for each rendered Plottery cell and handed to almost every function — it holds the only references to the live DOM and the editor, so "do X to the plot" almost always means "call something with `state`." Its fields fall into three groups:
 
 - *Static inputs from Python* (set once, at build): `cell` (the CM5/CM6-agnostic `Cell`, see §8), `cell_lineno` / `plt_show_lineno_in_cell` / `provenance_is_off_by_n_lines` (used to map notebook line numbers ↔ in-cell line numbers), `calls` / `calls_with_args`, `methods` / `methods_with_code`, `notebook_typed_defs`, `user_iterables`, `avoid_names` (names already in use, for `non_colliding_name`), and `llm_api_key`.
-- *Mutable runtime state*: `last_cell_code_executed` and `outstanding_kernel_request_time` (drive the busy/changed checks below), `dragging_layers` (the in-flight layer drag), and `is_in_dom()` — flips to `false` after a hard rerun, which is how the per-piece change watchers know to stop their `requestAnimationFrame` loop.
+- *Mutable runtime state*: `last_cell_code_executed`, `outstanding_kernel_request_time`, and `redraw_waiting_for_idle` (drive the busy/changed checks below), `dragging_layers` (the in-flight layer drag), and `is_in_dom()` — flips to `false` after a hard rerun, which is how the per-piece change watchers know to stop their `requestAnimationFrame` loop.
 - *View handles*: `plottery_outer`, `plot_area` (the plot `<img>` lives here), `stdout_stderr`, `hover_regions_container` + `hover_regions_svg()` / `set_hover_regions_html()`, `plot_widgets`, `sidebar_el`, `layers_panel`, `properties_el`, and `command_shortcuts` (the keymap).
 
 **Per-cell persistent storage (`get_persistent_item` / `set_persistent_item`, `utils/misc.ts`).** A cell re-run rebuilds the entire UI DOM, so a little UI state has to be persisted as strings, keyed per cell, with two backends: on **Notebook v6** the cell's `.output` element `dataset` (classic cells can lack stable ids); on **JupyterLab** `sessionStorage` under `cell-<sharedModel.id>-plottery-<key>` (the labextension reads the same keys). The keys:
@@ -346,6 +346,7 @@ Two "run one request at a time, always finish on the latest code" guards live he
 
 - **`kernel_is_busy(state)`** trusts `state.outstanding_kernel_request_time` first (a request < 500 ms old counts as in-flight, because the kernel's own busy flag lags), then falls back to the real kernel status (v6 `_pending_messages` / `iopub_done`; Lab `kernel.status !== 'idle'`).
 - **the reply handler** clears `outstanding_kernel_request_time`, then re-runs immediately if the cell text changed while the kernel was busy, and otherwise settles (e.g. into `refresh_hover_regions`).
+- **`redraw_when_idle`**: a redraw asked for while the kernel is busy isn't dropped. It waits, checking each frame, until the kernel is idle, then redraws whatever the code is by then. Only one redraw waits (`state.redraw_waiting_for_idle`), so a burst of edits makes one redraw rather than filling the kernel's queue. It gives up once the code is already `last_cell_code_executed`, i.e. a redraw or hover-region refresh that started meanwhile (running or done) has it, so nothing runs twice. This catches edits made while the kernel runs something else (another cell, the AI panel's preview), and a reply-time re-run that finds the kernel not yet idle.
 
 **The object model (`layer` → `call_view` → `arg_view` → `widget`, plus the `mark`s).** The sidebar mirrors the cell's code as a tree of plain objects (`types.ts`, `layer_panel/layer_panel.ts`):
 
@@ -364,7 +365,7 @@ So one editable argument is reached as `layer → call_views[i] → arguments[j]
 
 **The three kernel paths** (all in `code_sync.ts`, all routed through `kernel_execute`, which handles both Notebook v6 `cell.kernel.execute` and JupyterLab `kernel.requestExecute` and sets `doesnt_need_plottery_show_ui` so the extension doesn't append another `show_ui`):
 
-- **`redraw_cell`** — fast. Appends `plottery.show_ui(..., plottery_class=plottery.PlotteryFigureOnly)`, then swaps the plot `<img>` with the returned PNG. Guards against overlapping requests (`kernel_is_busy`) and re-runs if the code changed again while the kernel was busy.
+- **`redraw_cell`** — fast. Appends `plottery.show_ui(..., plottery_class=plottery.PlotteryFigureOnly)`, then swaps the plot `<img>` with the returned PNG. Guards against overlapping requests (`kernel_is_busy`, waiting via `redraw_when_idle`) and re-runs if the code changed again while the kernel was busy.
 - **`refresh_hover_regions`** — appends `plottery.show_ui(..., plottery_class=plottery.PlotteryFigureAndHoverRegions)`, replaces the SVG overlay, re-attaches drag handlers, and swaps in a higher-DPI PNG. Runs once a drag settles.
 - **`hard_rerun`** — clears all CodeMirror marks and fully re-executes the cell, so Python rebuilds the entire UI from scratch via `_repr_html_`. Used whenever the code *structure* changes (new line, reorder, AI rewrite).
 

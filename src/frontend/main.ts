@@ -82,6 +82,7 @@ function attach_plottery(
 
     last_cell_code_executed: cell.get_text(),
     outstanding_kernel_request_time: undefined,
+    redraw_waiting_for_idle: false,
 
     plt_show_lineno_in_cell,
     provenance_is_off_by_n_lines,
