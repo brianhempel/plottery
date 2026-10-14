@@ -202,13 +202,10 @@ function add_mapping_table_buttons(
     if (kind === "iterable") {
       convert(code, null);
     } else if (kind === "single") {
-      // Every item starts with the current value, so the plot doesn't change.
-      const iterable_code = table_context.sibling_iterable_code() ?? state.user_iterables[0];
-      if (iterable_code === undefined) {
-        show_arg_note(view, "There's no list to go through. Pick one from the dropdown's ▦ buttons, or define one first.");
-      } else {
-        convert(iterable_code, view.disabled ? default_formula_for(arg) : code);
-      }
+      // Every item starts with the current value, so the plot doesn't change. The list: another
+      // arg's, else the user's first, else a placeholder to replace.
+      const iterable_code = table_context.sibling_iterable_code() ?? state.user_iterables[0] ?? "[1, 2, 3]";
+      convert(iterable_code, view.disabled ? default_formula_for(arg) : code);
     } else {
       show_arg_note(view, `Can't tell whether \`${code}\` is a list or a single value. Pick a list from the dropdown's ▦ buttons instead.`);
     }
