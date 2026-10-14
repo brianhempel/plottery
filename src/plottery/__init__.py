@@ -1673,7 +1673,7 @@ def show(locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_li
         fig = fig_managers[-1].canvas.figure
         # Snapshot the variable-sharing provenance and mapping-table logs as they stand at
         # this show(), so each figure captures the values that were live for it.
-        cell_figs.append((fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, dict(var_provenance_at_call), mapping_table.snapshot_mapping_rows_at_call()))
+        cell_figs.append((fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, {key: _provenance_from_cell_run(node, cell_run_id) for key, node in var_provenance_at_call.items()}, mapping_table.snapshot_mapping_rows_at_call()))
 
     return None
 
@@ -1996,11 +1996,12 @@ def _attach_var_provenance(value, node):
     return fresh
 
 
-def tag_with_var_provenance(value, var_name, lineno, col_offset, end_lineno, end_col_offset):
+def tag_with_var_provenance(value, var_name, cell_run_id, lineno, col_offset, end_lineno, end_col_offset):
     child = getattr(value, "_plottery_provenance", None)
     node = {
         "kind": "var",
         "var_name": var_name,
+        "cell_run_id": cell_run_id, # locations are relative to the cell of this run
         "lineno": lineno,
         "col_offset": col_offset,
         "end_lineno": end_lineno,
@@ -2018,6 +2019,22 @@ var_provenance_at_call = {}
 
 def _reset_var_provenance_at_call():
     var_provenance_at_call.clear()
+
+
+# Incremented each time the AST transformer tags a cell, and baked into that cell's
+# tag_with_var_provenance calls. Provenance locations are relative to the cell that made
+# them, so a node from another cell (e.g. a variable defined in an earlier cell) can't
+# be located in the plot's cell.
+cell_run_id = 0
+
+
+# Cut a provenance chain at the first node from another cell run. A child is always older
+# than its parent, so everything below that node is from other cells too.
+def _provenance_from_cell_run(node, run_id):
+    if node is None or node.get("cell_run_id") != run_id:
+        return None
+    children = [_provenance_from_cell_run(c, run_id) for c in node["children"]]
+    return {**node, "children": [c for c in children if c is not None]}
 
 
 def note_arg_provenance(value, call_id, arg_key):
@@ -2088,7 +2105,7 @@ class ProvenanceTagger(ast.NodeTransformer):
         self.tag_tables = tag_tables
         super().__init__()
 
-    # name = <rhs>  ->  name = plottery.tag_with_var_provenance(<rhs>, 'name', <rhs loc>)
+    # name = <rhs>  ->  name = plottery.tag_with_var_provenance(<rhs>, 'name', cell_run_id, <rhs loc>)
     def visit_Assign(self, node):
         if not self.tag_vars:
             return self.generic_visit(node)
@@ -2098,7 +2115,7 @@ class ProvenanceTagger(ast.NodeTransformer):
                 node = self.generic_visit(node)
                 node.value = _plottery_attr_call(
                     'tag_with_var_provenance',
-                    [node.value, ast.Constant(var_name), *[ast.Constant(x) for x in loc]],
+                    [node.value, ast.Constant(var_name), ast.Constant(cell_run_id), *[ast.Constant(x) for x in loc]],
                 )
                 return node
             case _:
@@ -2157,7 +2174,7 @@ class ProvenanceTagger(ast.NodeTransformer):
                 continue
             kw.value = _plottery_attr_call('note_arg_provenance', [kw.value, ast.Constant(call_id), ast.Constant(kw.arg)])
 
-    # Wrap each arg mapped to a parameter with tag_with_var_provenance(arg, param_name, <arg loc>).
+    # Wrap each arg mapped to a parameter with tag_with_var_provenance(arg, param_name, cell_run_id, <arg loc>).
     def _tag_user_func_args(self, node, param_names, arg_locs, kw_locs):
         new_args = []
         for i, a in enumerate(node.args):
@@ -2166,7 +2183,7 @@ class ProvenanceTagger(ast.NodeTransformer):
             else:
                 new_args.append(_plottery_attr_call(
                     'tag_with_var_provenance',
-                    [a, ast.Constant(param_names[i]), *[ast.Constant(x) for x in arg_locs[i]]],
+                    [a, ast.Constant(param_names[i]), ast.Constant(cell_run_id), *[ast.Constant(x) for x in arg_locs[i]]],
                 ))
         node.args = new_args
         for j, kw in enumerate(node.keywords):
@@ -2174,7 +2191,7 @@ class ProvenanceTagger(ast.NodeTransformer):
                 continue
             kw.value = _plottery_attr_call(
                 'tag_with_var_provenance',
-                [kw.value, ast.Constant(kw.arg), *[ast.Constant(x) for x in kw_locs[j]]],
+                [kw.value, ast.Constant(kw.arg), ast.Constant(cell_run_id), *[ast.Constant(x) for x in kw_locs[j]]],
             )
 
 
@@ -2202,6 +2219,9 @@ class RootProvenanceTagger:
 
     def visit(self, node):
         with Timer("ProvenanceTagger"):
+            global cell_run_id
+            cell_run_id += 1
+
             # This transform runs just before the cell does, so this resets the mapping-table
             # log per cell run. (A reset statement in the code would be skipped by the fast
             # path below.)
