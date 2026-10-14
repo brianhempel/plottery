@@ -82,7 +82,6 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
 
   name_el.textContent = call.call_info.func_code;
-  name_el.title = call.call_info.docstring || `No docstring available for ${call.call_info.func_code}`;
 
 
   // Arguments
@@ -132,7 +131,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   const add_args = (args: Arg[], disabled: boolean) => {
     args.forEach(arg => {
       const table_context = { sibling_iterable_code: () => sibling_iterable_code(arg), table_key: () => table_key(arg) };
-      const arg_view = create_arg_view(arg, call.call_info.docstring, {disabled}, state, flush_call, mark, table_context);
+      const arg_view = create_arg_view(arg, {disabled}, state, flush_call, mark, table_context);
       // const proxy_arg_el = make_proxy_arg_el(arg, arg_view, state);
       properties_el.append(arg_view.el);
       // proxies_el.append(proxy_arg_el);

@@ -144,8 +144,6 @@ export type CallInfo = {
   call: { pos: Position };
   callee: CallableType & { pos: Position };
 
-  docstring: string | null; // the full docstring
-
   // It's either a Type with { name, pos }, OR
   // its just { name, pos } if mypy couldn't type the arg
   given_args: ((Type | {}) & {

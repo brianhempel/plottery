@@ -756,13 +756,13 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
 
   // Add possible method calls to the menu
   state.methods_with_code.forEach(method => {
-    const menu_item = add_menu_item(
+    add_menu_item(
       add_layer_menu,
       method.receiver_dot_name, null,
       (state => add_method_call(method, state)),
       _ => true, // Enabled?
       state
-    ).title = method.method_info.docstring_first_line  || `No documenation for ${method.receiver_dot_name}`
+    )
   });
 
   layers.forEach(layer => layers_el.append(layer.el));

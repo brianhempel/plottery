@@ -1241,23 +1241,6 @@ class PlotteryFigureAndHoverRegions(PlotteryFigureOnly):
         return self.cached_svg_hover_regions
 
 
-root_item_name = re.compile(r'^\w*')
-def try_to_add_docstring_to_call(locals, call):
-    func_code = call['func_code'] or ''
-    split_idx = root_item_name.match(func_code).end()
-    root_name = func_code[:split_idx]
-    rest      = func_code[split_idx:]
-    item = locals.get(root_name)
-    if item is None:
-        docstring = None
-    else:
-        try:
-            docstring = eval('item' + rest).__doc__
-        except:
-            docstring = None
-    call['docstring'] = docstring
-
-
 keywordset = set(keyword.kwlist)
 
 class Plottery(PlotteryFigureAndHoverRegions):
@@ -1466,8 +1449,6 @@ class Plottery(PlotteryFigureAndHoverRegions):
                 visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets, self.cell_lineno, self.var_provenance_snapshot, self.provenance_is_off_by_n_lines, element_ctx, self.mapping_tables_snapshot)
                 visitor.visit_mypy_file(tree)
                 self.calls = visitor.out
-                for call in self.calls:
-                    try_to_add_docstring_to_call(locals, call)
                 with Timer("add_link_suggestions"):
                     add_link_suggestions(self.calls, visitor.link_meta)
             else:
