@@ -53,7 +53,7 @@
    stop sharing), previewing the drop by striking out the variable to its left. */
 .plottery-chain-break {
   position: absolute;
-  inset: 0;
+  inset: -1px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,11 +68,6 @@
 
 .plottery-chain-sep:hover .plottery-chain-break {
   visibility: visible;
-}
-
-.plottery-chain-break > svg {
-  width: 11px;
-  height: 11px;
 }
 
 /* Preview of a chain break: the variable that would be dropped, struck through in red. */

@@ -254,6 +254,7 @@ function arg_defaults_for_star2_arg(arg_type: Type): Arg[] {
       default_code: default_codes_by_name[name] || null, // TypedDicts don't support defaults
       type_compatible_code_snippets: typed_dict.type_compatible_code_snippets_by_i[item_i],
       is_positional: false,
+      element_info: typed_dict.element_info_by_i?.[item_i],
     };
   })
 }
@@ -328,6 +329,7 @@ export function arg_defaults_from_callee_type(callee: CallableType): Arg[] {
         default_code: default_at_definition,
         type_compatible_code_snippets:
           callee.type_compatible_code_snippets_by_arg_i[arg_i],
+        element_info: callee.element_info_by_arg_i?.[arg_i],
       }];
     })
     .slice(callee.def_extras.first_arg !== undefined && callee.def_extras.first_arg !== null ? 1 : 0); // ignore first arg (self) if def_extras.first_arg is defined

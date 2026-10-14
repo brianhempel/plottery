@@ -9,8 +9,10 @@ import {
   State,
   CallInfo,
   Type,
-  MethodInfo
+  MethodInfo,
+  MappingDictsInfo
 } from "./types";
+import { init_mapping_dicts } from "./sidebar/mapping_table/mapping_dicts";
 import "./utils/stdlib";
 import {
   arg_defaults_from_callee_type,
@@ -64,6 +66,7 @@ function attach_plottery(
   mpl_version: string,
   fig_idx: number,
   fig_names: string[],
+  mapping_dicts: MappingDictsInfo = { dicts: [], scopes: [] }, // older outputs don't have it
 ) {
   console.time('time attach_plottery');
 
@@ -117,6 +120,10 @@ function attach_plottery(
     stdout_stderr: plottery_outer.querySelector(".stdout_stderr")!,
 
     command_shortcuts: {}, // Added by menu items in menus.ts
+
+    mapping_tables: new Map(), // Filled in by mapping table views (sidebar/mapping_table/)
+    mapping_dicts: new Map(), // Filled by init_mapping_dicts below
+    mapping_scopes: [],
   };
   console.timeEnd('time init state');
 
@@ -211,6 +218,9 @@ div#notebook .CodeMirror { font-size: 17px }
   // console.log("notebook_typed_defs keys", Object.keys(notebook_typed_defs));
 
   state.notebook_typed_defs = deserialize.python_objects_to_js(notebook_typed_defs);
+
+  // Before the layers: their tables use these, marked while the positions are current.
+  init_mapping_dicts(state, mapping_dicts);
 
   state.calls_with_args = calls.map(call_info => call_info_to_call_with_args(call_info, state.cell_lineno, state.cell.code_mirror));
 
@@ -516,6 +526,8 @@ export function call_info_to_call_with_args(
         type_compatible_code_snippets: [],
         provenance: given_arg.provenance,
         link_suggestions: given_arg.name ? call_info.link_suggestions_by_arg_name?.[given_arg.name] : undefined,
+        code_is_iterable: given_arg.is_iterable,
+        mapping_table: given_arg.mapping_table,
       };
     }
 
@@ -526,6 +538,8 @@ export function call_info_to_call_with_args(
       pos: given_arg.pos,
       code_type,
       provenance: given_arg.provenance,
+      code_is_iterable: given_arg.is_iterable,
+      mapping_table: given_arg.mapping_table,
     };
   });
 

@@ -45,6 +45,9 @@ plottery_src_directory = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(plottery_src_directory)
 
 from . import serialize
+from . import mapping_table
+from .code_helpers import char_col, _plottery_attr_call
+from .mapping_table import note_mapping_row, mapping_table_rows # called by the cell code that ProvenanceTagger rewrites, as plottery.<name>
 # import visitor_ast
 
 
@@ -1138,9 +1141,11 @@ class PlotteryFigureOnly:
         fig_idx,
         fig_names,
         var_provenance_snapshot=None,
+        mapping_tables_snapshot=None,
     ):
         self.figure = figure
         self.cached_png = None
+        self.mapping_tables_snapshot = mapping_tables_snapshot or {}
 
     def _repr_png_(self, fast=True): # subclasses below set fast=False, so only transient drags reduce DPI
         with Timer("_repr_png_"):
@@ -1154,6 +1159,13 @@ class PlotteryFigureOnly:
                 self.cached_png = buf.getvalue()
 
         return self.cached_png
+
+    # The rows recorded for mapping-table arguments, so the frontend's spreadsheets update on
+    # every redraw. IPython merges this with the _repr_*_ outputs.
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        if not self.mapping_tables_snapshot:
+            return {}
+        return {"application/vnd.plottery.mapping-tables+json": self.mapping_tables_snapshot}
 
 
 # When there's a free moment during manipulation, re-gen the hover regions too.
@@ -1170,6 +1182,7 @@ class PlotteryFigureAndHoverRegions(PlotteryFigureOnly):
         fig_idx,
         fig_names,
         var_provenance_snapshot=None,
+        mapping_tables_snapshot=None,
     ):
         with Timer("plot.close('all') and get_user_nameset"):
             # Suppress "RuntimeWarning: More than 20 figures have been opened"
@@ -1180,6 +1193,7 @@ class PlotteryFigureAndHoverRegions(PlotteryFigureOnly):
             self.figure = figure
             self.cached_png = None
             self.cached_svg_hover_regions = None
+            self.mapping_tables_snapshot = mapping_tables_snapshot or {}
             self.user_nameset = get_user_nameset(notebook_code_through_cell)
 
         # Make a map of object id to object name (e.g. "fig.axes")
@@ -1258,8 +1272,9 @@ class Plottery(PlotteryFigureAndHoverRegions):
         fig_idx,
         fig_names,
         var_provenance_snapshot=None,
+        mapping_tables_snapshot=None,
     ):
-        super().__init__(figure, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names, var_provenance_snapshot)
+        super().__init__(figure, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names, var_provenance_snapshot, mapping_tables_snapshot)
 
         with Timer("avoid_names etc"):
             self.avoid_names = self.user_nameset | locals.keys() | keywordset
@@ -1319,6 +1334,12 @@ class Plottery(PlotteryFigureAndHoverRegions):
             list_of_complex_type = list_of(mypy.types.Instance(builtins_names['complex'].node, []))
             list_of_bool_type    = list_of(mypy.types.Instance(builtins_names['bool'].node, []))
             list_of_bytes_type   = list_of(mypy.types.Instance(builtins_names['bytes'].node, []))
+            # For mapping tables: which parameters take a list, and which given args are iterables.
+            element_ctx = {
+                "list_any_type": list_of(explicit_any_type),
+                "iterable_type": iterable_type,
+                "string_type": string_type,
+            }
             # For object/categorical DataFrame columns, map the element kind pandas infers (by scanning the
             # actual values) to a list[<scalar>] type, so we only claim list[str] when it's really strings.
             inferred_kind_to_type = {
@@ -1442,7 +1463,7 @@ class Plottery(PlotteryFigureAndHoverRegions):
         # Gather all the type information for function calls in the notebook
         with Timer("GatherTypedCalls"):
             if tree is not None:
-                visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets, self.cell_lineno, self.var_provenance_snapshot, self.provenance_is_off_by_n_lines)
+                visitor = GatherTypedCalls(self.notebook_code_lines, self.mypy_result.types, self.user_typed_snippets, self.cell_lineno, self.var_provenance_snapshot, self.provenance_is_off_by_n_lines, element_ctx, self.mapping_tables_snapshot)
                 visitor.visit_mypy_file(tree)
                 self.calls = visitor.out
                 for call in self.calls:
@@ -1452,6 +1473,11 @@ class Plottery(PlotteryFigureAndHoverRegions):
             else:
                 self.calls = []
 
+        # The dicts a mapping table's overrides could switch to (see mapping_table.py).
+        with Timer("mapping_dicts"):
+            cell_names = mapping_table.CellNames(self.notebook_code_lines, self.cell_lineno)
+            self.mapping_dicts = mapping_table.mapping_dicts_json(locals, self.user_nameset, cell_names)
+
     # This is only the technical info for the front end.
     # def _repr_json_(self):
     #     return {
@@ -1459,6 +1485,11 @@ class Plottery(PlotteryFigureAndHoverRegions):
     #         "provenance_is_off_by_n_lines": self.provenance_is_off_by_n_lines,
     #         # "user_call_info": self.user_call_info,
     #     }
+
+    # The full render is saved into the notebook, so keep the mapping-table rows out of its
+    # output; they reach the frontend in `calls` (see GatherTypedCalls) instead.
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        return {}
 
     def _repr_html_(self):
         # ripped the below from ipympl/backend_nbagg.py
@@ -1612,7 +1643,7 @@ class Plottery(PlotteryFigureAndHoverRegions):
                     <!-- properties panel added here -->
                 </div>
                 <!-- Not only for the styles, but also a way to run this code once the elements exist. -->
-                <style onload='attach_plottery(this.closest(".plottery_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)})'>
+                <style onload='attach_plottery(this.closest(".plottery_outer"), {self.cell_lineno}, {self.plt_show_lineno_in_cell}, {self.provenance_is_off_by_n_lines}, {json_for_single_quoted_attr(self.methods)}, {json_for_single_quoted_attr(self.calls)}, {json_for_single_quoted_attr(notebook_typed_ast)}, {json_for_single_quoted_attr(self.notebook_parseable_comments)}, {json_for_single_quoted_attr(self.user_iterables)}, {json_for_single_quoted_attr(list(self.avoid_names))}, {json_for_single_quoted_attr(mpl.__version__)}, {self.fig_idx}, {json_for_single_quoted_attr(self.fig_names)}, {json_for_single_quoted_attr(self.mapping_dicts)})'>
                     {frontend_css}
                 </style>
                 </div>
@@ -1659,9 +1690,9 @@ def show(locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_li
 
     if len(fig_managers) > 0:
         fig = fig_managers[-1].canvas.figure
-        # Snapshot the variable-sharing provenance log as it stands at this show(),
-        # so each figure captures the values that were live for it.
-        cell_figs.append((fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, dict(var_provenance_at_call)))
+        # Snapshot the variable-sharing provenance and mapping-table logs as they stand at
+        # this show(), so each figure captures the values that were live for it.
+        cell_figs.append((fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, dict(var_provenance_at_call), mapping_table.snapshot_mapping_rows_at_call()))
 
     return None
 
@@ -1678,17 +1709,17 @@ def show_ui(fig_idx=0, plottery_class=Plottery):
 
         fig_idx = np.clip(fig_idx, 0, len(cell_figs) - 1)
 
-        fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, var_provenance_snapshot = cell_figs[fig_idx]
+        fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, var_provenance_snapshot, mapping_tables_snapshot = cell_figs[fig_idx]
 
         # What should we name the figs in the UI?
         fig_names = []
-        for figg, _, _, _, _, _, _ in cell_figs: # figg bc don't want to clobber fig above
+        for figg, *_ in cell_figs: # figg bc don't want to clobber fig above
             # Join the fig title and all the axes titles
             fig_name = ' '.join([title for title in ([figg.get_suptitle()] + [axes.get_title() for axes in figg.get_axes()]) if title != ''])
             fig_names.append(fig_name)
 
         cell_figs = []
-        result = plottery_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names, var_provenance_snapshot)
+        result = plottery_class(fig, locals, cell_lineno, plt_show_lineno_in_cell, provenance_is_off_by_n_lines, notebook_code_through_cell, fig_idx, fig_names, var_provenance_snapshot, mapping_tables_snapshot)
 
         # A full Plottery render becomes the cell's output, which IPython pins in Out[N] for the life
         # of the kernel. Its repr (PNG/SVG/HTML) is generated immediately on return, after which
@@ -2013,26 +2044,6 @@ def note_arg_provenance(value, call_id, arg_key):
     return value
 
 
-# mypy and CPython's `ast` report columns as UTF-8 *byte* offsets, but both our slicing of
-# notebook_code_lines below and the frontend's CodeMirror marks (ch = pos.column) treat them
-# as character offsets. They agree only for ASCII; a non-ASCII character earlier on the line
-# (e.g. "≥" is 3 bytes but 1 char) shifts every following offset, so arg/call source slices
-# and marks land wrong and a GUI writeback corrupts the cell. Convert byte offsets to
-# character (code-point) offsets against the real source line. (Astral-plane characters,
-# which are 2 UTF-16 units in a CodeMirror `ch`, remain a rare edge case.)
-def byte_col_to_char_col(line_str, byte_col):
-    if byte_col is None or byte_col <= 0 or line_str.isascii():
-        return byte_col
-    return len(line_str.encode("utf-8")[:byte_col].decode("utf-8", "replace"))
-
-
-# Convert a (1-based line, byte column) into a character column, guarding out-of-range lines.
-def char_col(notebook_code_lines, line, byte_col):
-    if line is None or byte_col is None or line < 1 or line > len(notebook_code_lines):
-        return byte_col
-    return byte_col_to_char_col(notebook_code_lines[line - 1], byte_col)
-
-
 # This assumes the typed node is in the notebook.
 # The nodes do not specify which file they actually came from.
 def code_at_range(notebook_code_lines, line, column, end_line, end_column):
@@ -2072,15 +2083,6 @@ def dedent_line(line, n):
     return re.sub(r'^[ \t]{0,%d}' % n, '', line, count=1)
 
 
-def _plottery_attr_call(func_name, args):
-    # plottery.<func_name>(*args)
-    return ast.Call(
-        ast.Attribute(ast.Name('plottery', ast.Load()), func_name, ast.Load()),
-        args,
-        [],
-    )
-
-
 # {func_name: [param_name, ...]} for functions defined in this cell, so we can
 # flow provenance into them by parameter name.
 def collect_user_defs(module_node):
@@ -2092,14 +2094,17 @@ def collect_user_defs(module_node):
 
 
 class ProvenanceTagger(ast.NodeTransformer):
-    def __init__(self, user_defs=None, tag_calls=True, tag_vars=True) -> None:
+    def __init__(self, user_defs=None, tag_calls=True, tag_vars=True, tag_tables=False) -> None:
         self.call_nums = {} # I checked and the traversal order is the same as for GatherTypedCalls
         self.user_defs = user_defs or {}
-        # tag_calls: emit tag_with_call_provenance (needed for hover-region -> code mapping).
-        # tag_vars:  emit the variable-sharing wrappers (tag_with_var_provenance / note_arg_provenance),
-        #            only consumed by the full Plottery render's GatherTypedCalls.
+        # tag_calls:  emit tag_with_call_provenance (needed for hover-region -> code mapping).
+        # tag_vars:   emit the variable-sharing wrappers (tag_with_var_provenance / note_arg_provenance),
+        #             only consumed by the full Plottery render's GatherTypedCalls.
+        # tag_tables: record the rows of mapping-table arguments (see mapping_table.py), which
+        #             every render class sends to the frontend.
         self.tag_calls = tag_calls
         self.tag_vars = tag_vars
+        self.tag_tables = tag_tables
         super().__init__()
 
     # name = <rhs>  ->  name = plottery.tag_with_var_provenance(<rhs>, 'name', <rhs loc>)
@@ -2122,6 +2127,8 @@ class ProvenanceTagger(ast.NodeTransformer):
         # Capture original argument locations before generic_visit rewrites children.
         arg_locs = [ast_loc(a) for a in node.args]
         kw_locs  = [ast_loc(kw.value) for kw in node.keywords]
+        # Mapping-table arguments, matched before generic_visit rewrites them.
+        table_args = mapping_table.match_table_args(node) if self.tag_tables else []
 
         node = self.generic_visit(node)
 
@@ -2132,6 +2139,9 @@ class ProvenanceTagger(ast.NodeTransformer):
                 call_num = self.call_nums.get(func_code, 0) + 1
                 self.call_nums[func_code] = call_num
                 call_id = make_call_id(func_code, call_num) # "ax.bar #1"
+
+                if table_args:
+                    mapping_table.instrument_table_args(table_args, call_id)
 
                 if self.tag_vars:
                     self._note_call_args(node, call_id)
@@ -2211,6 +2221,11 @@ class RootProvenanceTagger:
 
     def visit(self, node):
         with Timer("ProvenanceTagger"):
+            # This transform runs just before the cell does, so this resets the mapping-table
+            # log per cell run. (A reset statement in the code would be skipped by the fast
+            # path below.)
+            mapping_table.reset_mapping_rows_at_call()
+
             render_class = self._detect_render_class(node)
             if render_class == "PlotteryFigureOnly":
                 # Fast drag redraw: figure PNG only, reads no provenance, so skip the
@@ -2223,11 +2238,16 @@ class RootProvenanceTagger:
                 # Full Plottery render (or a normal run with no explicit plottery_class): tag everything.
                 tag_calls, tag_vars = True, True
 
-            if not tag_calls and not tag_vars:
+            # Every render class reports mapping-table rows, so the spreadsheet stays live
+            # during fast redraws. When the transform runs anyway, visit_Call finds the tables
+            # as it goes; otherwise only cells that have one pay for it.
+            tag_tables = tag_calls or tag_vars or mapping_table.has_table_args(node)
+
+            if not tag_calls and not tag_vars and not tag_tables:
                 return node
 
             user_defs = collect_user_defs(node)
-            out = ProvenanceTagger(user_defs, tag_calls=tag_calls, tag_vars=tag_vars).visit(node)
+            out = ProvenanceTagger(user_defs, tag_calls=tag_calls, tag_vars=tag_vars, tag_tables=tag_tables).visit(node)
             if tag_vars:
                 # Reset the per-call provenance log at the start of each cell run.
                 out.body.insert(0, ast.Expr(_plottery_attr_call('_reset_var_provenance_at_call', [])))
@@ -2270,6 +2290,7 @@ import mypy.server.update
 import mypy.types
 from .visitor_mypy import TraverserVisitor
 import mypy.subtypes
+import mypy.maptype
 import pprint
 
 
@@ -2380,8 +2401,98 @@ def is_subtype(subtype, type):
 
 
 
+# ---------- Mapping tables: list-taking parameters and their element types ----------
+
+def _is_array_like_alias(t):
+    return isinstance(t, mypy.types.TypeAliasType) and t.alias is not None and t.alias.fullname.endswith(".ArrayLike")
+
+
+def _union_items(t):
+    if isinstance(t, mypy.types.UnionType):
+        return [x for item in t.items for x in _union_items(item)]
+    return [t]
+
+
+# Tuples are left out: in matplotlib's API a tuple is one value (a color, an (x, y) point).
+def is_iterable_type(t, element_ctx):
+    return (
+        is_subtype(t, element_ctx["iterable_type"])
+        and not is_subtype(t, element_ctx["string_type"])
+        and not isinstance(mypy.types.get_proper_type(t), mypy.types.TupleType)
+    )
+
+
+# Can a parameter of type `param_type` take a list?
+def accepts_list(param_type, element_ctx):
+    return not isinstance(mypy.types.get_proper_type(param_type), mypy.types.AnyType) and is_subtype(element_ctx["list_any_type"], param_type)
+
+
+# The type of each element of a list passed for `param_type`, or None if unknown:
+#   1. An iterable in the union gives its element type: ColorType | Iterable[ColorType] -> ColorType.
+#   2. Otherwise the scalars beside it: float | ArrayLike -> float.
+#   3. Otherwise unknown (bare ArrayLike, for instance), so the frontend offers plain code.
+# ArrayLike is numpy's catch-all union, so we never look inside it. Other aliases in the union
+# (like ColorType) stay whole so the frontend can still pick their widgets.
+def element_type_of(param_type, element_ctx):
+    top = param_type
+    if isinstance(top, mypy.types.TypeAliasType) and not _is_array_like_alias(top):
+        proper = mypy.types.get_proper_type(top)
+        if isinstance(proper, mypy.types.UnionType):
+            top = proper
+    items = [item for item in _union_items(top) if not _is_array_like_alias(item)]
+
+    iterable_info = element_ctx["iterable_type"].type
+    for item in items:
+        proper = mypy.types.get_proper_type(item)
+        if (isinstance(proper, mypy.types.Instance)
+                and proper.type.fullname not in ("builtins.str", "builtins.bytes")
+                and is_subtype(proper, element_ctx["iterable_type"])):
+            try:
+                as_iterable = mypy.maptype.map_instance_to_supertype(proper, iterable_info)
+            except Exception:
+                continue
+            if as_iterable.args and not isinstance(mypy.types.get_proper_type(as_iterable.args[0]), mypy.types.AnyType):
+                return as_iterable.args[0]
+
+    scalars = [
+        item for item in items
+        if not isinstance(mypy.types.get_proper_type(item), (mypy.types.NoneType, mypy.types.AnyType))
+        and not is_subtype(element_ctx["list_any_type"], item)
+    ]
+    if len(scalars) == 1:
+        return scalars[0]
+    if scalars:
+        return mypy.types.UnionType.make_union(scalars)
+    return None
+
+
+# For the frontend's Arg.element_info: None if the parameter can't take a list.
+def element_info(param_type, user_typed_snippets, element_ctx):
+    if not accepts_list(param_type, element_ctx):
+        return None
+    element_type = element_type_of(param_type, element_ctx)
+    return {
+        "element_type": serialize_type(element_type, user_typed_snippets) if element_type is not None else None,
+        "element_snippets": [name for name, snippet_type in user_typed_snippets.items() if is_subtype(snippet_type, element_type)] if element_type is not None else [],
+    }
+
+
+# Adds element_info_by_arg_i to a serialized callee, and element_info_by_i to its **kwargs
+# TypedDict (whose items the frontend expands into args).
+def add_element_info(callee_json, callee_type, user_typed_snippets, element_ctx):
+    callee_json["element_info_by_arg_i"] = [element_info(t, user_typed_snippets, element_ctx) for t in callee_type.arg_types]
+    for t, kind, t_json in zip(callee_type.arg_types, callee_type.arg_kinds, callee_json.get("arg_types", [])):
+        proper = mypy.types.get_proper_type(t)
+        if kind != mypy.nodes.ARG_STAR2 or not isinstance(proper, mypy.types.TypedDictType):
+            continue
+        while isinstance(t_json, dict) and t_json.get(".class") == "TypeAliasType":
+            t_json = t_json.get("resolved")
+        if isinstance(t_json, dict) and t_json.get(".class") == "TypedDictType":
+            t_json["element_info_by_i"] = [element_info(item_type, user_typed_snippets, element_ctx) for item_type in proper.items.values()]
+
+
 class GatherTypedCalls(TraverserVisitor):
-    def __init__(self, notebook_code_lines, types_dict, user_typed_snippets, cell_lineno, var_provenance_snapshot=None, provenance_is_off_by_n_lines=0):
+    def __init__(self, notebook_code_lines, types_dict, user_typed_snippets, cell_lineno, var_provenance_snapshot=None, provenance_is_off_by_n_lines=0, element_ctx=None, mapping_tables_snapshot=None):
         self.call_nums = {} # I checked and the traversal order is the same as for ast.NodeTransformer
         self.notebook_code_lines = notebook_code_lines
         self.types_dict = types_dict
@@ -2389,6 +2500,8 @@ class GatherTypedCalls(TraverserVisitor):
         self.cell_lineno = cell_lineno
         self.var_provenance_snapshot = var_provenance_snapshot or {}
         self.provenance_is_off_by_n_lines = provenance_is_off_by_n_lines
+        self.element_ctx = element_ctx
+        self.mapping_tables_snapshot = mapping_tables_snapshot or {}
         self.out = []
         self.link_meta = [] # non-serialized per-call metadata (mypy types etc.) for add_link_suggestions, parallel to self.out
         global call_typed_nodes # for debugging
@@ -2421,7 +2534,8 @@ class GatherTypedCalls(TraverserVisitor):
             given_args = []
             pos_idx = 0
             for arg, name in zip(node.args, node.arg_names):
-                given_arg = type_json_with_node_loc(arg, self.types_dict.get(arg), self.user_typed_snippets, self.notebook_code_lines)
+                arg_type = self.types_dict.get(arg)
+                given_arg = type_json_with_node_loc(arg, arg_type, self.user_typed_snippets, self.notebook_code_lines)
                 given_arg["name"] = name
 
                 # Variable-sharing provenance: positional args are keyed by index, keyword args by name,
@@ -2432,6 +2546,16 @@ class GatherTypedCalls(TraverserVisitor):
                 raw_prov = self.var_provenance_snapshot.get((call_id, arg_key))
                 if raw_prov is not None:
                     given_arg["provenance"] = _provenance_to_notebook_coords(raw_prov, self.cell_lineno, self.provenance_is_off_by_n_lines, self.notebook_code_lines)
+
+                # Mapping tables: whether this value can be a table's iterable, and the table
+                # itself if the arg is one (see mapping_table.py).
+                if self.element_ctx is not None and arg_type is not None:
+                    given_arg["is_iterable"] = is_iterable_type(arg_type, self.element_ctx)
+                if isinstance(arg, mypy.nodes.ListComprehension):
+                    arg_code = code_at_range(self.notebook_code_lines, arg.line, arg.column, arg.end_line, arg.end_column)
+                    table_info = mapping_table.mapping_table_info(arg_code, call_id, arg_key, self.mapping_tables_snapshot)
+                    if table_info is not None:
+                        given_arg["mapping_table"] = table_info
 
                 given_args.append(given_arg)
 
@@ -2446,6 +2570,8 @@ class GatherTypedCalls(TraverserVisitor):
 
             call_json   = type_json_with_node_loc(node, self.types_dict.get(node), self.user_typed_snippets, self.notebook_code_lines)
             callee_json = type_json_with_node_loc(node.callee, callee_type, self.user_typed_snippets, self.notebook_code_lines)
+            if self.element_ctx is not None and isinstance(callee_type, mypy.types.CallableType):
+                add_element_info(callee_json, callee_type, self.user_typed_snippets, self.element_ctx)
 
             # A call always begins where its callee begins. mypy 1.8 reports a CallExpr inside an
             # f-string replacement field (PEP 701, Python 3.12+) as starting one char early — at

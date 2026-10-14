@@ -1,4 +1,5 @@
 import { add_sync_code_on_change_watcher } from "../../code_sync/code_sync";
+import { undo_group_origin } from "../../code_sync/undo_group";
 import { select_call_view } from "../../layer_panel/layer_panel";
 import { set_properties_panel_on } from "../../properties_panel/properties_panel";
 import {
@@ -22,9 +23,11 @@ import {
 import {
   create_arg_view,
   enable_arg_view,
+  is_iterable_value,
   // make_proxy_arg_el,
   // make_proxy_arg_view,
 } from "../arg/arg";
+import { committed_code } from "../widgets/dropdown/dropdown";
 import { Boundses } from "../hover-regions/hover_regions";
 import { capture_call_layout, render_call_layout } from "./call_layout";
 import "./call.css";
@@ -95,16 +98,41 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
 
   // Synchronously write the call's current widget state into the cell. Used when breaking the
   // first link of a variable-sharing chain (which edits the call argument, and so has no
-  // dedicated mark) before a structural rerun. `call_view` is assigned below but only read at
-  // call time (on a later click), so the forward reference is safe.
+  // dedicated mark) before a structural rerun, and by mapping tables. `call_view` is assigned
+  // below but only read at call time (on a later click), so the forward reference is safe.
   const flush_call = () => {
     const range = mark.find();
-    if (range) code_mirror.replaceRange(call_to_code(call_view), range.from, range.to);
+    if (range) code_mirror.replaceRange(call_to_code(call_view), range.from, range.to, undo_group_origin(state));
+  };
+
+  // For making a mapping table out of a single-valued arg: the list to map over, taken from
+  // another arg of this call (e.g. a bar chart's categories). Read at click time.
+  const sibling_iterable_code = (except: Arg): string | undefined => {
+    for (const { arg, view } of arg_and_views) {
+      if (arg === except || view.disabled || arg.mapping_table) continue;
+      const code = committed_code(view.widget).trim();
+      if (is_iterable_value(arg, code, state) === "iterable") return code;
+    }
+    return undefined;
+  };
+
+  // How Python keys an arg's mapping table rows: call_id|arg_key, where arg_key is the
+  // keyword, or the position among the positional args (as note_arg_provenance counts them).
+  const table_key = (target: Arg): string => {
+    const target_view = arg_and_views.find(({ arg }) => arg === target)?.view;
+    if (!target_view?.positional) return `${call.call_info.call_id}|${target.name}`;
+    let position = 0;
+    for (const { arg, view } of arg_and_views) {
+      if (arg === target) break;
+      if (view.positional && !view.disabled) position++;
+    }
+    return `${call.call_info.call_id}|${position}`;
   };
 
   const add_args = (args: Arg[], disabled: boolean) => {
     args.forEach(arg => {
-      const arg_view = create_arg_view(arg, call.call_info.docstring, {disabled}, state, flush_call, mark);
+      const table_context = { sibling_iterable_code: () => sibling_iterable_code(arg), table_key: () => table_key(arg) };
+      const arg_view = create_arg_view(arg, call.call_info.docstring, {disabled}, state, flush_call, mark, table_context);
       // const proxy_arg_el = make_proxy_arg_el(arg, arg_view, state);
       properties_el.append(arg_view.el);
       // proxies_el.append(proxy_arg_el);

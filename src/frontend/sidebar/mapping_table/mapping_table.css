@@ -1,0 +1,355 @@
+/* Mapping tables: see mapping_table.ts */
+
+.plottery-mt-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2f67ac;
+  line-height: 0;
+}
+
+/* ▦ buttons: on an arg row (shown while the row is hovered) and on dropdown suggestions */
+.plottery-mt-convert {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.plottery-mt-convert:hover {
+  opacity: 1;
+  background: rgba(47, 103, 172, 0.12);
+}
+
+.plottery-arg-view > .plottery-mt-convert {
+  visibility: hidden;
+  align-self: center;
+}
+
+.plottery-arg-view:hover > .plottery-mt-convert {
+  visibility: visible;
+}
+
+/* Sits above .plottery-dropdown-item-overlay so it gets the click */
+.plottery-dropdown-item > .plottery-mt-convert {
+  position: relative;
+  z-index: 1;
+}
+
+.plottery-arg-transient-note {
+  flex: 0 0 100%; /* its own line, in a wrapping arg row (below) */
+  font-size: 0.85em;
+  color: #8a5a00;
+  padding: 2px 0 2px 110px;
+}
+
+/* The arg dropdown's item for the table: [… for item in E]. As the arg's value it holds the
+   live name and list editors; in the dropdown's drawer, a static label. */
+.plottery-mt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.plottery-dropdown-selected-item .plottery-mt-chip-static {
+  display: none;
+}
+
+.plottery-mt-live {
+  display: inline-flex;
+  align-items: center;
+  white-space: pre;
+}
+
+/* The loop's names and list, boxed like a for-loop layer's (layer_panel.css) */
+.plottery-mt-live > .plottery-widget,
+.plottery-mt-live > .plottery-dropdown {
+  border: solid 1px lightgray;
+  display: inline-block;
+}
+
+/* An arg row with the table below it. Not a wrapping flex row: that would let the value wrap
+   under the name rather than widen the panel, as other args' values do. A grid keeps the name
+   and value on one line, with the table (and any note) spanning the next. The last column is
+   flexible, so a wide table widens it rather than the name and value columns. (A table arg has
+   no ▦ button or variable chain to fit in the first line.) */
+.plottery-properties-panel .plottery-arg-view.plottery-arg-has-table {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: max-content max-content 1fr;
+}
+
+.plottery-arg-view.plottery-arg-has-table > .plottery-mt,
+.plottery-arg-view.plottery-arg-has-table > .plottery-arg-transient-note {
+  grid-column: 1 / -1;
+}
+
+/* Any other arg row with a note: the note wraps to its own line. (It may have a ▦ button and
+   a variable chain, so its first line isn't a fixed set of columns.) */
+.plottery-arg-view:not(.plottery-arg-has-table):has(> .plottery-arg-transient-note) {
+  flex-wrap: wrap;
+}
+
+.plottery-mt {
+    min-width: min-content;
+    position: relative;
+    margin: 0 0 16px 3px;
+    font-size: 12px;
+    border-left: 1px solid #d5d5d5;
+    padding-left: 106px;
+    padding-top: 1px;
+}
+
+/* Prose, not code: the notebook's UI font, like the panel headers (the args area is monospace) */
+.plottery-mt-top,
+.plottery-mt-notes {
+  font-family: var(--jp-ui-font-family, "Helvetica Neue", Helvetica, Arial, sans-serif);
+}
+
+.plottery-mt-top {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 3px;
+  color: #555;
+}
+
+.plottery-mt-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.plottery-mt-option input {
+  margin: 0 2px 0 0;
+}
+
+.plottery-mt-option:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Columns: [index] | key | → | value. The header row sits outside the scrolling rows (a
+   subgrid sharing its columns), so its dropdowns aren't clipped. */
+.plottery-mt-body {
+  display: grid;
+  /* All auto, so the columns' content (a long default or dict name, or value) widens the
+     table, and the panel, as a long arg value does. (A minmax(60px, auto) column, or a cell
+     with a min-width, counts as just that wide when the panel sizes itself.) */
+  grid-template-columns: auto auto auto;
+  width: fit-content; /* hug the columns, rather than the panel's width */
+  max-width: 100%;
+  border: 1px solid #d5d5d5;
+  border-radius: 3px;
+}
+
+.plottery-mt-body.with-index {
+  grid-template-columns: auto auto auto auto;
+}
+
+.plottery-mt-rows {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-auto-rows: minmax(22px, auto); /* taller for an override widget with a control */
+  max-height: 264px; /* 12 rows */
+  overflow-y: auto;
+}
+
+.plottery-mt-cell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+/* A row's cells sit directly in the grid */
+.plottery-mt-row {
+  display: contents;
+}
+
+.plottery-mt-row:not(:last-child) > .plottery-mt-cell {
+  border-bottom: 1px solid #eee;
+}
+
+.plottery-mt-header {
+  height: 24px;
+  overflow: visible; /* for the dropdowns */
+  background: #f7f7f7;
+  border-bottom: 1px solid #d5d5d5;
+  position: relative;
+  padding-top: 8px;
+}
+
+.plottery-mt-header-label {
+  display: block;
+  font-size: 7px;
+  position: absolute;
+  top: 3px;
+  line-height: 1;
+  color: #777;
+}
+
+.plottery-mt-keyword {
+  color: #008000;
+  font-weight: bold;
+}
+
+/* Over the values: Default and Overrides, each under its label */
+.plottery-mt-value-header {
+  gap: 14px;
+}
+
+.plottery-mt-header-group {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The Overrides widget: the dict's name, like an arg's code */
+.plottery-mt-dict-widget {
+  font-family: monospace;
+}
+
+.plottery-mt-select {
+  font-family: monospace;
+  font-size: 12px;
+  color: #1f4f8c;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  field-sizing: content; /* as wide as the chosen option, not the longest */
+}
+
+.plottery-mt-index {
+  color: #888;
+  font-size: 11px;
+}
+
+.plottery-mt-arrow {
+  padding: 0 2px;
+  color: #aaa;
+}
+
+.plottery-mt-cell-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plottery-mt-item.nan {
+  color: #b05000;
+}
+
+.plottery-mt-item.not-in-data {
+  color: #999;
+  font-style: italic;
+}
+
+/* A row's value: its override's widget, or else the default (muted; click to override).
+   Not clipped (unlike the other cells): its column fits the longest value. */
+.plottery-mt-value {
+  position: relative; /* for the remove × */
+  min-height: 0;
+  overflow: visible;
+}
+
+.plottery-mt-value.default {
+  color: #888;
+  cursor: pointer;
+}
+
+.plottery-mt-value.default:not(.disabled):hover {
+  background: rgba(47, 103, 172, 0.1);
+}
+
+.plottery-mt-value.default:not(.disabled):has(.plottery-mt-cell-text:empty):hover::after {
+  content: "+";
+  color: #9ab;
+}
+
+.plottery-mt-value.disabled {
+  cursor: default;
+}
+
+.plottery-mt-value-note {
+  color: #999;
+  font-style: italic;
+  font-family: var(--jp-ui-font-family, "Helvetica Neue", Helvetica, Arial, sans-serif);
+  font-size: 11px;
+}
+
+.plottery-mt-swatch {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+/* Values from an older version of the comprehension, until the redraw catches up */
+.plottery-mt-stale .plottery-mt-rows .plottery-mt-index,
+.plottery-mt-stale .plottery-mt-item,
+.plottery-mt-stale .plottery-mt-value.default,
+.plottery-mt-stale .plottery-mt-value.readonly {
+  opacity: 0.4;
+}
+
+.plottery-mt-notes:empty {
+  display: none;
+}
+
+.plottery-mt-note {
+  margin-top: 3px;
+  color: #666;
+  font-size: 11px;
+}
+
+.plottery-mt-transient-note {
+  color: #8a5a00;
+}
+
+.plottery-mt-note-button {
+  font-size: 11px;
+  padding: 0 5px;
+  margin-left: 2px;
+  cursor: pointer;
+}
+
+/* Remove an override: a red × in the cell's corner, on hover */
+.plottery-mt-remove {
+  display: none;
+  padding: 1px;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.plottery-mt-remove > svg {
+  width: 11px;
+  height: 11px;
+  opacity: 0.67;
+  filter: saturate(0);
+}
+
+.plottery-mt-remove:hover > svg {
+  opacity: 1;
+  filter: none;
+}
+
+.plottery-mt-value.override:not(.editing):hover .plottery-mt-remove {
+  display: block;
+}
+
+/* The suggestions are wider than a cell; don't squeeze them to its width. (Placed under the
+   cell by place_drawers, since the rows scroll.) */
+.plottery-mt-rows .plottery-dropdown-drawer {
+  width: max-content;
+}

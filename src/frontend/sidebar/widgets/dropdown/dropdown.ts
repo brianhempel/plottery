@@ -11,7 +11,16 @@ export type DropdownWidget = Widget & {
   selected_item_holder_el: HTMLElement;
   drawer_el: HTMLElement;
   previewing_code: string | undefined;
+  decorate_item?: (item: Widget, item_holder: HTMLElement) => void; // adds extra controls to a drawer item, see decorate_dropdown_items
 };
+
+// The committed value of a (dropdown) widget, ignoring transient hover-preview
+// (`previewing_code`). We tear down downstream chain links on committed changes only, so
+// merely previewing a dropdown suggestion and moving away doesn't destroy the chain.
+export function committed_code(widget: Widget): string {
+  const dropdown = widget as DropdownWidget;
+  return dropdown.selected_item ? dropdown.selected_item.to_code() : widget.to_code();
+}
 
 /**
  * Creates a dropdown widget. Looks something like:
@@ -178,6 +187,8 @@ export function add_item_to_dropdown_widget(
 
   const item_overlay_el = create_el("div", "plottery-dropdown-item-overlay", item_holder);
 
+  dropdown.decorate_item?.(widget, item_holder);
+
   item_overlay_el.addEventListener("mouseover", ev => {
     // Link items preview the linked call's live value: locally previewing that value is
     // visually identical to the shared-variable state that choosing the item would create.
@@ -208,6 +219,16 @@ export function add_item_to_dropdown_widget(
   });
 
   dropdown.items.push(widget);
+}
+
+// Run `decorate` on every drawer item, now and as items are added later (e.g. an edited
+// selection moving back into the drawer), to add extra controls to them.
+export function decorate_dropdown_items(dropdown: DropdownWidget, decorate: (item: Widget, item_holder: HTMLElement) => void) {
+  dropdown.decorate_item = decorate;
+  for (const item of dropdown.items) {
+    const item_holder = item.el.closest(".plottery-dropdown-item") as HTMLElement | null;
+    if (item_holder && dropdown.drawer_el.contains(item_holder)) decorate(item, item_holder);
+  }
 }
 
 /**

@@ -1,6 +1,6 @@
 import { attach_events_to_hover_regions } from "../sidebar/hover-regions/hover_regions";
 import { reposition_plot_widgets } from "../sidebar/plot-widget/plot_widget";
-import { State } from "../types";
+import { MappingTableRuntime, State } from "../types";
 import { TextMarker, MarkerRange } from "../utils/codemirror";
 import { debounce, log_event } from "../utils/instrumentation";
 import { get_persistent_item } from "../utils/misc";
@@ -147,6 +147,18 @@ function sync_code_range(
   redraw_cell(state);
 }
 
+// Redraws also bring the rows of the cell's mapping tables (see plottery/mapping_table.py), so
+// their spreadsheets stay current while you edit. (Not preview_figure_only: it runs code that
+// isn't the cell's.)
+function update_mapping_tables(state: State, msg: CellMessage) {
+  let tables = (msg.content.data as any)?.["application/vnd.plottery.mapping-tables+json"];
+  if (!tables) return;
+  if (typeof tables === "string") tables = JSON.parse(tables);
+  for (const [table_key, runtime] of Object.entries(tables)) {
+    state.mapping_tables.get(table_key)?.(runtime as MappingTableRuntime);
+  }
+}
+
 // Trying to
 // (a) only run one request at once, and
 // (b) not sometimes freeze, and
@@ -196,6 +208,11 @@ function handle_error_or_stdout_stderr(state: State, msg: CellMessage) {
         (_: string, line_space: string, n_str: string) =>
           `${line_space}${parseInt(n_str) - state.provenance_is_off_by_n_lines}`
       );
+      // Notes Plottery adds to an exception (e.g. which mapping table row failed, see
+      // note_mapping_row) only appear in the traceback.
+      const traceback = ((msg.content as any).traceback ?? []).join("\n").replace(/\x1b\[[0-9;]*m/g, "");
+      const plottery_notes = traceback.match(/\(Plottery: [^\n]*\)/g) ?? [];
+      if (plottery_notes.length > 0) state.stdout_stderr.innerText += "\n" + plottery_notes.join("\n");
     }
   } else if (msg.header.msg_type == "stream") {
     if (!in_demo_mode || !msg.content.text.includes('UserWarning: *c* argument looks like a single numeric RGB or RGBA sequence')) {
@@ -239,6 +256,7 @@ last_plottery`;
     // let targets: number[] | undefined;
 
     const msg_type = msg.header.msg_type;
+    if (msg_type == "execute_result") update_mapping_tables(state, msg);
     if ( msg_type == "execute_result" && msg.content.data["image/png"] ) {
       // Replace background image
       const img = state.plot_area.querySelector("img")!;
@@ -581,6 +599,7 @@ last_plottery`;
 
     // Replace hover regions
     const msg_type = msg.header.msg_type;
+    if (msg_type === "execute_result") update_mapping_tables(state, msg);
     if (
       msg_type === "execute_result" &&
       msg.content.data["image/svg+xml"]

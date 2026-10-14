@@ -55,6 +55,13 @@ export type State = {
 
   command_shortcuts: { [keys: string]: (state: State) => void };
 
+  // Live mapping tables by table_key ("ax.bar #1|color"), fed fresh rows on every redraw.
+  mapping_tables: Map<string, (runtime: MappingTableRuntime) => void>;
+  // The dicts the tables' overrides can use, by name, shared by the tables that use them.
+  mapping_dicts: Map<string, MappingDict>;
+  // The cell's defs and classes, for which dicts a call can see.
+  mapping_scopes: MappingScope[];
+
 };
 
 export type CallView = {
@@ -145,6 +152,8 @@ export type CallInfo = {
     name: string | null; // "align"
     pos: Position;
     provenance?: ProvNode; // variable-sharing provenance chain, if the arg is a tracked variable
+    is_iterable?: boolean; // mypy types the value as an iterable (not a str)
+    mapping_table?: MappingTableInfo; // the arg is a mapping table's comprehension
   })[];
 
   // Per-parameter "link" suggestions: type-compatible non-variable arguments at *other*
@@ -175,6 +184,9 @@ export type Arg = {
   pos?: Position; // source position of the value, for args given in the call
   provenance?: ProvNode; // variable-sharing provenance chain, if this arg is a tracked variable
   link_suggestions?: LinkSuggestion[]; // type-compatible non-variable args at other call sites
+  element_info?: ElementInfo | null; // set if the parameter can take a list (so it can be a mapping table)
+  code_is_iterable?: boolean; // mypy types the given code as an iterable. Only for given args.
+  mapping_table?: MappingTableInfo; // the given code is a mapping table. Only for given args.
 };
 
 export type CallWithArgs = {
@@ -239,6 +251,7 @@ export type CallableType = {
   arg_names_at_definition: null | string[]; // ['self', 'x', 'label', 'fontdict', 'loc', ...] // so we have to use this list in that case
   type_compatible_code_snippets_by_arg_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
   arg_types: Type[];
+  element_info_by_arg_i?: (ElementInfo | null)[]; // only on callees of calls in the cell
 
   def_extras: {
     first_arg: string; // 'self'
@@ -286,4 +299,126 @@ export type TypedDictType = {
   type_compatible_code_snippets_by_i: string[][]; // [['ax'], ['colors', 'counts'], ...]
   required_keys: string[];
   default_codes_by_name: { [arg_name: string]: string };
+  element_info_by_i?: (ElementInfo | null)[]; // only on callees of calls in the cell
+};
+
+
+/* ----------------- Mapping tables ----------------- */
+// A spreadsheet editor for list comprehension args, with an optional dict of overrides:
+//
+//   [F for X in E]              [F for I, X in enumerate(E)]
+//   [M.get(X, F) for X in E]    [M.get(K, F) for I, X in enumerate(E)]   (K is I or X)
+//
+//   df_indicator_to_color = {0: 'red', 1: 'blue'}
+//   ax.bar(..., color=[df_indicator_to_color.get(indicator, 'gray') for indicator in df['indicator']])
+//
+// See sidebar/mapping_table/ and plottery/mapping_table.py.
+
+// A parameter that can take a list, and what each element of that list is.
+export type ElementInfo = {
+  element_type: Type | null; // null if unknown (e.g. bare ArrayLike)
+  element_snippets: string[]; // user code snippets compatible with element_type
+};
+
+export type MappingTableValue = {
+  repr: string;
+  hex: string | null;  // when the value is a color
+  code: string | null; // literal code that evaluates to the value, if there is one
+};
+
+export type MappingTableItem = {
+  key_code: string | null; // a dict key literal equal to the item, or null if there is none (NaN, unhashable, ...)
+  display: string;
+  match_id: string | null; // equal for items that are equal as dict keys (0, 0.0, False)
+  is_nan: boolean;
+};
+
+// One distinct item of the iterable (merged over all runs of the comprehension).
+export type MappingTableColumn = MappingTableItem & {
+  first_i: number;
+  count: number;
+  formula: MappingTableValue | null; // at its first occurrence
+  mapped: MappingTableValue | null;  // at its first occurrence
+};
+
+// One iteration of the last run. `col` indexes MappingTableRuntime.columns; if null (too many
+// distinct items to track), the row carries its own item fields.
+export type MappingTableRow = Partial<MappingTableItem> & {
+  i: number;
+  col: number | null;
+  formula: MappingTableValue | null;
+  mapped: MappingTableValue | null;
+};
+
+export type MappingTableRuntime = {
+  n_runs: number;
+  n_rows: number; // in the last run
+  rows: MappingTableRow[];
+  rows_capped: boolean;
+  columns: MappingTableColumn[];
+  n_unique: number;
+  unique_capped: boolean;
+  categorical: boolean; // whether "show unique values only" starts checked
+};
+
+export type MappingEntry = {
+  key_code: string;
+  value_code: string;
+  match_id: string | null;
+};
+
+// A dict a table's overrides could use, from Python (CellNames.cell_dict_info in mapping_table.py).
+export type MappingDictCandidate =
+  | { name: string; in_cell: false; editable: false; reason: string } // from another cell
+  | { name: string; in_cell: true; editable: false; reason: string; assign_pos: Position | null }
+  | {
+      name: string;
+      in_cell: true;
+      editable: true;
+      reason: null;
+      value_pos: Position; // the {...}
+      entries: MappingEntry[];
+      alone: boolean; // its statement is alone on its lines
+      n_refs: number; // references to it in the cell, its assignment's target included
+    };
+
+// From Python: the dicts a table could use, and the cell's scopes.
+export type MappingDictsInfo = {
+  dicts: MappingDictCandidate[];
+  scopes: { pos: Position; kind: "def" | "class" }[];
+};
+
+export type MappingScope = { mark: TextMarker<MarkerRange>; kind: "def" | "class" };
+
+// One of the cell's dicts, shared by every table using it (see mapping_table/mapping_dicts.ts).
+export type MappingDict = {
+  name: string;
+  read_only_reason: string | null; // null: a {...} literal in this cell that the tables can edit
+  in_cell: boolean;
+  // Editable: the {...}. Read-only in this cell: its assignment (to tell whether it's above a
+  // call). Otherwise null.
+  mark: TextMarker<MarkerRange> | null;
+  entries: MappingEntry[]; // the committed overrides (editable dicts only)
+  alone: boolean;          // its statement is alone on its lines, so they can be deleted
+  external_refs: number;   // references to it other than its assignment and the tables using it
+  users: Set<MappingDictUser>;
+  preview: (() => MappingEntry[]) | null; // the overrides with a cell's edit in progress
+  watching: { active: boolean } | null;   // its code watcher, once a table uses it
+};
+
+export type MappingDictUser = {
+  render: () => void;
+  on_rename: () => void;                  // the dict was renamed: use its new name
+  uses_name: (name: string) => boolean;   // whether the table's code refers to `name`
+};
+
+export type MappingTableInfo = {
+  table_key: string; // "ax.bar #1|color"
+  mapping_name: string | null; // M, or null without a dict of overrides
+  index_name: string | null;   // I, or null without enumerate
+  item_name: string;
+  key_on: "item" | "index";
+  formula_code: string;
+  iterable_code: string;
+  runtime: MappingTableRuntime | null; // null if the comprehension didn't run (yet)
 };
