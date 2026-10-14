@@ -2,6 +2,7 @@ import { log_event } from "../../../utils/instrumentation";
 import { create_el } from "../../../utils/misc";
 import { Widget } from "../widget";
 import { is_link_widget } from "../link/link";
+import { create_arbitrary_code_widget } from "../arbitrary_code/arbitrary_code";
 import "./dropdown.css";
 
 export type DropdownWidget = Widget & {
@@ -268,4 +269,16 @@ export function select_dropdown_item(
   // Add clone to the dropdown selected area
   dropdown.selected_item_holder_el.append(selected_item_clone.el);
   dropdown.selected_item = selected_item_clone;
+}
+
+// Commit `code` as the dropdown's value, keeping a rich widget (slider, color picker) if it can hold it.
+export function set_dropdown_code(dropdown: DropdownWidget, code: string) {
+  const selected = dropdown.selected_item as (Widget & { kind?: string }) | undefined;
+  if (selected && (selected.kind === "ArbitraryCode" || selected.kind === "CodeAndControl")) {
+    selected.set_code(code);
+  } else {
+    const code_widget = create_arbitrary_code_widget(code);
+    add_item_to_dropdown_widget(dropdown, code_widget);
+    select_dropdown_item(dropdown, code_widget);
+  }
 }

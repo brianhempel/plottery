@@ -301,7 +301,7 @@ TypeScript, bundled by **Vite** (`vite.config.js`) from `src/frontend/main.ts` i
 - **`sidebar/widgets/`** — the typed controls, chosen from mypy types by `widget.ts`: `code_and_control` (primary scalar control: a code box synced to a slider/toggle/picker), `int`, `float`, `bool`, `color`, `literal` (enum-like values), `alias`, `arbitrary_code` (freeform Python fallback), and `dropdown` (picks among alternatives).
 - **`sidebar/mapping_table/`** — the mapping table. A ▦ button on list-taking args (and on list suggestions in their dropdowns) turns the arg into `[value for item in E]`. The arg row then reads `[… for item in E]`, with the item name and the list editable in place, and below it a table of each item → its value (its override, else the default formula's value), with "show unique values only" and "indices" (`enumerate`) checkboxes, a menu for overriding by item or by index, and a header holding the default formula and the Overrides dict's name (editable code: rename the dict, or pick None or any dict the call can see, where one from another cell is read-only). Each override shows as its full arg widget; clicking a default value puts one there, with its suggestions open. The rows are updated in place, so the widgets survive redraws. Without a dict, `<iterable>_to_<arg> = {...}` is inserted above the call with the first override; a dict nothing else uses is deleted with its last override. The table edits only the comprehension (as the arg dropdown's selected item) and the dict, which `mapping_dicts.ts` keeps once per cell so tables can share it.
 - **`layer_panel/layer_panel.ts`** — a structural list of the cell's code, one row per typed AST node (and parseable comments), with reorder-by-drag and show/hide (comment/uncomment) toggles.
-- **`properties_panel/properties_panel.ts`** — pops the selected call's args out next to the plot.
+- **`properties_panel/properties_panel.ts`** — pops the selected call's args out next to the plot. With several calls selected, `properties_panel/multi_args.ts` shows the args they share instead (see "Selecting several layers" below).
 - **`ai_panel/ai_panel.ts`** — natural-language editing; builds a prompt from the code so far, calls the LLM, replaces the cell text, `hard_rerun`s, and highlights changed lines. Hidden unless `OPENAI_API_KEY` is set.
 - **`menus/menus.ts`** — reusable dropdown-menu + keyboard-shortcut framework.
 - **`utils/`** — `types.ts` (a `Cell` abstraction that papers over CM5/Notebook vs CM6/Lab), `deserialize.ts` (rebuilds Python's id-based JSON graphs into JS objects — inverse of `serialize.py`), `llm.ts` (OpenAI client), `instrumentation.ts` (study logging to `localhost:7777`, received by `usage_events.rb`; off unless `window.localStorage.setItem('plottery_study_logging', 'true')`), `misc.ts`, `stdlib.ts`, and a vendored CodeMirror 5 `codemirror/` type-defs folder.
@@ -321,11 +321,15 @@ This section traces what happens for common interactions. All paths below are un
 - *Mutable runtime state*: `last_cell_code_executed` and `outstanding_kernel_request_time` (drive the busy/changed checks below), `dragging_layers` (the in-flight layer drag), and `is_in_dom()` — flips to `false` after a hard rerun, which is how the per-piece change watchers know to stop their `requestAnimationFrame` loop.
 - *View handles*: `plottery_outer`, `plot_area` (the plot `<img>` lives here), `stdout_stderr`, `hover_regions_container` + `hover_regions_svg()` / `set_hover_regions_html()`, `plot_widgets`, `sidebar_el`, `layers_panel`, `properties_el`, and `command_shortcuts` (the keymap).
 
-**Per-cell persistent storage (`get_persistent_item` / `set_persistent_item`, `utils/misc.ts`).** A cell re-run rebuilds the entire UI DOM, so a little UI state has to be persisted as strings, keyed per cell, with two backends: on **Notebook v6** the cell's `.output` element `dataset` (classic cells can lack stable ids); on **JupyterLab** `sessionStorage` under `cell-<sharedModel.id>-plottery-<key>` (the labextension reads the same keys). Only three keys exist:
+**Per-cell persistent storage (`get_persistent_item` / `set_persistent_item`, `utils/misc.ts`).** A cell re-run rebuilds the entire UI DOM, so a little UI state has to be persisted as strings, keyed per cell, with two backends: on **Notebook v6** the cell's `.output` element `dataset` (classic cells can lack stable ids); on **JupyterLab** `sessionStorage` under `cell-<sharedModel.id>-plottery-<key>` (the labextension reads the same keys). The keys:
 
 - `fig_idx` — which stashed figure this cell renders; read into the `plottery.show_ui(...)` postfix on every redraw.
-- `selected_calls` — the selected layers (keyed by `call_id`); written by `save_selected_layers`, restored by `load_selected_layers` so selection survives a redraw.
+- `selected_calls` — the selected layers (keyed by `call_id`), in the order they were selected; written by `save_selected_layers`, restored by `load_selected_layers` so selection survives a redraw.
 - `new_calls` — ids of just-inserted calls, so `main.ts` can auto-select/focus them after the next rebuild, then clears the key.
+- `moved_calls` — the selected calls after dragging layers to reorder them, by line (moving calls can renumber their `call_id`s), so `main.ts` can reselect them after the rebuild, then clears the key.
+- `properties_search` — the Properties panel's search query.
+- `ai_prompt_focus` — set when an AI prompt reruns the cell, so the rebuilt AI panel takes focus back.
+- `mapping_table_key_on`, `mapping_table_unique` — per-table choices that aren't in the code (keying overrides by index, showing unique values only), by table key.
 
 **The kernel request/response contract (`kernel_execute`, `code_sync.ts`).** Every kernel path funnels through `kernel_execute(code, postfix, on_iopub_output, on_shell_reply, state)`, which papers over v6 vs. Lab:
 
@@ -366,10 +370,10 @@ So one editable argument is reached as `layer → call_views[i] → arguments[j]
 
 ### Clicking a layer in the Layers panel
 
-Entry: the click listener in `add_listeners_and_checkbox_to_layer` (`layer_panel/layer_panel.ts`) → `select_layer(layer, state)`. No kernel round-trip; this is pure DOM/selection:
+Entry: the click listener in `add_listeners_and_checkbox_to_layer` (`layer_panel/layer_panel.ts`) → `select_layer(layer, state, undefined, mode)`, where `mode` comes from the click's modifier keys (see "Selecting several layers" below). No kernel round-trip; this is pure DOM/selection. A plain click replaces the selection, and `set_selection` then:
 
-1. `deselect_all_layers(state)` clears the previous selection.
-2. Adds the `selected` class to `layer.el`.
+1. Sets `state.selection` (`{ layer, call_view }` entries, in the order selected).
+2. Toggles the `selected` class on every `layer.el` to match.
 3. `set_properties_panel_on(layer.call_views[0], state)` (`properties_panel/properties_panel.ts`) **moves** that call's argument-rows node (`.plottery-args`, i.e. `call_view.els.properties_el`) out of the layer row and into the Properties panel next to the plot. (If selection arrived via `select_call_view` — e.g. clicking a specific call's on-plot widget — that call view is lifted instead of `call_views[0]`; see "The object model" above for why this is a move, not a copy, and how it survives redraws.)
 4. `compute_selected_hover_regions(state)` (`hover-regions/hover_regions.ts`) clears `.selected` on the SVG, then re-adds it to every `[data-call-id]` region whose id matches a selected call — this is the on-plot highlight.
 5. `highlight_lines_for_selected_layers(state)` adds gutter/background line classes in CodeMirror over the layer's line range.
@@ -377,22 +381,40 @@ Entry: the click listener in `add_listeners_and_checkbox_to_layer` (`layer_panel
 
 Selection is keyed on `call_id`, so it's robust across redraws (and restored after a `hard_rerun` by `load_selected_layers`).
 
-**Selection is single, despite the plural names.** `select_layer` calls `deselect_all_layers` first, so at most one layer is ever selected; the selection state is nothing more than the `selected` CSS class on `layer.el` (queried by `is_layer_selected`). The plural API — `selected_layers()`, `deselect_all_layers`, `highlight_lines_for_selected_layers`, the array written by `save_selected_layers` — is structural/forward-looking (`selected_layers` even carries a `// Should only be 0 or 1 right now` note); nothing currently *adds* to a selection rather than replacing it. That same `select_layer` is the single funnel reached from every selection gesture: the layer-row click here, an on-plot region click (a `mouseup` with no drag), a plot-widget click (via `select_call_view`), the cursor-tracking below, and the post-rerun restore (`new_calls` / `load_selected_layers`).
+`select_layer` (with `deselect_all_layers` and `select_layers`, which restores a selection in order) is the single funnel reached from every selection gesture: the layer-row click here, an on-plot region click (a `mouseup` with no drag), a plot-widget click (via `select_call_view`), the cursor-tracking below, and the post-rerun restore (`new_calls` / `moved_calls` / `load_selected_layers`). They all end in `set_selection`. With no calls selected (nothing, or only `for`/`if`/comment layers), the Properties panel keeps showing what it showed.
 
-In CodeMirror 5 (classic Notebook) only, moving the text cursor into a layer's range also selects that layer: `main.ts` listens for `cursorActivity`, finds the innermost layer whose `mark` contains the cursor, and selects it (it bails while the user has an active text selection, to avoid fighting a highlight). The JupyterLab CM6 facade doesn't expose `on` / `getCursor`, so this is feature-detected and simply skipped there.
+Moving the text cursor into a layer's range also selects that layer, unless it's already selected (so a multi-selection survives clicking into one of its layers): `main.ts` listens for `cursorActivity`, finds the innermost layer whose `mark` contains the cursor, and selects it (it bails while the user has an active text selection, to avoid fighting a highlight). CodeMirror 5 also fires `cursorActivity` for changes to the code that touch or move the selection, including Plottery's own writes, so a `cursorActivity` that comes with a `change` (in the same operation; the flag is cleared in a microtask) is ignored: edits never change the selection. (The JupyterLab facade fires it only when the selection is set.) It's feature-detected, for editors without `on` / `getCursor`.
+
+### Selecting several layers
+
+`click_selection_mode` turns a click's modifier keys into a `select_layer` mode. In the Layers panel, Shift-click selects a **range** of rows from the last clicked one (the `state.selection_anchor`), keeping what was selected before that click, like Finder; Cmd/Ctrl-click **toggles** one layer. On the plot, Shift- and Cmd/Ctrl-click both toggle, and a modified click on the background doesn't deselect. The Layers panel stops modified mousedowns/clicks from reaching Jupyter, so they don't also extend Jupyter's cell selection.
+
+With two or more calls selected, `set_properties_panel_on_many` shows rows built by `create_multi_args` (`properties_panel/multi_args.ts`) instead of moving any call's own args:
+
+- **Rows** are the args every selected call has, by name (not `*args`), in the first selected call's order. Each is a fresh `create_arg_view` built from the first call's `Arg`, keeping only the variable suggestions that fit every call, and with no link suggestions or mapping tables (those are for one call).
+- **Value.** A row shows the value of the first selected call (in selection order) that has the arg set, or is off if none has. If the calls' values (or on/off) differ, the row gets `plottery-arg-mixed`, which italicizes it.
+- **Editing.** One per-frame loop for the panel ticks every row, which watches its committed value, on/off state, and hover preview. On a change it sets each call's own `ArgView` (which stays in its layer row): its committed code (`set_dropdown_code`), its on/off state, or its dropdown's `previewing_code` (turning the arg on just for the preview where it's off). It then writes every call and redraws once (`write_calls_and_redraw`, `call/call.ts`), as one undo step (`in_undo_group`). Writing them all before the redraw matters: a redraw that started after only the first call's write could miss the rest. Each call's own watcher then finds its code already written (`sync_code_range` skips writing code that's already there, and its redraw finds the code already run). The loop also works the other way: if a call changes some other way (e.g. dragging its shape on the plot), the row shows the new value.
+- **Link icon** (`.plottery-arg-link`, at the right of each row). Unlinked, a click makes the calls share one variable: `link_arg_views` (`sidebar/arg/arg.ts`, also used by the dropdown's cross-call link suggestions) sets every call's arg to a new variable named after the arg, assigned the row's value above the calls, then hard reruns. If the row's value is already a variable, the calls just share it. The assignment goes above the first call, or, if the calls are in different blocks (`for`, `def`, `if` clauses), above the statement holding the first one in the innermost block holding them all (`shared_assignment_line`). `link_blocker` disables the icon if the value uses a name that's set at or below that line (e.g. a loop variable). Hovering the icon previews every call with the row's value.
+- **Linked rows** (every call's arg is the same variable) show the icon filled, plus the variable's chain (`color ▸ (0, 0, 1)`), when every call's chain starts at the same assignment. The chain's marks are made from the calls' own live chain marks, since serialized positions go stale. Edits to the chain are mirrored into each call's chain widgets, and an edit made through one call's chain (e.g. dragging its shape on the plot) is mirrored into the row and the other calls'. Clicking the icon unlinks, doing what the chain's first ✕ does for one call, for every call: put the variable's value in the call's arg instead, leave the assignment, and hard rerun.
+
+`clear_properties_panel` calls `state.teardown_multi_args`, which stops the panel's loop, clears the rows' chain marks, and removes them.
+
+Dragging one of the selected shapes on the plot drags them all, and dragging one of the selected layer rows moves them all (see the two drag sections).
 
 ### Reordering layers (drag-and-drop)
 
 Layer rows are `draggable`; handlers live in `layer_panel.ts`:
 
-- `dragstart` → `state.dragging_layers = [layer]`.
+- `dragstart` → `state.dragging_layers`: all the selected layers if the dragged row is selected (moved in code order, and dimmed with `.dragging` meanwhile), otherwise just that layer.
 - `dragover` computes the drop side (top vs. bottom half of the row) and a target indent level from the mouse X (`Math.floor(mouseX / 29)`), showing feedback via `dragover-top` / `dragover-bottom` + `drag-indent-N` classes.
 - `drop` does the actual code move:
-  1. Reads the chosen indent from the `drag-indent-N` class and re-indents the dragged layers' source text to match.
-  2. Computes the insertion point from the *target* layer's `target_mark` (distinct from `mark`: `target_mark` spans the displayed header, so dropping just below e.g. a `for` header lands *inside* the loop body).
-  3. Temporarily sets every mark's `inclusiveLeft = false` (so marks don't swallow the insertion), inserts with `cm.replaceRange`, then deletes each source layer's original lines.
-  4. `clean_up_passes(cm)` adds/removes `pass` statements so emptied or newly-filled blocks stay valid Python.
-  5. `hard_rerun(state)` — structure changed, so rerun the cell to do a full UI rebuild.
+  1. Gathers the dragged layers' whole lines into blocks, merging layers that share lines (a selected `for` and a layer in its body, or two statements on one line) so no line moves twice.
+  2. Computes the insertion point from the *target* layer's `target_mark` (distinct from `mark`: `target_mark` spans the displayed header, so dropping just below e.g. a `for` header lands *inside* the loop body). A drop inside a dragged block (e.g. a dragged loop into its own body) does nothing.
+  3. Reads the chosen indent from the `drag-indent-N` class and re-indents each block to match, keeping its relative indentation.
+  4. Inserts the blocks with `cm.replaceRange` (below the last line, after a new line break), then deletes their original lines, bottom up.
+  5. `clean_up_passes(cm)` adds/removes `pass` statements so emptied or newly-filled blocks stay valid Python.
+  6. Notes the selected calls by line in the `moved_calls` per-cell store (tracking each selected layer with a temporary mark), since moving calls can renumber their `call_id`s ("ax.bar #2"). After the rerun, `main.ts` reselects them.
+  7. `hard_rerun(state)` — structure changed, so rerun the cell to do a full UI rebuild.
 
 `replace_all_preserving_marks` (same file) is the regex-replace helper used here and by the visibility checkbox; it edits text without clobbering existing marks. The per-layer show/hide checkbox uses it to comment/uncomment the layer's lines, then calls `redraw_cell` (or `hard_rerun` when re-enabling a plain-text layer that needs its full UI rebuilt).
 
@@ -435,6 +457,8 @@ Wiring is in `attach_events_to_hover_regions` (`hover-regions/hover_regions.ts`)
 - `mouseup`: if the mouse didn't move, it's a *click* → `select_layer`; if it moved → `refresh_hover_regions` (regenerate the SVG since shapes moved).
 
 The handlers (`drag_handler_for_arg_view` in `call/call.ts`) translate pixels → code: they parse the target arg's current code into `stuff + number`, convert the pixel delta to axis units using `boundses` — the `data-fig-px-bounds` / `data-axes-px-bounds` / `data-axes-unit-bounds` / `data-region-px-bounds` attributes Python wrote onto each SVG region — compute the new number, and call `view.widget.set_code(...)` (plus `enable_arg_view`, so dragging turns the arg on if it was off). Special cases: legend `loc` (an xy fraction of the axes), `set_title` y (axes-size coords), and bar `width` / `height` edges (reversed). Each `set_code` is picked up by the call watcher → fast `redraw_cell` (DPI is dropped mid-drag for responsiveness); `refresh_hover_regions` runs once on release.
+
+**Dragging several shapes.** Dragging a selected shape drags every selected shape (`companion_drag_parts`). The grabbed spot sets the kind of drag: a move moves each shape as far as it can be moved (x and/or y, or a legend's `loc`), and an edge drag moves the same edge of each shape that has one. Each shape converts the pointer's movement with the bounds of its own hover region, so shapes in different axes move by the same distance on screen. A legend (the grabbed one too, also when dragged alone) is moved by an offset from the pointer (`legend_pointer_offset`) so it doesn't jump to it. When the calls' args share a variable (`w = 0.4`, then `width=w` in each), only the first handler edits its number (`drop_shared_handlers`; each 1-D handler carries the `chain_link` it edits). Each move writes every dragged call (and shared variable, `write_chain_link_numbers`) at once and redraws once (`write_calls_and_redraw`), as for edits in the multi-select Properties panel. Dragging an unselected shape drags just it.
 
 ### Submitting an LLM prompt
 

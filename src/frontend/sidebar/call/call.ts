@@ -1,11 +1,12 @@
-import { add_sync_code_on_change_watcher } from "../../code_sync/code_sync";
+import { add_sync_code_on_change_watcher, redraw_cell } from "../../code_sync/code_sync";
 import { undo_group_origin } from "../../code_sync/undo_group";
-import { select_call_view } from "../../layer_panel/layer_panel";
+import { click_selection_mode, select_call_view } from "../../layer_panel/layer_panel";
 import { set_properties_panel_on } from "../../properties_panel/properties_panel";
 import {
   Arg,
   ArgView,
   CallInfo,
+  ChainLink,
   CallView,
   CallWithArgs,
   State,
@@ -99,10 +100,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   // first link of a variable-sharing chain (which edits the call argument, and so has no
   // dedicated mark) before a structural rerun, and by mapping tables. `call_view` is assigned
   // below but only read at call time (on a later click), so the forward reference is safe.
-  const flush_call = () => {
-    const range = mark.find();
-    if (range) code_mirror.replaceRange(call_to_code(call_view), range.from, range.to, undo_group_origin(state));
-  };
+  const flush_call = () => flush_call_view(call_view, state);
 
   // For making a mapping table out of a single-valued arg: the list to map over, taken from
   // another arg of this call (e.g. a bar chart's categories). Read at click time.
@@ -170,7 +168,7 @@ export function create_call_view(call: CallWithArgs, state: State): CallView {
   // This is redundant with the layer panel, but in theory (and maybe in the future)
   // there may be more than one call per layer
   call_el.addEventListener("click", ev => {
-    select_call_view(call_view, state);
+    select_call_view(call_view, state, click_selection_mode(ev, true));
     ev.stopPropagation();
     ev.preventDefault();
   });
@@ -198,6 +196,29 @@ function capture_layout(call: CallWithArgs, code_mirror: CodeMirror.DocOrEditor,
   return { call_layout: capture_call_layout(text, callee_end, arg_ranges), given_args };
 }
 
+// Synchronously write the call's current widget state into the cell, rather than waiting for
+// its change watcher's next frame (e.g. right before a hard rerun, which reads the cell).
+// Returns whether the code changed.
+export function flush_call_view(call_view: CallView, state: State): boolean {
+  const cm = state.cell.code_mirror;
+  const range = call_view.mark.find();
+  const code = call_to_code(call_view);
+  if (!range || cm.getRange(range.from, range.to) === code) return false;
+  cm.replaceRange(code, range.from, range.to, undo_group_origin(state));
+  return true;
+}
+
+// Write several calls' code now (and whatever `write_more` writes; it returns whether it changed
+// the code), then redraw once, rather than leave it to the calls' watchers: a redraw that starts
+// after the first call's write can miss the rest (the rerun when it replies may find the kernel
+// still busy). The watchers then find the code already written.
+export function write_calls_and_redraw(call_views: CallView[], state: State, write_more: () => boolean = () => false) {
+  let changed = false;
+  call_views.forEach(call_view => { if (flush_call_view(call_view, state)) changed = true; });
+  if (write_more()) changed = true;
+  if (changed) redraw_cell(state);
+}
+
 export function call_to_code(call_view: CallView) : string {
   const { call_layout, given_args } = call_view.layout;
   const given: { slot: number; value: string }[] = [];
@@ -217,7 +238,9 @@ export function call_to_code(call_view: CallView) : string {
 // The handling for dragging on the plot has to be routed through the layers UI element because all the logic
 // for attaching the arguments to the code is buried there, including adding new args and modifying current args.
 
-export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | ((client_px_in_fig: [number, number], delta_px: [number, number], fig_bb: DOMRect, boundses: Boundses) => void) {
+export type DragHandler2D = (client_px_in_fig: [number, number], delta_px: [number, number], fig_bb: DOMRect, boundses: Boundses) => void;
+
+export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | DragHandler2D {
 
   // move legend handler
   //
@@ -260,7 +283,11 @@ export function perhaps_get_drag_xy_handler(call_view: CallView) : undefined | (
 }
 
 
-type DragHandler1D = (client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void;
+export type DragHandler1D = ((client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => void) & {
+  // When the handler edits the number at the end of the arg's variable chain (`w` ▸ 0.5) rather
+  // than the arg itself: that chain link. Other calls' args may share the variable.
+  chain_link?: ChainLink;
+};
 
 export function perhaps_get_drag_x_handler(call_view: CallView) : undefined | DragHandler1D {
   return first_drag_handler(call_view, 'x', [['x', false]]);
@@ -325,9 +352,8 @@ function drag_handler_for_arg_view(arg: Arg, view: ArgView, x_or_y: 'x' | 'y', r
   // the arg's own code via the usual EXPR + NUMBER scheme on the first widget. Only consider links that
   // are still active (an upstream edit may have torn down the trailing literal).
   const last_link = view.chain_links?.filter(l => l.active).at(-1);
-  const target_widget = (last_link && last_link.widget.to_code().trim().match(/^-?[0-9\.]+$/))
-    ? last_link.widget
-    : view.widget;
+  const target_link = (last_link && last_link.widget.to_code().trim().match(/^-?[0-9\.]+$/)) ? last_link : undefined;
+  const target_widget = target_link ? target_link.widget : view.widget;
 
   const starting_arg_code = target_widget.to_code();
 
@@ -359,7 +385,7 @@ function drag_handler_for_arg_view(arg: Arg, view: ArgView, x_or_y: 'x' | 'y', r
     code_lhs = starting_arg_code;
   }
 
-  return (_client_px_in_fig, delta_px, fig_bb: DOMRect, boundses: Boundses) => {
+  const handler = (_client_px_in_fig: number, delta_px: number, fig_bb: DOMRect, boundses: Boundses) => {
     enable_arg_view(view);
 
     // If at higher DPI, these are not 1-to-1
@@ -401,4 +427,5 @@ function drag_handler_for_arg_view(arg: Arg, view: ArgView, x_or_y: 'x' | 'y', r
 
     rate_limit("dragging", 500, () => { log_event("gui", "on-plot dragging", {arg: view.el.querySelector('.plottery-arg-name')?.textContent || '', arg_code: new_arg_code, drag_direction: x_or_y}); });
   };
+  return Object.assign(handler, { chain_link: target_link });
 }

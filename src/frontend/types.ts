@@ -35,6 +35,13 @@ export type State = {
   outstanding_kernel_request_time: undefined | number;
   dragging_layers: Layer[]
 
+  // The selected layers, in the order they were selected (see select_layer in layer_panel.ts).
+  selection: LayerSelection[];
+  // Where a shift-click range selection in the layers panel starts, and the selection it adds to.
+  selection_anchor: { layer: Layer; base: LayerSelection[] } | undefined;
+  // Removes the Properties panel's rows for several selected calls, if shown (see multi_args.ts).
+  teardown_multi_args: (() => void) | undefined;
+
   is_in_dom: () => boolean; // false after a hard rerun of the cell; everything is old then
 
 
@@ -62,6 +69,12 @@ export type State = {
   // The cell's defs and classes, for which dicts a call can see.
   mapping_scopes: MappingScope[];
 
+};
+
+// A selected layer, and which of its calls the Properties panel shows (undefined: its first).
+export type LayerSelection = {
+  layer: Layer;
+  call_view: CallView | undefined;
 };
 
 export type CallView = {

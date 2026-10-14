@@ -136,8 +136,14 @@ function sync_code_range(
   marks.forEach(mark => {
     const range = mark.find();
     if (!range) return; // mark was dropped (e.g. cleared by a concurrent rerun); nothing to sync
+    // Already written, e.g. through another widget's mark on the same code (a variable's value
+    // shown both for one selected call and for several, see multi_args.ts).
+    if (cm.getRange(range.from, range.to) === code) return;
     cm.replaceRange(code, range.from, range.to, undo_group_origin(state));
   });
+
+  // Redraw even if the code was already written: whatever wrote it (e.g. a mapping table's
+  // write_now) may have left the redraw to this watcher. redraw_cell skips code it already ran.
 
   // Selecting the code leaves a highlight on what has changed, BUT it scrolls
   // the window which is really jarring when you are doing a direct manipulation.

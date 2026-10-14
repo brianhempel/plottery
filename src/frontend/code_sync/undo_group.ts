@@ -41,6 +41,24 @@ export function undo_group_origin(state: State): string | undefined {
   return current_group(state) ? "*plottery-undo-group" : undefined;
 }
 
+// Whether code writes are going into a group now (including one whose close is pending), so a
+// write that's part of a larger interaction (e.g. a slider scrub) shouldn't begin its own group,
+// which would close that interaction's group early.
+export function undo_group_is_open(state: State): boolean {
+  return current_group(state) !== undefined;
+}
+
+// Run `write` as one undo step: in a group of its own, or, if one is open (see
+// undo_group_is_open), as part of that one.
+export function in_undo_group<T>(state: State, write: () => T): T {
+  const group = undo_group_is_open(state) ? undefined : begin_undo_group(state);
+  try {
+    return write();
+  } finally {
+    if (group) end_undo_group(state, group);
+  }
+}
+
 // Returns the group, to pass to end_undo_group.
 export function begin_undo_group(state: State): UndoGroup {
   // A new interaction starting while the previous one's close is still pending (or never

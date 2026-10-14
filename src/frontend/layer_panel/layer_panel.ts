@@ -6,12 +6,12 @@ import { compute_selected_hover_regions } from "../sidebar/hover-regions/hover_r
 import { add_method_call } from "../sidebar/methods/method";
 import { create_arbitrary_code_widget } from "../sidebar/widgets/arbitrary_code/arbitrary_code";
 import { make_widget_for_code_and_type } from "../sidebar/widgets/widget";
-import { CallView, CallWithArgs, IInstanceType, State, CallInfo } from "../types";
-import { equalByJSON, zip } from "../utils/stdlib";
+import { CallView, CallWithArgs, IInstanceType, State, CallInfo, LayerSelection } from "../types";
+import { zip } from "../utils/stdlib";
 import { TextMarker, MarkerRange, DocOrEditor } from "../utils/codemirror";
 import { create_el, cm_end_pos, cm_start_pos, add_line_of_code, default_code_for_type, non_colliding_name, set_persistent_item, get_persistent_item } from "../utils/misc";
 import { Position } from "../types";
-import { set_properties_panel_on } from "../properties_panel/properties_panel";
+import { set_properties_panel_on, set_properties_panel_on_many } from "../properties_panel/properties_panel";
 import { log_event } from "../utils/instrumentation";
 import "./layer_panel.css";
 
@@ -355,8 +355,9 @@ function add_listeners_and_checkbox_to_layer(layer: Layer, state: State, checked
   const { el: layer_el, mark } = layer;
 
   layer_el.addEventListener("click", ev => {
-    log_event("gui", "layers panel click-select layer", {layer: layer_el.innerText});
-    select_layer(layer, state);
+    const mode = click_selection_mode(ev, true);
+    log_event("gui", "layers panel click-select layer", {layer: layer_el.innerText, mode});
+    select_layer(layer, state, undefined, mode);
   });
 
   layer_el.draggable = true;
@@ -469,17 +470,25 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
   const indentation = '    '.repeat(indent_level)
 
   const cm = state.cell.code_mirror;
-  let source_code = ''
-  for (const source_layer of state.dragging_layers) {
-    let source_range = source_layer.mark.find()!;
-    // Capture full lines (from column 0, including the first line's indentation) so
-    // replace_indentation can preserve the block's relative indentation. The source is also
-    // removed line-by-line below, so whole-line capture stays consistent.
-    const to_line = source_range.to.line;
-    const layer_code = cm.getRange({ line: source_range.from.line, ch: 0 }, { line: to_line, ch: (cm.getLine(to_line) || '').length });
-    source_code += replace_indentation(layer_code, indentation) + '\n'
-  }
-  console.log(source_code);
+
+  // The lines to move: whole lines, so replace_indentation can preserve each block's relative
+  // indentation. Dragged layers that share lines (a selected loop and a layer in its body, or two
+  // statements on one line) move as one block, so no line is moved (or removed) twice.
+  const blocks: { from: number; to: number }[] = [];
+  state.dragging_layers
+    .flatMap(layer => {
+      const range = layer.mark.find();
+      return range ? [{ from: range.from.line, to: range.to.line }] : [];
+    })
+    .sort((a, b) => a.from - b.from)
+    .forEach(lines => {
+      const last = blocks.at(-1);
+      if (last && lines.from <= last.to) {
+        last.to = Math.max(last.to, lines.to);
+      } else {
+        blocks.push(lines);
+      }
+    });
 
   const target_range = target_layer.target_mark.find()!;
   const target_pos = {
@@ -487,24 +496,63 @@ function drop(ev: DragEvent, target_layer: Layer, state: State) {
     ch: 0
   }
 
-  state.layers_panel.layers.forEach(layer => {
-    // this seems to work better for moving layers around.
-    // otherwise a layer might be moved into another layer,
-    // or into itself and deleted below.
-    // hard_rerun() below will reset this.
+  // Dropping into a dragged block (e.g. a dragged loop's body) would move it into itself.
+  if (blocks.length === 0 || blocks.some(block => block.from < target_pos.line && target_pos.line <= block.to)) return;
 
-    // console.log('layer.mark.find_cm6_mark!()!', layer.mark.find_cm6_mark!()!);
-    layer.mark.inclusiveLeft = false;
-    layer.target_mark.inclusiveLeft = false;
+  // Each block's first line in the moved code.
+  const block_starts: number[] = [];
+  let source_code = ''
+  for (const block of blocks) {
+    block_starts.push(source_code.split('\n').length - 1);
+    const layer_code = cm.getRange({ line: block.from, ch: 0 }, { line: block.to, ch: (cm.getLine(block.to) || '').length });
+    source_code += replace_indentation(layer_code, indentation) + '\n'
+  }
+
+  // Keep the selected layers selected after the rerun. Selections are saved by call number
+  // ("ax.bar #2"), which moving calls can change, so note them by line instead (see main.ts),
+  // tracking each selected layer's first line with a mark.
+  const track_line = (line: number) => cm.markText({ line, ch: 0 }, { line, ch: (cm.getLine(line) || '').length }, { inclusiveLeft: false, inclusiveRight: false, clearWhenEmpty: false });
+  const selected = state.selection.flatMap(({ layer }) => {
+    const range = layer.mark.find();
+    if (!range) return [];
+    const calls = zip(layer.calls_with_args, layer.call_views).map(([call_with_args, call_view]) => ({
+      func_code: call_with_args.call_info.func_code,
+      line_in_layer: (call_view.mark.find()?.from.line ?? range.from.line) - range.from.line,
+    }));
+    const block_i = blocks.findIndex(block => block.from <= range.from.line && range.from.line <= block.to);
+    // A moved layer's mark is added once its copy is in.
+    const line_in_moved_code = block_i === -1 ? undefined : block_starts[block_i] + range.from.line - blocks[block_i].from;
+    const mark = block_i === -1 ? track_line(range.from.line) : undefined;
+    return calls.length > 0 ? [{ calls, line_in_moved_code, mark }] : [];
   });
-  cm.replaceRange(source_code, target_pos);
 
-  for (const source_layer of state.dragging_layers) {
-    let source_range = source_layer.mark.find()!;
-    cm.replaceRange('', { line: source_range.from.line, ch: 0 }, { line: source_range.to.line + 1, ch: 0 })
+  if (target_pos.line > cm.lastLine()) {
+    // Below the last line, which has no line break after it to insert after.
+    const last_line = cm.lastLine();
+    cm.replaceRange('\n' + source_code.slice(0, -1), { line: last_line, ch: (cm.getLine(last_line) || '').length });
+  } else {
+    cm.replaceRange(source_code, target_pos);
+  }
+  selected.forEach(layer => {
+    if (layer.line_in_moved_code !== undefined) layer.mark = track_line(target_pos.line + layer.line_in_moved_code);
+  });
+
+  // Remove the blocks from where they were, bottom up so each removal leaves the lines above it
+  // in place. The insertion above moved the blocks below it down.
+  const inserted_line_count = source_code.split('\n').length - 1;
+  for (const block of [...blocks].reverse()) {
+    const shift = block.from >= target_pos.line ? inserted_line_count : 0;
+    cm.replaceRange('', { line: block.from + shift, ch: 0 }, { line: block.to + shift + 1, ch: 0 })
   }
 
   clean_up_passes(cm);
+
+  const moved_calls = selected.flatMap(({ calls, mark }) => {
+    const line = mark?.find()?.from.line;
+    mark?.clear();
+    return line === undefined ? [] : calls.map(({ func_code, line_in_layer }) => id_of_new_call(func_code, line + line_in_layer + state.cell_lineno));
+  });
+  set_persistent_item(state, 'moved_calls', JSON.stringify(moved_calls));
 
   log_event("gui", "layers panel layer drag end", {layer: state.dragging_layers[0].el.innerText, code: cm.getValue()});
 
@@ -627,12 +675,16 @@ function clean_up_passes(cm: DocOrEditor) {
 }
 
 function dragstart(ev: DragEvent, layer: Layer, state: State) {
-  state.dragging_layers = [layer];
-  log_event("gui", "layers panel layer drag begin", {layer: layer.el.innerText, code: state.cell.code_mirror.getValue()});
+  // Dragging a selected layer drags all the selected layers (dropped in code order). Any other
+  // layer moves alone.
+  state.dragging_layers = is_layer_selected(layer, state) ? selected_layers(state) : [layer];
+  state.dragging_layers.forEach(dragging => dragging.el.classList.add("dragging"));
+  log_event("gui", "layers panel layer drag begin", {layer: layer.el.innerText, layer_count: state.dragging_layers.length, code: state.cell.code_mirror.getValue()});
   ev.stopImmediatePropagation();
 }
 
 function dragend(ev: DragEvent) {
+  document.querySelectorAll(".plottery-layer.dragging").forEach(el => el.classList.remove("dragging"));
   document.querySelectorAll(".dragover-top").forEach(el => el.classList.remove("dragover-top"));
   document.querySelectorAll(".dragover-bottom").forEach(el => el.classList.remove("dragover-bottom"));
   for (let i = 0; i < 10; i++) {
@@ -690,17 +742,37 @@ function dragleave(ev: DragEvent) {
   ev.stopImmediatePropagation();
 }
 
-export function is_layer_selected(layer: Layer): boolean {
-  return layer.el.classList.contains("selected");
+export function is_layer_selected(layer: Layer, state: State): boolean {
+  return state.selection.some(selected => selected.layer === layer);
 }
 
-// Should only be 0 or 1 right now
+// The selected layers, in code order.
 export function selected_layers(state: State): Layer[] {
-  return state.layers_panel.layers.filter(is_layer_selected);
+  return state.layers_panel.layers.filter(layer => is_layer_selected(layer, state));
+}
+
+// The calls the Properties panel shows for the selected layers, in the order they were selected.
+export function selected_call_views(state: State): CallView[] {
+  return state.selection.flatMap(({ layer, call_view }) => {
+    const view = call_view ?? layer.call_views[0];
+    return view ? [view] : [];
+  });
 }
 
 export function create_layers_panel(layers: Layer[], state: State): LayersPanel {
   const layers_el = create_el("div", "plottery-layers-panel");
+
+  // Shift/Cmd/Ctrl-clicks change the layer selection (see click_selection_mode). Don't let them
+  // also extend Jupyter's cell selection, or Shift-click select text.
+  const has_modifier = (ev: MouseEvent) => ev.shiftKey || ev.metaKey || ev.ctrlKey;
+  layers_el.addEventListener("mousedown", ev => {
+    if (!has_modifier(ev)) return;
+    ev.stopPropagation();
+    const editing = (ev.target as Element).closest?.('[contenteditable="true"], input');
+    if (ev.shiftKey && !editing) ev.preventDefault();
+  });
+  layers_el.addEventListener("click", ev => { if (has_modifier(ev)) ev.stopPropagation(); });
+
   const layers_panel_heading = create_el("h2", [], layers_el);
   layers_panel_heading.append("Layers")
 
@@ -773,24 +845,76 @@ export function create_layers_panel(layers: Layer[], state: State): LayersPanel 
   };
 }
 
+// The panel keeps showing the last selected call(s), as it always has.
 export function deselect_all_layers(state: State) {
-  state.layers_panel.layers.forEach(layer => layer.el.classList.remove("selected"));
-  compute_selected_hover_regions(state);
-  highlight_lines_for_selected_layers(state);
-  save_selected_layers(state);
+  state.selection_anchor = undefined;
+  set_selection([], state);
 }
 
-export function select_layer(layer: Layer, state: State, call_view?: CallView) {
-  state.layers_panel.layers.forEach(layer => layer.el.classList.remove("selected"));
-  layer.el.classList.add("selected");
-  if (call_view || layer.call_views[0]) {
-    set_properties_panel_on(call_view || layer.call_views[0], state);
+// "replace": select just this layer. "toggle": add it to the selection, or remove it.
+// "range": select the layers panel rows from the last clicked one through this one, keeping
+// what was selected before that click (like Shift-click in Finder).
+export type SelectionMode = "replace" | "toggle" | "range";
+
+// How a click changes the selection. In the layers panel, Shift-click selects a range and
+// Cmd/Ctrl-click adds or removes one layer. On the plot, both add or remove one.
+export function click_selection_mode(ev: MouseEvent, in_layers_panel: boolean): SelectionMode {
+  if (ev.shiftKey) return in_layers_panel ? "range" : "toggle";
+  if (ev.metaKey || ev.ctrlKey) return "toggle";
+  return "replace";
+}
+
+// Select `layer`, showing `call_view` (or its first call) in the Properties panel. Every
+// selection gesture ends up here (or in deselect_all_layers / load_selected_layers).
+export function select_layer(layer: Layer, state: State, call_view?: CallView, mode: SelectionMode = "replace") {
+  const entry: LayerSelection = { layer, call_view };
+  const anchor = state.selection_anchor;
+
+  if (mode === "range" && anchor) {
+    // Rows of plain code (imports, blank lines, ...) are hidden, so they aren't in the range.
+    const rows = state.layers_panel.layers.filter(row => !row.el.classList.contains("plottery-code-layer"));
+    const from = rows.indexOf(anchor.layer);
+    const to = rows.indexOf(layer);
+    if (from !== -1 && to !== -1) {
+      // From the anchor to the clicked row, so the anchor stays first in the selection.
+      const range = from <= to ? rows.slice(from, to + 1) : rows.slice(to, from + 1).reverse();
+      const selection = anchor.base.filter(selected => !range.includes(selected.layer));
+      range.forEach(row => selection.push(
+        row === layer ? entry : (state.selection.find(selected => selected.layer === row) ?? { layer: row, call_view: undefined })
+      ));
+      set_selection(selection, state, layer);
+      return;
+    }
   }
+
+  if (mode === "toggle") {
+    const was_selected = is_layer_selected(layer, state);
+    const selection = was_selected ? state.selection.filter(selected => selected.layer !== layer) : [...state.selection, entry];
+    state.selection_anchor = { layer, base: selection.filter(selected => selected.layer !== layer) };
+    set_selection(selection, state, was_selected ? undefined : layer);
+    return;
+  }
+
+  state.selection_anchor = { layer, base: [] };
+  set_selection([entry], state, layer);
+}
+
+function set_selection(selection: LayerSelection[], state: State, scroll_to?: Layer) {
+  state.selection = selection;
+  state.layers_panel.layers.forEach(layer => layer.el.classList.toggle("selected", is_layer_selected(layer, state)));
+
+  // With nothing (or only layers without calls) selected, the panel stays as it was.
+  const call_views = selected_call_views(state);
+  if (call_views.length > 1) {
+    set_properties_panel_on_many(call_views, state);
+  } else if (call_views.length === 1) {
+    set_properties_panel_on(call_views[0], state);
+  }
+
   compute_selected_hover_regions(state);
   highlight_lines_for_selected_layers(state);
-  scroll_selected_layer_into_view(layer, state);
+  if (scroll_to) scroll_selected_layer_into_view(scroll_to, state);
   save_selected_layers(state);
-  // console.log(layer.el)
 }
 
 // Scroll the selected layer's code into view (without moving the cursor) so its
@@ -831,19 +955,22 @@ function scroll_selected_layer_into_view(layer: Layer, state: State) {
   // cm.getScrollerElement?.().scrollIntoView?.({ block: "nearest" });
 }
 
-export function select_call_view(call_view: CallView, state: State) {
+export function select_call_view(call_view: CallView, state: State, mode: SelectionMode = "replace") {
   const layer = state.layers_panel.layers.find(layer => layer.call_views.includes(call_view));
 
-  layer && select_layer(layer, state, call_view);
+  layer && select_layer(layer, state, call_view, mode);
 }
 
 export function duplicate_selected_layers(state: State) {
   const cm = state.cell.code_mirror;
   const old_code = cm.getValue();
-  selected_layers(state).forEach((layer : Layer) => {
-    // Duplicate layer
-    const mark = layer.mark;
-    const range = mark.find()!;
+  // Plus the duplicates' new names, so two duplicates (of `bars` and `bars2`) don't both get `bars3`.
+  const avoid_names = [...state.avoid_names];
+
+  // Read every duplicate before inserting any: the layers' marks are inclusiveLeft, so a duplicate
+  // inserted right above a later selected layer would become part of that layer's code.
+  const duplicates = selected_layers(state).map((layer : Layer) => {
+    const range = layer.mark.find()!;
     const insert_line = 1 + (range.to.line || state.plt_show_lineno_in_cell - 1);
 
     let code = cm.getRange(range.from, range.to);
@@ -851,27 +978,41 @@ export function duplicate_selected_layers(state: State) {
     // Make new variable name
     let [_code, indent, orig_name, rest] = code.match(/^(\s*)(\w+)(\s*=[\S\s]*)/) || [null, null, null, null];
     if (orig_name) {
-      let new_name = non_colliding_name(orig_name.replace(/_?\d+$/, ''), state.avoid_names);
+      let new_name = non_colliding_name(orig_name.replace(/_?\d+$/, ''), avoid_names);
+      avoid_names.push(new_name);
       code = `${indent}${new_name}${rest}`;
     }
 
-    cm.replaceRange(code + '\n', {line: insert_line, ch: 0})
-
-    // Queue new layer for selection/focus after hard_rerun
-    const func_code = layer.calls_with_args.at(-1)?.call_info.func_code;
-    if (func_code) {
-      const line = insert_line + state.cell_lineno;
-      set_persistent_item(state, 'new_calls', `["${id_of_new_call(func_code, line)}"]`);
-    }
+    return { code, insert_line, func_code: layer.calls_with_args.at(-1)?.call_info.func_code };
   });
+
+  // Insert them bottom up, so each insertion leaves the lines above it in place. (Of those to go
+  // at the same line, the last is inserted first, so they end up in order.)
+  [...duplicates].reverse().sort((a, b) => b.insert_line - a.insert_line).forEach(({ code, insert_line }) => {
+    cm.replaceRange(code + '\n', {line: insert_line, ch: 0})
+  });
+
+  // Queue the new layers for selection/focus after hard_rerun, by each one's first line: where
+  // it was inserted, moved down by the duplicates that ended up above it.
+  const new_call_ids = duplicates.flatMap(({ insert_line, func_code }, i) => {
+    if (!func_code) return [];
+    const lines_above = duplicates
+      .filter((other, j) => other.insert_line < insert_line || (other.insert_line === insert_line && j < i))
+      .reduce((sum, other) => sum + other.code.split('\n').length, 0);
+    return [id_of_new_call(func_code, insert_line + lines_above + state.cell_lineno)];
+  });
+  if (new_call_ids.length > 0) {
+    set_persistent_item(state, 'new_calls', JSON.stringify(new_call_ids));
+  }
+
   if(cm.getValue() !== old_code) {
     hard_rerun(state);
   }
 }
 
-// For regeneration after cell rerun
+// For regeneration after cell rerun. In selection order, so the first selected stays first.
 function save_selected_layers(state: State) {
-  const selected_calls = state.layers_panel.layers.filter(is_layer_selected).flatMap(layer => layer.calls_with_args).map(call_with_args => call_with_args.call_info.call_id);
+  const selected_calls = state.selection.flatMap(({ layer }) => layer.calls_with_args).map(call_with_args => call_with_args.call_info.call_id);
 
   // console.log(selected_calls)
 
@@ -885,15 +1026,27 @@ function save_selected_layers(state: State) {
 
 // For regeneration after cell rerun
 export function load_selected_layers(state: State) {
-  const selected_calls = JSON.parse(get_persistent_item(state, 'selected_calls') || '[]') as [number, string][];
+  const selected_calls = JSON.parse(get_persistent_item(state, 'selected_calls') || '[]') as string[];
+  select_layers(layers_with_call_ids(selected_calls, call_info => call_info.call_id, state), state);
+}
 
-  deselect_all_layers(state);
-
-  state.layers_panel.layers.forEach(layer => {
-    if (layer.calls_with_args.some(call_with_args => selected_calls.some(selected_call => equalByJSON(selected_call, call_with_args.call_info.call_id)))) {
-      select_layer(layer, state);
-    }
+// The layers holding the calls with these ids (as `id_of` gives a call's id), in the ids' order,
+// each once.
+export function layers_with_call_ids(ids: string[], id_of: (call_info: CallInfo) => string, state: State): Layer[] {
+  const layers: Layer[] = [];
+  ids.forEach(id => {
+    const layer = state.layers_panel.layers.find(layer => layer.calls_with_args.some(call_with_args => id_of(call_with_args.call_info) === id));
+    if (layer && !layers.includes(layer)) layers.push(layer);
   });
+  return layers;
+}
+
+// Select `layers`, in this order (as if clicked, then Cmd-clicked), e.g. after a rerun.
+export function select_layers(layers: Layer[], state: State) {
+  const selection: LayerSelection[] = layers.map(layer => ({ layer, call_view: undefined }));
+  const last = selection.at(-1);
+  state.selection_anchor = last && { layer: last.layer, base: selection.slice(0, -1) };
+  set_selection(selection, state, last?.layer);
 }
 
 
@@ -904,7 +1057,7 @@ function highlight_lines_for_selected_layers(state: State) {
     cm.removeLineClass(line, "background", "plottery-line-selected");
   });
   state.layers_panel.layers.forEach(layer => {
-    if (is_layer_selected(layer)) {
+    if (is_layer_selected(layer, state)) {
       const range = layer.mark.find()!;
       for(let i = range.from.line; i <= range.to.line; i++) {
         cm.addLineClass(i, "gutter", "plottery-line-selected");

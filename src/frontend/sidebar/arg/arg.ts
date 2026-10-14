@@ -1,5 +1,6 @@
 import { Arg, ArgView, CallView, ChainLink, LinkSuggestion, MappingTableInfo, ProvNode, State } from "../../types";
 import { add_sync_code_on_change_watcher, hard_rerun } from "../../code_sync/code_sync";
+import { in_undo_group, undo_group_origin } from "../../code_sync/undo_group";
 import { TextMarker, MarkerRange } from "../../utils/codemirror";
 import { log_event } from "../../utils/instrumentation";
 import { create_el, cm_start_pos, cm_end_pos, non_colliding_name, create_red_x_button_icon, default_code_for_type, get_proper_type, is_array_like } from "../../utils/misc";
@@ -8,8 +9,9 @@ import { DropdownWidget, add_item_to_dropdown_widget, committed_code, decorate_d
 import { create_arbitrary_code_widget } from "../widgets/arbitrary_code/arbitrary_code";
 import { create_link_widget, is_link_widget } from "../widgets/link/link";
 import { MappingTableView, create_mapping_table_view, create_table_icon, is_color_type, is_mapping_table_widget } from "../mapping_table/mapping_table";
-import { item_name_for, normalize_code, python_names, template_code } from "../mapping_table/mapping_table_code";
-import { call_to_code } from "../call/call";
+import { item_name_for, normalize_code, python_bound_names, python_names, template_code } from "../mapping_table/mapping_table_code";
+import { flush_call_view } from "../call/call";
+import { Layer } from "../../layer_panel/layer_panel";
 import "./arg.css";
 
 // Arg handling needs to support int versus float sliders, colors, booleans, and e.g. fontdicts.
@@ -48,7 +50,7 @@ export function create_arg_view(
         create_link_widget(
           suggestion,
           () => live_linked_value(suggestion, state) ?? suggestion.code,
-          () => apply_link_suggestion(arg, view, suggestion, state, flush_call, call_mark)
+          () => apply_link_suggestion(arg, view, suggestion, state, call_mark)
         ))
     : [];
 
@@ -295,23 +297,16 @@ function live_linked_value(suggestion: LinkSuggestion, state: State): string | u
 //   color2 = (0, 0, 1)
 //   ax.bar(["a", "b", "c"], [1, 3, 2], color=color2)
 //   ax.scatter(["a", "b", "c"], [1, 3, 2], color=color2)
-//
-// All edits go through the live CallViews and their marks (robust to any edits since render),
-// then a hard rerun rebuilds the UI, since this is a structural, non-local change.
 function apply_link_suggestion(
   arg: Arg,
   view: ArgView,
   suggestion: LinkSuggestion,
   state: State,
-  flush_call?: () => void,
   call_mark?: TextMarker<MarkerRange>
 ) {
-  const cm = state.cell.code_mirror;
-
   const linked = find_linked_arg_view(suggestion, state);
-  const this_range = call_mark?.find();
-  const linked_range = linked?.call_view.mark.find();
-  if (!linked || !linked_range || !this_range) {
+  const this_call_view = state.layers_panel.layers.flatMap(layer => layer.call_views).find(call_view => call_view.mark === call_mark);
+  if (!linked || !linked.call_view.mark.find() || !this_call_view || !call_mark?.find()) {
     console.warn("Can't apply link suggestion (no live call view/mark for it)", suggestion);
     return;
   }
@@ -319,27 +314,107 @@ function apply_link_suggestion(
   const var_name = non_colliding_name(suggestion.arg_name, state.avoid_names);
   const rhs = committed_code(linked.arg_view.widget);
 
-  // Rewrite the linked call's arg to the shared variable and flush its text through its mark.
-  set_committed_code(linked.arg_view, var_name);
-  const linked_range_now = linked.call_view.mark.find();
-  if (linked_range_now) cm.replaceRange(call_to_code(linked.call_view), linked_range_now.from, linked_range_now.to);
-
-  // Same for this call's arg, enabling it if it wasn't passed before (e.g. adding color=... to
-  // a call with no color argument yet).
-  enable_arg_view(view);
-  set_committed_code(view, var_name);
-  flush_call?.();
-
-  // Insert the shared variable's assignment above the earlier of the two calls, at its
-  // indentation. This must come *after* the call flushes: the call marks are inclusiveLeft,
-  // so a line inserted at a call's start gets absorbed into its mark, and a later flush
-  // through that mark would overwrite the assignment.
-  const insert_line = Math.min(call_mark!.find()!.from.line, linked.call_view.mark.find()!.from.line);
-  const indentation = ((cm.getLine(insert_line) || "").match(/^\s*/) || [""])[0];
-  cm.replaceRange(`${indentation}${var_name} = ${rhs}\n`, { line: insert_line, ch: 0 });
-
   log_event("gui", "link suggestion apply", { arg: arg.name, var_name, arg_code: rhs, linked_call: suggestion.call_id });
+  link_arg_views([linked, { call_view: this_call_view, arg_view: view }], var_name, rhs, state);
+}
+
+// One arg of one call, to share a variable with other calls' args.
+export type LinkTarget = { call_view: CallView; arg_view: ArgView };
+
+// Make the args `targets` (of different calls) all the variable `var_name`, assigned `rhs` above
+// the calls (see shared_assignment_line), or, if `rhs` is null, an existing variable. Args that
+// weren't passed are added (e.g. color=... on a call with no color yet).
+//
+// All edits go through the live CallViews and their marks (robust to any edits since render),
+// then a hard rerun rebuilds the UI, since this is a structural, non-local change.
+export function link_arg_views(targets: LinkTarget[], var_name: string, rhs: string | null, state: State) {
+  const cm = state.cell.code_mirror;
+  // Where to assign the variable. The call flushes below don't move this line: they only rewrite
+  // text from the first call's start on, and the line is at or above it.
+  const insert_line = rhs === null ? undefined : shared_assignment_line(targets.map(({ call_view }) => call_view), state);
+  if (rhs !== null && insert_line === undefined) {
+    console.warn("Can't link args (no live layer for a call)", targets);
+    return;
+  }
+
+  in_undo_group(state, () => { // One undo step
+    // Rewrite each call's arg to the shared variable and flush its text through its mark.
+    targets.forEach(({ call_view, arg_view }) => {
+      (arg_view.widget as DropdownWidget).previewing_code = undefined; // or the flush would write the preview
+      enable_arg_view(arg_view);
+      set_committed_code(arg_view, var_name);
+      flush_call_view(call_view, state);
+    });
+
+    // Insert the assignment *after* the call flushes: the call marks are inclusiveLeft, so a
+    // line inserted at a call's start gets absorbed into its mark, and a later flush through
+    // that mark would overwrite the assignment.
+    if (rhs !== null && insert_line !== undefined) {
+      const indentation = ((cm.getLine(insert_line) || "").match(/^\s*/) || [""])[0];
+      cm.replaceRange(`${indentation}${var_name} = ${rhs}\n`, { line: insert_line, ch: 0 }, undefined, undo_group_origin(state));
+    }
+  });
+
   hard_rerun(state);
+}
+
+// Why the args of `call_views` can't share a variable assigned `value_code` (from link_arg_views),
+// or null if they can. The value can't use a name that's set at or after where the variable would
+// be assigned, e.g. a loop variable when only some of the calls are in the loop.
+export function link_blocker(value_code: string, call_views: CallView[], state: State): string | null {
+  const insert_line = shared_assignment_line(call_views, state);
+  if (insert_line === undefined) return "Can't find these calls in the code";
+  const cm = state.cell.code_mirror;
+  const bound_below = python_bound_names(cm.getValue().slice(cm.indexFromPos({ line: insert_line, ch: 0 })));
+  const name = [...python_names(value_code)].find(name => bound_below.has(name));
+  return name === undefined ? null : `Can't link: the value uses \`${name}\`, which isn't set yet above all of these calls`;
+}
+
+// The line to assign a variable shared by the calls `call_views`: above the first of them, or, if
+// they're in different blocks (for-loops, defs, if/elif/else clauses), above the statement holding
+// the first of them in the innermost block holding them all. Undefined if a call's layer is gone.
+function shared_assignment_line(call_views: CallView[], state: State): number | undefined {
+  const cm = state.cell.code_mirror;
+  const layers = state.layers_panel.layers;
+
+  const range_of = (layer: Layer) => {
+    const range = layer.mark.find();
+    return range && { from: cm.indexFromPos(range.from), to: cm.indexFromPos(range.to) };
+  };
+  // A block layer's mark spans its whole body, so the layers around a layer are its blocks.
+  const encloses = (outer: Layer, inner: Layer) => {
+    const outer_range = range_of(outer);
+    const inner_range = range_of(inner);
+    return outer !== inner && !!outer_range && !!inner_range && outer_range.from <= inner_range.from && inner_range.to <= outer_range.to;
+  };
+
+  const call_layers = call_views.map(call_view => layers.find(layer => layer.call_views.includes(call_view)));
+  if (call_layers.length === 0 || call_layers.some(layer => !layer || !range_of(layer))) return undefined;
+  const members = call_layers as Layer[];
+
+  const blocks_around = (layer: Layer) => layers.filter(block => encloses(block, layer));
+  const shared_blocks = blocks_around(members[0]).filter(block => members.every(layer => encloses(block, layer)));
+  const first = members.reduce((a, b) => range_of(b)!.from < range_of(a)!.from ? b : a);
+  // The outermost block around the first call that isn't around them all, else the call's own statement.
+  const statement = blocks_around(first)
+    .filter(block => !shared_blocks.includes(block))
+    .reduce<Layer>((a, b) => range_of(b)!.from < range_of(a)!.from ? b : a, first);
+
+  // An elif/else clause can't have a statement put above it, so go up to its chain's `if`.
+  let line = statement.mark.find()!.from.line;
+  const indentation = (text: string) => text.match(/^[ \t]*/)![0];
+  const clause_indentation = indentation(cm.getLine(line) || "");
+  while (/^[ \t]*(elif\b|else\s*:)/.test(cm.getLine(line) || "")) {
+    let previous = line - 1;
+    while (previous >= 0) {
+      const text = cm.getLine(previous) || "";
+      if (text.trim() !== "" && !text.trim().startsWith("#") && indentation(text) === clause_indentation) break;
+      previous--;
+    }
+    if (previous < 0) break;
+    line = previous;
+  }
+  return line;
 }
 
 // Commit `code` on an arg's dropdown as an arbitrary-code selection. The currently selected
@@ -448,7 +523,7 @@ function render_provenance_chain(arg: Arg, view: ArgView, state: State, flush_ca
   if (links.length > 0) {
     view.chain_links = links;
     // Changing the call arg itself (the first widget) strands the entire chain.
-    on_committed_change(view.widget, state, () => remove_downstream(0));
+    on_committed_change(view.widget, state, () => remove_downstream(0), () => links.some(link => link.active));
   }
 }
 
@@ -483,7 +558,7 @@ export function enable_arg_view(arg_view: ArgView) {
   arg_view.disabled = false;
 }
 
-function disable_arg_view(arg_view: ArgView) {
+export function disable_arg_view(arg_view: ArgView) {
   arg_view.el.classList.add("plottery-arg-disabled");
   arg_view.disabled = true;
 }

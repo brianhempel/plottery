@@ -2,6 +2,7 @@ import { CallView, State } from "../types";
 import "./properties_panel.css";
 import { create_el, create_search_icon, get_persistent_item, set_persistent_item } from "../utils/misc";
 import { debounce, log_event } from "../utils/instrumentation";
+import { create_multi_args, multi_call_label } from "./multi_args";
 
 export function set_properties_panel_on({ els: { name_el, properties_el: args_el }}: CallView, state: State): void {
   const properties_el = state.properties_el;
@@ -15,6 +16,20 @@ export function set_properties_panel_on({ els: { name_el, properties_el: args_el
   filter_properties(state);
 }
 
+// With several calls selected, show the args they share (see multi_args.ts).
+export function set_properties_panel_on_many(call_views: CallView[], state: State): void {
+  const properties_el = state.properties_el;
+
+  clear_properties_panel(state);
+  properties_el.classList.remove('hidden');
+
+  const { el, teardown } = create_multi_args(call_views, state);
+  properties_el.append(el);
+  state.teardown_multi_args = teardown;
+  (properties_el.querySelector('.plottery-properties-panel-header')! as HTMLElement).innerText = `${multi_call_label(call_views)} Properties`;
+  filter_properties(state);
+}
+
 function clear_properties_panel(state: State) {
   state.layers_panel.layers.forEach(layer => {
     layer.call_views.forEach(({ els: { el: view_el, properties_el: args_el }}) => {
@@ -25,6 +40,8 @@ function clear_properties_panel(state: State) {
       }
     });
   });
+  state.teardown_multi_args?.();
+  state.teardown_multi_args = undefined;
   state.properties_el.classList.add('hidden');
 }
 

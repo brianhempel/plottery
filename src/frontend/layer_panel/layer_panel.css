@@ -188,3 +188,7 @@ input.plottery-layer-checkbox {
 .cm-editor .cm-line.plottery-line-selected {
   background-color: rgba(25, 135, 225, 0.1);
 }
+/* The layers being dragged to reorder them */
+.plottery-layer.dragging {
+  opacity: 0.4;
+}

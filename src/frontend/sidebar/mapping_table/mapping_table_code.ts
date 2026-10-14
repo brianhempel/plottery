@@ -186,6 +186,99 @@ export function python_names(code: string): Set<string> {
   return names;
 }
 
+// The index just past the string literal starting at code[i] (its first quote). An unterminated
+// single-quoted string ends at its line's end.
+function skip_python_string(code: string, i: number): number {
+  const quote = code[i];
+  const closing = code.startsWith(quote.repeat(3), i) ? quote.repeat(3) : quote;
+  let j = i + closing.length;
+  while (j < code.length) {
+    if (code[j] === "\\") { j += 2; continue; }
+    if (code.startsWith(closing, j)) return j + closing.length;
+    if (closing.length === 1 && code[j] === "\n") return j;
+    j++;
+  }
+  return code.length;
+}
+
+// The simple statements of a block of Python code, without comments: one per logical line,
+// split at semicolons (so `for x in xs: y = x` stays one).
+function python_statements(code: string): string[] {
+  const statements: string[] = [];
+  let statement = "";
+  let depth = 0;
+  let i = 0;
+  while (i < code.length) {
+    const c = code[i];
+    if (c === "'" || c === '"') {
+      const end = skip_python_string(code, i);
+      statement += code.slice(i, end);
+      i = end;
+      continue;
+    }
+    if (c === "#") {
+      while (i < code.length && code[i] !== "\n") i++;
+      continue;
+    }
+    if (c === "\\" && code[i + 1] === "\n") { statement += " "; i += 2; continue; }
+    if ("([{".includes(c)) depth++;
+    if (")]}".includes(c)) depth = Math.max(0, depth - 1);
+    if (depth === 0 && (c === "\n" || c === ";")) {
+      statements.push(statement);
+      statement = "";
+      i++;
+      continue;
+    }
+    statement += c;
+    i++;
+  }
+  statements.push(statement);
+  return statements.filter(statement => statement.trim() !== "");
+}
+
+// What a statement assigns to (everything left of its last top-level `=`, `+=`, etc.), or null.
+function assignment_target(statement: string): string | null {
+  let depth = 0;
+  let last = -1;
+  let i = 0;
+  while (i < statement.length) {
+    const c = statement[i];
+    if (c === "'" || c === '"') { i = skip_python_string(statement, i); continue; }
+    if ("([{".includes(c)) depth++;
+    if (")]}".includes(c)) depth = Math.max(0, depth - 1);
+    if (c === "=" && depth === 0) {
+      if (statement[i + 1] === "=") { i += 2; continue; } // ==
+      const before = statement.slice(Math.max(0, i - 2), i);
+      const is_comparison_or_walrus = /[=!<>:]$/.test(before) && !/^(<<|>>)$/.test(before); // <=, >=, !=, :=, but <<= and >>= assign
+      if (!is_comparison_or_walrus) last = i;
+    }
+    i++;
+  }
+  return last === -1 ? null : statement.slice(0, last);
+}
+
+// The names a block of Python code may bind: assignment targets (augmented, annotated, and walrus
+// too), for-loop targets, def and class names and parameters, imports, and `as` targets.
+// Over-approximates (e.g. the names in a subscripted target, or a parameter's default), which is
+// the safe side for telling whether code could change what a name means.
+export function python_bound_names(code: string): Set<string> {
+  const names = new Set<string>();
+  const add_names = (part: string) => python_names(part).forEach(name => names.add(name));
+  for (const statement of python_statements(code)) {
+    const s = statement.trim();
+    let match: RegExpMatchArray | null;
+    if ((match = s.match(/^(?:async\s+)?for\s+([\s\S]+?)\s+in\b/))) add_names(match[1]);
+    // Parameters with defaults read as keyword args to python_names, so make them plain names.
+    if ((match = s.match(/^(?:async\s+)?(?:def|class)\s+([\s\S]*)/))) add_names(match[1].replace(/=/g, ","));
+    if ((match = s.match(/^(?:from\s+\S+\s+)?import\s+([\s\S]*)/))) add_names(match[1]);
+    for (const as_match of s.matchAll(/\bas\s+([\p{L}_][\p{L}\p{N}_]*)/gu)) names.add(as_match[1]);
+    for (const walrus_match of s.matchAll(/([\p{L}_][\p{L}\p{N}_]*)\s*:=/gu)) names.add(walrus_match[1]);
+    const target = assignment_target(s);
+    if (target !== null) add_names(target);
+  }
+  return names;
+}
+
 // `code` with every reference to the variable `from` renamed to `to`.
 export function rename_python_name(code: string, from: string, to: string): string {
   const spans: [number, number][] = [];

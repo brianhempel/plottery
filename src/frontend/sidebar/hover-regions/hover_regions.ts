@@ -1,13 +1,14 @@
 import { refresh_hover_regions } from "../../code_sync/code_sync";
-import { begin_undo_group, end_undo_group, UndoGroup } from "../../code_sync/undo_group";
-import { select_layer, selected_layers } from "../../layer_panel/layer_panel";
+import { begin_undo_group, end_undo_group, undo_group_origin, UndoGroup } from "../../code_sync/undo_group";
+import { click_selection_mode, is_layer_selected, select_layer, selected_layers } from "../../layer_panel/layer_panel";
 import {
+  CallView,
   MethodWithCode,
   State,
 } from "../../types";
 import { zip, equalByJSON } from "../../utils/stdlib";
 import { create_el, escape_html, place_centered_over_shape, place_over_shape, reposition_to_avoid_overlap } from "../../utils/misc";
-import { perhaps_get_drag_bottom_edge_handler, perhaps_get_drag_left_edge_handler, perhaps_get_drag_right_edge_handler, perhaps_get_drag_top_edge_handler, perhaps_get_drag_x_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler } from "../call/call";
+import { DragHandler1D, DragHandler2D, perhaps_get_drag_bottom_edge_handler, perhaps_get_drag_left_edge_handler, perhaps_get_drag_right_edge_handler, perhaps_get_drag_top_edge_handler, perhaps_get_drag_x_handler, perhaps_get_drag_xy_handler, perhaps_get_drag_y_handler, write_calls_and_redraw } from "../call/call";
 import { add_method_call } from "../methods/method";
 import "./hover_regions.css";
 import { add_menu_item, add_search, create_menu_el } from "../../menus/menus";
@@ -161,6 +162,127 @@ export type Boundses = {
   region_px_bounds: [number, number, number, number];
 };
 
+function hover_region_boundses(hover_region: SVGElement): Boundses {
+  const fig_px_bounds    : [number, number, number, number] = hover_region.dataset.figPxBounds    ? (JSON.parse(hover_region.dataset.figPxBounds)    || [0, 0, 0, 0]) : [0, 0, 0, 0];
+  const axes_px_bounds   : [number, number, number, number] | null = hover_region.dataset.axesPxBounds   ? JSON.parse(hover_region.dataset.axesPxBounds)   : null;
+  const axes_unit_bounds : [number, number, number, number] | null = hover_region.dataset.axesUnitBounds ? JSON.parse(hover_region.dataset.axesUnitBounds) : null;
+  const region_px_bounds : [number, number, number, number] = hover_region.dataset.regionPxBounds ? (JSON.parse(hover_region.dataset.regionPxBounds) || [0, 0, 0, 0]) : [0, 0, 0, 0];
+
+  return { fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds };
+}
+
+// What dragging a shape does: move it, or move one of its edges.
+type DragKind = "move" | "left" | "right" | "top" | "bottom";
+
+// One call's handlers in a drag, and the bounds of its shape, for converting the pointer's
+// movement into the call's own units.
+type DragPart = {
+  call_view: CallView;
+  boundses: Boundses;
+  xy?: DragHandler2D; // Preferred over the below if present.
+  x?: DragHandler1D;
+  y?: DragHandler1D;
+  xy_offset: [number, number]; // Added to the pointer position given to xy.
+};
+
+function run_drag_part(part: DragPart, client_px_in_fig: [number, number], delta_px: [number, number], fig_bb: DOMRect) {
+  const { boundses, xy, x, y, xy_offset } = part;
+  if (xy) {
+    xy([client_px_in_fig[0] + xy_offset[0], client_px_in_fig[1] + xy_offset[1]], delta_px, fig_bb, boundses);
+  } else {
+    if (x) { x(client_px_in_fig[0], delta_px[0], fig_bb, boundses); }
+    if (y) { y(client_px_in_fig[1], delta_px[1], fig_bb, boundses); }
+  }
+}
+
+// Dragging one of several selected shapes drags the other selected shapes along: moving each as
+// far as it can be moved, or moving the same edge of each. The parts for those other calls.
+function companion_drag_parts(kind: DragKind, grabbed: CallView, start_px_in_fig: [number, number], fig_bb: DOMRect, state: State): DragPart[] {
+  const parts: DragPart[] = [];
+  selected_layers(state).forEach(layer => {
+    zip(layer.calls_with_args, layer.call_views).forEach(([call_with_args, call_view]) => {
+      if (call_view === grabbed) return;
+      const hover_region = hover_regions_for_call(call_with_args.call_info.call_id, state)[0];
+      if (!hover_region) return; // Not on the plot, so we can't tell its scale.
+      const boundses = hover_region_boundses(hover_region);
+
+      const part: DragPart = { call_view, boundses, xy_offset: [0, 0] };
+      if (kind === "move") {
+        part.xy = perhaps_get_drag_xy_handler(call_view);
+        if (part.xy) {
+          part.xy_offset = legend_pointer_offset(boundses, start_px_in_fig, fig_bb);
+        } else {
+          part.x = perhaps_get_drag_x_handler(call_view);
+          part.y = perhaps_get_drag_y_handler(call_view);
+        }
+      } else if (kind === "left") {
+        part.x = perhaps_get_drag_left_edge_handler(call_view);
+      } else if (kind === "right") {
+        part.x = perhaps_get_drag_right_edge_handler(call_view);
+      } else if (kind === "top") {
+        part.y = perhaps_get_drag_top_edge_handler(call_view);
+      } else if (kind === "bottom") {
+        part.y = perhaps_get_drag_bottom_edge_handler(call_view);
+      }
+      if (part.xy || part.x || part.y) parts.push(part);
+    });
+  });
+  return parts;
+}
+
+// A legend's drag handler puts the legend's lower left corner at the pointer, less 5% of its axes
+// (see perhaps_get_drag_xy_handler). To move a legend along with the pointer from where it is,
+// rather than jump it there, offset the pointer position the handler gets by this much.
+function legend_pointer_offset(boundses: Boundses, start_px_in_fig: [number, number], fig_bb: DOMRect): [number, number] {
+  const [fig_x0,  fig_y0,  fig_x1]           = boundses.fig_px_bounds;
+  const [axes_x0, axes_y0, axes_x1, axes_y1] = boundses.axes_px_bounds ?? boundses.fig_px_bounds;
+  const [region_x0, region_y0]               = boundses.region_px_bounds;
+  const client_px_per_fig_px = fig_bb.width / (fig_x1 - fig_x0);
+  return [
+    (region_x0 - fig_x0 + 0.05 * (axes_x1 - axes_x0)) * client_px_per_fig_px - start_px_in_fig[0],
+    (region_y0 - fig_y0 + 0.05 * (axes_y1 - axes_y0)) * client_px_per_fig_px - start_px_in_fig[1],
+  ];
+}
+
+// Calls whose args share a variable (`w = 0.5`, then `width=w` in each) each have a handler for
+// its number. Only the first may drag it, or they'd fight over it.
+function drop_shared_handlers(parts: DragPart[], state: State): DragPart[] {
+  const cm = state.cell.code_mirror;
+  const dragged = new Set<string>();
+  const unless_shared = (handler: DragHandler1D | undefined) => {
+    const range = handler?.chain_link?.mark.find();
+    if (!range) return handler;
+    const key = `${cm.indexFromPos(range.from)}-${cm.indexFromPos(range.to)}`;
+    if (dragged.has(key)) return undefined;
+    dragged.add(key);
+    return handler;
+  };
+  parts.forEach(part => {
+    part.x = unless_shared(part.x);
+    part.y = unless_shared(part.y);
+  });
+  return parts.filter(part => part.xy || part.x || part.y);
+}
+
+// Write the variables' numbers the dragged calls' handlers edit through a variable's chain link
+// rather than the call (see write_calls_and_redraw). Returns whether the code changed.
+function write_chain_link_numbers(parts: DragPart[], state: State): boolean {
+  const cm = state.cell.code_mirror;
+  let changed = false;
+  parts.forEach(part => {
+    [part.x, part.y].forEach(handler => {
+      const link = handler?.chain_link;
+      const range = link?.active ? link.mark.find() : undefined;
+      if (!link || !range) return;
+      const code = link.widget.to_code();
+      if (code.trim() === "" || cm.getRange(range.from, range.to) === code) return;
+      cm.replaceRange(code, range.from, range.to, undo_group_origin(state));
+      changed = true;
+    });
+  });
+  return changed;
+}
+
 export function attach_events_to_hover_regions(state: State) {
 
   // Attach drag handlers to artists that are the result of calls in the code
@@ -193,16 +315,15 @@ export function attach_events_to_hover_regions(state: State) {
         let start_y = 0;
         let fig_bb: DOMRect = new DOMRect();
 
-        let xy_handler : ((client_px_in_fig: [number, number], delta_px: [number, number], fig_bb: DOMRect, boundses: Boundses) => void) | undefined = undefined; // Preferred over the below if present.
-        let x_handler  : ((client_px_in_fig: number,           delta_px: number,           fig_bb: DOMRect, boundses: Boundses) => void) | undefined = undefined;
-        let y_handler  : ((client_px_in_fig: number,           delta_px: number,           fig_bb: DOMRect, boundses: Boundses) => void) | undefined = undefined;
+        let drag_kind  : DragKind | undefined = undefined;
+        let xy_handler : DragHandler2D | undefined = undefined; // Preferred over the below if present.
+        let x_handler  : DragHandler1D | undefined = undefined;
+        let y_handler  : DragHandler1D | undefined = undefined;
 
-        let fig_px_bounds    : [number, number, number, number] = hover_region.dataset.figPxBounds    ? (JSON.parse(hover_region.dataset.figPxBounds)    || [0, 0, 0, 0]) : [0, 0, 0, 0];
-        let axes_px_bounds   : [number, number, number, number] | null = hover_region.dataset.axesPxBounds   ? JSON.parse(hover_region.dataset.axesPxBounds)   : null;
-        let axes_unit_bounds : [number, number, number, number] | null = hover_region.dataset.axesUnitBounds ? JSON.parse(hover_region.dataset.axesUnitBounds) : null;
-        let region_px_bounds : [number, number, number, number] = hover_region.dataset.regionPxBounds ? (JSON.parse(hover_region.dataset.regionPxBounds) || [0, 0, 0, 0]) : [0, 0, 0, 0];
+        // This shape's call, then those of the other selected shapes dragged along with it.
+        let drag_parts : DragPart[] = [];
 
-        let boundses: Boundses = { fig_px_bounds, axes_px_bounds, axes_unit_bounds, region_px_bounds };
+        const boundses = hover_region_boundses(hover_region);
 
         hover_region.addEventListener("mouseover", ev => {
           hover_regions.forEach(hover_region => {
@@ -233,41 +354,49 @@ export function attach_events_to_hover_regions(state: State) {
           // For checking edges, we already know the mouse is over the hover region so we don't have to check the outer bounds.
           if (perhaps_drag_left_edge_handler && evt.clientX < x + ew_edge_w) {
             hover_region.style.cursor = "col-resize";
+            drag_kind = "left";
             x_handler = perhaps_drag_left_edge_handler;
             y_handler = undefined;
             xy_handler = undefined;
           } else if (perhaps_drag_right_edge_handler && evt.clientX > right - ew_edge_w) {
             hover_region.style.cursor = "col-resize";
+            drag_kind = "right";
             x_handler = perhaps_drag_right_edge_handler;
             y_handler = undefined;
             xy_handler = undefined;
           } else if (perhaps_drag_top_edge_handler && evt.clientY < y + ns_edge_w) {
             hover_region.style.cursor = "row-resize";
+            drag_kind = "top";
             y_handler = perhaps_drag_top_edge_handler;
             x_handler = undefined;
             xy_handler = undefined;
           } else if (perhaps_drag_bottom_edge_handler && evt.clientY > bottom - ns_edge_w) {
             hover_region.style.cursor = "row-resize";
+            drag_kind = "bottom";
             y_handler = perhaps_drag_bottom_edge_handler;
             x_handler = undefined;
             xy_handler = undefined;
           } else if (perhaps_drag_xy_handler) {
             hover_region.style.cursor = "move";
+            drag_kind = "move";
             xy_handler = perhaps_drag_xy_handler;
             x_handler = undefined;
             y_handler = undefined;
           } else if (perhaps_drag_x_handler) {
             hover_region.style.cursor = perhaps_drag_y_handler ? "move" : "ew-resize";
+            drag_kind = "move";
             x_handler = perhaps_drag_x_handler;
             y_handler = perhaps_drag_y_handler;
             xy_handler = undefined;
           } else if (perhaps_drag_y_handler) {
             hover_region.style.cursor = "ns-resize";
+            drag_kind = "move";
             y_handler = perhaps_drag_y_handler;
             x_handler = undefined;
             xy_handler = undefined;
           } else {
             hover_region.style.cursor = "default";
+            drag_kind = undefined;
             x_handler = undefined;
             y_handler = undefined;
             xy_handler = undefined;
@@ -302,16 +431,24 @@ export function attach_events_to_hover_regions(state: State) {
         const on_document_mousemove = (evt: MouseEvent) => {
           if (pressed) {
             if (!moved) {
-              log_event("gui", "on-plot drag start", {call: call_info.func_code, code: state.cell.code_mirror.getValue()});
+              const start_px_in_fig: [number, number] = [start_x - fig_bb.x, fig_bb.bottom - start_y];
+              const xy_offset: [number, number] = xy_handler ? legend_pointer_offset(boundses, start_px_in_fig, fig_bb) : [0, 0];
+              drag_parts = [{ call_view, boundses, xy: xy_handler, x: x_handler, y: y_handler, xy_offset }];
+              // Dragging one of the selected shapes drags them all.
+              if (drag_kind && is_layer_selected(layer, state)) {
+                drag_parts = drop_shared_handlers([...drag_parts, ...companion_drag_parts(drag_kind, call_view, start_px_in_fig, fig_bb, state)], state);
+              }
+              log_event("gui", "on-plot drag start", {call: call_info.func_code, code: state.cell.code_mirror.getValue(), also_dragging: drag_parts.slice(1).map(part => part.call_view.els.name_el.textContent)});
               drag_undo_group = begin_undo_group(state); // The whole drag is one undo step
             }
             moved = true;
             const dx = evt.clientX - start_x;
             const dy = evt.clientY - start_y;
             const client_px_in_fig: [number, number] = [evt.clientX - fig_bb.x, fig_bb.bottom - evt.clientY];
-            if (xy_handler) { xy_handler(client_px_in_fig, [dx, dy], fig_bb, boundses); }
-            if (x_handler)  { x_handler(client_px_in_fig[0], dx, fig_bb, boundses); }
-            if (y_handler)  { y_handler(client_px_in_fig[1], dy, fig_bb, boundses); }
+            drag_parts.forEach(part => run_drag_part(part, client_px_in_fig, [dx, dy], fig_bb));
+            if (drag_parts.length > 1) {
+              write_calls_and_redraw(drag_parts.map(part => part.call_view), state, () => write_chain_link_numbers(drag_parts, state));
+            }
             state.hover_regions_container.classList.add("hide_during_interaction");
             evt.preventDefault();
             evt.stopPropagation();
@@ -322,7 +459,7 @@ export function attach_events_to_hover_regions(state: State) {
         };
         document.addEventListener("mousemove", on_document_mousemove);
 
-        const on_document_mouseup = (_evt: MouseEvent) => {
+        const on_document_mouseup = (evt: MouseEvent) => {
           if (pressed) {
             pressed = false;
             // state.hover_regions_container.classList.remove("hidden");
@@ -332,8 +469,9 @@ export function attach_events_to_hover_regions(state: State) {
             // const dx = evt.clientX - start_x;
             // const dy = evt.clientY - start_y;
             if (!moved) {
-              log_event("gui", "on-plot layer click-select", {layer: layer.el.innerText});
-              select_layer(layer, state, call_view);
+              const mode = click_selection_mode(evt, false);
+              log_event("gui", "on-plot layer click-select", {layer: layer.el.innerText, mode});
+              select_layer(layer, state, call_view, mode);
             } else {
               moved = false;
               if (drag_undo_group) end_undo_group(state, drag_undo_group);

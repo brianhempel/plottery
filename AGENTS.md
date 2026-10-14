@@ -152,6 +152,7 @@ Overlapping regions intercept by z-order (`fig` / `ax` span the whole plot; a fr
 
 - `.plottery-layers-panel`, `.plottery-layer` — layer rows (includes a hidden `.plottery-code-layer` per import/blank line).
 - `.plottery-properties-panel`, `.plottery-args` — the selected call's argument rows/widgets.
+- `.plottery-multi-args` — the Properties panel's rows when several calls are selected (Shift/Cmd-click). A row is `.plottery-arg-mixed` when the calls' values differ; `.plottery-arg-link` is its link icon (`.linked` once the calls share a variable). `window.last_plottery_state.selection` lists the selected layers in selection order.
 - `[data-call-id]` — hover-region `<g>` on the plot (also carries `data-artist-name` and `data-*-bounds`).
 - `.plottery-method-view` — on-plot ＋ buttons/menus; **only visible while the plot is hovered** (`.plot_area:hover`), so move the mouse over the plot first. `.plottery-menu-item` are the items inside an opened menu.
 - `.plot_area img` (plot PNG), `.hover_regions` (SVG overlay), `.stdout_stderr` (renders kernel error text — check it after an action).

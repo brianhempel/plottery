@@ -40,7 +40,7 @@ import { MarkerRange, TextMarker } from "../../utils/codemirror";
 import { log_event } from "../../utils/instrumentation";
 import { create_el, create_red_x_button_icon, default_code_for_type, get_persistent_item, non_colliding_name, set_persistent_item } from "../../utils/misc";
 import { Widget, make_widget_for_code_and_type } from "../widgets/widget";
-import { DropdownWidget, add_item_to_dropdown_widget, committed_code, create_dropdown_widget, select_dropdown_item } from "../widgets/dropdown/dropdown";
+import { DropdownWidget, committed_code, create_dropdown_widget, select_dropdown_item, set_dropdown_code } from "../widgets/dropdown/dropdown";
 import { ArbitraryCodeWidget, create_arbitrary_code_widget } from "../widgets/arbitrary_code/arbitrary_code";
 import { CodeAndControlWidget } from "../widgets/code_and_control/code_and_control";
 import { code_to_hex } from "../widgets/color/color";
@@ -125,18 +125,6 @@ export function create_table_icon(): HTMLElement {
   const el = create_el("div", "plottery-mt-icon");
   el.innerHTML = `<svg viewBox="0 0 13 13" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="1.5" width="12" height="9" rx="1.5"/><path d="M0.5 4.5h12M0.5 7.5h12M4.5 1.5v9M8.5 1.5v9"/></svg>`;
   return el;
-}
-
-// Commit `code` as the dropdown's value, keeping a rich widget (slider, color picker) if it can hold it.
-function set_dropdown_code(dropdown: DropdownWidget, code: string) {
-  const selected = dropdown.selected_item as (Widget & { kind?: string }) | undefined;
-  if (selected && (selected.kind === "ArbitraryCode" || selected.kind === "CodeAndControl")) {
-    selected.set_code(code);
-  } else {
-    const code_widget = create_arbitrary_code_widget(code);
-    add_item_to_dropdown_widget(dropdown, code_widget);
-    select_dropdown_item(dropdown, code_widget);
-  }
 }
 
 export function is_color_type(type: Type): boolean {

@@ -1,4 +1,4 @@
-import { create_layers_panel, deselect_all_layers, is_layer_selected, layers_from_parseable_comment, layers_from_typed_node, load_selected_layers, select_layer } from "./layer_panel/layer_panel";
+import { create_layers_panel, deselect_all_layers, is_layer_selected, layers_from_parseable_comment, layers_from_typed_node, layers_with_call_ids, load_selected_layers, select_layer, select_layers } from "./layer_panel/layer_panel";
 // import { set_artist_parent_ids } from "./sidebar/artist/artist";
 import { make_plot_widgets, reposition_plot_widgets } from "./sidebar/plot-widget/plot_widget";
 // import { focus_on_call_from_code } from "./sidebar/sidebar";
@@ -104,6 +104,10 @@ function attach_plottery(
     calls_with_args: [],
 
     dragging_layers: [],
+
+    selection: [],
+    selection_anchor: undefined,
+    teardown_multi_args: undefined,
 
     plottery_outer: plottery_outer,
     plot_area: plottery_outer.querySelector(".plot_area")!,
@@ -254,10 +258,15 @@ div#notebook .CodeMirror { font-size: 17px }
 
   // Clicks on non-selectable elements on plot should deselect.
   // (Clicks on selectable elements do not propogate to the container.)
-  state.hover_regions_container.addEventListener("click", _ => { log_event('gui', 'plot background click deselect all'); deselect_all_layers(state); });
+  // A Shift/Cmd/Ctrl-click (adding to the selection) that misses every shape leaves the selection alone.
+  state.hover_regions_container.addEventListener("click", ev => {
+    if (ev.shiftKey || ev.metaKey || ev.ctrlKey) { ev.stopPropagation(); return; }
+    log_event('gui', 'plot background click deselect all');
+    deselect_all_layers(state);
+  });
 
   // Track cursor movement in the cell to keep the layer selection in sync with where the user is editing.
-  // Only available in Notebooks v6 right now; the JupyterLab CM6 facade doesn't expose these APIs.
+  // Feature-detected, for editors without these APIs.
   const cm = state.cell.code_mirror as any;
   if (typeof cm.on === 'function' && typeof cm.getCursor === 'function') {
     // This listener lives on the cell's *input* editor, which survives re-runs, so a new
@@ -265,7 +274,22 @@ div#notebook .CodeMirror { font-size: 17px }
     // render's listener so exactly one (the live render's) is ever attached at a time.
     cm.__plottery_cursor_activity_off?.();
 
+    // CodeMirror 5 also fires cursorActivity for changes to the code that touch or move the
+    // selection, including Plottery's own writes (e.g. editing the selected calls' args), which
+    // must not change the selection. So only follow the cursor when it moves without a change.
+    // Both events fire synchronously as the change's operation ends, so the flag is cleared
+    // right after: a change that doesn't move the selection fires no cursorActivity, and must
+    // not swallow the next real cursor move. (The JupyterLab facade only fires cursorActivity
+    // when the selection is set, and has no "change" events.)
+    let code_changed = false;
+    const on_change = () => {
+      code_changed = true;
+      queueMicrotask(() => { code_changed = false; });
+    };
+
     const on_cursor_activity = () => {
+      if (code_changed) return;
+
       // Guard the brief window between this render's output being cleared and the next
       // render attaching (which removes this listener): don't act on a detached render.
       if (!state.is_in_dom()) return;
@@ -286,13 +310,17 @@ div#notebook .CodeMirror { font-size: 17px }
       // If the cursor isn't inside any layer (e.g. blank line, plt.show, etc.),
       // leave the existing selection alone. Only sync selection for function-call
       // layers — body layers (if/for/def/plain code) scroll the editor out of view.
-      if (containing && containing.call_views.length > 0 && !is_layer_selected(containing)) {
+      if (containing && containing.call_views.length > 0 && !is_layer_selected(containing, state)) {
         select_layer(containing, state);
       }
     };
 
+    cm.on("change", on_change);
     cm.on("cursorActivity", on_cursor_activity);
-    cm.__plottery_cursor_activity_off = () => cm.off("cursorActivity", on_cursor_activity);
+    cm.__plottery_cursor_activity_off = () => {
+      cm.off("change", on_change);
+      cm.off("cursorActivity", on_cursor_activity);
+    };
   }
 
   state.sidebar_el.append(state.layers_panel.el);
@@ -337,28 +365,37 @@ div#notebook .CodeMirror { font-size: 17px }
 
 
   const new_calls: string[] = JSON.parse(get_persistent_item(state, "new_calls") || "[]");
+  // The selection after dragging layers to reorder them, by line, in selection order
+  const moved_calls: string[] = JSON.parse(get_persistent_item(state, "moved_calls") || "[]");
+  if (moved_calls.length > 0) set_persistent_item(state, "moved_calls", "[]");
 
   // console.log("new_calls", new_calls);
 
   // Select new call(s) or re-gen the selection state
   if (new_calls.length > 0) {
-    // select layers whose get_code_and_loc_for_call(call.call_info) appears in new_calls
-    state.layers_panel.layers.forEach(layer => {
-      const ids_as_new_call = layer.calls_with_args.map(call_with_args => id_as_new_call(call_with_args.call_info));
-      // console.log(ids_as_new_call)
-      if (ids_as_new_call.some(id => new_calls.includes(id))) {
-        select_layer(layer, state);
+    // select layers whose id_as_new_call(call.call_info) appears in new_calls
+    const new_call_layers = layers_with_call_ids(new_calls, id_as_new_call, state);
+    if (new_call_layers.length > 0) select_layers(new_call_layers, state);
 
-        // If there's an associated plot widget, "click" it to start editing
-        for (const { icon_el, show_on_call_id } of state.plot_widgets) {
-          if (layer.calls_with_args.some(call_with_args => call_with_args.call_info.call_id == show_on_call_id)) {
-            icon_el.click();
-          }
+    // If there's one new layer with an associated plot widget, "click" it to start editing
+    // (which selects just its call).
+    if (new_call_layers.length === 1) {
+      const layer = new_call_layers[0];
+      for (const { icon_el, show_on_call_id } of state.plot_widgets) {
+        if (layer.calls_with_args.some(call_with_args => call_with_args.call_info.call_id == show_on_call_id)) {
+          icon_el.click();
         }
       }
-    });
+    }
 
     set_persistent_item(state, "new_calls", "[]");
+  } else if (moved_calls.length > 0) {
+    const moved_layers = layers_with_call_ids(moved_calls, id_as_new_call, state);
+    if (moved_layers.length > 0) {
+      select_layers(moved_layers, state);
+    } else {
+      load_selected_layers(state);
+    }
   } else {
     load_selected_layers(state);
   }
