@@ -1,16 +1,16 @@
 # AGENTS.md
 
-## Read `README.md` first
+## Read `DEVELOPING.md` first
 
-`README.md` is the canonical guide to this project (**Plottery**, an in-notebook graphical UI for Matplotlib). It covers install/run steps, the big-picture data flow, the repo layout, the Python ↔ TypeScript split, and detailed UI-interaction walkthroughs (§9). Start there — most "how does this fit together?" questions are answered in it.
+`DEVELOPING.md` is the canonical guide to this project (**Plottery**, an in-notebook graphical UI for Matplotlib). It covers install/run steps, the big-picture data flow, the repo layout, the Python ↔ TypeScript split, and detailed UI-interaction walkthroughs (§9). Start there — most "how does this fit together?" questions are answered in it.
 
-Quick orientation (details in `README.md`):
+Quick orientation (details in `DEVELOPING.md`):
 
 - `src/plottery/` — Python package: rendering, mypy type inference, hover regions, serialization (core in `__init__.py`).
 - `src/frontend/` — TypeScript UI, bundled by Vite → `src/plottery/static/plugin.js` + `plottery.css` (entry `attach_plottery()` in `main.ts`). Every `.css` file must be imported by its `.ts` module (`import "./foo.css";`) or it's left out of the bundle.
 - `src/nbextension_plottery/` — browser extension for classic Jupyter Notebook v6.
 - `src/plottery_jupyter/` — browser extension for JupyterLab / Notebook v7.
-- `pyproject.toml`, `scripts/release/` — the `plottery-ui` PyPI package and its build/check/publish scripts (README "Releasing to PyPI"). Never run `5_publish.sh` yourself.
+- `pyproject.toml`, `scripts/release/` — the `plottery-ui` PyPI package and its build/check/publish scripts (see `DEVELOPING.md`'s "Releasing to PyPI"). Never run `5_publish.sh` yourself.
 
 ## No Outer-Level const/let in Typescript
 
